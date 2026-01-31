@@ -1067,6 +1067,16 @@ if ($ghInstalled) {
             # Esperar a que GitHub procese el push
             Start-Sleep -Seconds 3
             
+            # Activar Pages mediante API
+            $pagesResult = gh api "repos/$ghUser/$repoName/pages" -X POST -f source[branch]=gh-pages -f source[path]=/ 2>&1
+            
+            if ($LASTEXITCODE -eq 0) {
+                Write-Success "GitHub Pages activado"
+            }
+            else {
+                Write-Warning-Custom "GitHub Pages se activará automáticamente tras el primer deploy"
+            }
+            
             # Disparar workflow de deploy
             Write-Info "Iniciando deploy automático del frontend..."
             gh workflow run deploy-ui.yml 2>&1 | Out-Null

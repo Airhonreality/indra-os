@@ -255,7 +255,7 @@ if (Test-Path $urlPath) {
 
 Write-Host ""
 Write-Info "Frontend (GitHub Pages - desplegando en ~2 min):"
-Write-Host "   https://TU-USUARIO.github.io/indra-os" -ForegroundColor Cyan
+Write-Host "   https://Airhonreality.github.io/indra-os" -ForegroundColor Cyan
 Write-Host ""
 
 Write-Success "Ambos sistemas actualizados correctamente"

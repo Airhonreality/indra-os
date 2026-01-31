@@ -1,0 +1,54 @@
+{
+    "omd_03": {
+        "id": "view_flow_orchestrator",
+        "clase_ui": "HYBRID_CANVAS_ENGINE",
+        "layer": "NIVEL_1_VIEWS",
+        "description": "Lienzo de automatización híbrida (The Canvas) - Orquestador de flujos lógicos.",
+        "sub_modules": {
+            "spatial_stage": {
+                "id": "logic_stage",
+                "label": "Escenario Lógico",
+                "archetype": "SYSTEM_INFRA",
+                "render_mode": "WEBGL_GRID",
+                "capabilities": [
+                    "pan",
+                    "zoom",
+                    "grid_snap"
+                ]
+            },
+            "node_layer": {
+                "id": "logic_entities",
+                "label": "Capa de Nodos",
+                "archetype": "ORCHESTRATOR",
+                "render_mode": "REACT_NODE_WRAPPERS",
+                "capabilities": [
+                    "drag_and_drop",
+                    "parameter_access",
+                    "status_breathing"
+                ]
+            },
+            "cable_layer": {
+                "id": "photon_links",
+                "label": "Capa de Cables",
+                "archetype": "STREAM",
+                "render_mode": "WEBGL_PHOTON_LINES",
+                "capabilities": [
+                    "bezier_physics",
+                    "data_pulse",
+                    "magnetic_pull"
+                ]
+            }
+        },
+        "engine_ref": "ISK_v3.2",
+        "physics_config": {
+            "grid_snap": 20,
+            "cable_tension": 0.5,
+            "magnetic_pull": 15
+        },
+        "interaction_rules": {
+            "onConnect": "VALIDATE_MASTERLAW",
+            "onDoubleClickCable": "INSERT_OBSERVER",
+            "onPlay": "ACTIVATE_STARK_MODE"
+        }
+    }
+}

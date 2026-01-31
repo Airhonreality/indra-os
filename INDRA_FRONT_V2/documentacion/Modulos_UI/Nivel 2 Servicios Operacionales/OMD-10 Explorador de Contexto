@@ -1,0 +1,78 @@
+💎 Blueprint OMD-10: Explorador de Contexto (The Source)
+1. Identificación y Alcance (ID & Context)
+ID Técnico: view_context_explorer
+Nombre Funcional: Explorador de Contexto (The Source).
+Naturaleza: Servicio Global Transversal (Inyectable en cualquier Vista).
+Primitiva Vinculada: FlowState + MCEP_Distiller + PubSub_Engine.
+Axioma de Diseño: "Lo que el sistema sabe, el usuario lo ve en tiempo real."
+2. Anatomía y Distribución de la Interfaz (UI Shell)
+El OMD-10 está diseñado como un monitor de alta densidad que organiza el caos de datos del FlowState en una estructura jerárquica legible.
+A. Cabecera de Búsqueda y Filtros (The Filter Bar)
+Buscador Global: Input con autocompletado semántico. Soporta comandos (ej: type:number, source:notion).
+Selectores de Origen (Source Tabs): Iconos rápidos para filtrar por:
+SYSTEM: Variables de entorno (Time, User, Device).
+ADAPTERS: Datos provenientes de Notion, Sheets, APIs.
+AI: Salidas del Neural Copilot (OMD-04).
+COMPUTED: Variables creadas por el usuario en el Mapeador Reactivo (OMD-11).
+B. El Cuerpo del Inventario (The Variable Tree)
+Lista de Entidades: Acordeones colapsables por "Bóveda" o "Nodo".
+Fila de Variable:
+Indicador de Tipo: Icono pequeño (String, Number, Boolean, Object, Array).
+Nombre de la Variable: El ID técnico (ej: stock_total).
+Monitor de Valor Vivo: Un área que muestra el valor actual (ej: 85.4). Si el valor cambia en el Core, el texto pulsa brevemente en color cian.
+Botón de Acción (Quick Action): Icono de "Enlace" para iniciar el proceso de vinculación.
+C. Pie de Estado (The Pulse)
+Frecuencia de Actualización: Indicador de latencia del stream de datos (ej: Live - 12ms).
+Contador de Variables: Total de señales activas en el contexto actual.
+3. Taxonomía de Operación de Datos
+El OMD-10 clasifica la información para que el usuario sepa qué puede hacer con ella:
+Señales Crudas (Raw Signals): Datos directos de adaptadores. Solo lectura.
+Señales de Control (Control Signals): Variables que disparan acciones (ej: button_click).
+Señales de Estado (State Signals): Variables de persistencia (ej: is_logged_in).
+Señales de Error (Error Signals): Alertas de integridad del flujo.
+4. Ciclo de Uso y Reprocesos (User Journey)
+Paso 1: Descubrimiento de Realidad
+El usuario abre el OMD-10 (Zona A del ISK o Panel Flotante en Indra). El sistema realiza un getMCEPManifest() y puebla la lista con todo lo que el FlowState está procesando en ese microsegundo.
+Paso 2: Localización y Verificación
+El usuario busca "Precio". Ve que el valor está llegando correctamente desde Notion. Al pasar el mouse (Hover), se despliega un Mini-Gráfico de Historial (Sparkline) que muestra la fluctuación del dato en los últimos 60 segundos.
+Paso 3: Iniciación de Vínculo (The Handshake)
+El usuario hace clic en el icono de "Enlace" de la variable precio_total.
+Acción: El sistema entra en modo "Waiting for Target". El cursor cambia a una mira.
+Reproceso: Si el usuario se arrepiente, presiona ESC y el sistema vuelve al estado de inspección.
+Paso 4: Conexión al Destino
+El usuario hace clic en una propiedad del Inspector (OMD-05) o en un nodo del ISK.
+Acción: El OMD-10 envía el path de la variable al Reactive Mapper (OMD-11) para definir la regla de transformación.
+5. JSON del Artefacto: view_context_explorer
+code
+JSON
+{
+  "omd_10": {
+    "id": "view_context_explorer",
+    "clase_ui": "SYSTEM_MONITOR",
+    "servicios_requeridos": ["MCEP_DISTILLER", "FLOW_STATE_STREAM"],
+    "configuracion_visual": {
+      "density": "HIGH",
+      "theme": "STARK_DARK",
+      "features": {
+        "live_update": true,
+        "sparklines": true,
+        "search_fuzzy": true
+      }
+    },
+    "interacciones": {
+      "click": "COPY_PATH",
+      "double_click": "OPEN_INSPECTOR",
+      "drag_start": "INIT_BINDING_PROTOCOL"
+    },
+    "filtros_canonicos": [
+      { "id": "sys", "label": "System", "icon": "Cpu" },
+      { "id": "adp", "label": "Adapters", "icon": "Link" },
+      { "id": "ai", "label": "Neural", "icon": "Brain" },
+      { "id": "usr", "label": "Computed", "icon": "Variable" }
+    ]
+  }
+}
+6. Análisis de Ergonomía Cognitiva (Auditoría de Valor)
+Eliminación de la Ceguera de Datos: El usuario ya no tiene que "suponer" qué está pasando en el Core. El OMD-10 es la ventana transparente al motor.
+Reducción de Carga de Memoria: No hace falta recordar nombres de variables. El buscador y los filtros permiten encontrar cualquier dato en < 2 segundos.
+Validación Visual Inmediata: El "Monitor de Valor Vivo" permite confirmar que una conexión funciona antes de siquiera intentar mapearla. Si el número se mueve en el explorador, se moverá en el diseño.

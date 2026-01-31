@@ -1,0 +1,53 @@
+{
+    "omd_02": {
+        "id": "view_identity_vault",
+        "clase_ui": "IDENTITY_DASHBOARD",
+        "layer": "NIVEL_3_SOVEREIGNTY",
+        "description": "Bóveda de soberanía para la gestión de identidades y secretos.",
+        "sub_modules": {
+            "registry_panel": {
+                "id": "the_registry",
+                "label": "Panel de Trazabilidad",
+                "archetype": "VAULT",
+                "capabilities": [
+                    "list_accounts",
+                    "view_status",
+                    "alias_management"
+                ]
+            },
+            "auth_hub": {
+                "id": "identity_ignition",
+                "label": "Centro de Ignición (Auth)",
+                "archetype": "GATE",
+                "capabilities": [
+                    "oauth_flow",
+                    "api_key_capture",
+                    "token_refresh"
+                ]
+            },
+            "health_monitor": {
+                "id": "sense_probe",
+                "label": "Monitor de Salud",
+                "archetype": "PROBE",
+                "capabilities": [
+                    "real_time_ping",
+                    "latency_check",
+                    "status_alert"
+                ]
+            }
+        },
+        "visual_config": {
+            "layout": "HIGH_DENSITY_GRID",
+            "motion": "breathing-subtle",
+            "tokens": {
+                "active": "var(--accent-success)",
+                "expired": "var(--accent-danger)",
+                "pending": "var(--accent-warning)"
+            }
+        },
+        "integration_rules": {
+            "primary_client": "OMD-05_ContextInspector",
+            "data_source": "TokenManager_Core"
+        }
+    }
+}

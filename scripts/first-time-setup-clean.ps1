@@ -634,7 +634,7 @@ Write-Host ""
 Write-Host "Para obtener actualizaciones del proyecto original:" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "   # 1. Agregar upstream (solo primera vez)"
-Write-Host "   git remote add upstream https://github.com/tu-org/indra-os-template.git"
+Write-Host "   git remote add upstream https://github.com/Airhonreality/indra-os.git"
 Write-Host ""
 Write-Host "   # 2. Obtener actualizaciones"
 Write-Host "   git fetch upstream"
@@ -657,7 +657,7 @@ Write-Header "💬 Soporte"
 
 Write-Host ""
 Write-Host "Si encuentras problemas:" -ForegroundColor Yellow
-Write-Host "   🐛 Issues: https://github.com/tu-org/indra-os-template/issues"
+Write-Host "   🐛 Issues: https://github.com/Airhonreality/indra-os/issues"
 Write-Host "   💬 Discord: [tu-server-discord]"
 Write-Host "   📧 Email: [tu-email]"
 Write-Host ""

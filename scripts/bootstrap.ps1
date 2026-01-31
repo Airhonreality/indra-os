@@ -2,13 +2,13 @@
 # INDRA OS - Bootstrap Installer v3.0
 # ============================================
 # Este script descarga INDRA OS y ejecuta el setup automáticamente
-# Uso: irm https://raw.githubusercontent.com/USUARIO/indra-os/main/scripts/bootstrap.ps1 | iex
+# Uso: irm https://raw.githubusercontent.com/Airhonreality/indra-os/main/scripts/bootstrap.ps1 | iex
 # ============================================
 
 $ErrorActionPreference = "Stop"
 
-# CONFIGURACIÓN: Actualiza esto con tu usuario/org de GitHub real
-$REPO_OWNER = "TU-USUARIO-GITHUB"  # ← CAMBIAR ESTO
+# CONFIGURACIÓN: Usuario real de GitHub
+$REPO_OWNER = "Airhonreality"
 $REPO_NAME = "indra-os"
 $REPO_URL = "https://github.com/$REPO_OWNER/$REPO_NAME.git"
 $RAW_URL_BASE = "https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main"

@@ -1,53 +1,57 @@
-Blueprint OMD-07: Explorador de Proyectos (The Archivist)
-Este módulo es la encarnación de la Ley 1.3: Topology_Laws. Su misión es mapear el Cosmos de Indra OS para que el usuario pueda navegar entre realidades sin perder la cordura.
+ Blueprint OMD-07: Explorador de Proyectos (The Archivist)
 1. Identificación y Alcance (ID & Context)
 ID Técnico: view_project_explorer
-Nombre Funcional: Explorador de Proyectos (El Archivista).
-Primitiva Vinculada: Topology_Laws / PROJECT_MANAGEMENT.
-Arquetipo Visual: SYSTEM_INFRA (Usa container_style: "glass-panel-dim", motion: "static", header_icon: "Cpu").
-2. Definición Funcional (El "Qué")
-Objetivo Primario: Visualizar y gestionar la jerarquía de Namespaces (Cosmos), Contenedores (Proyectos) y Entidades (Artefactos), garantizando la segregación lógica de datos.
-Acciones Atómicas:
-Navegar Cosmos: Cambiar entre espacios de trabajo compartidos.
-Abrir Proyecto: Cargar el grafo de flujos y sus bóvedas asociadas.
-Clonar Artefacto: Duplicar un Flow o Layout manteniendo la integridad del Contract_Blueprint.
-Archivar: Mover entidades al estado de "Inhibición" (Ley 1.1).
-3. Modelo de Datos e Interfaz (El "Contrato")
-Input JSON (Mapa de Topología):
-code
-JSON
-{
-  "cosmos_id": "indra_main_01",
-  "projects": [
-    {
-      "project_id": "p_001",
-      "name": "Bot Agendador WA",
-      "artifacts": {
-        "flows": ["f_wa_01"],
-        "vaults": ["v_meta_01", "v_google_01"],
-        "layouts": ["l_dashboard_01"]
-      }
-    }
-  ]
-}
-Output JSON: Envía el project_id seleccionado para disparar la Hidratación del sistema.
-Estado de Sincronía: BAJO DEMANDA (On-Demand). Solo se actualiza cuando hay cambios en la estructura de Drive.
+Nombre Funcional: Explorador de Proyectos (The Archivist).
+Naturaleza: Módulo de Vista de Nivel 1 (Escenario Principal).
+Primitiva Vinculada: Topology_Laws + Project_Manager + PublicAPI.gs.
+Axioma de Diseño: "La navegación es la conciencia del Cosmos; la selección es la Ignición de una Realidad."
+2. Anatomía y Distribución de la Interfaz (UI Shell)
+El Archivista se presenta como un panel lateral de alta densidad, optimizado para la navegación jerárquica y la gestión del ciclo de vida de las realidades.
+A. Cabecera de Navegación Global (The Cosmos Selector)
+Selector de Cosmos: Dropdown/Botón con icono Globe para cambiar entre Namespaces (ej: "Mi Cosmos", "Cosmos Compartido").
+Buscador de Proyectos: Input con autocompletado para localizar proyectos por nombre o ID.
+Botón de Creación: Icono Plus para invocar el Creation_Hub (crear nuevo proyecto/artefacto).
+B. El Árbol de Proyectos (The Reality Tree)
+TREE_VIEW_ACCORDION: Estructura jerárquica colapsable:
+Proyecto (Contenedor):
+Nombre: project.name.
+Estado: Icono breathing si es el proyecto activo (motion: "breathing").
+Acciones Contextuales: Right-Click para Clonar, Archivar, Eliminar (con validación).
+Artefacto (Entidad):
+Icono: Según archetype (Flow, Vault, Layout).
+Nombre: artifact.name.
+Estado de Salud: Icono Warning si es "Materia Impura" (ver Topology_Laws).
+Acciones Contextuales: Right-Click para Abrir, Inspeccionar (invoca OMD-05).
+C. Pie de Estado (The Integrity Pulse)
+Status de Sincronización: Topology_Status: SYNCED / OFFLINE / ERROR.
+Contador de Artefactos: Total: X Flows, Y Vaults, Z Layouts.
+3. Definición Funcional (El "Qué")
+El Archivista es el guardián de la Topology_Laws, garantizando la coherencia del Cosmos de Indra.
+A. Protocolo de Ignición (SYSTEM_IGNITION)
+Acción: Al seleccionar un project_id.
+Mecánica: Emite un evento SYSTEM_IGNITION(project_id) al CoreOrchestrator.
+Efecto: Dispara la hidratación de todos los demás módulos de Nivel 1 y 2 (OMD-03, OMD-09, OMD-10, OMD-05).
+B. Gestión de "Materia Impura" (Integrity Check)
+Acción: Escaneo periódico o bajo demanda de la Topology_Laws.
+Mecánica: Compara el flow.json con los archivos físicos en Drive.
+Efecto: Marca los artefactos con status: "IMPURO" si hay discrepancias (ej: archivo borrado, esquema corrupto). Ofrece Repair_Tools.
+C. Clonación Axiomática
+Acción: Duplicar un Flow o Layout.
+Mecánica: Crea una copia profunda del JSON, genera nuevos UUIDs y registra el nuevo artefacto en Topology_Laws.
+Validación: Previene la clonación si el ANCHOR_ID del proyecto ya existe.
 4. Comportamiento Camaleónico (Adaptatividad)
-Regla de Mutación 01 (Filtro de Arquetipo): Si el usuario busca "Vaults", el explorador oculta los "Flows" y resalta las Bóvedas usando el border_color de la Visual_Grammar.
-Regla de Mutación 02 (Estado de Proyecto Abierto): El proyecto activo brilla con un motion: "breathing" para indicar que es la "Realidad Actual".
+El Archivista se adapta al contexto del usuario y del sistema.
+Regla de Mutación 01 (Filtro de Arquetipo): Los filtros de búsqueda resaltan los artefactos por su archetype (VAULT, FLOW, LAYOUT) usando la Visual_Grammar.
+Regla de Mutación 02 (Estado de Hibernación): Los proyectos no accedidos en X tiempo se muestran con opacity: 0.4 y un icono Moon para indicar estado latente.
+Regla de Mutación 03 (Refactor Shield): Si el Core reporta un cambio estructural en Topology_Laws, el Archivista muestra un WARNING y sugiere una migración.
 5. Estrategia de Scaffolding (Andamiaje)
-Estado Fantasma (Ghost State): Al iniciar, el Archivista proyecta los "Slots" de los Cosmos disponibles. No hay nombres aún, solo la estructura de la UI_Distribution.
-Hidratación: Los nombres de los proyectos aparecen con un efecto de "escaneo" (radar-sweep) a medida que Topology_Laws confirma su existencia en Drive.
-6. Análisis de Ergonomía Cognitiva (Uso en Campo)
-Prevención de Colisión de Realidades: El Archivista impide abrir dos proyectos que compartan el mismo ANCHOR_ID de la System_Constitution para evitar la corrupción de datos.
-Reducción de Carga de Memoria: Utiliza una Jerarquía de Profundidad. No muestra todos los archivos de golpe, sino que sigue el flujo: Cosmos > Proyecto > Artefacto.
-Reproceso de "Archivo Perdido": Si un artefacto no cumple con su Contract_Blueprint, el Archivista lo marca con un icono de "Materia Impura" y ofrece una herramienta de reparación automática.
-JSON de Artefacto: view_project_explorer
-Este JSON es el mapa que el desarrollador usará para construir el "Cuerpo" del Archivista.
+Estado Fantasma (Ghost State): Al cargar, el Archivista muestra la estructura de Cosmos y Proyectos con skeleton_loaders antes de que los nombres reales se hidraten desde Topology_Laws.
+Hidratación Progresiva: Los nombres de los proyectos aparecen con un efecto de "escaneo" (radar-sweep) a medida que Topology_Laws confirma su existencia.
+6. JSON del Artefacto: view_project_explorer
 code
 JSON
 {
-  "artefacto": {
+  "omd_07": {
     "id": "view_project_explorer",
     "clase_ui": "HIERARCHICAL_NAVIGATOR",
     "laws_reference": {
@@ -60,30 +64,35 @@ JSON
         "id": "cosmos_selector",
         "tipo": "NAMESPACE_SWITCHER",
         "visual": { "container": "glass-panel-neon", "icon": "Globe" },
-        "ciclo_uso": "El usuario elige el 'Universo' de trabajo. Cambia todo el contexto de APIs y Bóvedas."
+        "events": { "onSelect": "EMIT_SYSTEM_IGNITION" }
       },
       {
         "id": "project_tree",
         "tipo": "TREE_VIEW_ACCORDION",
         "visual": { "row_height": 30, "font_style": "mono-bold" },
-        "ciclo_uso": "Navegación por proyectos. Al expandir un proyecto, se invocan los arquetipos de 'Logic_Axioms' para etiquetar los archivos."
+        "events": {
+          "onSelectProject": "EMIT_SYSTEM_IGNITION",
+          "onSelectArtifact": "INVOKE_OMD_05"
+        }
       },
       {
         "id": "artifact_card",
         "tipo": "ENTITY_PREVIEW",
         "visual": { "width": 220, "motion": "static" },
-        "ciclo_uso": "Muestra detalles rápidos de un Flow o Vault (Fecha de creación, estado de salud, última ejecución)."
+        "actions": ["OPEN", "INSPECT", "CLONE", "ARCHIVE"]
       },
       {
         "id": "creation_hub",
         "tipo": "ACTION_BAR",
         "visual": { "intent": "EXECUTE", "token": "var(--accent-primary)" },
-        "ciclo_uso": "Botones para crear 'Nueva Realidad' (Proyecto) o 'Nuevo Artefacto'. Valida contra 'Contract_Blueprints' antes de crear el archivo en Drive."
+        "actions": ["CREATE_PROJECT", "CREATE_FLOW", "CREATE_LAYOUT"]
       }
     ]
   }
 }
-Notas de Auditoría para el Desarrollador:
-Integridad de la Ley: El Archivista es el guardián de la Topology_Laws. No debe permitir la creación de ningún archivo que no esté registrado en el Contract_Blueprints.
-Espacialidad: Aunque es un panel lateral, debe respetar el SIDEBAR_LEFT_WIDTH: 320 definido en la UI_Distribution.
-Sincronización: Cuando el usuario selecciona un proyecto aquí, este módulo debe enviar una señal de "Ignición" a todos los demás paneles para que se "hidraten" con los datos del nuevo proyecto.
+7. Análisis de Ergonomía Cognitiva (Auditoría de Valor)
+Prevención de Colisión de Realidades: El Archivista es el guardián que impide que el usuario abra dos proyectos que compartan el mismo ANCHOR_ID, evitando la corrupción de datos.
+Reducción de Carga Cognitiva: Utiliza una Jerarquía de Profundidad. No muestra todos los archivos de golpe, sino que guía al usuario: Cosmos > Proyecto > Artefacto.
+Reproceso de "Archivo Perdido": Si un artefacto no cumple con su Contract_Blueprint, el Archivista lo marca con un icono de "Materia Impura" y ofrece una herramienta de reparación automática.
+Veredicto del Arquitecto
+El OMD-07 Maestro es el Centro de Control de Realidades. Su diseño es robusto, coherente y esencial para la navegación y gestión de proyectos en INDRA.

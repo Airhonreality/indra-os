@@ -1,6 +1,14 @@
 NO BORRAR JAMAS, AQUI SE INSCRBIE TODO EL HISOTRIAL DE PROCESO DE DISEÑO Y DESARROLLO
-## 🛠️ Road Map Inicial
+## 🛠️ Road Map Inicial 28 01 2026
 1. [ ] Definición de Tokens de Diseño (CSS Variables).
 2. [ ] Implementación de Conector Primigenio (GAS).
 3. [ ] Diseño de Shell (Layout Principal).
 4. [ ] Creación de Dashboard de Energías/Estado.
+
+Se requiere:
+Resumen para tu Arquitectura (Nivel 3):
+El Core (GAS): Es el Compilador Semántico. Recibe inputs heterogéneos y devuelve un JSON unificado que dice: "Esto es un flujo de aprobación con estos 3 pasos".
+El Front (React): Es el Intérprete de Forma. Lee el JSON y, mediante una librería de componentes polimórficos, construye la UI en tiempo de ejecución.
+El Puente (JSON Semántico): Debe incluir una llave llamada display_hint.
+display_hint: "kanban" -> React renderiza columnas.
+display_hint: "timeline" -> React renderiza una línea de tiempo.

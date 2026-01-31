@@ -1,106 +1,70 @@
-Blueprint OMD-02: Gestor de Cuentas (Vault Manager)
+ Blueprint Maestro OMD-02: Gestor de Identidad (The Sovereignty Vault)
+
 1. Identificación y Alcance (ID & Context)
-ID Técnico: view_vault_manager
-Nombre Funcional: Gestor de Cuentas (Bóveda de Identidad).
-Primitiva Vinculada: VAULT_SERVICE / tokenManager.
-Arquetipo Visual: STATE_NODE (Usa container_style: "glass-panel-dim" y motion: "pulse-slow").
-2. Definición Funcional (El "Qué")
-Objetivo Primario: Centralizar, validar y proteger las credenciales multi-api, permitiendo la inyección de identidad en los flujos sin exponer secretos.
-Acciones Atómicas:
-Vincular: Iniciar flujo OAuth o captura de API Key.
-Sondear (Sense): Verificar en tiempo real si el token sigue siendo válido.
-Persistir (Write): Guardar cambios en el almacenamiento cifrado del Core.
-Revocar (Delete): Eliminar la conexión y limpiar residuos de sesión.
-Etiquetar: Asignar alias humanos a cuentas (ej: "Notion Trabajo" vs "Notion Personal").
-3. Modelo de Datos e Interfaz (El "Contrato")
-Input JSON (Desde el Core):
-code
-JSON
+- **ID Técnico**: `view_identity_vault`
+- **Nombre Funcional**: Gestor de Cuentas (The Vault).
+- **Naturaleza**: Servicio de Soberanía de Nivel 3 (Backbone).
+- **Primitiva Vinculada**: `VAULT_SERVICE` + `TokenManager.gs`.
+- **Axioma de Diseño**: "La identidad no es un paso del flujo; es la llave maestra que lo valida."
+
+2. Filosofía de "Zero-Friction" (Arquitectura de Consumo)
+A diferencia de versiones anteriores, el **OMD-02 ya no permite el arrastre de cuentas al lienzo de automatización**. 
+- **Razón**: Evitar la entropía visual (ruido) en el grafo lógico.
+- **Mecánica de Vínculo**: El **OMD-05 (Inspector)** actúa como el único cliente oficial. Cuando un usuario añade un nodo (ej: Notion), el Inspector detecta la necesidad de una credencial y consume la lista del Vault para presentar un selector desplegable.
+
+3. Anatomía y Distribución de la Interfaz (UI Shell)
+El Vault se organiza como un **Dashboard de Salud de Conexiones**, optimizado para la trazabilidad y la seguridad.
+- **A. Panel de Trazabilidad (The Registry)**: Lista de alta densidad que muestra las cuentas vinculadas, su alias humano y su estado técnico (ACTIVE, EXPIRED, REVOKED).
+- **B. Centro de Ignición de Identidad (Auth Hub)**: Botón central para invocar flujos OAuth o captura de API Keys mediante modales seguros.
+- **C. Monitor de Salud (The Sense Probe)**: Indicador visual de latencia y validez del puente entre INDRA y el servicio externo (ej: Google Auth).
+
+4. Definición Funcional (El "Qué")
+- **Gestión del Ciclo de Vida**: Login, Refresh y Revocación de tokens.
+- **Sondeo de Integridad (SENSE)**: El sistema realiza pings periódicos a las APIs externas. Si una conexión muere, el Vault marca la cuenta en rojo y notifica al usuario.
+- **Abstracción de Seguridad**: El Front-end nunca manipula tokens reales; solo gestiona `account_id` y `provider_id`, garantizando que el secreto permanezca en el Core.
+
+5. Comportamiento Camaleónico (Adaptatividad)
+- **Regla de Mutación 01 (Estado de Alerta)**: Si una cuenta vinculada a un flujo activo expira, el Vault brilla con un pulso naranja (`intent: WARNING`) y ofrece el botón de "Refrescar" de forma prioritaria.
+- **Regla de Mutación 02 (Detección de Colisión)**: Si el usuario intenta añadir una cuenta con un ID que ya existe, el Vault entra en modo `INHIBIT` y sugiere renombrar el alias.
+
+6. Estrategia de Scaffolding (Andamiaje)
+- **Carga de Red (Ghosting)**: Mientras el CoreOrchestrator recupera las conexiones, se muestran tarjetas con efecto "shimmer" siguiendo la `Visual_Grammar`.
+- **Feedback de Conexión**: Al completar un OAuth, el Vault muestra una micro-animación de "Confeti de Datos" (partículas verdes) para celebrar la soberanía establecida.
+
+7. JSON del Artefacto: view_identity_vault
+```json
 {
-  "vault_status": "READY",
-  "accounts": [
-    { "id": "acc_001", "provider": "google_drive", "alias": "Drive Principal", "status": "ACTIVE" },
-    { "id": "acc_002", "provider": "notion", "alias": "Notion Personal", "status": "EXPIRED" }
-  ]
-}
-Output JSON (Hacia el Core):
-code
-JSON
-{
-  "intent": "PERSIST",
-  "action": "UPDATE_ALIAS",
-  "payload": { "account_id": "acc_001", "new_alias": "Drive Corporativo" }
-}
-Estado de Sincronía: ASÍNCRONO. El usuario puede operar otros paneles mientras una cuenta se está "Sondeando" o "Vinculando".
-4. Comportamiento Camaleónico (Adaptatividad)
-Regla de Mutación 01 (Estado de Alerta): Si una cuenta devuelve status: "EXPIRED", la tarjeta de cuenta cambia su border_color a var(--accent-danger) y activa el signifier: "hazard-dash".
-Regla de Mutación 02 (Proceso de Vinculación): Mientras se espera el callback de OAuth, el panel adopta el intent: "SENSE" con una animación radar-sweep para indicar que el sistema está "percibiendo" la respuesta externa.
-5. Estrategia de Scaffolding (Pre-visualización)
-Estado Fantasma (Skeleton): Al abrir el panel, se muestran 3 tarjetas vacías con motion: "pulse-slow" para indicar que la Bóveda está "respirando" mientras recupera los datos del Core.
-Simulación de Éxito: Al introducir una API Key, el sistema muestra un "Check" fantasmal en el puerto de salida antes de confirmar, simulando la conexión exitosa.
-6. Análisis de Ergonomía Cognitiva (Escenarios de Campo)
-Escenario A: El Reproceso por Expiración. El usuario está en el Editor de Flujos y un nodo falla. El sistema debe permitir abrir el view_vault_manager en un panel lateral (Drawer) sin cerrar el flujo, re-autenticar y que el flujo se repare automáticamente.
-Escenario B: Multi-cuenta Confuso. Si el usuario tiene 3 cuentas de Google, la UI debe forzar el uso de identity/id con mono-bold para diferenciar los IDs técnicos de los alias humanos, evitando que el usuario inyecte la cuenta equivocada en un flujo crítico.
-Escenario C: Error de Red. Si el Core no responde, el panel activa el rol diagnostic/error con mono-italic, explicando que el problema es de conectividad y no de la credencial.
-JSON de Artefacto: view_vault_manager
-code
-JSON
-{
-  "artefacto": {
-    "id": "view_vault_manager",
-    "clase_ui": "SIDE_PANEL_GRID",
-    "laws_apply": {
-      "container": "glass-panel-dim",
-      "header_icon": "Database",
-      "interaction": "haptic-snap"
+  "omd_02": {
+    "id": "view_identity_vault",
+    "clase_ui": "IDENTITY_DASHBOARD",
+    "layer": "SOVEREIGNTY",
+    "integration": {
+      "primary_client": "view_node_inspector",
+      "data_source": "TokenManager"
     },
-    "sub_artefactos": [
-      {
-        "id": "vault_header",
-        "tipo": "HEADER_SECTION",
-        "roles": { "title": "identity/id", "instruction": "metadata/instruction" },
-        "contenido": { "title": "Bóveda de Identidades", "instruction": "Gestiona tus accesos seguros a servicios externos." }
-      },
-      {
-        "id": "account_card_template",
-        "tipo": "INTERACTIVE_CARD",
-        "intent_mapping": {
-          "ACTIVE": "READ",
-          "CONNECTING": "SENSE",
-          "ERROR": "DELETE"
-        },
-        "visual_elements": {
-          "port_shape": "circle",
-          "port_interaction": "pull",
-          "haptic": "sharp-tick"
-        },
-        "ciclo_uso": "El usuario visualiza el estado. Si el estado es 'EXPIRED', la affordance cambia a 'active-injection' (WRITE) para forzar la actualización."
-      },
-      {
-        "id": "add_account_trigger",
-        "tipo": "FAB_BUTTON",
-        "intent": "EXECUTE",
-        "visual": {
-          "signifier": "lightning-flow",
-          "icon": "Plus",
-          "token": "var(--accent-primary)"
-        },
-        "ciclo_uso": "Inicia el proceso de expansión de la bóveda. Abre un modal de selección de proveedor (ADAPTER)."
-      },
-      {
-        "id": "connection_tester",
-        "tipo": "PROBE_TOOL",
-        "intent": "SENSE",
-        "visual": {
-          "signifier": "radar-sweep",
-          "animation": "scan 3s infinite"
-        },
-        "ciclo_uso": "Botón de 'Test' manual. Envía un ping al servicio externo para asegurar que el puente (BRIDGE) está operativo antes de usarlo en un flujo."
+    "visual_config": {
+      "layout": "HIGH_DENSITY_GRID",
+      "motion": "breathing-subtle",
+      "tokens": {
+        "active": "var(--accent-success)",
+        "expired": "var(--accent-danger)",
+        "pending": "var(--accent-warning)"
       }
+    },
+    "actions": [
+      { "id": "SENSE", "label": "Verificar Conexión" },
+      { "id": "REVOKE", "label": "Eliminar Acceso" },
+      { "id": "REFRESH", "label": "Renovar Token" },
+      { "id": "CREATE", "label": "Nueva Identidad" }
     ]
   }
 }
-Notas de Auditoría para el Desarrollador:
-Física de Cables: Aunque este panel es una lista, si el usuario arrastra una cuenta directamente al Canvas (Panel 3), el cable generado debe seguir la tension_formula: "distance * 0.5" y usar el stroke de var(--accent-success) (READ) porque solo estamos "leyendo" la identidad.
-Haptic Feedback: Es vital implementar el heavy-click en la acción de borrar cuenta para evitar eliminaciones accidentales (Prevención de Errores).
-Layout: Respetar estrictamente el node_width: 220 para las tarjetas de cuenta, asegurando que la interfaz sea consistente con el resto de los módulos.
+```
+
+8. Análisis de Ergonomía Cognitiva (Auditoría de Valor)
+- **Eliminación de la Carga Mental**: El usuario no tiene que buscar cables para conectar cuentas. El sistema "sabe" que un nodo necesita una cuenta y se la ofrece en el momento justo (Context-Aware).
+- **Prevención de Errores de Producción**: El Monitor de Salud (SENSE) evita que el usuario ejecute un flujo que va a fallar por falta de permisos, ahorrando ciclos de cómputo y frustración.
+- **Separación de Preocupaciones**: Los flujos son para la lógica (`OMD-03`); el Vault es para la seguridad (`OMD-02`). Mezclarlos era Entropía; separarlos es Orden Soberano.
+
+---
+**Veredicto Final del Arquitecto**: Este rediseño canoniza al OMD-02 como un componente de infraestructura invisible pero omnipresente, eliminando la "poesía" visual innecesaria en favor de una robustez industrial.

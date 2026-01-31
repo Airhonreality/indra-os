@@ -1,0 +1,168 @@
+{
+    "omd_09": {
+        "id": "view_ui_designer_ide",
+        "clase_ui": "STARK_DESIGN_IDE",
+        "engine": "VECTOR_2D_CANVAS",
+        "description": "Kernel de manifestación de realidades y diseño espacial (Indra Spatial Kernel).",
+        "distribucion_espacial": {
+            "panel_izquierdo": {
+                "top": {
+                    "id": "layer_manager",
+                    "label": "Gestor de Capas",
+                    "archetype": "SCHEMA",
+                    "capabilities": [
+                        "lock",
+                        "hide",
+                        "z-index",
+                        "reorder"
+                    ]
+                },
+                "bottom": {
+                    "id": "semantic_data_cube",
+                    "label": "Cubo de Datos Semántico",
+                    "archetype": "STREAM",
+                    "capabilities": [
+                        "search",
+                        "filter_by_origin",
+                        "variable_discovery"
+                    ]
+                }
+            },
+            "panel_derecho": {
+                "tabs": [
+                    {
+                        "id": "visual_inspector",
+                        "label": "Inspector Visual",
+                        "archetype": "TRANSFORM",
+                        "groups": {
+                            "transform": [
+                                "pos_x",
+                                "pos_y",
+                                "pos_z",
+                                "rotation",
+                                "scale"
+                            ],
+                            "dimension": [
+                                "width",
+                                "height",
+                                "aspect_ratio"
+                            ],
+                            "style": [
+                                "fill_color",
+                                "stroke",
+                                "border_radius",
+                                "opacity"
+                            ],
+                            "effects": [
+                                "shadow_cast",
+                                "blur_filter",
+                                "glow"
+                            ],
+                            "typography": [
+                                "font_family",
+                                "font_weight",
+                                "letter_spacing"
+                            ]
+                        }
+                    },
+                    {
+                        "id": "logic_bridge",
+                        "label": "The Bridge (Lógica)",
+                        "archetype": "BRIDGE",
+                        "groups": {
+                            "bindings": [
+                                "data_binding",
+                                "computed_ref"
+                            ],
+                            "triggers": [
+                                "on_click",
+                                "on_hover",
+                                "on_change"
+                            ],
+                            "style_drivers": [
+                                "conditional_visibility",
+                                "adaptive_color",
+                                "dynamic_scale"
+                            ]
+                        }
+                    }
+                ]
+            },
+            "hud_flotante": {
+                "creation_tools": {
+                    "id": "drawing_tools",
+                    "label": "Herramientas de Dibujo",
+                    "items": [
+                        "rect",
+                        "ellipse",
+                        "text",
+                        "image",
+                        "group",
+                        "frame"
+                    ]
+                },
+                "logic_tools": {
+                    "id": "operator_forge",
+                    "label": "Forja de Operadores",
+                    "items": [
+                        "SUM",
+                        "SUB",
+                        "MULT",
+                        "DIV",
+                        "IF_ELSE",
+                        "CONCAT",
+                        "FORMAT_DATE"
+                    ]
+                }
+            }
+        },
+        "funcionalidades_core": {
+            "maquetacion": {
+                "sistemas": [
+                    "auto_layout",
+                    "grid_snap",
+                    "z_index_control"
+                ]
+            },
+            "vinculacion_datos": {
+                "modos": [
+                    "LITERAL_CONTENT",
+                    "STYLE_AFFECTOR"
+                ],
+                "tipos_vinculo": [
+                    "ONE_WAY_SYNC",
+                    "COMPUTED_REF"
+                ]
+            },
+            "motor_logico": {
+                "reglas_estilo": {
+                    "propiedades_afectables": [
+                        "fill",
+                        "stroke",
+                        "opacity",
+                        "scale",
+                        "visibility",
+                        "blur"
+                    ],
+                    "operadores_logicos": [
+                        ">",
+                        "<",
+                        "==",
+                        "!=",
+                        "CONTAINS"
+                    ]
+                }
+            }
+        },
+        "scaffolding_logic": {
+            "ghost_data_provider": "SAMPLE_JSON_GENERATOR",
+            "preview_mode": "HYDRATED_REAL_TIME"
+        },
+        "export_protocols": [
+            "PDF_VECTOR",
+            "GOOGLE_SLIDES_API",
+            "HTML_DASHBOARD",
+            "PRINT_READY"
+        ]
+    }
+}

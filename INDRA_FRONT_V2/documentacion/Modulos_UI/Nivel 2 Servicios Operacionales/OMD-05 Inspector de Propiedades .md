@@ -1,66 +1,72 @@
-💎 Blueprint OMD-05: Inspector de Contexto Unificado (UCI)
+ Blueprint Maestro OMD-05: Inspector de Contexto Unificado (UCI)
+
 1. Identificación y Alcance (ID & Context)
-ID Técnico: view_context_inspector
-Nombre Funcional: Inspector de Contexto Unificado (UCI).
-Naturaleza: Servicio Global Polimórfico (Camaleónico).
-Primitiva Vinculada: ContractRegistry + SchemaManager + USSP_Bridge.
-Axioma de Diseño: "El inspector no muestra atributos; proyecta el puente entre la lógica y la manifestación."
+- **ID Técnico**: `view_context_inspector`
+- **Nombre Funcional**: Inspector de Contexto Unificado (The Inspector / UCI).
+- **Naturaleza**: Servicio Global Polimórfico (Nivel 2 - Operacional).
+- **Primitiva Vinculada**: `ContractRegistry` + `SchemaRegistry.gs` + `PublicAPI.gs`.
+- **Axioma de Diseño**: "El inspector no muestra atributos; orquesta la identidad, el origen y la reacción del objeto."
+
 2. Anatomía y Distribución de la Interfaz (UI Shell)
-El UCI se organiza en una estructura vertical jerárquica que guía al usuario a través del "Ciclo de Realidad" del objeto seleccionado.
-A. Cabecera de Identidad (The Entity Header)
-Avatar de Arquetipo: Icono dinámico según el rol (VAULT, RECT, BRIDGE, etc.).
-ID & Alias: Nombre técnico y nombre amigable del objeto.
-Selector de Arquetipo: Dropdown para mutar la naturaleza del objeto (ej: transformar un RECT en un REPEATER).
-B. Cuerpo Dinámico (The Camaleonic Body)
-Esta sección no es fija; se construye inyectando módulos según el contexto:
-Sección de Identidad (Who): Llama al OMD-01/02 para gestionar credenciales y permisos.
-Sección de Bóveda (Where): Inyecta el OMD-12 (Resource Browser) para elegir carpetas de Drive, tablas de Notion o canales de datos.
-Sección de Estructura (What): Muestra el esquema detectado. Permite definir qué campos son visibles o editables.
-Sección de Manifestación (How): Inyecta el OMD-11 (Reactive Mapper) para conectar los campos del esquema con atributos visuales o lógicos.
-C. Pie de Integridad (The Commit Bar)
-Status de Sincronización: Indica si los cambios están en Local, Pending o Synced (Core).
-Botón de Acción Primaria: "Aplicar Cambios" o "Sincronizar Bóveda".
-Historial Local: Acceso rápido a Undo/Redo específicos de este objeto.
-3. Comportamiento Polimórfico (The Camaleon Logic)
-El UCI detecta el target_type y reconfigura su anatomía en microsegundos:
-Caso A: Nodo de Automatización (Indra Canvas): Prioriza la configuración de Bóvedas, Credenciales y Mapeo de Datos entre nodos.
-Caso B: Entidad Gráfica (ISK): Prioriza el Inspector Visual (Color, Tamaño, FX) y el Mapeador Reactivo para animaciones.
-Caso C: Agente IA (Neural Copilot): Prioriza la configuración de "Personalidad", "Contexto de Datos" y "Límites de Ejecución".
-4. Ciclo de Uso y Reprocesos (User Journey)
-Paso 1: Enfoque (Focus)
-El usuario selecciona un objeto (clic en el ISK o en el Canvas de Indra). El UCI se despliega y realiza un "Handshake" con el objeto para leer su Contract.
-Paso 2: Configuración de Origen (Sourcing)
-Si el objeto requiere datos, el usuario abre la sección de Bóveda. El UCI llama al OMD-12, el usuario elige una tabla de Notion. El UCI confirma la lectura del esquema.
-Paso 3: Definición de Reacción (Mapping)
-El usuario quiere que el objeto reaccione al dato. Abre la sección de Manifestación. El UCI llama al OMD-11. El usuario vincula Ventas a u_radius.
-Paso 4: Validación y Persistencia
-El UCI valida que la fórmula sea correcta. Si hay un error (ej: intentas mapear un texto a un radio), el UCI bloquea el botón de "Aplicar" y resalta el error en rojo. Al confirmar, envía el paquete USSP al Core.
+El UCI es un panel lateral camaleónico que se reconstruye dinámicamente según el objeto seleccionado (Nodo de Flow o Entidad del ISK). Su estructura es jerárquica y sigue el "Ciclo de Vida del Dato":
+
+- **A. Cabecera de Identidad (The Identity Pivot)**
+  - **Avatar de Arquetipo**: Icono y color dinámico según el Rol Canónico (VAULT, BRIDGE, TRANSFORM).
+  - **Status de Salud**: Indicador de integridad (Materia Pura/Impura) reportado por la `PublicAPI`.
+  - **ID & Alias**: Campo editable para renombrar la instancia en el sistema.
+
+- **B. Sección de Soberanía (Who & Where)**
+  - **Selector de Identidad (Identity Bridge)**: Consume directamente del **OMD-02 (Vault)**. Muestra un selector desplegable con las cuentas autorizadas (ej: "Cuenta Personal", "Cuenta Veta Designer"). Si no hay cuentas, incita a la creación en el Vault.
+  - **Navegador de Recursos (Resource Hub)**: Inyecta el **OMD-05.2 (Resource Browser)**. Permite elegir la "Materia Prima" del nodo: carpetas de Drive, hojas de Sheets o colecciones de Notion.
+
+- **C. Sección de Lógica y Reacción (What & How)**
+  - **Constructor Reactivo**: Inyecta el **OMD-05.1 (Reactive Bridge)**. Permite mapear los datos de entrada hacia propiedades visuales (en el ISK) o variables de salida (en el Flujo).
+  - **Schema Assistant**: Muestra el contrato técnico del nodo (Inputs/Outputs) en lenguaje humano, permitiendo previsualizar el tipo de dato que fluye.
+
+- **D. Pie de Integridad (The Commit Bar)**
+  - **Validación en Vivo**: El botón de "Aplicar" solo se activa si el esquema es coherente con el mapa reactivo.
+  - **Sincronización Crítica**: Envía las mutaciones al `CoreOrchestrator` para persistir el cambio en la `Topology_Laws`.
+
+3. Comportamiento Camaleónico (Modes)
+- **Modo LOGIC_NODE**: Se enfoca en la **Sincronización de Identidad** y el mapeo de variables entre pasos del flujo.
+- **Modo SPATIAL_ENTITY**: Prioriza el **Mapeo Reactivo** de parámetros visuales (radio, color, posición) vinculados a datos externos.
+- **Modo SYSTEM_CONFIG**: Muestra parámetros globales de la arquitectura si se selecciona un punto de anclaje del sistema.
+
+4. Ciclo de Uso y Protocolo de Handshake
+1. **Detección**: El usuario selecciona un nodo en el `OMD-03 (Canvas)`.
+2. **Ignición del UCI**: El Inspector se despliega y verifica el `semantic_intent` del nodo.
+3. **Validación de Identidad**: Si el nodo es un `BRIDGE` (ej: Notion), el Inspector bloquea la configuración hasta que el usuario selecciona una cuenta válida del dropdown (vinculado al `OMD-02`).
+4. **Mapeo de Recursos**: El usuario usa el Explorador de Recursos (`OMD-05.2`) para apuntar al archivo físico.
+5. **Cierre de Ciclo**: Se definen las reacciones lógicas y se sincroniza con el Core.
+
 5. JSON del Artefacto: view_context_inspector
-code
-JSON
+```json
 {
   "omd_05": {
     "id": "view_context_inspector",
-    "clase_ui": "CONTEXT_ORCHESTRATOR",
-    "polymorphic_modes": ["SPATIAL_ENTITY", "LOGIC_NODE", "AI_AGENT", "SYSTEM_CONFIG"],
+    "clase_ui": "POLYMORPHIC_ORCHESTRATOR",
+    "sync_mode": "REALITT_PULL",
     "host_capabilities": {
-      "can_inject_modules": true,
-      "supports_ussp_protocol": true,
-      "real_time_validation": true
+      "supports_submodules": true,
+      "identity_injection_from": "OMD-02",
+      "resource_discovery_via": "OMD-05.2",
+      "reactive_mapping_via": "OMD-05.1"
     },
-    "layout_structure": {
-      "header": "entity_identity_manager",
-      "sections": [
-        { "id": "identity", "module": "OMD_01_02_BRIDGE" },
-        { "id": "vault", "module": "OMD_12_RESOURCE_BROWSER" },
-        { "id": "schema", "module": "SCHEMA_ASSISTANT" },
-        { "id": "manifest", "module": "OMD_11_REACTIVE_MAPPER" }
-      ],
-      "footer": "integrity_commit_bar"
-    }
+    "sections_layout": [
+      { "id": "header", "type": "FIXED_METADATA" },
+      { "id": "identity", "type": "DYNAMIC_DROPDOWN", "source": "VAULT_API" },
+      { "id": "resources", "type": "INJECTED_MODULE", "id_ref": "view_resource_browser" },
+      { "id": "reactivity", "type": "INJECTED_MODULE", "id_ref": "view_reactive_bridge" },
+      { "id": "schema_viewer", "type": "TECHNICAL_IO_SPEC" }
+    ]
   }
 }
+```
+
 6. Análisis de Ergonomía Cognitiva (Auditoría de Valor)
-Unificación de la Curva de Aprendizaje: El usuario solo tiene que aprender a usar un panel para controlar todo el sistema. La ubicación de los controles es predecible.
-Reducción del Ruido Visual: Al ser polimórfico, el UCI solo muestra lo que es relevante para el objeto seleccionado. No hay 50 sliders inútiles si estás configurando una base de datos.
-Seguridad Operativa: Al centralizar la validación en el UCI, evitamos que datos corruptos viajen al Core o al ISK. El UCI es el "Aduanero" del sistema.
+- **Eliminación de la Falsa Elección**: El usuario no tiene que "recordar" qué cuenta usar; el sistema le presenta las opciones válidas del Vault en una sección dedicada dentro del flujo de configuración.
+- **Transparencia de Datos**: Al integrar el Explorador de Recursos (`OMD-05.2`), el usuario ve gráficamente qué está conectando sin salir del contexto de configuración del nodo.
+- **Seguridad en la Frontera**: El UCI actúa como el firewall de integridad. Si la configuración no cumple con el contrato del nodo, la mutación nunca llega al Core.
+
+---
+**Veredicto Final del Arquitecto**: El OMD-05 es el cerebro operativo de la UI. Con la integración directa del OMD-02 (Identity Vault), hemos logrado un flujo de configuración de "Gravedad Cero", eliminando la fricción y garantizando la coherencia estructural.

@@ -1,111 +1,65 @@
-Blueprint OMD-03: Lienzo de Automatización (Flow Orchestrator)
+Blueprint Maestro OMD-03: Lienzo de Automatización (Flow Orchestrator)
 1. Identificación y Alcance (ID & Context)
 ID Técnico: view_flow_orchestrator
-Nombre Funcional: Lienzo de Automatización.
-Primitiva Vinculada: FLOW_ENGINE (Motor de Orquestación).
-Descripción: Entorno espacial interactivo para la composición de grafos lógicos. Utiliza el SPATIAL_ENGINE para gestionar la disposición de nodos y el VISUAL_GRAMMAR para comunicar estados dinámicos.
-2. Definición Funcional (El "Qué")
-Objetivo Primario: Permitir la creación de flujos secuenciales y reactivos mediante la interconexión de nodos de capacidad.
-Acciones Atómicas:
-Navegar: Zoom y Pan sobre el lienzo infinito.
-Instanciar: Arrastrar nodos desde la biblioteca al lienzo.
-Vincular: Crear conexiones entre puertos de salida (Output) e entrada (Input).
-Organizar: Ajuste magnético de nodos mediante grid_snap.
-Ejecutar: Disparar el flujo para observar el tránsito de datos en tiempo real.
-3. Modelo de Datos e Interfaz (El "Contrato")
-Input JSON (Estado del Grafo):
+Nombre Funcional: Lienzo de Automatización (The Canvas).
+Naturaleza: Escenario Principal de Nivel 1.
+Primitiva Vinculada: FLOW_ENGINE + ISK_Kernel (Cables) + MCEP_Distiller.
+Axioma de Diseño: "La lógica es espacial; el dato es visible; la conexión es física."
+2. Anatomía y Distribución de la Interfaz (UI Shell)
+El OMD-03 utiliza una arquitectura híbrida: React para la interfaz de los nodos (formularios/botones) y WebGL (ISK) para el fondo, los cables y las partículas de datos.
+A. El Escenario Infinito (The Logic Stage)
+Fondo Dinámico: Grid magnético con snap_to_grid: 20. El fondo pulsa levemente cuando el sistema está procesando datos.
+Navegación: Pan y Zoom fluido (0.2x a 3.0x) gestionado por el Spatial_Index del ISK.
+B. Los Nodos (The Logic Entities)
+Node Wrapper: Contenedores HTML proyectados sobre el canvas WebGL.
+Cabecera Semántica: Color y icono dictados por el Rol Canónico (ej: Dorado para VAULT, Azul para BRIDGE).
+Puertos de Conexión:
+Cuadrados (EXECUTE): Flujo de control/disparo.
+Círculos (DATA): Flujo de información/variables.
+C. Los Cables de Datos (The Photon Links)
+Tecnología: Líneas vectoriales renderizadas en WebGL.
+Física de Tensión: Curvas de Bezier con la fórmula tension = distance * 0.5.
+Modo "Data Pulse": Partículas de luz viajan por el cable. La velocidad de la partícula es inversamente proporcional a la latencia del nodo (más lento = más lag).
+3. Definición Funcional (El "Qué")
+A. Composición de Realidad Lógica
+Instanciación: Al soltar un adaptador del OMD-08, el lienzo crea el nodo y abre automáticamente el OMD-05 (Inspector) para su configuración.
+Cableado Inteligente: El sistema valida la conexión en tiempo real. Si intentas conectar DATA con EXECUTE, el cable rebota con un efecto de "cortocircuito" rojo.
+B. Depuración Viva (Live Debugging)
+Doble Clic en Cable: Inserta automáticamente un nodo OBSERVER (Rol 10) para monitorear el tráfico.
+Hover de Datos: Al pasar el mouse sobre un cable, se invoca una mini-ventana del OMD-10 (Context Explorer) mostrando el último payload que pasó por ahí.
+4. Comportamiento Camaleónico (Adaptatividad)
+Regla de Mutación 01 (Modo Ejecución): Cuando el flujo se activa (PLAY), el lienzo entra en "Stark Mode". Los nodos se vuelven semitransparentes y los cables brillan intensamente según el volumen de datos.
+Regla de Mutación 02 (Aislamiento): Al seleccionar un nodo, todos los cables y nodos no conectados a él se atenúan (opacity: 0.2), resaltando el "Camino Crítico" de esa lógica.
+5. Estrategia de Scaffolding (Andamiaje)
+Sombra de Proyección: Al arrastrar un nodo desde el catálogo, el lienzo proyecta una sombra en el grid indicando dónde aterrizará y qué puertos tiene.
+Conexión Potencial: Al estirar un cable hacia un puerto compatible, el puerto emite un "brillo de succión" (magnetic pull) para indicar que la conexión es válida.
+6. JSON del Artefacto: view_flow_orchestrator
 code
 JSON
 {
-  "graph_id": "whatsapp_to_calendar_001",
-  "nodes": [
-    { "id": "n1", "type": "TRIGGER", "pos": { "x": 100, "y": 200 }, "data": { "service": "whatsapp" } },
-    { "id": "n2", "type": "ORCHESTRATOR", "pos": { "x": 400, "y": 200 }, "data": { "service": "llm" } }
-  ],
-  "edges": [
-    { "id": "e1", "source": "n1", "target": "n2", "source_port": "out", "target_port": "in" }
-  ]
-}
-Output JSON (Mutación del Grafo):
-code
-JSON
-{
-  "action": "UPDATE_GRAPH",
-  "payload": { "nodes": "...", "edges": "..." }
-}
-Estado de Sincronía: TIEMPO REAL (Real-time). Cada movimiento de nodo o creación de cable debe persistirse o pre-validarse instantáneamente.
-4. Comportamiento Camaleónico (Adaptatividad Stark)
-Regla de Prioridad de Animación (Resolución de Gap B):
-Estado Base: El nodo respira (breathing) según su arquetipo.
-Estado de Acción: Si el nodo está procesando (ej. el LLM pensando), la animación de "Identidad" se suspende y se activa la animación de "Intención" (wave o pulse).
-Física de Cables (cable_physics): Los cables no son líneas rectas; son curvas Bezier con cable_tension: 0.5. Al arrastrar un cable, este debe mostrar una "tensión elástica" hasta que encuentra un puerto válido.
-5. Estrategia de Scaffolding (Pre-visualización)
-Sombra de Posicionamiento: Mientras se arrastra un nodo, se muestra un recuadro fantasma en la posición más cercana del grid_snap (cada 20px).
-Pre-conexión Semántica: Al acercar un cable a un puerto, si el SCHEMA de salida es compatible con el de entrada, el puerto brilla en verde. Si es incompatible, el cable "rebota" (Inhibición visual).
-6. Análisis de Ergonomía Cognitiva (El "Humano")
-Carga Mental: Alta. Para mitigarla, el lienzo utiliza Culling Visual: los detalles técnicos de los nodos desaparecen al alejar el zoom, dejando solo el icono y el color del arquetipo.
-Affordances: Los puertos de entrada están siempre a la izquierda y los de salida a la derecha (port_mapping). El grosor del cable indica el volumen de datos que fluye por él.
-Prevención de Errores: El SPATIAL_ENGINE impide solapar nodos, manteniendo una distancia mínima de seguridad para evitar el desorden visual.
-JSON de Artefacto: view_flow_orchestrator
-Este JSON define las capas del motor gráfico que el desarrollador debe implementar en el Front-end.
-code
-JSON
-{
-  "artefacto": {
+  "omd_03": {
     "id": "view_flow_orchestrator",
-    "clase_ui": "INFINITE_CANVAS_ENGINE",
-    "config_visual": {
-      "arquetipo": "ORCHESTRATOR",
-      "engine_rules": "SPATIAL_ENGINE",
-      "grammar_ref": "VISUAL_GRAMMAR"
+    "clase_ui": "HYBRID_CANVAS_ENGINE",
+    "engine_ref": "ISK_v3.2",
+    "physics_config": {
+      "grid_snap": 20,
+      "cable_tension": 0.5,
+      "magnetic_pull": 15
     },
-    "sub_artefactos": [
-      {
-        "id": "canvas_background",
-        "tipo": "GRID_LAYER",
-        "propiedades": {
-          "snap_size": 20,
-          "pattern": "dots",
-          "color": "#1a1a1a"
-        },
-        "ciclo_uso": "Proporciona la referencia espacial constante para el usuario."
-      },
-      {
-        "id": "node_layer",
-        "tipo": "ENTITY_MANAGER",
-        "propiedades": {
-          "render_mode": "WEBGL_BATCHED",
-          "interaction": "DRAG_AND_DROP"
-        },
-        "ciclo_uso": "Gestiona la renderización de los 17 arquetipos. Aplica 'breathing' o 'vibration' según el estado reportado por el Core."
-      },
-      {
-        "id": "cable_layer",
-        "tipo": "PHYSICS_CONNECTION_RENDERER",
-        "propiedades": {
-          "style": "BEZIER_CURVE",
-          "physics": "cable_physics"
-        },
-        "ciclo_uso": "Dibuja las conexiones. Si un flujo está activo, anima partículas viajando por la curva."
-      },
-      {
-        "id": "interaction_overlay",
-        "tipo": "GHOST_SCAFFOLDING",
-        "propiedades": {
-          "opacity": 0.4,
-          "color": "var(--accent-primary)"
-        },
-        "ciclo_uso": "Muestra previsualizaciones de nodos y cables antes de que la acción se complete."
-      },
-      {
-        "id": "viewport_controls",
-        "tipo": "NAVIGATION_HUD",
-        "propiedades": {
-          "mini_map": true,
-          "zoom_indicator": true
-        },
-        "ciclo_uso": "Permite al usuario orientarse en flujos de gran escala (complejidad Stark)."
-      }
-    ]
+    "render_layers": {
+      "background": "WEBGL_GRID",
+      "connections": "WEBGL_PHOTON_LINES",
+      "entities": "REACT_NODE_WRAPPERS",
+      "overlays": "SVG_HUD"
+    },
+    "interaction_rules": {
+      "onConnect": "VALIDATE_MASTERLAW",
+      "onDoubleClickCable": "INSERT_OBSERVER",
+      "onPlay": "ACTIVATE_STARK_MODE"
+    }
   }
 }
+7. Análisis de Ergonomía Cognitiva (Auditoría de Valor)
+Reducción de la Carga de Error: El sistema de "Cables que Rebotan" y "Puertos que Brillan" elimina el 90% de los errores de conexión antes de que el flujo se ejecute.
+Consciencia Situacional: El "Data Pulse" permite al usuario "sentir" dónde está el cuello de botella de su automatización solo con mirar la velocidad de las partículas.
+Haptic Feedback: Cada conexión exitosa emite una micro-vibración (en dispositivos compatibles) o un "clic" sonoro de alta frecuencia, cerrando el bucle de confirmación humana.

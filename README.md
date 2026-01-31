@@ -22,7 +22,7 @@
 Abre **PowerShell** y pega esto:
 
 ```powershell
-irm https://raw.githubusercontent.com/USUARIO/indra-os/main/scripts/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Airhonreality/indra-os/main/scripts/bootstrap.ps1 | iex
 ```
 
 ### ¿Qué va a pasar?
@@ -34,7 +34,7 @@ irm https://raw.githubusercontent.com/USUARIO/indra-os/main/scripts/bootstrap.ps
    - Copiar la Satellite API Key (autogenerada por el sistema)
 4. Te pide autenticarte con GitHub (browser)
 5. Crea tu repositorio automáticamente
-6. ✅ **Listo!** Tu URL pública estará en `https://TU-USUARIO.github.io/nombre-repo`
+6. ✅ **Listo!** Tu URL pública estará en `https://Airhonreality.github.io/indra-os`
 
 **Tiempo total: 5 minutos**
 
@@ -70,9 +70,9 @@ Sistema operativo personal para:
 
 ## 🔧 Soporte
 
-- **Issues:** [GitHub Issues](https://github.com/USUARIO/indra-os/issues)
-- **Discord:** [Enlace]
-- **Email:** [tu@email.com]
+- **Issues:** [GitHub Issues](https://github.com/Airhonreality/indra-os/issues)
+- **Repositorio:** [https://github.com/Airhonreality/indra-os](https://github.com/Airhonreality/indra-os)
+- **Documentación:** Ver carpeta `docs/`
 
 ---
 

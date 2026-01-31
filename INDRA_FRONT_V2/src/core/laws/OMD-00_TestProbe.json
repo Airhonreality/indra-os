@@ -1,0 +1,25 @@
+/**
+ * src/core/laws/OMD-00_TestProbe.json
+ * 🧪 EL ÁTOMO DE PRUEBA (Minimum Viable Module)
+ * Este JSON define un módulo experimental para validar la Capa 0.
+ */
+{
+    "omd_00": {
+        "id": "view_test_probe",
+        "clase_ui": "DIAGNOSTIC_WIDGET",
+        "layer": "NIVEL_3",
+        "functional_name": "Sonda de Diagnóstico Stark",
+        "slot": "overlay-corner-br",
+        "component": "TestProbe",
+        "config": {
+            "archetype": "PROBE",
+            "intent": "SENSE",
+            "refresh_rate": "1s"
+        },
+        "capabilities": [
+            "ping_feedback",
+            "law_echo",
+            "integrity_check"
+        ]
+    }
+}

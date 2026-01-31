@@ -367,13 +367,14 @@ HTML + CSS + JS estático (archivos que los navegadores SÍ entienden)
 
 - [ ] Testear bootstrap.ps1 end-to-end
 - [ ] Testear first-time-setup.ps1 en máquina limpia
-- [ ] Verificar deploy-ui.yml funciona
+- [x] Verificar deploy-ui.yml funciona ✅ Build exitoso
 - [x] Crear repositorio público en GitHub ✅ https://github.com/Airhonreality/indra-os
 - [x] Actualizar URLs en scripts (cambiar "tu-org" por tu user real) ✅
 - [x] Documentar en README.md ✅
+- [x] Configurar GitHub Pages automático ✅ https://airhonreality.github.io/indra-os/
 - [ ] Crear video tutorial (opcional, 2 min)
 
-**SIGUIENTE PASO:** Testear scripts de instalación
+**SIGUIENTE PASO:** Testear scripts de instalación en máquina limpia
 
 ### Lanzamiento
 

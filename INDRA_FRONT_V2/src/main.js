@@ -5,7 +5,7 @@
 
 import { TranslationKernel } from './core/kernel/TranslationKernel.js';
 import { VISUAL_LAWS } from './core/laws/VisualLaws.js';
-import { ISKShellProjector } from './modules/isk/index.js';
+import { ISKShellProjector } from './modules/Nivel_1_Views/OMD-09_ISK/index.js';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 

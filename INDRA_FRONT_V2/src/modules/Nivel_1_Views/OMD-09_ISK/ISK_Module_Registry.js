@@ -11,8 +11,8 @@ import { SpatialCanvas } from './components/SpatialCanvas';
 import { StateHUD } from './components/StateHUD';
 
 // Servicios Globales (Elevados a Indra Shared)
-import { ContextExplorer } from '../shared/ContextExplorer/ContextExplorer';
-import { ContextInspector } from '../shared/ContextInspector/ContextInspector';
+import { ContextExplorer } from '../../Nivel_2_Services/OMD-10_ContextExplorer/ContextExplorer';
+import { ContextInspector } from '../../Nivel_2_Services/OMD-05_ContextInspector/ContextInspector';
 
 export const ISK_MODULE_REGISTRY = {
     // Escenarios (Nivel 1)

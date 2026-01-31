@@ -6,30 +6,47 @@
 
 export const VISUAL_LAWS = {
     // ============================================================
-    // SECCIÓN 1: ARQUETIPOS CANÓNICOS (Sincronía con Core Layer 0)
+    // SECCIÓN 1: ARQUETIPOS CANÓNICOS (Sincronía con Visual_Grammar.gs)
     // ============================================================
     ARCHETYPES: {
-        VAULT: { class: 'stark-vault', icon: 'lock', color: '#FFD700', label: 'Seguridad' },
-        GATE: { class: 'stark-gate', icon: 'shield', color: '#FF4500', label: 'Filtro' },
-        STREAM: { class: 'stark-stream', icon: 'activity', color: '#32CD32', label: 'Datos' },
-        BRIDGE: { class: 'stark-bridge', icon: 'zap', color: '#1E90FF', label: 'Conector' },
-        INHIBIT: { class: 'stark-inhibit', icon: 'slash', color: '#FF0000', label: 'Bloqueo' },
-        TRIGGER: { class: 'stark-trigger', icon: 'play-circle', color: '#FF8C00', label: 'Disparador' },
-        SCHEMA: { class: 'stark-schema', icon: 'box', color: '#8A2BE2', label: 'Arquitectura' },
-        PROBE: { class: 'stark-probe', icon: 'search', color: '#00CED1', label: 'Sonda' },
-        TRANSFORM: { class: 'stark-transform', icon: 'repeat', color: '#FF1493', label: 'Mapeador' },
-        OBSERVER: { class: 'stark-observer', icon: 'eye', color: '#ADFF2F', label: 'Monitor' },
-        ADAPTER: { class: 'stark-adapter', icon: 'plug', color: '#7B68EE', label: 'Adaptador' },
-        SYSTEM_INFRA: { class: 'stark-infra', icon: 'command', color: '#B0C4DE', label: 'Sistema' },
-        LOGIC_CORE: { class: 'stark-logic', icon: 'cpu', color: '#F0E68C', label: 'Razonamiento' },
-        SENSOR: { class: 'stark-sensor', icon: 'radar', color: '#00FF7F', label: 'Percepción' },
-        SERVICE: { class: 'stark-service', icon: 'tool', color: '#F4A460', label: 'Servicio' },
-        SYSTEM_CORE: { class: 'stark-core', icon: 'database', color: '#708090', label: 'Núcleo' },
-        ORCHESTRATOR: { class: 'stark-orchestrator', icon: 'layers', color: '#DA70D6', label: 'Orquestador' }
+        VAULT: { class: 'stark-vault', header_icon: 'Lock', border_color: '#00d2ff', motion: 'still', label: 'Seguridad' },
+        GATE: { class: 'stark-gate', header_icon: 'DoorOpen', border_color: '#9d50bb', motion: 'breathing', label: 'Filtro' },
+        STREAM: { class: 'stark-stream', header_icon: 'Zap', border_color: '#00ffaa', motion: 'wave', label: 'Datos' },
+        BRIDGE: { class: 'stark-bridge', header_icon: 'Globe', border_color: '#00d2ff', motion: 'vibration', label: 'Conector' },
+        INHIBIT: { class: 'stark-inhibit', header_icon: 'XCircle', border_color: '#ff3366', motion: 'pulse', label: 'Bloqueo' },
+        TRIGGER: { class: 'stark-trigger', header_icon: 'Zap', border_color: '#00ffaa', motion: 'pulse', label: 'Disparador' },
+        SCHEMA: { class: 'stark-schema', header_icon: 'FileText', border_color: '#ffcc00', motion: 'static', label: 'Arquitectura' },
+        PROBE: { class: 'stark-probe', header_icon: 'Activity', border_color: '#ff3366', motion: 'vibration', label: 'Sonda' },
+        TRANSFORM: { class: 'stark-transform', header_icon: 'RefreshCw', border_color: '#ffcc00', motion: 'morph', label: 'Mapeador' },
+        OBSERVER: { class: 'stark-observer', header_icon: 'Activity', border_color: '#00ffaa', motion: 'vibration', label: 'Monitor' },
+        ADAPTER: { class: 'stark-adapter', header_icon: 'Zap', border_color: '#00ffaa', motion: 'static', label: 'Adaptador' },
+        SYSTEM_INFRA: { class: 'stark-infra', header_icon: 'Cpu', border_color: '#555555', motion: 'still', label: 'Sistema' },
+        LOGIC_CORE: { class: 'stark-logic', header_icon: 'Cpu', border_color: '#ffcc00', motion: 'breathing', label: 'Razonamiento' },
+        SENSOR: { class: 'stark-sensor', header_icon: 'Eye', border_color: '#00ffaa', motion: 'breathing', label: 'Percepción' },
+        SERVICE: { class: 'stark-service', header_icon: 'Layers', border_color: '#00ffaa', motion: 'static', label: 'Servicio' },
+        SYSTEM_CORE: { class: 'stark-core', header_icon: 'Shield', border_color: '#666666', motion: 'still', label: 'Núcleo' },
+        ORCHESTRATOR: { class: 'stark-orchestrator', header_icon: 'Activity', border_color: '#9d50bb', motion: 'breathing', label: 'Orquestador' }
     },
 
     // ============================================================
-    // SECCIÓN 2: DEFINICIÓN DE NIVELES (System Layers)
+    // SECCIÓN 2: INTENCIONES SEMÁNTICAS (Sincronía con Visual_Grammar.gs)
+    // ============================================================
+    INTENTS: {
+        READ: { token: 'var(--accent-primary)', icon: 'Eye', signifier: 'intent-read' },
+        WRITE: { token: 'var(--accent-success)', icon: 'Save', signifier: 'intent-write' },
+        EXECUTE: { token: 'var(--accent-secondary)', icon: 'Play', signifier: 'intent-exec' }
+    },
+
+    // ============================================================
+    // SECCIÓN 3: PRIORIDADES DE NARRATIVA
+    // ============================================================
+    PRIORITY_LAWS: {
+        motion_dominance: "SEMANTIC_INTENT",
+        narrative: "El Estado de Acción (método) domina sobre el Estado de Identidad (arquetipo)."
+    },
+
+    // ============================================================
+    // SECCIÓN 4: DEFINICIÓN DE NIVELES (System Layers)
     // ============================================================
     SYSTEM_LAYERS: {
         NIVEL_1: { id: 1, label: 'Módulos de Vista', description: 'Escenarios principales de interacción global.' },
@@ -38,10 +55,10 @@ export const VISUAL_LAWS = {
     },
 
     // ============================================================
-    // SECCIÓN 3: MAPA DE DISTRIBUCIÓN OMD (The Box Map)
-    // Alineado fielmente con la nomenclatura de Blueprints OMD-XX.
+    // SECCIÓN 5: MAPA DE DISTRIBUCIÓN OMD (The Box Map)
     // ============================================================
     DISTRIBUTION_MAP: {
+        // ... (Contenido de OMD Distribution Map se mantiene sincronizado con blueprints)
         // --- NIVEL 3: SOBERANÍA (BACKBONE) ---
         "OMD-01": {
             technical_id: "view_portal",
@@ -49,7 +66,7 @@ export const VISUAL_LAWS = {
             layer: "NIVEL_3",
             slot: "overlay-full",
             component: "AccessPortal",
-            config: { backdrop: "blur-heavy", security: "High" }
+            config: { backdrop: "blur-heavy", archetype: "GATE" }
         },
         "OMD-02": {
             technical_id: "view_identity_vault",
@@ -57,7 +74,7 @@ export const VISUAL_LAWS = {
             layer: "NIVEL_3",
             slot: "drawer-right",
             component: "IdentityVault",
-            config: { header: "Sovereign Identity", selection_mode: "dropdown" }
+            config: { header: "Sovereign Identity", archetype: "VAULT" }
         },
         "OMD-04": {
             technical_id: "view_neural_copilot",
@@ -65,7 +82,7 @@ export const VISUAL_LAWS = {
             layer: "NIVEL_3",
             slot: "overlay-corner-br",
             component: "NeuralCopilot",
-            config: { role: "Architect", context_aware: true }
+            config: { archetype: "LOGIC_CORE" }
         },
         "OMD-06": {
             technical_id: "view_execution_monitor",
@@ -73,7 +90,7 @@ export const VISUAL_LAWS = {
             layer: "NIVEL_3",
             slot: "bar-bottom",
             component: "ExecutionMonitor",
-            config: { live_stream: true, forensic_mode: true }
+            config: { archetype: "OBSERVER" }
         },
 
         // --- NIVEL 2: SERVICIOS OPERACIONALES ---
@@ -83,7 +100,7 @@ export const VISUAL_LAWS = {
             layer: "NIVEL_2",
             slot: "sidebar-right",
             component: "ContextInspector",
-            config: { polymorphic: true, submodules: ["OMD-05.1", "OMD-05.2"] }
+            config: { archetype: "TRANSFORM" }
         },
         "OMD-08": {
             technical_id: "view_adapter_catalog",
@@ -91,7 +108,7 @@ export const VISUAL_LAWS = {
             layer: "NIVEL_2",
             slot: "sidebar-left-float",
             component: "AdapterCatalog",
-            config: { search: "intent-based", view: "grid" }
+            config: { archetype: "SCHEMA" }
         },
         "OMD-10": {
             technical_id: "view_context_explorer",
@@ -99,7 +116,7 @@ export const VISUAL_LAWS = {
             layer: "NIVEL_2",
             slot: "modal-center",
             component: "ContextExplorer",
-            config: { detail: "high", visual: "matrix" }
+            config: { archetype: "STREAM" }
         },
 
         // --- NIVEL 1: MÓDULOS DE VISTA ---
@@ -109,7 +126,7 @@ export const VISUAL_LAWS = {
             layer: "NIVEL_1",
             slot: "center-stage",
             component: "FlowOrchestrator",
-            config: { engine: "Hybrid WebGL/React", snap: 20 }
+            config: { archetype: "ORCHESTRATOR" }
         },
         "OMD-07": {
             technical_id: "view_project_explorer",
@@ -117,7 +134,7 @@ export const VISUAL_LAWS = {
             layer: "NIVEL_1",
             slot: "sidebar-left",
             component: "ProjectExplorer",
-            config: { hierarchy: "Cosmos > Project > Artifact" }
+            config: { archetype: "SCHEMA" }
         },
         "OMD-09": {
             technical_id: "view_isk_designer",
@@ -125,7 +142,7 @@ export const VISUAL_LAWS = {
             layer: "NIVEL_1",
             slot: "center-stage-alt",
             component: "ISKDesigner",
-            config: { engine: "WebGL-Turbo", immersive: true }
+            config: { archetype: "SYSTEM_INFRA" }
         }
     }
 };

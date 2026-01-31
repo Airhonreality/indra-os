@@ -1,0 +1,21 @@
+{
+	"engines": {
+		"node": "18.x"
+	},
+	"scripts": {
+		"analyze-tests": "node ./dev-tools/analyze-dependencies.js"
+	},
+	"dependencies": {
+		"@sparticuz/chromium": "^131.0.0",
+		"puppeteer-core": "^24.0.0"
+	},
+	"devDependencies": {
+		"acorn": "^8.15.0",
+		"acorn-walk": "^8.3.4",
+		"comment-parser": "^1.4.1",
+		"estree-util-attach-comments": "^3.0.0",
+		"glob": "^11.0.3",
+		"jsdoc": "^4.0.5",
+		"jsdoc-to-markdown": "^9.1.3"
+	}
+}

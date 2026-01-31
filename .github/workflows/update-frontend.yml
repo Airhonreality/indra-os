@@ -1,0 +1,139 @@
+name: 🔄 Update Frontend
+
+# Este workflow despliega automáticamente el frontend cuando hay cambios
+# Requiere configurar secrets de Vercel o Netlify según tu plataforma
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'INDRA_FRONT DEV/**'
+      - '!INDRA_FRONT DEV/_documentation/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy UI
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'INDRA_FRONT DEV/package-lock.json'
+      
+      - name: Install Dependencies
+        working-directory: 'INDRA_FRONT DEV'
+        run: npm ci
+      
+      - name: Load Environment Variables
+        working-directory: 'INDRA_FRONT DEV'
+        env:
+          VITE_GAS_URL: ${{ secrets.VITE_GAS_URL }}
+        run: |
+          if [ -z "$VITE_GAS_URL" ]; then
+            echo "⚠️  VITE_GAS_URL secret not configured"
+            echo "Using .env file if it exists..."
+          else
+            echo "✅ Using VITE_GAS_URL from secrets"
+            echo "VITE_GAS_URL=$VITE_GAS_URL" >> .env
+          fi
+          
+          # Set build metadata
+          echo "VITE_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .env
+          echo "VITE_BUILD_COMMIT=${{ github.sha }}" >> .env
+          echo "VITE_APP_VERSION=1.0.0-beta" >> .env
+      
+      - name: Build Production Bundle
+        working-directory: 'INDRA_FRONT DEV'
+        run: |
+          echo "🔨 Building production bundle..."
+          npm run build
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Build successful"
+            echo "📊 Build size:"
+            du -sh dist/
+          else
+            echo "❌ Build failed"
+            exit 1
+          fi
+      
+      # Deploy to Vercel (si el secret está configurado)
+      - name: Deploy to Vercel
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: 'INDRA_FRONT DEV'
+          vercel-args: '--prod'
+      
+      # Deploy to Netlify (si el secret está configurado)
+      - name: Deploy to Netlify
+        if: ${{ secrets.NETLIFY_AUTH_TOKEN != '' }}
+        uses: nwtgck/actions-netlify@v2
+        with:
+          publish-dir: './INDRA_FRONT DEV/dist'
+          production-deploy: true
+          deploy-message: "Deploy from GitHub Actions - ${{ github.event.head_commit.message }}"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      
+      # Deploy to GitHub Pages (alternativa gratuita)
+      - name: Deploy to GitHub Pages
+        if: ${{ secrets.VERCEL_TOKEN == '' && secrets.NETLIFY_AUTH_TOKEN == '' }}
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: './INDRA_FRONT DEV/dist'
+          cname: ${{ secrets.CUSTOM_DOMAIN }}  # Opcional
+      
+      - name: Summary
+        run: |
+          echo "# ✅ Frontend Updated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -n "${{ secrets.VERCEL_TOKEN }}" ]; then
+            echo "**Platform:** Vercel" >> $GITHUB_STEP_SUMMARY
+          elif [ -n "${{ secrets.NETLIFY_AUTH_TOKEN }}" ]; then
+            echo "**Platform:** Netlify" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Platform:** GitHub Pages" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Frontend has been built and deployed successfully." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Build Info" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Time:** $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Changed Files" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          git diff --name-only HEAD~1 HEAD -- 'INDRA_FRONT DEV/' | grep -v '_documentation/' >> $GITHUB_STEP_SUMMARY || echo "No files changed" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+      
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "# ❌ Frontend Deploy Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The frontend could not be built or deployed." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔧 Troubleshooting" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. Check build logs above for errors" >> $GITHUB_STEP_SUMMARY
+          echo "2. Verify deployment platform secrets are configured:" >> $GITHUB_STEP_SUMMARY
+          echo "   - Vercel: \`VERCEL_TOKEN\`, \`VERCEL_ORG_ID\`, \`VERCEL_PROJECT_ID\`" >> $GITHUB_STEP_SUMMARY
+          echo "   - Netlify: \`NETLIFY_AUTH_TOKEN\`, \`NETLIFY_SITE_ID\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Try building locally: \`npm run build\`" >> $GITHUB_STEP_SUMMARY
+          echo "4. Check that \`VITE_GAS_URL\` is configured correctly" >> $GITHUB_STEP_SUMMARY

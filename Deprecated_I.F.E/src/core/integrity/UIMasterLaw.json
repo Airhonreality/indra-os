@@ -1,0 +1,168 @@
+{
+    "_meta": {
+        "description": "The Axiomatic Translation Layer from Semantic Logic (MasterLaw) to Visual Experience (UI).",
+        "axiom_reference": "MasterLaw.json",
+        "version": "1.0",
+        "status": "PHASE_H_REPAIRED"
+    },
+    "visual_grammar": {
+        "INTENTS": {
+            "READ": {
+                "signifier": "pulse-cable",
+                "token": "var(--accent-success)",
+                "affordance": "passive-flow",
+                "description": "Non-destructive data retrieval. Visualized as a gentle, rhythmic pulse.",
+                "haptic_feedback": "none",
+                "cable_style": {
+                    "stroke": "var(--accent-success)",
+                    "width_idle": "1.5px",
+                    "width_active": "2.5px",
+                    "animation": "pulse-opacity 2s ease-in-out infinite",
+                    "dash_array": "none"
+                },
+                "port_shape": "circle",
+                "port_interaction": "pull"
+            },
+            "WRITE": {
+                "signifier": "solid-stream",
+                "token": "var(--accent-warning)",
+                "affordance": "active-injection",
+                "description": "State-mutating operation. Visualized as a solid, high-energy stream.",
+                "haptic_feedback": "medium-vibration",
+                "cable_style": {
+                    "stroke": "var(--accent-warning)",
+                    "width_idle": "2px",
+                    "width_active": "3px",
+                    "animation": "none",
+                    "dash_array": "none"
+                },
+                "port_shape": "diamond",
+                "port_interaction": "push"
+            },
+            "DELETE": {
+                "signifier": "hazard-dash",
+                "token": "var(--accent-danger)",
+                "affordance": "destructive-action",
+                "description": "Destructive operation. Visualized as a dashed, cautionary line.",
+                "haptic_feedback": "heavy-click",
+                "cable_style": {
+                    "stroke": "var(--accent-danger)",
+                    "width_idle": "2px",
+                    "width_active": "3px",
+                    "animation": "dash-slide 1s linear infinite",
+                    "dash_array": "5,5"
+                },
+                "port_shape": "triangle-warning",
+                "port_interaction": "force"
+            },
+            "EXECUTE": {
+                "signifier": "lightning-flow",
+                "token": "var(--accent-primary)",
+                "affordance": "trigger",
+                "description": "Logic execution flow. Visualized as a fast-moving, energetic signal.",
+                "haptic_feedback": "sharp-tick",
+                "cable_style": {
+                    "stroke": "var(--accent-primary)",
+                    "width_idle": "2px",
+                    "width_active": "3px",
+                    "animation": "flow-fast 0.5s linear infinite",
+                    "dash_array": "none"
+                },
+                "port_shape": "square",
+                "port_interaction": "trigger"
+            },
+            "COMPUTE": {
+                "signifier": "brain-pulse",
+                "token": "var(--accent-primary)",
+                "affordance": "reasoning",
+                "description": "AI reasoning or data transformation.",
+                "cable_style": {
+                    "stroke": "var(--accent-primary)",
+                    "width_idle": "2px",
+                    "width_active": "3px",
+                    "animation": "pulse 2s infinite"
+                }
+            },
+            "SENSE": {
+                "signifier": "radar-sweep",
+                "token": "var(--accent-success)",
+                "affordance": "perception",
+                "description": "Environment scanning or state discovery.",
+                "cable_style": {
+                    "stroke": "var(--accent-success)",
+                    "width_idle": "1px",
+                    "width_active": "2px",
+                    "animation": "scan 3s infinite"
+                }
+            },
+            "PERSIST": {
+                "signifier": "solid-save",
+                "token": "var(--accent-warning)",
+                "affordance": "storage",
+                "description": "Persistent storage operation.",
+                "cable_style": {
+                    "stroke": "var(--accent-warning)",
+                    "width_idle": "2px",
+                    "width_active": "3px"
+                }
+            }
+        },
+        "ARCHETYPES": {
+            "LOGIC_NODE": {
+                "container_style": "glass-panel-neon",
+                "border_color": "var(--color-logic)",
+                "header_icon": "Cpu",
+                "motion": "static"
+            },
+            "ADAPTER": {
+                "container_style": "glass-panel-solid",
+                "border_color": "var(--color-adapter)",
+                "header_icon": "Plug",
+                "motion": "static"
+            },
+            "STATE_NODE": {
+                "container_style": "glass-panel-dim",
+                "border_color": "var(--color-state)",
+                "header_icon": "Database",
+                "motion": "pulse-slow"
+            },
+            "TEMPORAL_GATE": {
+                "container_style": "glass-panel-ethereal",
+                "border_color": "var(--color-time)",
+                "header_icon": "Clock",
+                "motion": "orbit"
+            }
+        },
+        "ROLES": {
+            "identity/id": {
+                "color": "var(--text-bright)",
+                "font_style": "mono-bold"
+            },
+            "diagnostic/error": {
+                "color": "var(--accent-danger)",
+                "font_style": "mono-italic"
+            },
+            "metadata/instruction": {
+                "color": "var(--text-dim)",
+                "font_style": "sans-serif-small"
+            }
+        }
+    },
+    "interaction_physics": {
+        "snapping": {
+            "threshold": 20,
+            "magnetic_force": "strong",
+            "feedback": "haptic-snap"
+        },
+        "cables": {
+            "curve_type": "cubic-bezier",
+            "tension_formula": "distance * 0.5",
+            "min_tension": 80
+        },
+        "layout": {
+            "node_width": 220,
+            "header_height": 40,
+            "row_height": 30
+        }
+    }
+}

@@ -1,0 +1,17 @@
+node_modules/
+
+# Editor / OS
+.vscode/
+.DS_Store
+
+# Environment and logs
+.env
+*.log
+
+# Local artifacts
+.gdriveignore
+
+# NOTE: We intentionally DO NOT ignore `devtools/` or `dev-tools/` here
+# because those folders are part of the project and should be tracked by git.
+# If you want to exclude clasp config from git, uncomment the next line:
+# .clasp.json

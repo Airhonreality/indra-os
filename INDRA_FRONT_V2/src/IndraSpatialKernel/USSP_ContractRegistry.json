@@ -1,0 +1,418 @@
+{
+    "version": "1.1",
+    "roles": {
+        "RECT": {
+            "properties": {
+                "u_pos": {
+                    "type": "v3",
+                    "default": [
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                "u_size": {
+                    "type": "v2",
+                    "default": [
+                        100,
+                        100
+                    ],
+                    "min": [
+                        1,
+                        1
+                    ]
+                },
+                "u_fill": {
+                    "type": "v4",
+                    "default": [
+                        1,
+                        1,
+                        1,
+                        1
+                    ]
+                },
+                "u_stroke": {
+                    "type": "v4",
+                    "default": [
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                },
+                "u_strokeWidth": {
+                    "type": "f32",
+                    "default": 0,
+                    "min": 0,
+                    "max": 50
+                },
+                "u_opacity": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 1
+                },
+                "u_cornerRadius": {
+                    "type": "f32",
+                    "default": 0,
+                    "min": 0
+                },
+                "u_visibility": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 1
+                }
+            }
+        },
+        "ELLIPSE": {
+            "properties": {
+                "u_pos": {
+                    "type": "v3",
+                    "default": [
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                "u_radius": {
+                    "type": "f32",
+                    "default": 50,
+                    "min": 1
+                },
+                "u_fill": {
+                    "type": "v4",
+                    "default": [
+                        1,
+                        1,
+                        1,
+                        1
+                    ]
+                },
+                "u_stroke": {
+                    "type": "v4",
+                    "default": [
+                        0,
+                        0,
+                        0,
+                        1
+                    ]
+                },
+                "u_opacity": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 1
+                },
+                "u_visibility": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 1
+                }
+            }
+        },
+        "TEXT": {
+            "properties": {
+                "u_pos": {
+                    "type": "v3",
+                    "default": [
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                "u_fontSize": {
+                    "type": "f32",
+                    "default": 14,
+                    "min": 1,
+                    "max": 200
+                },
+                "u_color": {
+                    "type": "v4",
+                    "default": [
+                        1,
+                        1,
+                        1,
+                        1
+                    ]
+                },
+                "u_opacity": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 1
+                },
+                "u_weight": {
+                    "type": "f32",
+                    "default": 400,
+                    "min": 100,
+                    "max": 900
+                },
+                "u_visibility": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 1
+                }
+            }
+        },
+        "IMAGE": {
+            "properties": {
+                "u_pos": {
+                    "type": "v3",
+                    "default": [
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                "u_size": {
+                    "type": "v2",
+                    "default": [
+                        100,
+                        100
+                    ]
+                },
+                "u_opacity": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 1
+                },
+                "u_saturation": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 2
+                },
+                "u_visibility": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 1
+                }
+            }
+        },
+        "GROUP": {
+            "properties": {
+                "u_pos": {
+                    "type": "v3",
+                    "default": [
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                "u_scale": {
+                    "type": "f32",
+                    "default": 1.0
+                },
+                "u_rotation": {
+                    "type": "f32",
+                    "default": 0
+                },
+                "u_visibility": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 1
+                }
+            }
+        },
+        "FRAME": {
+            "properties": {
+                "u_pos": {
+                    "type": "v3",
+                    "default": [
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                "u_size": {
+                    "type": "v2",
+                    "default": [
+                        200,
+                        200
+                    ]
+                },
+                "u_padding": {
+                    "type": "v4",
+                    "default": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                "u_gap": {
+                    "type": "f32",
+                    "default": 0
+                },
+                "u_fill": {
+                    "type": "v4",
+                    "default": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                "u_visibility": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 1
+                }
+            }
+        },
+        "DATA_SLOT": {
+            "properties": {
+                "u_pos": {
+                    "type": "v3",
+                    "default": [
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                "u_intensity": {
+                    "type": "f32",
+                    "default": 0.5,
+                    "min": 0,
+                    "max": 1
+                },
+                "u_color": {
+                    "type": "v4",
+                    "default": [
+                        0.5,
+                        1,
+                        0.5,
+                        1
+                    ]
+                },
+                "u_visibility": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 1
+                }
+            }
+        },
+        "REPEATER": {
+            "properties": {
+                "u_pos": {
+                    "type": "v3",
+                    "default": [
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                "u_count": {
+                    "type": "f32",
+                    "default": 1,
+                    "min": 1,
+                    "max": 1000
+                },
+                "u_offset": {
+                    "type": "v2",
+                    "default": [
+                        0,
+                        50
+                    ]
+                },
+                "u_visibility": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 1
+                }
+            }
+        },
+        "ARC": {
+            "properties": {
+                "u_pos": {
+                    "type": "v3",
+                    "default": [
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                "u_innerRadius": {
+                    "type": "f32",
+                    "default": 40
+                },
+                "u_outerRadius": {
+                    "type": "f32",
+                    "default": 50
+                },
+                "u_startAngle": {
+                    "type": "f32",
+                    "default": 0
+                },
+                "u_endAngle": {
+                    "type": "f32",
+                    "default": 180
+                },
+                "u_fill": {
+                    "type": "v4",
+                    "default": [
+                        0,
+                        0.5,
+                        1,
+                        1
+                    ]
+                },
+                "u_visibility": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 1
+                }
+            }
+        },
+        "LINE": {
+            "properties": {
+                "u_start": {
+                    "type": "v3",
+                    "default": [
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                "u_end": {
+                    "type": "v3",
+                    "default": [
+                        100,
+                        100,
+                        0
+                    ]
+                },
+                "u_thickness": {
+                    "type": "f32",
+                    "default": 2,
+                    "min": 0.1
+                },
+                "u_color": {
+                    "type": "v4",
+                    "default": [
+                        1,
+                        1,
+                        1,
+                        1
+                    ]
+                },
+                "u_visibility": {
+                    "type": "f32",
+                    "default": 1.0,
+                    "min": 0,
+                    "max": 1
+                }
+            }
+        }
+    }
+}

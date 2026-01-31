@@ -1,0 +1,52 @@
+name: 🚀 Deploy Frontend to GitHub Pages
+
+on:
+  workflow_dispatch:  # Botón manual en GitHub UI
+  push:
+    branches: [main]
+    paths:
+      - 'INDRA_FRONT DEV/**'
+      - '.github/workflows/deploy-ui.yml'
+
+permissions:
+  contents: write  # Necesario para escribir a gh-pages branch
+
+jobs:
+  deploy:
+    name: Build & Deploy UI
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'INDRA_FRONT DEV/package-lock.json'
+      
+      - name: 📦 Install dependencies
+        working-directory: INDRA_FRONT DEV
+        run: npm ci
+      
+      - name: 🔨 Build frontend
+        working-directory: INDRA_FRONT DEV
+        env:
+          VITE_GAS_URL: ${{ secrets.VITE_GAS_URL }}
+        run: npm run build
+      
+      - name: 🚀 Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./INDRA_FRONT DEV/dist
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'Deploy INDRA UI'
+          
+      - name: ✅ Deployment complete
+        run: |
+          echo "::notice::Frontend deployed successfully!"
+          echo "::notice::URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"

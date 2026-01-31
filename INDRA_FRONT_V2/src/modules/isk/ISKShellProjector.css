@@ -1,0 +1,196 @@
+/**
+ * 🎨 ISK SHELL PROJECTOR STYLES
+ * Layout for the 4-zone quadrant system
+ */
+
+.isk-shell-projector {
+    display: grid;
+    grid-template-areas:
+        "left center right"
+        "bottom bottom bottom";
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: 1fr auto;
+    height: 100%;
+    width: 100%;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--stark-font);
+    overflow: hidden;
+    position: relative;
+    /* Para posicionar el botón flotante */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- MODO ZEN (FULLSCREEN) --- */
+.isk-shell-projector.isk-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    /* Sobre todo el shell de Indra */
+    border: none;
+    background: var(--bg-primary);
+    /* Asegurar fondo sólido */
+}
+
+/* --- BOTÓN ZEN TOGGLE --- */
+.isk-zen-toggle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 100;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    width: 32px;
+    height: 32px;
+    border-radius: var(--stark-border-radius);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+}
+
+.isk-zen-toggle:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent-secondary);
+    color: var(--accent-secondary);
+    transform: scale(1.05);
+}
+
+/* --- ZONAS --- */
+
+.isk-zone {
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    /* Fondo ligeramente más claro para zonas */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.isk-zone-left {
+    grid-area: left;
+    border-right: 1px solid var(--border-highlight);
+}
+
+.isk-zone-center {
+    grid-area: center;
+    position: relative;
+    /* Para que el canvas hijo se ubique bien */
+    background: var(--bg-primary);
+    /* Canvas suele ser más oscuro/profundo */
+}
+
+.isk-zone-right {
+    grid-area: right;
+    border-left: 1px solid var(--border-highlight);
+}
+
+.isk-zone-bottom {
+    grid-area: bottom;
+    border-top: 1px solid var(--border-highlight);
+}
+
+.isk-zone-header {
+    padding: 0 12px;
+    background: var(--bg-tertiary, var(--bg-secondary));
+    /* Fallback seguro */
+    border-bottom: 1px solid var(--border-color);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 32px;
+    /* Altura fija para headers */
+    box-sizing: border-box;
+}
+
+.isk-zone-content {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+    /* Para contener hijos absolutos */
+}
+
+/* Ajuste específico para el canvas en el centro para que llene todo */
+.isk-zone-center .isk-zone-content {
+    overflow: hidden;
+    /* Canvas maneja su propio scroll/pan */
+    padding: 0;
+}
+
+.isk-empty-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #555;
+    font-style: italic;
+    background: repeating-linear-gradient(45deg,
+            #111,
+            #111 10px,
+            #151515 10px,
+            #151515 20px);
+}
+
+.isk-empty-slot code {
+    background: #000;
+    padding: 4px 8px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    color: #888;
+}
+
+.isk-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    background: #0a0a0a;
+    color: #e0e0e0;
+}
+
+.isk-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #333;
+    border-top-color: #0ea5e9;
+    border-radius: 50%;
+    animation: isk-spin 0.8s linear infinite;
+    margin-bottom: 16px;
+}
+
+.isk-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    background: #2a0a0a;
+    color: #ff4444;
+    font-weight: bold;
+}
+
+@keyframes isk-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Resizable panels (future enhancement) */
+.isk-zone[data-resizable="true"] {
+    resize: horizontal;
+    overflow: auto;
+}

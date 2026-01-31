@@ -1,0 +1,109 @@
+Blueprint de Auditoría de UI: Densidad de Interacción y Módulos
+
+ID del Proyecto: Auditoría de Detalle UI (Cero "Magia")
+Investigador en Formación: Usuario
+Auditor Escéptico: Gemini (Investigador Senior)
+
+1. Problema de Investigación (Traducción)
+
+¿En qué medida el documento de UI funciona como un inventario exhaustivo de requisitos que permita identificar omisiones en los documentos de lógica técnica y contratos de backend?
+
+2. Hipótesis Nula (H0)
+
+"No existe una discrepancia cuantificable entre los elementos de interacción descritos en la UI y las capacidades lógicas definidas en los contratos técnicos predecesores".
+
+3. Límites de Definición (Unidad Mínima de Auditoría)
+
+Para evitar la "magia" sin ser desarrollador, cada interacción debe cumplir con el rigor de la tríada:
+
+Estado A (Reposo/Origen): Cómo se ve el sistema antes de la acción.
+
+La Transición (El Interactor): Qué componente modular (Panel de Nodos, Selector, etc.) soporta la acción física.
+
+Estado B (Resultado/Destino): Cómo se transforma la pantalla o qué nuevo recurso aparece.
+
+4. Matriz de Auditoría (Criterios de Exhaustividad)
+
+Elemento
+
+Pregunta de Control
+
+Criterio de Rechazo
+
+Gatillos (Triggers)
+
+¿Existe un componente visual (botón, área de drop) para esta acción?
+
+La acción ocurre "por defecto" o sin un componente que la soporte.
+
+Módulos Requeridos
+
+¿Se nombra el panel o herramienta específica (ej: Módulo de Color)?
+
+La interacción menciona un cambio de atributo sin definir la herramienta que lo ejecuta.
+
+Flujo de Entrada
+
+¿Se especifica el momento exacto en que el dato externo toca la interfaz?
+
+El dato aparece en la UI sin describir el componente de carga o conexión.
+
+Bifurcaciones
+
+¿Está descrito qué pasa si el "cuándo" lógico no se cumple?
+
+Se asume el éxito de la interacción sin mostrar el estado de error o espera en la UI.
+
+5. Estructura de Auditoría por Caso de Uso (El Viaje del Usuario)
+
+La auditoría no evalúa pantallas estáticas, sino la continuidad del viaje. Todo fragmento debe pertenecer a una fase de este ciclo. Si el viaje se rompe, la auditoría falla.
+
+Fase del Viaje
+
+Propósito (La Intención del Usuario)
+
+Evidencia Obligatoria en el Documento
+
+1. Llegada (Contexto)
+
+"Quiero saber dónde estoy y qué puedo hacer aquí."
+
+Nombre de Vista, Pre-condiciones (¿Login previo?), Estado Inicial de los datos (¿Vacío o lleno?).
+
+2. Orientación (Anatomía)
+
+"Identifico las herramientas disponibles para mi objetivo."
+
+Inventario visible de Paneles, Botones y Áreas de Drop antes de tocar nada.
+
+3. Acción (Interacción)
+
+"Ejecuto el cambio o la solicitud."
+
+El Gatillo exacto (Clic, Drag, Hover) y la Herramienta (Módulo) que uso.
+
+4. Reacción (Feedback)
+
+"Espero confirmación de que el sistema me entendió."
+
+Estados de Carga (Spinners), Validaciones visuales o Mensajes de Error inmediatos.
+
+5. Resolución (Salida)
+
+"Obtengo el resultado y sigo o termino."
+
+El nuevo recurso generado (Output), el cambio de pantalla o la actualización del dato externo.
+
+6. Protocolo de Ejecución (Auditando el Viaje)
+
+Declarar el Caso de Uso: (Ej: "El usuario importa un archivo desde Notion").
+
+Seguir la Ruta (Fases 1-5): Leer el documento de UI siguiendo la tabla de la Sección 5 secuencialmente.
+
+Detectar el "Salto de Fe": Marcar el punto exacto donde el documento salta una fase (ej: pasa de Acción a Resolución sin mostrar Reacción/Carga).
+
+Identificar Requisitos Faltantes: Listar los módulos (backend/frontend) que faltaron para cubrir ese salto.
+
+Hallazgo: Registrar la discrepancia para ajuste del contrato técnico.
+
+Estado del Artefacto: Estructura alineada al User Journey. Esperando el primer Caso de Uso para iniciar la auditoría.

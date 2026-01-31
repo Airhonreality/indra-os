@@ -1,0 +1,91 @@
+/**
+ * 📊 STATE HUD STYLES
+ */
+
+.state-hud {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Grupos a los extremos y centro */
+    height: 100%;
+    background: var(--bg-tertiary, #151515);
+    border-top: 1px solid var(--border-color, #333);
+    padding: 0 16px;
+    font-family: var(--stark-font, monospace);
+    font-size: 11px;
+    user-select: none;
+    color: var(--text-dim, #888);
+}
+
+.state-hud-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* System Vitals */
+.state-hud-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #444;
+}
+
+.status-dot.connected {
+    background: var(--accent-success, #00ff88);
+    box-shadow: 0 0 6px rgba(0, 255, 136, 0.4);
+}
+
+/* Spawner Controls (Center) */
+.spawner-controls {
+    display: flex;
+    gap: 8px;
+    background: var(--bg-secondary, #1a1a1a);
+    padding: 4px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #333);
+}
+
+.spawn-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #ccc);
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--stark-font, sans-serif);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.spawn-btn:hover {
+    background: var(--bg-hover, #333);
+    color: var(--text-primary, #fff);
+}
+
+.spawn-btn:active {
+    transform: translateY(1px);
+    background: var(--bg-active, #222);
+}
+
+.spawn-btn .icon {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* Version Tag (Right) */
+.version-tag {
+    opacity: 0.3;
+    font-size: 10px;
+    letter-spacing: 1px;
+}

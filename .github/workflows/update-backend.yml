@@ -1,0 +1,93 @@
+name: 🔄 Update Backend Code
+
+# Este workflow se activa cuando hay cambios en el backend
+# Requiere que hayas ejecutado first-time-setup.sh primero
+# y que hayas configurado los secrets CLASPRC_JSON y CLASP_JSON
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'OrbitalCore_Codex_v1/**'
+      - '!OrbitalCore_Codex_v1/_documentation/**'
+  workflow_dispatch:
+
+jobs:
+  update:
+    name: Push code to Google Apps Script
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install Clasp
+        run: npm install -g @google/clasp
+      
+      - name: Setup Clasp Authentication
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          CLASP_JSON: ${{ secrets.CLASP_JSON }}
+        run: |
+          # Crear archivo de autenticación de Clasp
+          echo "$CLASPRC_JSON" > ~/.clasprc.json
+          
+          # Crear archivo de configuración del proyecto
+          echo "$CLASP_JSON" > OrbitalCore_Codex_v1/.clasp.json
+          
+          echo "✅ Clasp authentication configured"
+      
+      - name: Verify Clasp Login
+        run: |
+          if clasp login --status; then
+            echo "✅ Clasp login status verified"
+          else
+            echo "❌ Clasp authentication failed"
+            exit 1
+          fi
+      
+      - name: Push Code to GAS
+        working-directory: OrbitalCore_Codex_v1
+        run: |
+          echo "📤 Pushing code to Google Apps Script..."
+          clasp push --force
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Code pushed successfully"
+          else
+            echo "❌ Failed to push code"
+            exit 1
+          fi
+      
+      - name: Summary
+        run: |
+          echo "# ✅ Backend Updated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Backend code has been pushed to Google Apps Script." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Changes are live immediately** - no re-deployment needed." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Updated Files" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          git diff --name-only HEAD~1 HEAD -- OrbitalCore_Codex_v1/ | grep -v '_documentation/' >> $GITHUB_STEP_SUMMARY || echo "No files changed" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+      
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "# ❌ Backend Update Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The backend code could not be pushed to Google Apps Script." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔧 Troubleshooting" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. Verify that \`CLASPRC_JSON\` secret is configured correctly" >> $GITHUB_STEP_SUMMARY
+          echo "2. Verify that \`CLASP_JSON\` secret contains your .clasp.json content" >> $GITHUB_STEP_SUMMARY
+          echo "3. Check that your Google Apps Script project still exists" >> $GITHUB_STEP_SUMMARY
+          echo "4. Try running \`clasp push\` manually from your local machine" >> $GITHUB_STEP_SUMMARY

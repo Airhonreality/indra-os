@@ -1,0 +1,76 @@
+/* 
+ * 🌞 INDRA OS - Design System (Theme Administration)
+ * Axiom: Zero hardcoded colors in components.
+ * This file manages the visual identity through CSS Variables.
+ */
+
+:root {
+    /* --- SHARED TOKENS --- */
+    --font-main: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --border-radius-sm: 8px;
+    --border-radius-md: 16px;
+    --border-radius-lg: 24px;
+    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --glass-blur: 12px;
+}
+
+/* 🌿 LIGHT THEME (Solar Mornings) */
+[data-theme='light'] {
+    --bg-primary: #f9fbf7;
+    /* Off-white with a hint of nature */
+    --bg-secondary: #ffffff;
+    --bg-glass: rgba(255, 255, 255, 0.7);
+
+    --text-primary: #1a2f23;
+    /* Deep forest green for text */
+    --text-secondary: #4a6755;
+    --text-dim: #8ba394;
+
+    --accent-primary: #4ade80;
+    /* Vibrant Solar Green */
+    --accent-secondary: #facc15;
+    /* Sun Yellow */
+    --accent-glow: rgba(74, 222, 128, 0.3);
+
+    --border-color: rgba(26, 47, 35, 0.1);
+    --border-focus: var(--accent-primary);
+
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.05);
+    --shadow-glow: 0 0 20px var(--accent-glow);
+}
+
+/* 🌑 DARK THEME (Bioluminescent Nights) */
+[data-theme='dark'] {
+    --bg-primary: #0a0f0d;
+    /* Deep Obsidian */
+    --bg-secondary: #121a16;
+    --bg-glass: rgba(18, 26, 22, 0.75);
+
+    --text-primary: #e2f3e8;
+    /* Soft mint/white */
+    --text-secondary: #a3bfaf;
+    --text-dim: #6b8a78;
+
+    --accent-primary: #22c55e;
+    /* Bio-Green */
+    --accent-secondary: #84cc16;
+    /* Lime */
+    --accent-glow: rgba(34, 197, 94, 0.2);
+
+    --border-color: rgba(226, 243, 232, 0.1);
+    --border-focus: var(--accent-primary);
+
+    --shadow-soft: 0 4px 30px rgba(0, 0, 0, 0.4);
+    --shadow-glow: 0 0 30px var(--accent-glow);
+}
+
+/* Helper Class for Glassmorphism */
+.glass {
+    background: var(--bg-glass);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-soft);
+}

@@ -1,0 +1,25 @@
+# Archivos de configuración y herramientas locales
+run_local_oracle.js
+codex.html
+dashboard.html
+package.json
+package-lock.json
+analysis_report.json
+concatenated_source.js
+dependency-report.json
+
+# Directorio de herramientas de desarrollo
+dev-tools/
+dev-tools/**
+devtools/
+devtools/**
+
+# Directorio de dependencias de Node
+node_modules/
+
+# Archivos ocultos de sistema operativo o IDE
+.vscode/
+.git/
+.DS_Store
+**/*.ini
+desktop.ini

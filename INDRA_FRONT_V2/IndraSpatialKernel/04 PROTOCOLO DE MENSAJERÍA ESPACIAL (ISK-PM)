@@ -1,0 +1,64 @@
+🏛️ ESPECIFICACIÓN TÉCNICA: ISK-USSP (v1.0)
+ID: ISK-Unified-State-Synchronization-Protocol
+Alcance: Sincronización de estado reactivo entre el Hilo Principal (UI), el Spatial Worker (Cálculo) y el VectorAdapter (Persistencia).
+1. Restricciones de Arquitectura (System Constraints)
+Para garantizar la estabilidad del sistema bajo cargas de 10k+ entidades, el protocolo impone las siguientes restricciones técnicas:
+Determinismo de Estado: Ante un mismo payload y un mismo state_id, el resultado en el motor de renderizado debe ser idéntico.
+Ejecución No-Bloqueante (Non-Blocking): El procesamiento de mensajes de persistencia no debe exceder el presupuesto de frame (16.6ms) del hilo principal.
+Validación de Tipos en el Borde (Edge Type Safety): El Bridge debe validar el ValueType contra el esquema del SpatialLaw antes de la propagación al Worker.
+Sincronización Delta (Differential Sync): Solo se transmiten los atributos modificados. Se prohíbe el envío de objetos de estado completos para minimizar la presión sobre el Garbage Collector.
+2. Clasificación de Canales de Datos (Data Channels)
+El protocolo segmenta el tráfico en tres canales basados en su presupuesto de latencia (Latency Budget):
+Canal 0: High-Frequency Sync (HFS)
+Frecuencia: 60Hz.
+Latencia: < 16ms.
+Uso: Actualización de atributos visuales (transform, opacity, shaders).
+Persistencia: Volátil (In-memory only).
+Transporte: postMessage con Transferable Objects (TypedArrays).
+Canal 1: Asynchronous Persistence (ASP)
+Frecuencia: Bajo demanda (Event-driven).
+Latencia: < 500ms.
+Uso: Guardado de cambios estructurales en el .layout.json.
+Mecánica: Debounced (300ms) para evitar saturación de I/O en el Core.
+Canal 2: System Control (SYS)
+Frecuencia: Baja.
+Uso: Errores de validación, violaciones de esquema, latidos de integridad (Heartbeats).
+3. Estructura del Paquete (Data Schema)
+La interfaz de mensaje se define mediante la siguiente interfaz TypeScript/JSON:
+code
+TypeScript
+interface ISK_USSP_Packet {
+  version: "1.0";
+  header: {
+    msg_id: string;        // UUID v4
+    timestamp: number;     // Unix Epoch ms
+    source: 0 | 1 | 2;     // 0: UI, 1: Worker, 2: Core
+    priority: 0 | 1 | 2;   // 0: Critical, 1: Normal, 2: Low
+  };
+  payload: {
+    action: "SET" | "BIND" | "DELETE" | "INIT";
+    target_id: string;     // Entity UUID
+    property: string;      // Atributo específico (ej: "u_bloom")
+    value: any;            // Valor del atributo
+    value_type: "f32" | "i32" | "v3" | "str" | "bool";
+  };
+  integrity: {
+    persistence: 0 | 1 | 2; // 0: Volatile, 1: Deferred, 2: Immediate
+    checksum?: string;      // Opcional para validación de integridad
+  };
+}
+4. Pipeline de Procesamiento de Mensajes
+Ingesta: El Dispatcher recibe la interacción del usuario.
+Validación: El TypeGuard verifica que value_type coincida con la definición en SpatialLaw.
+Propagación Visual: Si persistence es 0 o 1, el mensaje se envía inmediatamente al SpatialWorker vía postMessage.
+Buffer de Persistencia: Si persistence es 1 o 2, el mensaje se encola en el PersistenceManager.
+Commit: El PersistenceManager ejecuta el fetch hacia el VectorAdapter del Core una vez cumplido el tiempo de debounce.
+5. Gestión de Errores y Fallback
+Type Mismatch: El protocolo descarta el mensaje y emite un código de error ERR_TYPE_VIOLATION al canal SYS.
+Persistence Timeout: Si el Core no confirma el recibo en < 5000ms, el mensaje se mueve a un RetryQueue en IndexedDB.
+Circular Dependency: El DependencyGraph del Bridge analiza los mensajes BIND para detectar bucles infinitos antes de la ejecución.
+6. Componentes de Software (Módulos JS)
+USSP_Dispatcher.js: Punto de entrada único para la emisión de mensajes.
+USSP_Bridge.js: Lógica de enrutamiento y validación de tipos.
+USSP_Persistence.js: Gestor de sincronización asíncrona con el Core.
+Veredicto Técnico: Este documento elimina la narrativa y se centra en la interoperabilidad de datos. Es un protocolo de sincronización de estado estándar que cualquier desarrollador senior puede implementar y testear mediante pruebas unitarias de carga y latencia.

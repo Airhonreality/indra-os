@@ -1,0 +1,92 @@
+# ============================================
+# INDRA OS - Git Ignore
+# ============================================
+
+# Archivos sensibles de configuración
+.env
+.env.local
+.env.production
+.env.*.local
+.gas-url.txt
+.gas-script-id.txt
+
+# Credenciales de Clasp (usuario debe mantenerlas localmente)
+.clasp.json
+.clasprc.json
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# IDE y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Testing
+coverage/
+*.lcov
+.nyc_output
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# Temporal
+*.tmp
+*.temp
+.temp/
+.tmp/
+
+# Sistema operativo
+Thumbs.db
+desktop.ini
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Archivos específicos de Windows
+*.stackdump
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Backups
+*.bak
+*.backup
+*~
+
+# Archivos de reportes generados
+src_structure_report.json
+
+# ============================================
+# IMPORTANTE: Mantener en Git
+# ============================================
+# Estos archivos SÍ deben estar en el repo:
+# - .env.example (template sin valores reales)
+# - package.json
+# - package-lock.json
+# - appsscript.json
+# ============================================

@@ -1,0 +1,166 @@
+/* ============================================================ */
+/* STARK THEME SYSTEM v7.0 (Axiomatic CSS)                      */
+/* DHARMA: Agnosticismo Estético y Control de Superficie        */
+/* ============================================================ */
+
+:root {
+    /* Paleta Stark (Base) */
+    --stark-font: 'Inter', system-ui, -apple-system, sans-serif;
+    --stark-border-radius: 4px;
+    --stark-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --stark-glass-blur: 12px;
+}
+
+/* 🌑 DARK MODE (Default Sovereign) */
+.stark-theme-dark {
+    --bg-primary: #0a0a0c;
+    --bg-secondary: #141416;
+    --bg-glass: rgba(20, 20, 22, 0.7);
+
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-highlight: rgba(255, 255, 255, 0.15);
+
+    --text-primary: #e1e1e6;
+    --text-secondary: #94949e;
+    --text-dim: #62626e;
+
+    --accent-primary: #4f46e5;
+    /* Electric Indigo */
+    --accent-secondary: #06b6d4;
+    /* Cyan Cyber */
+
+    --status-success: #10b981;
+    --status-error: #ef4444;
+    --status-warning: #f59e0b;
+}
+
+/* ☀️ LIGHT MODE (High Contrast) */
+.stark-theme-light {
+    --bg-primary: #fcfcfc;
+    --bg-secondary: #f3f4f6;
+    --bg-glass: rgba(252, 252, 252, 0.8);
+
+    --border-color: rgba(0, 0, 0, 0.1);
+    --border-highlight: rgba(0, 0, 0, 0.2);
+
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-dim: #9ca3af;
+
+    --accent-primary: #3b82f6;
+    --accent-secondary: #0ea5e9;
+
+    --status-success: #059669;
+    --status-error: #dc2626;
+    --status-warning: #d97706;
+}
+
+/* --- ESTRUCTURA GRID (The Shell) --- */
+
+body,
+html {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: var(--stark-font);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.stark-shell {
+    display: grid;
+    grid-template-rows: 50px 1fr 180px;
+    /* Header, Body, Footer */
+    width: 100%;
+    height: 100%;
+}
+
+.stark-main-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr 320px;
+    /* Nav, Canvas, Inspector */
+    gap: 1px;
+    background: var(--border-color);
+    /* Separación visual fina */
+    overflow: hidden;
+}
+
+/* --- CUADRANTES (The Quadrants) --- */
+
+.stark-quadrant {
+    background: var(--bg-primary);
+    padding: 12px;
+    border: 1px solid transparent;
+    transition: var(--stark-transition);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Efecto de Caja Vacía (Scaffolding Mode) */
+.stark-quadrant:empty::before {
+    content: attr(id);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    opacity: 0.5;
+    border: 1px dashed var(--text-dim);
+    padding: 4px 8px;
+}
+
+.stark-quadrant:hover {
+    border-color: var(--border-highlight);
+    background: var(--bg-secondary);
+}
+
+/* Sidebar Columns */
+.stark-sidebar-left,
+.stark-sidebar-right {
+    display: grid;
+    grid-template-rows: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 1px;
+    background: var(--border-color);
+}
+
+/* Canvas Area */
+.stark-canvas-area {
+    background: var(--bg-secondary);
+    position: relative;
+    overflow: hidden;
+}
+
+.canvas-box {
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+    background-size: 32px 32px;
+    /* Grid Stark */
+}
+
+/* Footer Grid */
+.stark-footer-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 1px;
+    background: var(--border-color);
+    border-top: 1px solid var(--border-color);
+}
+
+/* Utility Classes */
+.glass {
+    backdrop-filter: blur(var(--stark-glass-blur));
+    background: var(--bg-glass);
+}
+
+/* Modulo 9: Designer (Zero Padding para ISK) */
+#m09-designer {
+    padding: 0 !important;
+    display: flex;
+    flex-direction: column;
+}

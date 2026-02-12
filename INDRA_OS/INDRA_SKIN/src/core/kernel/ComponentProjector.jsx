@@ -4,13 +4,15 @@ import { resolveEngine } from '../registers/Archetype_Registry';
 import SchemaFormEngine from './projections/engines/SchemaFormEngine';
 import NodeEngine from './projections/engines/NodeEngine'; // Mantenemos import directo para caso edge NODE
 import MatrixNavigator from '../../4_Elements/MatrixNavigator';
+import { useAxiomaticStore } from '../state/AxiomaticStore';
 
 /**
- * ComponentProjector (v8.0 Refactor MATRIX)
- * DHARMA: Matriz de Proyección Atómica.
- * Ya no toma decisiones. Solo consulta el Registro Soberano.
+ * ComponentProjector (v8.1 - Silo Hydration)
+ * DHARMA: Matriz de Proyección Atómica con Hidratación de Silos.
+ * AXIOMA: "El canon estático se hidrata con data dinámica del silo antes de proyectar."
  */
 const ComponentProjector = ({ componentId, data, perspective = 'VAULT', schemaId, slotId, onCommit, onCancel }) => {
+    const { state } = useAxiomaticStore();
 
     // Ruta de Proyección de Esquemas (Caso Especial: Meta-Proyección)
     if (perspective === 'SCHEMA_PROJECTION') {
@@ -32,26 +34,47 @@ const ComponentProjector = ({ componentId, data, perspective = 'VAULT', schemaId
         </div>;
     }
 
+
+    // AXIOMA: HIDRATACIÓN DE SILO (Pureza Arquitectónica)
+    // Si existe data en el silo para este componentId, hidratamos el canon con ella.
+    // Esto asegura que ORIGIN_SOURCE, SCHEMA, PAGINATION, etc. estén siempre presentes.
+    const hydratedCanon = React.useMemo(() => {
+        const artifactId = canon.id || canon.ID || componentId;
+        const siloData = state.phenotype.silos?.[artifactId];
+
+        if (siloData && typeof siloData === 'object' && !Array.isArray(siloData)) {
+            // Silo tiene payload completo (ORIGIN_SOURCE, SCHEMA, results, etc.)
+            console.log(`[ComponentProjector] 💧 Hydrated canon with silo data for ${artifactId}`, {
+                hasOriginSource: !!siloData.ORIGIN_SOURCE,
+                hasSchema: !!siloData.SCHEMA,
+                hasPagination: !!siloData.PAGINATION
+            });
+            return { ...canon, ...siloData };
+        }
+
+        return canon;
+    }, [canon, componentId, state.phenotype.silos]);
+
     // 2. VALIDACIÓN SOBERANA (Anti-Fallbacks Silenciosos)
     // Usamos normalización segura para evitar bloqueos innecesarios
-    const LABEL = canon.LABEL || canon.label || 'UNIT_SKELETON';
-    const ARCHETYPE = canon.ARCHETYPE || canon.archetype || (canon.ARCHETYPES ? canon.ARCHETYPES[0] : 'ADAPTER');
-    const DOMAIN = canon.DOMAIN || canon.domain || 'SYSTEM';
+    const LABEL = hydratedCanon.LABEL || hydratedCanon.label || 'UNIT_SKELETON';
+    const ARCHETYPE = hydratedCanon.ARCHETYPE || hydratedCanon.archetype || (hydratedCanon.ARCHETYPES ? hydratedCanon.ARCHETYPES[0] : 'ADAPTER');
+    const DOMAIN = hydratedCanon.DOMAIN || hydratedCanon.domain || 'SYSTEM';
 
     // Solo logueamos error pero permitimos renderizar con normalización
-    if (!canon.LABEL && !canon.ARCHETYPE) {
+    if (!hydratedCanon.LABEL && !hydratedCanon.ARCHETYPE) {
         console.warn(`[Projector] Partial Contract for ${componentId}. Normalizing...`);
     }
 
     // AXIOMA: Estabilización de Referencias (Memoization)
     const normalizedCanon = React.useMemo(() => ({
-        ...canon,
-        id: (canon.id || canon.ID || componentId), // SOBERANÍA BINARIA: Preservar Case-Sensitivity
+        ...hydratedCanon,
+        id: (hydratedCanon.id || hydratedCanon.ID || componentId), // SOBERANÍA BINARIA: Preservar Case-Sensitivity
         LABEL: LABEL,
         ARCHETYPE: ARCHETYPE.toUpperCase(),
         DOMAIN: DOMAIN.toUpperCase(),
-        CAPABILITIES: canon.CAPABILITIES || canon.capabilities || {}
-    }), [canon, componentId, LABEL, ARCHETYPE, DOMAIN]);
+        CAPABILITIES: hydratedCanon.CAPABILITIES || hydratedCanon.capabilities || {}
+    }), [hydratedCanon, componentId, LABEL, ARCHETYPE, DOMAIN]);
 
     const availableModes = React.useMemo(() =>
         normalizedCanon.ARCHETYPES || [normalizedCanon.ARCHETYPE],

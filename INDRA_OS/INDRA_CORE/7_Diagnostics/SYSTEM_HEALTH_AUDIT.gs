@@ -88,6 +88,30 @@ function runSystemHealthAudit() {
   console.log('\n╔═══════════════════════════════════════════════════════════════╗');
   console.log(`║   📈 ÍNDICE DE SALUD: ${coherence}%                             ║`);
   console.log('╚═══════════════════════════════════════════════════════════════╝\n');
+  
+  // ═══════════════════════════════════════════════════════════════════════
+  // FASE 4: BURST MODE INFRASTRUCTURE (V8.4+)
+  // ═══════════════════════════════════════════════════════════════════════
+  console.log('\n🌐 [FASE 4] Burst Mode Infrastructure Audit...\n');
+  
+  // Run comprehensive burst mode tests
+  if (typeof RUN_ALL_Burst_Tests === 'function') {
+    const burstResults = RUN_ALL_Burst_Tests();
+    const burstCoherence = Math.round((burstResults.passedCount / burstResults.totalCount) * 100);
+    
+    console.log('\n╔═══════════════════════════════════════════════════════════════╗');
+    console.log(`║   🌐 BURST MODE COHERENCE: ${burstCoherence}%                        ║`);
+    console.log(`║   Tests Passed: ${burstResults.passedCount}/${burstResults.totalCount}                                  ║`);
+    console.log('╚═══════════════════════════════════════════════════════════════╝\n');
+    
+    // Update overall coherence
+    const overallCoherence = Math.round((coherence + burstCoherence) / 2);
+    console.log('\n╔═══════════════════════════════════════════════════════════════╗');
+    console.log(`║   🎯 OVERALL SYSTEM COHERENCE: ${overallCoherence}%                    ║`);
+    console.log('╚═══════════════════════════════════════════════════════════════╝\n');
+  } else {
+    console.log('   ⚠️  Burst Mode tests not available. Run BURST_MODE_AUDIT.gs separately.');
+  }
 }
 
 function _logStatus(id, passed, msg) {

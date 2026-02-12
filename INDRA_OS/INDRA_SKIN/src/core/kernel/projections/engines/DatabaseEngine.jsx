@@ -15,24 +15,25 @@ const DatabaseEngine = ({ data, perspective = 'STANDARD' }) => {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
     // AXIOMA: Resolución de Identidad y Origen (Deep Introspection)
-    // AXIOMA: Resolución de Identidad y Origen (Deep Introspection)
     const artifactId = data.id || data.data?.id;
     const accountId = data.ACCOUNT_ID || data.data?.ACCOUNT_ID;
 
-    // AXIOMA: Soberanía de Origen (Contract First)
+    // AXIOMA: Soberanía de Origen (Contract First - PUREZA ABSOLUTA)
+    // El ComponentProjector ya hidrata el canon con data del silo.
+    // Si ORIGIN_SOURCE no está presente, NO adivinamos. Fallamos explícitamente.
     const originSource = useMemo(() => {
+        // Prioridad 1: ORIGIN_SOURCE directo (del backend o silo)
         if (data.ORIGIN_SOURCE) return data.ORIGIN_SOURCE.toLowerCase();
         if (data.data?.ORIGIN_SOURCE) return data.data.ORIGIN_SOURCE.toLowerCase();
 
-        // Fallback 1: Firma por MimeType
-        const mime = data.mimeType || data.data?.mimeType || '';
-        if (mime.includes('notion')) return 'notion';
-
-        // Fallback 2: Consultar metadatos del silo
+        // Prioridad 2: Metadata del silo (backup)
         const siloMeta = state.phenotype.siloMetadata?.[artifactId];
         if (siloMeta?.ORIGIN_SOURCE) return siloMeta.ORIGIN_SOURCE.toLowerCase();
 
-        return (data.nodeId || 'drive').toLowerCase();
+        // AXIOMA: NO ADIVINAR - Fallar explícitamente
+        console.error(`[DatabaseEngine] ❌ ORIGIN_SOURCE missing for artifact: ${artifactId}`);
+        console.error('[DatabaseEngine] This is a contract violation. Data should be hydrated by ComponentProjector.');
+        return null;
     }, [data, artifactId, state.phenotype.siloMetadata]);
 
     // AXIOMA: Recuperación y Aplanamiento de la Data Cruda (Semantic Bridge)
@@ -46,7 +47,11 @@ const DatabaseEngine = ({ data, perspective = 'STANDARD' }) => {
         else if (Array.isArray(data.data?.rows)) base = data.data.rows;
         else {
             const siloId = artifactId;
-            base = state.phenotype.silos?.[siloId] || [];
+            const siloData = state.phenotype.silos?.[siloId];
+            // AXIOMA: Silo ahora guarda payload completo, no solo items
+            if (siloData) {
+                base = Array.isArray(siloData) ? siloData : (siloData.results || siloData.items || siloData.rows || []);
+            }
         }
 
         // Si la data está vacía, intentamos Mock fallback (Solo en modo Dev)
@@ -59,15 +64,21 @@ const DatabaseEngine = ({ data, perspective = 'STANDARD' }) => {
 
     // AXIOMA: Reificación Automática (Just-In-Time Discovery)
     React.useEffect(() => {
-        if (rawData.length === 0 && artifactId) {
+        if (rawData.length === 0 && artifactId && originSource) {
             console.log(`[DatabaseEngine] 📡 Auto-Reifying ${artifactId} from ${originSource}`);
             // AXIOMA: Resolución de ID Externo. Priorizamos IDs técnicos para el backend.
             const fetchId = data.technical_id || data.external_id || artifactId;
             execute('FETCH_DATABASE_CONTENT', { databaseId: fetchId, nodeId: originSource, accountId });
+        } else if (rawData.length === 0 && artifactId && !originSource) {
+            console.warn(`[DatabaseEngine] ⚠️ Cannot auto-reify ${artifactId}: origin source unknown`);
         }
-    }, [artifactId, data.technical_id, data.external_id]);
+    }, [artifactId, data.technical_id, data.external_id, originSource]);
 
     const handleResync = () => {
+        if (!originSource) {
+            console.warn(`[DatabaseEngine] ⚠️ Cannot resync ${artifactId}: origin source unknown`);
+            return;
+        }
         execute('FETCH_DATABASE_CONTENT', { databaseId: artifactId, nodeId: originSource, accountId, refresh: true });
     };
 

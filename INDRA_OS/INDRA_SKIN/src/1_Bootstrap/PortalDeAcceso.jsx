@@ -181,7 +181,7 @@ const PortalDeAcceso = ({ asOverlay = false, onClose }) => {
                                     connector.init(coreUrl, apiKey);
 
                                     // 2. Llamada al método white-listed en AdminTools
-                                    const result = await adapter.call('adminTools', 'setSystemToken', { newToken: apiKey });
+                                    const result = await adapter.call('public', 'setSystemToken', { newToken: apiKey });
 
                                     if (result && result.success) {
                                         setError(`✅ ÉXITO: Token del Core actualizado a ${apiKey.substring(0, 3)}... Reiniciando.`);

@@ -29,7 +29,7 @@ const SecurityVault = ({ onClose }) => {
                 connector.init(newCoreUrl, localStorage.getItem('INDRA_SESSION_TOKEN'));
             }
 
-            const result = await adapter.call('adminTools', 'setSystemToken', { newToken });
+            const result = await adapter.call('public', 'setSystemToken', { newToken });
 
             if (result && result.success) {
                 // Actualizar token localmente

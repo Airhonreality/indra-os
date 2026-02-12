@@ -353,7 +353,21 @@ export const AxiomaticProvider = ({ children }) => {
 
         if (actionType === 'FETCH_DATABASE_CONTENT') {
             const { databaseId, nodeId, refresh, accountId } = payload;
-            const targetNodeId = (nodeId || 'drive').toLowerCase();
+
+            // AXIOMA: NO asumir origen - fallar explícitamente si falta
+            if (!nodeId) {
+                console.error(`[AxiomaticStore] ❌ FETCH_DATABASE_CONTENT called without nodeId for database: ${databaseId}`);
+                dispatch({
+                    type: 'LOG_ENTRY',
+                    payload: {
+                        msg: `Cannot fetch database ${databaseId}: origin source (nodeId) is missing`,
+                        type: 'ERROR'
+                    }
+                });
+                return;
+            }
+
+            const targetNodeId = nodeId.toLowerCase();
 
             useAxiomaticState.getState().setLoading(true);
             try {
@@ -363,6 +377,8 @@ export const AxiomaticProvider = ({ children }) => {
                     result = await adapter.executeAction('sheet:read', { sheetId: databaseId, accountId });
                 } else if (targetNodeId === 'notion') {
                     result = await adapter.executeAction('notion:query_db', { databaseId, accountId });
+                } else {
+                    throw new Error(`Unsupported database origin: ${targetNodeId}`);
                 }
 
                 const rows = Array.isArray(result) ? result : (result?.results || result?.items || []);

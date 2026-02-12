@@ -257,6 +257,15 @@ function createPublicAPI({
     return { success: true, status: 'CONNECTED', timestamp: new Date().toISOString() };
   }
 
+  function setSystemToken(payload) {
+    // AXIOMA: Discovery Method - Delegación directa a adminTools
+    // Este método está en el whitelist de discovery para permitir setup inicial sin autenticación
+    if (!nodes.adminTools || !nodes.adminTools.setSystemToken) {
+      throw errorHandler.createError('CONFIGURATION_ERROR', 'AdminTools no disponible en el sistema.');
+    }
+    return nodes.adminTools.setSystemToken(payload);
+  }
+
   const specializedWrappers = {
     invoke,
     teardown,

@@ -12,7 +12,10 @@ const DatabaseNodeWidget = ({ data, execute }) => {
 
     // AXIOMA: Resolución de Identidad y Origen (Deep Introspection)
     const artifactId = data.id || data.data?.id;
-    const originSource = (data.ORIGIN_SOURCE || data.data?.ORIGIN_SOURCE || 'drive').toLowerCase();
+
+    // AXIOMA: Confiar en la hidratación del ComponentProjector
+    // Si ORIGIN_SOURCE no está presente, el ComponentProjector debería haberlo hidratado del silo
+    const originSource = (data.ORIGIN_SOURCE || data.data?.ORIGIN_SOURCE)?.toLowerCase();
     const accountId = data.ACCOUNT_ID || data.data?.ACCOUNT_ID;
 
     // AXIOMA: Recuperación y Fragmentación de Data
@@ -90,6 +93,10 @@ const DatabaseNodeWidget = ({ data, execute }) => {
                                         <span className="text-[7px] font-mono uppercase tracking-[0.3em]">Empty_Refraction</span>
                                         <button
                                             onClick={() => {
+                                                if (!originSource) {
+                                                    console.error(`[DatabaseWidget] ❌ Cannot reify ${artifactId}: ORIGIN_SOURCE is missing`);
+                                                    return;
+                                                }
                                                 console.log(`[DatabaseWidget] 📡 Reifying ${artifactId} from ${originSource}`);
                                                 execute('FETCH_DATABASE_CONTENT', {
                                                     databaseId: artifactId,

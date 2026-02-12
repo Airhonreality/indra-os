@@ -97,15 +97,18 @@ export const dataReducer = (state, action) => {
                     activeLayout: updatedActiveLayout,
                     artifacts: updatedArtifacts,
                     vault: items, // AXIOMA: La última carga exitosa es la vista activa del Vault.
-                    silos: { ...state.phenotype.silos, [nodeId]: items },
+                    silos: {
+                        ...state.phenotype.silos,
+                        [nodeId]: dataPayload // ← PRESERVAR PAYLOAD COMPLETO (ORIGIN_SOURCE, SCHEMA, etc.)
+                    },
                     siloMetadata: {
                         ...state.phenotype.siloMetadata,
                         [nodeId]: {
-                            ...metadata,
                             ORIGIN_SOURCE: dataPayload.ORIGIN_SOURCE,
                             SCHEMA: dataPayload.SCHEMA,
                             PAGINATION: dataPayload.PAGINATION,
-                            IDENTITY_CONTEXT: dataPayload.IDENTITY_CONTEXT
+                            BURST_METADATA: dataPayload.BURST_METADATA,
+                            _loadedAt: Date.now()
                         }
                     }
                 }

@@ -1,0 +1,87 @@
+/**
+ * 🎨 ISK SHELL PROJECTOR (ESTRUCTURA PURA FLEX)
+ * DHARMA: Eliminación total de zombis de posicionamiento GRID.
+ */
+
+.isk-shell-projector {
+    display: flex;
+    flex-direction: row;
+    /* Columnas industriales */
+    gap: 1px;
+    height: 100%;
+    width: 100%;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+}
+
+.isk-shell-projector.isk-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+}
+
+/* --- ZONAS ELÁSTICAS --- */
+.isk-zone {
+    flex: 1;
+    min-width: 0;
+    /* Permite comprimirse si es necesario */
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.005);
+    transition: var(--stark-transition);
+}
+
+.isk-zone:hover {
+    border-color: var(--accent-primary);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.isk-zone-header {
+    height: 32px;
+    padding: 0 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #08080a;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.isk-zone-label {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+}
+
+.isk-zone-content {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+/* --- BOTÓN ZEN --- */
+.isk-zen-toggle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 50;
+    width: 28px;
+    height: 28px;
+    background: black;
+    border: 1px solid var(--border-color);
+    color: white;
+    opacity: 0.3;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.isk-zen-toggle:hover {
+    opacity: 1;
+    border-color: var(--accent-primary);
+}

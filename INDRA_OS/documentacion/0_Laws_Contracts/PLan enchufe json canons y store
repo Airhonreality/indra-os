@@ -1,0 +1,67 @@
+1. Auditoría Cruda del LayoutEngine
+¿Está 
+
+LayoutEngine
+ (
+
+DynamicLayoutEngine.jsx
+) capacitado hoy para hacer ese renderizado dinámico basado en un JSON remoto?
+
+Respuesta Corta: NO. Respuesta Cruda:
+
+Actualmente el 
+
+DynamicLayoutEngine.jsx
+ es un switch gigante (perspective === 'BRIDGE' ? ... : ...) con mucha lógica hardcodeada o dependiente de configuraciones locales (Visual_Laws.js).
+No tiene un mecanismo de "Ingesta de JSON". No sabe leer un objeto LAYOUT_V1 y pintar componentes dinámicamente basándose en strings ("VISOR_PLANOS_PDF").
+Falta: Un componente intermedio, llámalo LayoutHydrator o SlotMachine, que traduzca el string JSON a componentes React reales (ComponentRegistry[string]).
+Estado: Es un prototipo funcional (hardcodeado), no un motor industrial (data-driven).
+2. Estrategia de Enchufe Lógico y Descubrimiento
+Una vez canonicemos los esquemas (COSMOS, LAYOUT, FLOW), la integración debe ser quirúrgica para no mezclar conceptos.
+
+A. ¿Cómo enchufarlo a la lógica del Store y Descubrimiento? Necesitamos separar el Contexto de Sistema del Contexto de Usuario.
+
+System Discovery (Lo que tenemos hoy):
+
+Descubre HERRAMIENTAS (
+
+Drive
+, Email).
+Esto ya funciona.
+Cosmos Discovery (Lo Nuevo):
+
+Necesitamos un nuevo adaptador: CosmosAdapter.
+Este adaptador tendrá métodos como loadCosmos(cosmosId) y saveCosmos(definition).
+En el Store:
+Creamos una rama nueva: state.cosmos.
+Cuando cargas un proyecto, state.cosmos se llena con el JSON del INDRA_COSMOS.
+El 
+
+LayoutEngine
+ deja de mirar hardcodes y empieza a mirar state.cosmos.activeLayout.
+B. ¿Cómo separar el "Buscador de Artefactos Extracósmicos"? Esta es la clave para OMD-10.
+
+El Explorador ("La Grúa"):
+
+Es un modo especial del 
+
+DriveAdapter
+ (o un UI Component ArtifactPicker).
+Su trabajo es navegar el Drive Real (fuera del cosmos, "el mundo salvaje") buscando archivos.
+El Filtro de Canonización (EL ALQUIMISTA):
+
+Aquí entra la magia. Cuando el usuario señala un archivo en Drive ("Mira este config.json"), el sistema lo "chupa" y lo pasa por el SchemaRegistry.canonize().
+Si es válido: Te deja importarlo ("¡Es un Layout Válido!").
+Si es inválido: Lo rechaza ("Esto es basura o un JSON malformado").
+La Importación (Vinculación):
+
+Una vez validado, el sistema guarda solo la referencia (ID) en tu cosmos.json. No copia el archivo, lo vincula.
+Resumen de Arquitectura:
+
+
+DriveAdapter
+ = Navega el caos (Archivos y Carpetas).
+
+SchemaRegistry
+ = Certifica el orden (Valida si es un Artefacto Indra).
+CosmosAdapter = Gestiona las referencias certificadas (Tu Proyecto).

@@ -1,0 +1,30 @@
+{
+    "OMD-03": {
+        "id": "view_flow_orchestrator",
+        "clase_ui": "FLOW_CANVAS",
+        "layer": "NIVEL_1",
+        "description": "Lienzo de automatización híbrida (The Canvas) - Orquestador de flujos lógicos.",
+        "sub_modules": {
+            "orchestration_layer": {
+                "id": "orchestrator",
+                "label": "Orquestación",
+                "archetype": "ORCHESTRATOR"
+            },
+            "atomic_entities": {
+                "id": "entities",
+                "label": "Entidades Atómicas",
+                "archetype": "VAULT"
+            },
+            "logic_streams": {
+                "id": "streams",
+                "label": "Flujos Lógicos",
+                "archetype": "STREAM"
+            }
+        },
+        "interaction_modes": {
+            "EDIT": "Redefinición de leyes locales.",
+            "RUN": "Ejecución de flujos certificados.",
+            "DEBUG": "Inspección de integridad (Gatekeeper Hook)."
+        }
+    }
+}

@@ -1,0 +1,547 @@
+/* DevConsole.css */
+
+.dev-console {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 350px;
+    background-color: var(--bg-surface, #0f1115);
+    color: var(--text-primary, #c0c2c5);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border-color, #333);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+    transition: height 0.3s ease;
+}
+
+.dev-console-minimized {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background-color: var(--bg-surface-elevated, #2a2d35);
+    color: var(--text-primary, #fff);
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 9999;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color, #444);
+}
+
+.dev-console-minimized:hover {
+    background-color: var(--bg-surface-active, #383c46);
+}
+
+/* Header */
+.dev-console-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background-color: var(--bg-surface-elevated, #1a1c22);
+    border-bottom: 1px solid var(--border-color, #2a2d35);
+}
+
+.dev-console-header h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary, #8f949e);
+}
+
+.dev-console-actions button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #8f949e);
+    cursor: pointer;
+    font-size: 11px;
+    margin-left: 10px;
+}
+
+.dev-console-actions button:hover {
+    color: var(--text-primary, #fff);
+}
+
+/* Tabs */
+.dev-console-tabs {
+    display: flex;
+    background-color: var(--bg-surface, #14161a);
+    border-bottom: 1px solid var(--border-color, #2a2d35);
+}
+
+.dev-console-tabs button {
+    background: transparent;
+    border: none;
+    padding: 8px 16px;
+    color: var(--text-secondary, #6b7280);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+    border-right: 1px solid var(--border-color, #222);
+}
+
+.dev-console-tabs button:hover {
+    color: var(--text-primary, #e5e7eb);
+    background-color: var(--bg-surface-active, #1f2229);
+}
+
+.dev-console-tabs button.active {
+    color: var(--primary-color, #60a5fa);
+    background-color: var(--bg-surface-elevated, #1a1c22);
+    border-bottom: 2px solid var(--primary-color, #60a5fa);
+}
+
+/* Filter Section */
+.log-filter {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    background-color: var(--bg-surface-elevated, #1a1c22);
+    border-bottom: 1px solid var(--border-color, #2a2d35);
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.log-filter-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.log-filter-section label {
+    font-size: 11px;
+    color: var(--text-secondary, #6b7280);
+}
+
+.log-filter-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.filter-btn {
+    background-color: var(--bg-surface-active, #2a2d35);
+    border: 1px solid var(--border-color, #374151);
+    color: var(--text-secondary, #9ca3af);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    cursor: pointer;
+}
+
+.filter-btn:hover {
+    background-color: var(--bg-surface-hover, #374151);
+}
+
+.filter-btn.active {
+    background-color: var(--primary-color, #2563eb);
+    border-color: var(--primary-color, #2563eb);
+    color: #fff;
+}
+
+.log-filter select,
+.log-filter input {
+    background-color: var(--input-bg, #111827);
+    border: 1px solid var(--border-color, #374151);
+    color: var(--text-primary, #d1d5db);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    outline: none;
+}
+
+.log-filter-actions button {
+    background: transparent;
+    border: 1px solid var(--border-color, #4b5563);
+    color: var(--text-secondary, #9ca3af);
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 10px;
+}
+
+/* Focus Mode Banner */
+.focus-mode-banner {
+    background-color: var(--bg-accent, #312e81);
+    color: var(--text-on-accent, #e0e7ff);
+    padding: 6px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--primary-color, #4f46e5);
+}
+
+.focus-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.focus-label {
+    font-weight: bold;
+    font-size: 11px;
+}
+
+.focus-target {
+    font-family: monospace;
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.focus-exit-btn {
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 10px;
+}
+
+.focus-exit-btn:hover {
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* View Toggle */
+.dev-console-view-toggle {
+    display: flex;
+    justify-content: flex-end;
+    padding: 4px 16px;
+    background-color: var(--bg-surface, #14161a);
+    border-bottom: 1px solid var(--border-color, #222);
+}
+
+.dev-console-view-toggle button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #6b7280);
+    cursor: pointer;
+    font-size: 10px;
+    margin-left: 10px;
+    padding-bottom: 2px;
+}
+
+.dev-console-view-toggle button.active {
+    color: var(--primary-color, #60a5fa);
+    border-bottom: 2px solid var(--primary-color, #60a5fa);
+}
+
+/* Log Viewer */
+.log-viewer {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+    background-color: var(--bg-surface, #0f1115);
+}
+
+.log-viewer::-webkit-scrollbar {
+    width: 8px;
+}
+
+.log-viewer::-webkit-scrollbar-track {
+    background: var(--bg-surface-elevated, #1a1c22);
+}
+
+.log-viewer::-webkit-scrollbar-thumb {
+    background: var(--border-color, #374151);
+    border-radius: 4px;
+}
+
+.log-group {
+    border-bottom: 1px solid var(--border-color, #1f2229);
+}
+
+.log-group-header {
+    display: flex;
+    align-items: center;
+    padding: 4px 16px;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.log-group-header:hover {
+    background-color: var(--bg-surface-elevated, #1a1c22);
+}
+
+.log-group.has-errors .log-group-header {
+    color: var(--error-color, #f87171);
+}
+
+.log-group.has-warnings .log-group-header {
+    color: var(--warning-color, #fbbf24);
+}
+
+.log-group-toggle {
+    margin-right: 8px;
+    color: var(--text-secondary, #6b7280);
+    width: 12px;
+}
+
+.log-group-layer {
+    margin-right: 12px;
+    color: var(--text-secondary, #9ca3af);
+    min-width: 100px;
+}
+
+.log-group-component {
+    font-weight: 600;
+    color: var(--text-primary, #e5e7eb);
+    margin-right: 4px;
+}
+
+.log-group-function {
+    color: var(--primary-color, #60a5fa);
+    margin-right: 12px;
+}
+
+.log-group-count {
+    color: var(--text-secondary, #6b7280);
+    margin-right: 12px;
+    font-size: 10px;
+}
+
+.log-group-time {
+    color: var(--text-tertiary, #4b5563);
+    margin-left: auto;
+    font-size: 10px;
+}
+
+.log-group-focus {
+    background-color: rgba(96, 165, 250, 0.1);
+    border: 1px solid rgba(96, 165, 250, 0.3);
+    color: var(--primary-color, #60a5fa);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+    cursor: pointer;
+    margin-left: 10px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.log-group-header:hover .log-group-focus {
+    opacity: 1;
+}
+
+.log-group-content {
+    background-color: var(--bg-surface, #14161a);
+    padding-bottom: 8px;
+}
+
+.log-entry {
+    display: flex;
+    align-items: flex-start;
+    padding: 2px 16px 2px 36px;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.log-entry:hover {
+    background-color: var(--bg-surface-active, #1f2229);
+}
+
+.log-entry-icon {
+    color: var(--text-tertiary, #4b5563);
+    margin-right: 8px;
+    font-family: monospace;
+}
+
+.log-entry-level {
+    margin-right: 8px;
+    min-width: 16px;
+}
+
+.log-entry-message {
+    color: var(--text-primary, #d1d5db);
+    flex: 1;
+}
+
+.log-entry-data {
+    margin: 4px 0 0 0;
+    padding: 8px;
+    background-color: var(--input-bg, #111827);
+    border-radius: 4px;
+    font-size: 10px;
+    color: var(--text-secondary, #9ca3af);
+    width: 100%;
+    overflow-x: auto;
+}
+
+/* Timeline View */
+.timeline-view {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    background-color: var(--bg-surface, #0f1115);
+}
+
+.timeline-item {
+    display: flex;
+    margin-bottom: 0;
+    position: relative;
+    padding-bottom: 16px;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 7px;
+    width: 2px;
+    height: 100%;
+    background-color: var(--border-color, #374151);
+    z-index: 1;
+}
+
+.timeline-item:last-child::before {
+    display: none;
+}
+
+.timeline-marker {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: var(--text-tertiary, #4b5563);
+    border: 2px solid var(--bg-surface, #0f1115);
+    z-index: 2;
+    margin-right: 12px;
+}
+
+.timeline-item.level-info .timeline-marker {
+    background-color: var(--info-color, #3b82f6);
+}
+
+.timeline-item.level-warn .timeline-marker {
+    background-color: var(--warning-color, #f59e0b);
+}
+
+.timeline-item.level-error .timeline-marker {
+    background-color: var(--error-color, #ef4444);
+}
+
+.timeline-content {
+    flex: 1;
+}
+
+.timeline-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.timeline-time {
+    color: var(--text-secondary, #6b7280);
+    font-size: 10px;
+    margin-right: 8px;
+}
+
+.timeline-gap {
+    color: var(--accent-color, #8b5cf6);
+    font-size: 9px;
+    background-color: rgba(139, 92, 246, 0.1);
+    padding: 1px 4px;
+    border-radius: 2px;
+    margin-right: 8px;
+}
+
+.timeline-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    background-color: var(--border-color, #374151);
+    color: var(--text-primary, #d1d5db);
+}
+
+.badge-backend {
+    background-color: #065f46;
+    color: #a7f3d0;
+}
+
+.badge-frontend {
+    background-color: #1e3a8a;
+    color: #bfdbfe;
+}
+
+.badge-ui {
+    background-color: #7c2d12;
+    color: #fed7aa;
+}
+
+.timeline-body {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.timeline-component {
+    font-weight: 600;
+    color: var(--text-primary, #e5e7eb);
+}
+
+.timeline-function {
+    color: var(--primary-color, #60a5fa);
+}
+
+.timeline-separator {
+    color: var(--text-tertiary, #4b5563);
+}
+
+.timeline-message {
+    color: var(--text-secondary, #9ca3af);
+}
+
+.level-error .timeline-message {
+    color: var(--error-color, #f87171);
+}
+
+.level-warn .timeline-message {
+    color: var(--warning-color, #fbbf24);
+}
+
+/* Log Exporter */
+.log-exporter {
+    display: flex;
+    padding: 8px 16px;
+    background-color: var(--bg-surface-elevated, #1a1c22);
+    border-top: 1px solid var(--border-color, #2a2d35);
+    gap: 8px;
+}
+
+.log-exporter button {
+    background-color: var(--bg-surface-active, #2a2d35);
+    border: 1px solid var(--border-color, #374151);
+    color: var(--text-secondary, #9ca3af);
+    padding: 4px 12px;
+    border-radius: 3px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.log-exporter button:hover {
+    background-color: var(--bg-surface-hover, #374151);
+    color: var(--text-primary, #fff);
+}
+
+.log-exporter button.btn-error {
+    border-color: #7f1d1d;
+    color: var(--error-color, #f87171);
+}
+
+.log-exporter button.btn-error:hover {
+    background-color: #7f1d1d;
+    color: #fee2e2;
+}
+
+.log-viewer-empty {
+    padding: 32px;
+    text-align: center;
+    color: var(--text-tertiary, #4b5563);
+    font-style: italic;
+}

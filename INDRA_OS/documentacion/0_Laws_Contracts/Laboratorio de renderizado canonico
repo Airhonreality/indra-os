@@ -1,0 +1,18 @@
+"El Laboratorio de Renderizado Canónico"
+Limpieza Radical Aprobada: Eliminar las "cajas fantasma" antiguas es vital. El ruido visual nos distrae. Si no tiene Canon, no existe. Punto.
+Modo "Develop/Focus":
+En lugar de la UI completa (Layout de 3 columnas, sidebar, etc.), propones un "Canvas de Aislamiento".
+Este canvas toma UN SOLO ARTEFACTO (ej: Drive) y le aplica el 
+ComponentProjector
+.
+Nos permite iterar rápido: Cambiamos el JSON en 
+DriveAdapter.gs
+ (ej: Labels en español, nuevos botones) -> Guardamos -> Vemos el cambio instantáneo en el Canvas aislado.
+Iteración Ágil:
+Ciclo: Enriquecer Canon (Core) <-> Mejorar Projector (Skin).
+Validamos Drive -> Aprobado.
+Pasamos a Gmail -> Repetimos.
+Veredicto: Esta ruta es más corta y segura que intentar armar la UI completa de golpe. Nos permite perfeccionar el "Átomo" (Adapter+Projector) antes de preocuparnos por el "Organismo" (Layout Completo).
+
+Plan de Acción (Modo Laboratorio)
+SystemAssembler: Inyectar Labels Humanas (ES) en el Canon de Drive.

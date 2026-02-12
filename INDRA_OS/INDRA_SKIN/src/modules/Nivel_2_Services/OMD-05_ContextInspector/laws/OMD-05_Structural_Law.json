@@ -1,0 +1,59 @@
+{
+    "omd_05": {
+        "id": "view_context_inspector",
+        "clase_ui": "CONTEXT_INSPECTOR",
+        "layer": "NIVEL_2_OPERATIONAL",
+        "description": "Inspector de Contexto Unificado (UCI) - Orquestador polimórfico de propiedades.",
+        "sub_modules": {
+            "identity_section": {
+                "id": "identity_pivot",
+                "label": "Sección de Soberanía",
+                "archetype": "VAULT",
+                "capabilities": [
+                    "identity_selection",
+                    "vault_handshake"
+                ]
+            },
+            "resource_section": {
+                "id": "resource_hub",
+                "label": "Navegador de Recursos",
+                "archetype": "BRIDGE",
+                "injected_module": "OMD-05.2",
+                "capabilities": [
+                    "item_discovery",
+                    "content_preview"
+                ]
+            },
+            "reactivity_section": {
+                "id": "reactive_bridge",
+                "label": "Constructor Reactivo",
+                "archetype": "TRANSFORM",
+                "injected_module": "OMD-05.1",
+                "capabilities": [
+                    "parameter_mapping",
+                    "visual_binding"
+                ]
+            },
+            "schema_viewer": {
+                "id": "technical_spec",
+                "label": "Assistant de Esquemas",
+                "archetype": "SCHEMA",
+                "capabilities": [
+                    "contract_preview",
+                    "io_validation"
+                ]
+            }
+        },
+        "polymorphic_modes": [
+            "LOGIC_NODE",
+            "SPATIAL_ENTITY",
+            "SYSTEM_CONFIG"
+        ],
+        "sync_mode": "REALITY_PULL",
+        "host_capabilities": {
+            "supports_submodules": true,
+            "identity_injection_from": "OMD-02",
+            "real_time_validation": true
+        }
+    }
+}

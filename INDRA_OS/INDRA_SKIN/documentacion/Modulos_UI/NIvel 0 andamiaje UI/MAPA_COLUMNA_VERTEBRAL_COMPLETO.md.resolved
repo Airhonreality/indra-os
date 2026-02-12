@@ -1,0 +1,69 @@
+# 🦴 La Columna Vertebral de Indra OS (The Sovereign Map)
+
+Este mapa detalla cada "hueso" (datos y leyes) y cada "músculo" (lógica de ejecución) que garantiza la integridad del sistema desde el Core hasta la Interfaz.
+
+## 🧬 Nivel A: Los Huesos (Estructura Ósea / Leyes)
+
+| Capa | Nombre | Función | Artefacto |
+| :--- | :--- | :--- | :--- |
+| **L0** | **Genotipo** | ADN puro, linajes de negocio y contratos técnicos. | [Logic_Axioms.gs](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/OrbitalCore_Codex_v1/0_Laws/Logic_Axioms.gs), [Contracts_Registry.gs](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/OrbitalCore_Codex_v1/0_Laws/Contracts_Registry.gs) |
+| **L0.5** | **Topografía** | Jerarquía de contenedores y protocolos de acción. | [System_Hierarchy.gs](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/OrbitalCore_Codex_v1/0_Laws/System_Hierarchy.gs), [Action_Protocols.gs](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/OrbitalCore_Codex_v1/0_Laws/Action_Protocols.gs) |
+| **L1** | **Fenotipo** | Distribución espacial, gramática visual y física. | [VisualLaws.js](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRA_FRONT_V2/src/core/laws/VisualLaws.js) |
+| **L2** | **Organografía** | Estructura interna de los módulos (Sub-módulos). | [Structural_Law.json](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRA_FRONT_V2/src/modules/Nivel_1_Views/OMD-09_ISK/laws/OMD-09_Structural_Law.json) |
+
+---
+
+## 🦾 Nivel C: Los Tendones (Andamiaje de Interfaz)
+
+| Elemento | Función | Artefacto |
+| :--- | :--- | :--- |
+| **AxiomaticSkeleton** | Andamio visual que recibe los slots de L1. | `DefaultSkeleton.jsx` |
+| **DynamicLayoutEngine** | Transmuta slots técnicos en componentes React activos. | [DynamicLayoutEngine.jsx](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRA_FRONT_V2/src/core/kernel/DynamicLayoutEngine.jsx) |
+| **AxiomaticGroup** | Renderiza sub-módulos basados en la ley L2. | `AxiomaticGroup.jsx` |
+
+---
+
+## 💪 Nivel D: Los Músculos (Motores de Ejecución)
+
+| Tarea | Músculo | Responsabilidad Axiomática | Artefacto |
+| :--- | :--- | :--- | :--- |
+| **Ignición** | **Assembler** | Arranca la secuencia y certifica el montaje inicial. | [SystemAssembler.js](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRA_FRONT_V2/src/core/SystemAssembler.js) |
+| **Traducción** | **Adapter** | Compila L0 + L1. Traduce "Negocio" a "Interfaz". | [IndraAdapter.js](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRA_FRONT_V2/src/core/IndraAdapter.js) |
+| **Auditoría** | **Gatekeeper** | Valida pureza, integridad UIDB y contratos. | [ContractGatekeeper.gs](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/OrbitalCore_Codex_v1/7_Diagnostics/ContractGatekeeper.gs) |
+| **Transporte** | **Connector** | Puente de comunicación bidireccional Core-FE. | [CoreConnector.js](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRA_FRONT_V2/src/core/CoreConnector.js) |
+
+---
+
+## 🛰️ Flujo de Manifestación (Sovereign Flow)
+
+```mermaid
+graph TD
+    subgraph "L0: GENOTIPO (Core)"
+        A1[Logic Axioms] --> B[Indra Adapter]
+        A2[Contracts Registry] --> B
+    end
+
+    subgraph "EJECUCIÓN (Músculos)"
+        Gate[Contract Gatekeeper] -- "Auditoría de Pureza" --> B
+        B -- "Compilación de Leyes" --> Ass[System Assembler]
+        Conn[Core Connector] -- "Handshake" --> B
+    end
+
+    subgraph "L1/L2: FENOTIPO (Front-end)"
+        Ass --> C[VisualLaws.js]
+        C --> D[Dynamic Layout Engine]
+        D --> E[OMD Component]
+        E --> F[Structural Law JSON]
+    end
+```
+
+### 🧠 Matriz de Capa 1 (Distribución)
+- **Slots**: `top-bar`, `sidebar-left`, `sidebar-right`, `canvas-main`, `footer`.
+- **Clases UI**: `GATEKEEPER_PORTAL`, `IDENTITY_DASHBOARD`, `FLOW_CANVAS`, `CONTEXT_INSPECTOR`.
+
+### 🛠️ Matriz de Capa 2 (Arquitectura Modular)
+- **Manifestación**: Cada `OMD-XX` debe tener su carpeta `/laws` con su [Structural_Law.json](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRA_FRONT_V2/src/modules/Nivel_1_Views/OMD-09_ISK/laws/OMD-09_Structural_Law.json).
+- **Contenido**:
+    - `clase_ui`: Identificador de componente React.
+    - `submodules`: Átomos o grupos axiomáticos internos.
+    - [config](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/OrbitalCore_Codex_v1/3_Adapters/NotionAdapter.gs#609-627): Propiedades persistentes (filtros, estados locales).

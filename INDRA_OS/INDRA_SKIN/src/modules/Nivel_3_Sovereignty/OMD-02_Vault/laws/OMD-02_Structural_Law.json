@@ -1,0 +1,77 @@
+{
+    "OMD-02": {
+        "id": "view_identity_vault",
+        "functional_name": "GESTOR DE CUENTAS (THE VAULT)",
+        "clase_ui": "IDENTITY_DASHBOARD",
+        "layer": "NIVEL_3",
+        "sub_modules": {
+            "auth_hub": {
+                "id": "identity_ignition",
+                "label": "Centro de Ignición de Identidad (Auth Hub)",
+                "archetype": "GATE",
+                "atoms": [
+                    {
+                        "id": "provider_select",
+                        "type": "DROPDOWN",
+                        "role": "INPUT_FORM",
+                        "label": "Proveedor de Servicio",
+                        "data_source": "CORE_TOKEN_PROVIDERS",
+                        "options": []
+                    },
+                    {
+                        "id": "api_key_input",
+                        "type": "INPUT_SECRET",
+                        "role": "INPUT_FORM",
+                        "label": "API Key / Token",
+                        "placeholder": "sk-indra-..."
+                    },
+                    {
+                        "id": "alias_input",
+                        "type": "INPUT_TEXT",
+                        "role": "INPUT_FORM",
+                        "label": "Alias Humano",
+                        "placeholder": "Ej: Mi Espacio de Trabajo"
+                    },
+                    {
+                        "id": "btn_create",
+                        "type": "ACTION_IGNITION",
+                        "role": "ACTION_PRIMARY",
+                        "label": "Establecer Soberanía",
+                        "action_core": "VAULT_CREATE_TOKEN_SESSION"
+                    }
+                ]
+            },
+            "registry_panel": {
+                "id": "the_registry",
+                "label": "Panel de Trazabilidad (The Registry)",
+                "archetype": "VAULT",
+                "layout_mode": "FLOW_H",
+                "data_source": "VAULT_ACCOUNTS",
+                "atoms": []
+            },
+            "health_monitor": {
+                "id": "sense_probe",
+                "label": "Monitor de Salud (The Sense Probe)",
+                "archetype": "PROBE",
+                "data_source": "SYSTEM_HEALTH",
+                "atoms": []
+            }
+        },
+        "actions": [
+            {
+                "id": "SENSE",
+                "label": "Verificar",
+                "role": "DIAGNOSTIC"
+            },
+            {
+                "id": "REVOKE",
+                "label": "Revocar",
+                "role": "DESTRUCTIVE"
+            }
+        ],
+        "visual_config": {
+            "layout": "HIGH_DENSITY_GRID",
+            "motion": "breathing-subtle"
+        }
+    }
+}

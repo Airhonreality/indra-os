@@ -1,0 +1,281 @@
+/**
+ * SovereignSphere.css
+ * DHARMA: Estilos del Núcleo Gravitacional
+ * 
+ * Inspiración: Eclipse solar, toroides energéticos, campos magnéticos
+ * Técnica: Múltiples capas de blur radial para simular emisión de luz
+ */
+
+.sovereign-sphere-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NÚCLEO CENTRAL (Eclipse Core)
+   ═══════════════════════════════════════════════════════════ */
+
+.sphere-core {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sphere-core:hover {
+    transform: scale(1.08);
+}
+
+.sphere-core:active {
+    transform: scale(0.95);
+}
+
+/* Núcleo sólido (centro absoluto) */
+.sphere-nucleus {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--core-color);
+    z-index: 10;
+    box-shadow:
+        0 0 8px var(--core-color),
+        0 0 16px var(--glow-color),
+        inset 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CORONA RADIAL (Multi-layer Blur)
+   Simula la "atmósfera" del eclipse, con capas de blur progresivo
+   ═══════════════════════════════════════════════════════════ */
+
+.sphere-corona {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+            var(--core-color) 0%,
+            transparent 70%);
+    pointer-events: none;
+}
+
+/* Capa Externa (Blur suave, alcance máximo) */
+.sphere-corona-outer {
+    width: 64px;
+    height: 64px;
+    filter: blur(12px);
+    opacity: 0.3;
+    animation: pulse-corona-outer 5s ease-in-out infinite;
+}
+
+/* Capa Media (Blur medio, intensidad moderada) */
+.sphere-corona-middle {
+    width: 48px;
+    height: 48px;
+    filter: blur(8px);
+    opacity: 0.5;
+    animation: pulse-corona-middle 5s ease-in-out infinite 0.5s;
+}
+
+/* Capa Interna (Blur mínimo, máxima intensidad) */
+.sphere-corona-inner {
+    width: 32px;
+    height: 32px;
+    filter: blur(4px);
+    opacity: 0.7;
+    box-shadow: 0 0 20px var(--glow-color);
+}
+
+@keyframes pulse-corona-outer {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.3;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 0.5;
+    }
+}
+
+@keyframes pulse-corona-middle {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: scale(1.08);
+        opacity: 0.7;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PARTÍCULAS ORBITALES (Efecto Molecular)
+   Pequeñas partículas que orbitan el núcleo, simulando campo magnético
+   ═══════════════════════════════════════════════════════════ */
+
+.sphere-particle {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.particle-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--particle-size);
+    height: var(--particle-size);
+    border-radius: 50%;
+    background: var(--particle-color);
+    opacity: var(--particle-opacity);
+    box-shadow:
+        0 0 4px var(--particle-color),
+        0 0 8px var(--particle-color);
+    transform-origin: -50%;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LABEL (Solo visible en modo OFFLINE)
+   ═══════════════════════════════════════════════════════════ */
+
+.sphere-label {
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Outfit', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    color: rgba(156, 163, 175, 0.85);
+    white-space: nowrap;
+    pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ESTADOS ESPECÍFICOS
+   ═══════════════════════════════════════════════════════════ */
+
+/* Estado SYNCED (Azul) - Respiración suave */
+.sphere-core[data-state="SYNCED"] {
+    animation: breathe-synced 5s ease-in-out infinite;
+}
+
+@keyframes breathe-synced {
+
+    0%,
+    100% {
+        filter: brightness(1);
+    }
+
+    50% {
+        filter: brightness(1.15);
+    }
+}
+
+/* Estado RETRY (Amarillo) - Pulsación rápida */
+.sphere-core[data-state="RETRY"] {
+    animation: pulse-retry 4s ease-in-out infinite;
+}
+
+@keyframes pulse-retry {
+
+    0%,
+    100% {
+        filter: brightness(1);
+        transform: scale(1);
+    }
+
+    50% {
+        filter: brightness(1.25);
+        transform: scale(1.05);
+    }
+}
+
+/* Estado OFFLINE (Rojo) - Pulsación urgente */
+.sphere-core[data-state="OFFLINE"] {
+    animation: pulse-offline 3s ease-in-out infinite;
+}
+
+@keyframes pulse-offline {
+
+    0%,
+    100% {
+        filter: brightness(1);
+        transform: scale(1);
+    }
+
+    50% {
+        filter: brightness(1.3);
+        transform: scale(1.08);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE (Ajuste para pantallas pequeñas)
+   ═══════════════════════════════════════════════════════════ */
+
+@keyframes orbit {
+    from {
+        transform: rotate(0deg) translateX(28px) rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg) translateX(28px) rotate(-360deg);
+    }
+}
+
+/* Botón contenedor transparente (Floating Core) */
+.glass-sphere-button {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+@media (max-width: 768px) {
+    .sovereign-sphere-container {
+        width: 100px;
+        height: 100px;
+    }
+
+    .sphere-core {
+        width: 40px;
+        height: 40px;
+    }
+
+    .sphere-nucleus {
+        width: 20px;
+        height: 20px;
+    }
+
+    .sphere-corona-outer {
+        width: 100px;
+        height: 100px;
+    }
+
+    .sphere-corona-middle {
+        width: 65px;
+        height: 65px;
+    }
+
+    .sphere-corona-inner {
+        width: 40px;
+        height: 40px;
+    }
+}

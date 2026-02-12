@@ -1,0 +1,128 @@
+# Análisis Semiótico y Contrato Operativo: Terminal Drive (VAULT_ENGINE)
+
+> **Cambio de Paradigma:** De "Dashboard de Ingeniero" (Pasivo/Informativo) a "Cabina de Operaciones" (Activo/Ejecutable).
+
+## 1. Definición Ontológica
+
+La **Terminal Drive** no es una ventana de visualización; es un manipulador teleoperado de la realidad física del usuario (Google Drive). Cada interacción en la UI debe tener una repercusión física inmediata y confirmada.
+
+*   **Significante (UI):** Una rejilla de objetos manipulables y un panel de control lateral.
+*   **Significado (Mental):** "Mi disco duro en la nube".
+*   **Pragmática (Uso):** Organizar, limpiar y estructurar el conocimiento.
+
+---
+
+## 2. Anatomía de la Interfaz (Layout)
+
+La interfaz se divide en dos hemisferios funcionales que dialogan entre sí.
+
+### A. El Espacio de Carga (Main Viewport)
+Es el área donde residen los objetos. Debe sentirse como una mesa de trabajo, no como una lista de Excel.
+*   **Representación**: Alternancia fluida entre `GRID` (Visual/Espacial) y `LIST` (Técnico/Denso).
+*   **Navegación**: Breadcrumbs interactivos que permiten saltos no lineales.
+*   **Scroll**: Independiente. El contenido se desborda dentro de su contenedor, nunca rompe el chasis.
+
+### B. El Inspector Contextual (Panel Lateral Derecho)
+El panel derecho abandona su rol decorativo ("Vital Signs") para convertirse en una **Herramienta Activa**. Su contenido muta según el estado del foco.
+
+#### Estado 0: Reposo (No Selection)
+Cuando no hay nada seleccionado, informa sobre el contenedor actual (La Carpeta).
+*   **Telemetry**: Espacio libre, Cuota de API (útil para saber si el sistema "respira").
+*   **Global Actions**: Acciones que afectan a la carpeta actual:
+    *   `[UPLOAD]`: Inyectar materia nueva.
+    *   `[NEW_FOLDER]`: Crear estructura.
+    *   `[SYNC]`: Forzar re-lectura de la realidad.
+
+#### Estado 1: Foco Activo (Item Selected)
+Cuando el usuario selecciona un nodo (Click), el panel se transforma.
+*   **Header**: Muestra el icono gigante, nombre completo y tipo MIME real.
+*   **Meta-Data**: 
+    *   *ID*: UUID copiable.
+    *   *Size*: Peso humano (KB/MB).
+    *   *Created/Modified*: Fechas relativas ("hace 2 horas").
+*   **Control Deck (Protocolos Ejecutables):**
+    En lugar de listar `/path/to/command`, se muestran **Gatillos**:
+    *   `[OPEN/ENTER]`: (Primary Action) Entrar en carpeta o abrir editor JSON.
+    *   `[RENAME]`: Input para cambiar identidad.
+    *   `[MOVE]`: Selector de destino.
+    *   `[TRASH]`: (Danger Zone) Eliminar nodo.
+
+---
+
+## 3. Protocolos de Interacción (Interaction Flow)
+
+### Navegación (Drill-Down)
+*   **Acción**: Doble Click en Carpeta.
+*   **Reacción Sistemática**:
+    1.  Bloqueo UI parcial (Scanning...).
+    2.  Petición `drive:listContents(id)`.
+    3.  Actualización de Breadcrumbs.
+    4.  Renderizado de nuevos nodos.
+
+### Inyección de Datos (Upload)
+*   **Acción**: Drag & Drop sobre el Espacio de Carga.
+*   **Feedback**: Barra de progreso real en el Panel Lateral (Estado: Transferencia).
+
+### Mutación de Identidad (Rename)
+*   **Acción**: Click en nombre en el Inspector -> Escribir -> Enter.
+*   **Reacción**:
+    1.  Lock optimista (El nombre cambia en UI).
+    2.  Envío asíncrono `drive:rename`.
+    3.  Si falla -> Revertir y mostrar Snack Error.
+
+---
+
+## 4. Axiomas Visuales
+
+1.  **Honestidad de Tipo**: 
+    *   Las carpetas SOY `DIRECTORY` (Color: Accent/Primary).
+    *   Los archivos SON `FILE` (Color: Neutral/Soft).
+    *   No usar iconos genéricos si se conoce el mimeType (ej: usar icono de código para `.json`).
+
+2.  **Jerarquía de Atención**:
+    *   El usuario mira el centro (Grid).
+    *   El usuario *actúa* en la derecha (Inspector).
+    *   El feedback (Logs) ocurre abajo, confirmando la acción.
+
+---
+
+## 5. Mockup Funcional (Especificación del Inspector)
+
+```json
+// Estado: Selección de Archivo "presupuesto.pdf"
+{
+  "panel_mode": "INSPECTOR",
+  "header": {
+    "icon": "📄",
+    "title": "presupuesto_2026.pdf",
+    "badge": "PDF_DOCUMENT"
+  },
+  "properties": [
+    { "label": "SIZE", "value": "2.4 MB" },
+    { "label": "MODIFIED", "value": "Today, 10:42 AM" },
+    { "label": "OWNER", "value": "javir@" }
+  ],
+  "actions": [
+    { "label": "DOWNLOAD", "icon": "⬇️", "intent": "PRIMARY" },
+    { "label": "RENAME",   "icon": "✏️", "intent": "NEUTRAL" },
+    { "label": "MOVE",     "icon": "↗️", "intent": "NEUTRAL" },
+    { "label": "DELETE",   "icon": "🗑️", "intent": "DESTRUCTIVE" }
+  ]
+}
+```
+Arquitectura Implementada:
+VaultEngine (UI)
+    ↓ execute('DELETE_VAULT_ITEM', payload)
+AxiomaticStore (State Manager)
+    ↓ adapter.call('drive', 'deleteItem', payload)
+SovereignAdapter (Bridge)
+    ↓ google.script.run.drive_deleteItem(payload)
+DriveAdapter.gs (Backend)
+    ↓ DriveApp.getFileById(id).setTrashed(true)
+Google Drive API
+Flujo de Interacción:
+Usuario hace clic en archivo → Selección visual (borde accent)
+Inspector muestra metadata → Nombre, tamaño, MIME, fecha
+Usuario hace clic en DELETE → Confirmación nativa
+Usuario confirma → Llamada al Store → Backend → Drive API
+Respuesta exitosa → Archivo removido del vault + Log de éxito

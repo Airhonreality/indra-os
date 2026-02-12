@@ -1,0 +1,434 @@
+/* ============================================================ */
+/* STARK THEME SYSTEM v8.7 (Industrial Robustness)              */
+/* DHARMA: La estabilidad es la base de la soberanía.           */
+/* ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+    /* Base Typography */
+    --stark-font: 'Outfit', sans-serif;
+    --stark-mono: 'JetBrains Mono', monospace;
+    --stark-border-radius: 12px;
+    --stark-transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    --stark-glass-blur: 20px;
+
+    /* Semantic Pallette: DARK AURA (Aesthetic: Neon Pastel Industrial) */
+    --bg-deep: #020617;
+    /* Deepest Indigo */
+    --bg-primary: #030712;
+    --bg-secondary: #0f172a;
+    --bg-glass: rgba(15, 23, 42, 0.85);
+
+    --border-subtle: rgba(255, 255, 255, 0.05);
+    --border-vibrant: rgba(165, 243, 252, 0.2);
+    /* Pastel Cyan Glow */
+
+    --text-vibrant: #a5f3fc;
+    /* Pastel Cyan (Main Accent) */
+    --text-soft: #d1d5db;
+    /* Gray 300 */
+    --text-dim: #64748b;
+    /* Gray 500 */
+
+    --accent: #a5f3fc;
+    /* Pastel Cyan */
+    --accent-vibrant: #fbcfe8;
+    /* Pastel Pink (Secondary Accent) */
+    --success: #d9f99d;
+    /* Pastel Lime */
+    --error: #fecaca;
+    /* Pastel Red */
+
+    --grid-color: rgba(165, 243, 252, 0.03);
+}
+
+/* SOLAR FLUX: LIGHT MODE (Aesthetic: Technical Blueprint) */
+[data-theme='light'],
+.stark-theme-light {
+    --bg-deep: #f8fafc;
+    --bg-primary: #ffffff;
+    --bg-secondary: #f1f5f9;
+    --bg-glass: rgba(255, 255, 255, 0.9);
+
+    --border-subtle: rgba(0, 0, 0, 0.08);
+    --border-vibrant: rgba(14, 165, 233, 0.3);
+    /* Electric Blue */
+
+    --text-vibrant: #0f172a;
+    /* Deep Slate */
+    --text-soft: #334155;
+    /* Slate 700 */
+    --text-dim: #94a3b8;
+    /* Slate 400 */
+
+    --accent: #0ea5e9;
+    /* Electric Blue */
+    --accent-vibrant: #db2777;
+    /* Deep Pink */
+    --success: #15803d;
+    /* Forest Green */
+    --error: #b91c1c;
+    /* Crimson */
+
+    --grid-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Atom overrides for Solar Flux */
+.stark-theme-light .stark-atom-input {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text-primary);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.stark-theme-light .stark-atom-btn-primary {
+    background: rgba(var(--accent-rgb), 0.1);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    color: rgb(var(--accent-rgb));
+}
+
+html,
+body,
+#root {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: var(--stark-font);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* --- THE MASTER SHELL --- */
+.stark-shell {
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    background: var(--bg-deep);
+    overflow: hidden;
+}
+
+.stark-main-grid {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    overflow: hidden;
+    background: var(--border-color);
+}
+
+.stark-slot {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+    min-height: 0;
+}
+
+/* Identificación Visual de Niveles (Blueprint Mode) */
+aside .stark-slot {
+    background: #050508;
+    border-right: 1px solid var(--border-color);
+    box-shadow: inset 0 0 100px rgba(0, 255, 170, 0.02);
+    /* Eco Esmeralda N2 */
+}
+
+/* Nivel 3: Soberanía (Cian) */
+header .stark-slot,
+footer .stark-slot {
+    background: #08080a;
+    border-bottom: 1px solid rgba(0, 210, 255, 0.1);
+}
+
+/* Nivel 1: Vistas (Fondo Profundo) */
+section .stark-slot {
+    background: #020205;
+    box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.5);
+}
+
+/* --- BLUEPRINT UTILITIES --- */
+.stark-slot::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+@keyframes scan-y {
+    0% {
+        transform: translateY(-100%);
+    }
+
+    100% {
+        transform: translateY(100vh);
+    }
+}
+
+.animate-scan-y {
+    animation: scan-y 8s linear infinite;
+    z-index: 2;
+}
+
+/* --- INDUSTRIAL COMPONENTS --- */
+.stark-ui-group {
+    background: rgba(255, 255, 255, 0.003);
+    border: 1px solid var(--border-color);
+    padding: 24px;
+    border-radius: 4px;
+    transition: var(--stark-transition);
+}
+
+.stark-ui-group:hover {
+    border-color: rgba(0, 210, 255, 0.1);
+    background: rgba(255, 255, 255, 0.006);
+}
+
+/* DROPDOWN FIX */
+.stark-atom-select {
+    width: 100%;
+    background: #0a0a0e !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: #e0e0ff !important;
+    padding: 10px 12px;
+    font-family: var(--stark-mono);
+    font-size: 11px;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+
+.stark-atom-select option {
+    background: #0a0a0f !important;
+    color: #fff !important;
+    padding: 10px;
+}
+
+.stark-atom-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    padding: 10px 12px;
+    font-family: var(--stark-mono);
+    font-size: 11px;
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.stark-atom-input:focus {
+    border-color: var(--accent-primary);
+}
+
+/* BUTTONS VS INDICATORS */
+.stark-atom-btn {
+    border: none;
+    padding: 12px;
+    font-family: var(--stark-mono);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+}
+
+.stark-atom-btn-primary {
+    background: var(--accent-primary);
+    color: #000;
+}
+
+.stark-atom-btn-primary:hover {
+    filter: brightness(1.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(0, 210, 255, 0.2);
+}
+
+.indicator-label {
+    text-transform: uppercase;
+    font-family: var(--stark-mono);
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+}
+
+/* --- UTILITIES --- */
+.stack-v {
+    display: flex;
+    flex-direction: column;
+}
+
+.gap-1 {
+    gap: 4px;
+}
+
+.gap-2 {
+    gap: 8px;
+}
+
+.gap-3 {
+    gap: 12px;
+}
+
+.gap-4 {
+    gap: 16px;
+}
+
+.gap-axiom-groups {
+    gap: 32px;
+}
+
+.flex-1 {
+    flex: 1;
+}
+
+.overflow-y-auto {
+    overflow-y: auto;
+}
+
+.px-8 {
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+.pt-12 {
+    padding-top: 32px;
+}
+
+.pb-6 {
+    padding-bottom: 24px;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* --- GRID BACKGROUND --- */
+body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle at 1px 1px, var(--grid-color) 1px, transparent 0);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* --- ANIMATIONS --- */
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.stark-shimmer {
+    background: linear-gradient(90deg, transparent 25%, rgba(255, 255, 255, 0.03) 50%, transparent 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite linear;
+}
+
+.glass {
+    backdrop-filter: blur(var(--stark-glass-blur));
+    background: var(--bg-glass);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.stark-aura {
+    position: relative;
+    overflow: hidden;
+}
+
+.stark-aura::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(var(--accent-rgb), 0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes stark-pulse {
+    0% {
+        box-shadow: 0 0 5px rgba(var(--accent-rgb), 0.2);
+    }
+
+    50% {
+        box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.4);
+    }
+
+    100% {
+        box-shadow: 0 0 5px rgba(var(--accent-rgb), 0.2);
+    }
+}
+
+.animate-stark-pulse {
+    animation: stark-pulse 3s infinite ease-in-out;
+}
+
+/* ============================================================ */
+/* THEME: SCHEMATIC (Strict B&W Wireframe)                      */
+/* DHARMA: Pureza estructural para auditoría técnica.            */
+/* ============================================================ */
+[data-theme='schematic'],
+.stark-theme-schematic {
+    --bg-deep: #000000;
+    --bg-primary: #000000;
+    --bg-secondary: #000000;
+    --bg-glass: #000000;
+    --border-color: #333333;
+    --border-highlight: #ffffff;
+    --text-primary: #ffffff;
+    --text-secondary: #aaaaaa;
+    --text-dim: #666666;
+    --accent-primary: #ffffff;
+    --status-success: #ffffff;
+    --status-error: #ffffff;
+    --stark-glass-blur: 0px;
+}
+
+.stark-theme-schematic .glass {
+    backdrop-filter: none !important;
+    background: #000 !important;
+    border: 1px solid #333 !important;
+}
+
+.stark-theme-schematic .stark-ui-group {
+    border: 1px solid #333 !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+}
+
+.stark-theme-schematic .stark-atom-btn-primary {
+    background: #fff !important;
+    color: #000 !important;
+    border-radius: 0 !important;
+}
+
+.stark-theme-schematic * {
+    text-shadow: none !important;
+    box-shadow: none !important;
+}

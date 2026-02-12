@@ -5,7 +5,7 @@ on:
   push:
     branches: [master]
     paths:
-      - 'INDRA_FRONT_V2/**'
+      - 'INDRA_OS/INDRA_SKIN/**'
       - '.github/workflows/deploy-ui.yml'
 
 permissions:
@@ -25,14 +25,14 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: 'INDRA_FRONT_V2/package-lock.json'
+          cache-dependency-path: 'INDRA_OS/INDRA_SKIN/package-lock.json'
       
       - name: 📦 Install dependencies
-        working-directory: INDRA_FRONT_V2
+        working-directory: INDRA_OS/INDRA_SKIN
         run: npm ci
       
       - name: 🔨 Build frontend
-        working-directory: INDRA_FRONT_V2
+        working-directory: INDRA_OS/INDRA_SKIN
         env:
           VITE_GAS_URL: 'https://placeholder-backend.example.com'
         run: npm run build
@@ -41,7 +41,7 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./INDRA_FRONT_V2/dist
+          publish_dir: ./INDRA_OS/INDRA_SKIN/dist
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: 'Deploy INDRA UI'

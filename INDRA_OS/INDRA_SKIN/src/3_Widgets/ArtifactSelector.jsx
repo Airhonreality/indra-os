@@ -40,7 +40,7 @@ const ArtifactSelector = ({ onSelect, onClose }) => {
             const manifestableArchetypes = [
                 'ADAPTER', 'VAULT', 'ORCHESTRATOR', 'AGENT',
                 'WIDGET', 'DATAGRID', 'SERVICE', 'TRANSFORM',
-                'GRID', 'COMPUTE', 'NODE', 'SLOT_NODE'
+                'GRID', 'COMPUTE', 'NODE', 'SLOT', 'SLOT_NODE', 'UTILITY', 'STYLING'
             ];
             const isTool = manifestableArchetypes.some(a => archetype.includes(a));
             const isBridge = archetype.includes('ADAPTER') || archetype.includes('VAULT') || archetype.includes('AGENT');
@@ -79,6 +79,12 @@ const ArtifactSelector = ({ onSelect, onClose }) => {
         // Bridges & External Channels
         if (arch.includes('ADAPTER') || dom.includes('COMMUNICATION') || dom.includes('SPATIAL') || dom.includes('MEDIA')) return 'BRIDGES_AND_ADAPTERS';
 
+        // Visual Utilities (Macro-Apps)
+        if (arch.includes('SLOT') || arch.includes('REALITY') || arch.includes('UTILITY') || arch.includes('VISUAL_UTILITY')) return 'VISUAL_UTILITIES';
+
+        // Atomic Widgets (Micro-Tools)
+        if (arch.includes('WIDGET') || arch.includes('STYLING') || arch.includes('MATH')) return 'ATOMIC_WIDGETS';
+
         // Structure & Logic
         if (arch.includes('ORCHESTRATOR') || arch.includes('TRANSFORM') || arch.includes('GRID')) return 'ORCHESTRATION_UNITS';
 
@@ -89,6 +95,9 @@ const ArtifactSelector = ({ onSelect, onClose }) => {
         { id: 'COGNITIVE_ENGINES', label: 'Cerebros y Motores Cognitivos', icon: '🧠', desc: 'Sistemas de razonamiento y procesamiento inteligente.' },
         { id: 'KNOWLEDGE_VAULTS', label: 'Bóvedas de Conocimiento', icon: '📂', desc: 'Repositorios de archivos, bases de datos y memoria.' },
         { id: 'BRIDGES_AND_ADAPTERS', label: 'Puentes y Herramientas', icon: '🔌', desc: 'Conectores con el mundo exterior y herramientas operativas.' },
+        { id: 'VISOR_REALITY', label: 'Proyectores de Realidad', icon: '🌌', desc: 'Motores para visualizar datos complejos (3D, Tiempo, Mapas).' },
+        { id: 'VISUAL_UTILITIES', label: 'Herramientas de Frontend (Apps)', icon: '🛠️', desc: 'Aplicaciones completas para manipular datos.' },
+        { id: 'ATOMIC_WIDGETS', label: 'Controles y Átomos (Widgets)', icon: '🎛️', desc: 'Componentes pequeños para incrustar en otras herramientas.' },
         { id: 'ORCHESTRATION_UNITS', label: 'Unidades de Orquestación', icon: '⚡', desc: 'Sistemas de control de flujos y estructuras complejas.' },
         { id: 'UTILITIES', label: 'Utilidades Diversas', icon: '📦', desc: 'Herramientas de soporte y servicios auxiliares.' }
     ];

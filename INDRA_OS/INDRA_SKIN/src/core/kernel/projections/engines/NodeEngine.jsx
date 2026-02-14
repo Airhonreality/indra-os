@@ -10,101 +10,24 @@ import { Icons } from '../../../../4_Atoms/IndraIcons';
  * V10.5: Materialización Fenotípica (Specialized Widgets + Deep Focus).
  */
 
-const HoldToDeleteButton = ({ onComplete, label }) => {
-    const [progress, setProgress] = useState(0);
-    const intervalRef = useRef(null);
-    const isDeleting = progress > 0;
-
-    // 1.0s Duration (SDR-004)
-    const startDelete = (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-
-        const DURATION = 1000;
-        const INTERVAL = 20;
-        const STEP = 100 / (DURATION / INTERVAL);
-
-        clearInterval(intervalRef.current);
-        intervalRef.current = setInterval(() => {
-            setProgress(prev => {
-                const next = prev + STEP;
-                if (next >= 100) {
-                    clearInterval(intervalRef.current);
-                    // Defer callback to next tick to avoid render-phase update
-                    setTimeout(() => onComplete(), 0);
-                    return 100;
-                }
-                return next;
-            });
-        }, INTERVAL);
-    };
-
-    const cancelDelete = (e) => {
-        if (e) {
-            e.stopPropagation();
-            e.preventDefault();
-        }
-        clearInterval(intervalRef.current);
-        setProgress(0);
-    };
-
-    useEffect(() => {
-        return () => clearInterval(intervalRef.current);
-    }, []);
-
-    // Cálculo del anillo de progreso (Circunferencia ~ 36px para r=5.5)
-    // r=5.5 -> C = 2 * PI * 5.5 ≈ 34.5
-    const RADIUS = 7;
-    const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-    const offset = CIRCUMFERENCE - (progress / 100) * CIRCUMFERENCE;
-
-    return (
-        <div
-            className="relative flex items-center justify-center w-6 h-6 rounded-full cursor-pointer group/delete"
-            onMouseDown={startDelete}
-            onMouseUp={cancelDelete}
-            onMouseLeave={cancelDelete}
-            onTouchStart={startDelete}
-            onTouchEnd={cancelDelete}
-            title="MANTENER PRESIONADO PARA PERMANENTE ELIMITACIÓN (1.5s)"
-        >
-            {/* Fondo de anillo inactivo */}
-            <div className={`absolute inset-0 rounded-full bg-red-500/10 transition-all duration-300 ${isDeleting ? 'scale-125 opacity-100' : 'scale-0 opacity-0 group-hover/delete:scale-100 group-hover/delete:opacity-100'}`}></div>
-
-            {/* Anillo de Progreso SVG */}
-            {isDeleting && (
-                <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none z-10" viewBox="0 0 24 24">
-                    <circle
-                        cx="12" cy="12" r={RADIUS}
-                        fill="none"
-                        stroke={progress > 80 ? "#ef4444" : "#f87171"}
-                        strokeWidth="2"
-                        strokeDasharray={CIRCUMFERENCE}
-                        strokeDashoffset={offset}
-                        strokeLinecap="round"
-                        className="transition-all duration-75 ease-linear"
-                    />
-                </svg>
-            )}
-
-            {/* Icono Central (Trash) */}
-            <div className={`transition-all duration-200 z-20 ${isDeleting ? 'text-red-500 scale-90' : 'text-[var(--text-dim)] group-hover/delete:text-red-400 opacity-50 group-hover/delete:opacity-100 transform group-hover/delete:scale-110'}`}>
-                <Icons.Trash size={10} />
-            </div>
-
-            {/* Tooltip de Intencionalidad (Solo visible al cargar) */}
-            {isDeleting && progress < 100 && (
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-black/90 text-white text-[8px] px-1.5 py-0.5 rounded whitespace-nowrap border border-red-500/30 pointer-events-none">
-                    {progress > 80 ? "¡SOLTAR PARA CANCELAR!" : "MANTENIENDO..."}
-                </div>
-            )}
-        </div>
-    );
-};
+import HoldToDeleteButton from '../../../../4_Atoms/HoldToDeleteButton';
 
 const NodeEngine = ({ data }) => {
     const { state, execute } = useAxiomaticStore();
     const { id, LABEL, ARCHETYPE, DOMAIN, CAPABILITIES = {}, VITAL_SIGNS = {}, schemaId } = data;
+    const [isPulsing, setIsPulsing] = useState(false);
+
+    // AXIOMA: Sensor de Pulso Sináptico (Visual Feedback)
+    useEffect(() => {
+        const handlePulse = (e) => {
+            if (e.detail?.nodeId === id) {
+                setIsPulsing(true);
+                setTimeout(() => setIsPulsing(false), 800);
+            }
+        };
+        window.addEventListener('ISK_SYNAPTIC_PULSE', handlePulse);
+        return () => window.removeEventListener('ISK_SYNAPTIC_PULSE', handlePulse);
+    }, [id]);
 
     // Colores por Dominio (Semiótica de Identidad)
     const domainColors = {
@@ -119,11 +42,44 @@ const NodeEngine = ({ data }) => {
 
     const accentColor = domainColors[DOMAIN] || '#6366f1';
 
+    const isDatabase = ARCHETYPE === 'DATABASE' || schemaId === 'DATABASE_NODE' || data.data?.type === 'DATABASE';
+
+    // AXIOMA: Inyección de Puertos Fantasma (Proyección Robusta)
+    // Aseguramos que las DBs tengan sus puertos vitales de conexión al Slot incluso si el backend no los ha hidratado aún.
+    const effectiveCapabilities = { ...CAPABILITIES };
+    if (isDatabase) {
+        // AXIOMA: Soberanía de Conexión (Siempre exponer DATA_STREAM)
+        if (!effectiveCapabilities.DATA_STREAM) {
+            effectiveCapabilities.DATA_STREAM = {
+                io: 'STREAM',
+                type: 'TABLE',
+                human_label: 'DATA_STREAM 📡'
+            };
+        }
+        // AXIOMA: Normalización de Claves (Evitar Duplicados: QUERY FILTER vs QUERY_FILTER)
+        // AXIOMA: Normalización Estricta de Claves (Evitar Duplicados: QUERY FILTER vs QUERY_FILTER)
+        // 1. Identificar si existe alguna variante del filtro
+        const filterKey = Object.keys(effectiveCapabilities).find(k => k.replace(/_/g, ' ').trim() === 'QUERY FILTER');
+
+        if (!filterKey) {
+            // Si no existe ninguna, inyectamos la canónica
+            effectiveCapabilities.QUERY_FILTER = {
+                io: 'TRIGGER',
+                type: 'FILTER',
+                human_label: 'QUERY_FILTER 🔍'
+            };
+        } else if (filterKey !== 'QUERY_FILTER') {
+            // Si existe una variante legacy, la movemos a la canónica y borramos la vieja
+            effectiveCapabilities.QUERY_FILTER = effectiveCapabilities[filterKey];
+            delete effectiveCapabilities[filterKey];
+        }
+    }
+
     // Clasificar capabilities por dirección IO
-    const inputCapabilities = Object.entries(CAPABILITIES).filter(([_, cap]) =>
+    const inputCapabilities = Object.entries(effectiveCapabilities).filter(([_, cap]) =>
         cap.io === 'WRITE' || cap.io === 'TRIGGER' || cap.io === 'GATE' || cap.io === 'INPUT'
     );
-    const outputCapabilities = Object.entries(CAPABILITIES).filter(([_, cap]) =>
+    const outputCapabilities = Object.entries(effectiveCapabilities).filter(([_, cap]) =>
         cap.io === 'READ' || cap.io === 'STREAM' || cap.io === 'PROBE' || cap.io === 'REFRESH' || cap.io === 'OUTPUT'
     );
 
@@ -133,9 +89,8 @@ const NodeEngine = ({ data }) => {
         const isFocusable =
             schemaId === 'FOLDER_NODE' ||
             schemaId === 'COSMOS_NODE' ||
-            ARCHETYPE === 'DATABASE' ||
-            data.data?.type === 'DIRECTORY' ||
-            data.data?.type === 'DATABASE';
+            isDatabase ||
+            data.data?.type === 'DIRECTORY';
 
         if (isFocusable) {
             console.log(`[NodeEngine] 🌌 Deep Focus Triggered: ${LABEL}`);
@@ -143,29 +98,65 @@ const NodeEngine = ({ data }) => {
         }
     };
 
-    const isDatabase = ARCHETYPE === 'DATABASE' || schemaId === 'DATABASE_NODE' || data.data?.type === 'DATABASE';
-
     return (
         <div
-            className={`${isDatabase ? 'w-[500px]' : 'w-64'} bg-[var(--indra-glass-bg)] border border-[var(--indra-glass-border)] rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden group hover:border-[var(--accent)]/50 transition-all active:scale-[0.98] select-none`}
+            className={`
+                ${isDatabase ? 'w-[420px]' : 'w-64'} 
+                bg-[var(--indra-glass-bg)] border rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden group transition-all active:scale-[0.98] select-none
+                ${isPulsing ? 'border-[var(--accent)] shadow-[0_0_30px_rgba(var(--accent-rgb),0.4)] scale-[1.02]' : 'border-[var(--indra-glass-border)] hover:border-[var(--accent)]/50'}
+            `}
             onDoubleClick={handleDoubleClick}
         >
             {/* 1. Header del Nodo (Identidad Soberana) */}
-            <div
-                className="px-4 py-2 flex items-center justify-between border-b border-[var(--border-subtle)] cursor-grab active:cursor-grabbing"
-                style={{ background: `linear-gradient(to right, ${accentColor}22, transparent)` }}
-            >
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: accentColor, boxShadow: `0 0-8px ${accentColor}` }}></div>
-                    <span className="text-[10px] font-black text-[var(--text-soft)] uppercase tracking-widest truncate max-w-[150px]">{LABEL}</span>
+            <div className="px-4 py-2 flex items-center justify-between border-b border-[var(--border-subtle)] cursor-grab active:cursor-grabbing" style={{ background: `linear-gradient(to right, ${accentColor}22, transparent)` }}>
+                <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: accentColor, boxShadow: `0 0 8px ${accentColor}` }}></div>
+                    <span className="text-[10px] font-black text-[var(--text-soft)] truncate tracking-tight uppercase group-hover:text-white transition-colors">
+                        {LABEL}
+                    </span>
                 </div>
-                <div className="flex items-center gap-3">
-                    <span className="text-[8px] font-mono text-[var(--text-dim)] uppercase tracking-tight">{schemaId || ARCHETYPE}</span>
+                <div className="flex items-center gap-2">
+                    {/* AXIOMA: Selector de Morfogénesis (Morpher) */}
+                    {(() => {
+                        let available = data.ARCHETYPES || data.data?.ARCHETYPES;
+
+                        // Fallback Proactivo: Si es DB pero no tiene arquetipos declarados, inyectar trinidad
+                        if (!available && isDatabase) available = ['DATABASE', 'VAULT', 'NODE'];
+
+                        if (available && available.length > 1) {
+                            return (
+                                <div className="flex items-center bg-black/40 rounded-lg p-0.5 border border-white/10 mr-1">
+                                    {available.map(arch => (
+                                        <button
+                                            key={arch}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                execute('UPDATE_NODE', {
+                                                    id,
+                                                    updates: { ARCHETYPE: arch }
+                                                });
+                                            }}
+                                            className={`px-1.5 py-0.5 rounded text-[7px] font-black transition-all ${ARCHETYPE === arch ? 'bg-[var(--accent)] text-black' : 'text-white/40 hover:text-white'}`}
+                                            title={`Mutar a modo ${arch}`}
+                                        >
+                                            {arch}
+                                        </button>
+                                    ))}
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
+
+                    <span className="text-[8px] font-mono text-[var(--accent)] font-bold uppercase tracking-tight px-1.5 bg-[var(--accent)]/5 rounded border border-[var(--accent)]/20">
+                        {ARCHETYPE || schemaId}
+                    </span>
 
                     {/* SDR-004: KINETIC INTENT DELETE BUTTON */}
                     <HoldToDeleteButton
                         onComplete={() => execute('REMOVE_ARTIFACT', { id })}
-                        label={LABEL}
+                        size={24}
+                        iconSize={10}
                     />
                 </div>
             </div>
@@ -221,7 +212,7 @@ const NodeEngine = ({ data }) => {
                                         portId: key,
                                         startX: data.x,
                                         startY: data.y,
-                                        portOffsetX: isDatabase ? 500 : 256, // Ajuste dinámico de ancho
+                                        portOffsetX: isDatabase ? 420 : 256, // Ajuste dinámico sincronizado
                                         portOffsetY: portY,
                                         currentX: e.clientX,
                                         currentY: e.clientY

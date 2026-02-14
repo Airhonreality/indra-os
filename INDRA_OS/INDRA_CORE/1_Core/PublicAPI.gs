@@ -39,11 +39,17 @@ function createPublicAPI({
     try {
       const result = SovereignGuard.secureInvoke(nodeKey, methodName, input, guardDeps);
       
-      // Normalización del resultado
-      if (Array.isArray(result)) return result;
-      if (result && typeof result === 'object' && result.success !== undefined) return result;
+      // AXIOMA: Firma de Linaje Universal (ADR-009)
+      // Todo resultado que pase por el API queda firmado con su origen determinista.
+      const stamp = { ORIGIN_SOURCE: nodeKey };
       
-      return (result && typeof result === 'object') ? { success: true, ...result } : { success: true, payload: result };
+      if (Array.isArray(result)) return { success: true, results: result, ...stamp };
+      
+      if (result && typeof result === 'object') {
+        return { success: true, ...result, ...stamp };
+      }
+      
+      return { success: true, payload: result, ...stamp };
     } catch (e) {
       const isConflict = e.message.includes('STATE_CONFLICT') || e.code === 'STATE_CONFLICT';
       
@@ -292,6 +298,28 @@ function createPublicAPI({
     applyPatch: (args) => _secureInvoke('cosmos', 'applyPatch', args),
     bindArtifactToCosmos: (args) => _secureInvoke('cosmos', 'bindArtifactToCosmos', args),
     mountCosmos: (args) => _secureInvoke('cosmos', 'mountCosmos', args),
+    reifyDatabase: (args) => {
+      const { databaseId, nodeId, accountId } = args;
+      const targetNode = nodeId?.toLowerCase();
+      
+      // AXIOMA: Invarianza de Enrutamiento (ADR-010)
+      // Mapeamos el ORIGIN_SOURCE del frontend al Nodo y Método interno del backend.
+      
+      if (targetNode === 'notion') 
+        return _secureInvoke('notion', 'query_db', { databaseId, accountId });
+      
+      if (targetNode === 'sheets' || targetNode === 'sheet' || targetNode === 'drive') 
+        return _secureInvoke('sheet', 'read', { sheetId: databaseId, accountId });
+        
+      if (targetNode === 'calendar')
+        return _secureInvoke('calendar', 'listEvents', { calendarId: databaseId, accountId });
+        
+      if (targetNode === 'email')
+        return _secureInvoke('email', 'listContents', { folderId: databaseId, accountId });
+      
+      // Fallback: Intento de ejecución directa por convención 'read'
+      return _secureInvoke(targetNode, 'read', args);
+    },
     runSystemAudit: () => {
       if (typeof test_AtomicAssemblyAudit !== 'undefined') {
         return test_AtomicAssemblyAudit();

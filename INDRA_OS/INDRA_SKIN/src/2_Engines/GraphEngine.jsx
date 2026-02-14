@@ -20,6 +20,15 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
     const newNodesRef = useRef(new Set());
     const [, forceUpdate] = useState(0);
 
+    // AXIOMA: Sincronización de Manifestación (Nuevos Nodos)
+    useEffect(() => {
+        const hasNewNodes = nodes.some(n => !newNodesRef.current.has(n.id));
+        if (hasNewNodes) {
+            const timer = setTimeout(() => forceUpdate(v => v + 1), 500);
+            return () => clearTimeout(timer);
+        }
+    }, [nodes]);
+
     // MANEJO DE PAN & ZOOM (Soberanía Espacial)
     const handleWheel = (e) => {
         if (e.ctrlKey || e.metaKey) {
@@ -256,8 +265,8 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
 
                 // AXIOMA: Cálculo de Coordenadas de Realidad (Projection Mapping)
                 const rect = containerRef.current.getBoundingClientRect();
-                const x = (e.clientX - rect.left - viewState.x - (rect.width / 2)) / viewState.zoom;
-                const y = (e.clientY - rect.top - viewState.y - (rect.height / 2)) / viewState.zoom;
+                const x = (e.clientX - rect.left - (rect.width / 2)) / viewState.zoom - viewState.x;
+                const y = (e.clientY - rect.top - (rect.height / 2)) / viewState.zoom - viewState.y;
 
                 execute('ADD_ARTIFACT_REQUEST', {
                     artifact: artifact,
@@ -320,7 +329,7 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
                     const isNew = !newNodesRef.current.has(node.id);
                     if (isNew) {
                         newNodesRef.current.add(node.id);
-                        setTimeout(() => forceUpdate(v => v + 1), 1000);
+                        // El update se maneja ahora con un efecto para evitar advertencias de React
                     }
 
                     return (
@@ -348,13 +357,13 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
                 {/* ETIQUETAS DE COLUMNA (Map Labels) */}
                 {!isFocused && (
                     <>
-                        <div className="absolute top-[-500px] left-[-450px] transform -translate-x-1/2 -translate-y-full opacity-10 pointer-events-none">
+                        <div className="absolute top-[-500px] left-[-450px] transform -translate-x-1/2 -translate-y-full opacity-20 pointer-events-none">
                             <span className="text-6xl font-black uppercase tracking-[0.5em] text-[var(--text-primary)]">ORÍGENES</span>
                         </div>
-                        <div className="absolute top-[-500px] left-[0px] transform -translate-x-1/2 -translate-y-full opacity-10 pointer-events-none">
+                        <div className="absolute top-[-500px] left-[0px] transform -translate-x-1/2 -translate-y-full opacity-20 pointer-events-none">
                             <span className="text-6xl font-black uppercase tracking-[0.5em] text-[var(--text-primary)]">PROCESOS</span>
                         </div>
-                        <div className="absolute top-[-500px] left-[450px] transform -translate-x-1/2 -translate-y-full opacity-10 pointer-events-none">
+                        <div className="absolute top-[-500px] left-[450px] transform -translate-x-1/2 -translate-y-full opacity-20 pointer-events-none">
                             <span className="text-6xl font-black uppercase tracking-[0.5em] text-[var(--text-primary)]">RESULTADOS</span>
                         </div>
                     </>

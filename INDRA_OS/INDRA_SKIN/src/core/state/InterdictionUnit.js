@@ -116,21 +116,26 @@ class InterdictionUnit {
                 let snapshotResult = null;
 
                 batchResponse.forEach((rawRes, index) => {
+                    const cmd = currentBatch[index];
+                    if (!cmd) return; // 🛡️ Guardia contra desincronización de Batch
+
                     try {
-                        const transmuted = SignalTransmuter.transmute(rawRes, currentBatch[index].method);
-                        currentBatch[index].resolve(transmuted);
-                        currentBatch[index]._resolved = true;
+                        const transmuted = SignalTransmuter.transmute(rawRes, cmd.method);
+                        console.log(`[InterdictionUnit] ✅ Resolving: ${cmd.service}.${cmd.method}`, { response: transmuted });
+                        cmd.resolve(transmuted);
+                        cmd._resolved = true;
 
                         // AXIOMA V12: Capturar resultado del snapshot (Piggybacked o Directo)
                         if (rawRes && rawRes._snapshot) {
                             snapshotResult = rawRes._snapshot;
                         }
-                        if (currentBatch[index].method === 'stabilizeAxiomaticReality') {
+                        if (cmd.method === 'stabilizeAxiomaticReality') {
                             snapshotResult = transmuted;
                         }
                     } catch (e) {
-                        currentBatch[index].reject(e);
-                        currentBatch[index]._resolved = false;
+                        console.error(`[InterdictionUnit] ❌ Rejecting: ${cmd.service}.${cmd.method}`, e.message);
+                        cmd.reject(e);
+                        cmd._resolved = false;
                     }
                 });
 
@@ -223,23 +228,6 @@ class InterdictionUnit {
         });
     }
 
-    _detectTempIds(obj) {
-        if (!obj || typeof obj !== 'object') return [];
-        let ids = [];
-
-        const scan = (target) => {
-            if (typeof target === 'string' && target.startsWith('temp_')) {
-                ids.push(target);
-            } else if (Array.isArray(target)) {
-                target.forEach(scan);
-            } else if (typeof target === 'object' && target !== null) {
-                Object.values(target).forEach(scan);
-            }
-        };
-
-        scan(obj);
-        return [...new Set(ids)];
-    }
 
     _detectWriteIntent(method) {
         const m = method.toUpperCase();

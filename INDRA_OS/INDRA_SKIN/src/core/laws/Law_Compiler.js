@@ -30,6 +30,14 @@ class LawCompiler {
     }
 
     /**
+     * Recupera un esquema de artefacto por ID.
+     */
+    getArtifactSchema(schemaId) {
+        if (!schemaId) return null;
+        return this._schemas?.[schemaId] || this._schemas?.[schemaId.toUpperCase()];
+    }
+
+    /**
      * Inyecta la Ontología cruda (Component Registry)
      */
     setOntology(ontology, genotype) {
@@ -42,43 +50,94 @@ class LawCompiler {
      * Procesa la ontología para generar el Manifiesto de Render.
      * Aquí se aplican las Leyes visuales y la cartografía de slots.
      */
+    /**
+     * AXIOMA V8.5 (ADR-017): Deep Merge Profundo Universal
+     * Fusiona objetos recursivamente permitiendo que Frontend y Backend colaboren.
+     */
+    _deepMerge(base, override) {
+        if (!base || typeof base !== 'object') return override;
+        if (!override || typeof override !== 'object') return base;
+
+        const result = { ...base };
+        for (const key in override) {
+            const overrideValue = override[key];
+            const baseValue = result[key];
+
+            // Arrays se reemplazan (no se fusionan elemento a elemento)
+            if (Array.isArray(overrideValue)) {
+                result[key] = overrideValue;
+            }
+            // Objetos se fusionan recursivamente
+            else if (overrideValue && typeof overrideValue === 'object' && !Array.isArray(overrideValue)) {
+                result[key] = this._deepMerge(baseValue || {}, overrideValue);
+            }
+            // Primitivos sobrescriben
+            else {
+                result[key] = overrideValue;
+            }
+        }
+        return result;
+    }
+
     compile() {
         console.log(`[LawCompiler] Iniciando compilación de leyes (Enriquecimiento Fenotípico)...`);
 
-        const rawItems = Object.values(this._ontology);
+        // AXIOMA: Fusión de Realidades (Soberanía Física + Proyección Virtual)
+        const virtualItems = Object.entries(SEMANTIC_MANIFEST)
+            .filter(([_, def]) => def.isVirtual)
+            .map(([key, def]) => ({ ...def, id: key }));
+
+        console.log(`[LawCompiler] 🔍 Virtual Items Found: ${virtualItems.length}`);
+        virtualItems.forEach(v => console.log(`  - ${v.id} (${v.ARCHETYPE})`));
+
+        const rawItems = [...Object.values(this._ontology), ...virtualItems];
         this._enrichedRegistry = {};
 
         this._renderManifest = rawItems.map((item, index) => {
             const id = item.id || item.ID || `UNKNOWN_ID_${index}`;
-            // AXIOMA: Búsqueda Recursiva de Identidad
-            // 1. Por Clave Primaria (Ej: 'PROPERTY_INSPECTOR')
-            let semanticRef = SEMANTIC_MANIFEST[id];
 
-            // 2. Por ID Técnico (Si el backend usa 'view_property_inspector')
+            // AXIOMA: Búsqueda Recursiva de Identidad
+            let semanticRef = SEMANTIC_MANIFEST[id];
             if (!semanticRef) {
                 semanticRef = Object.values(SEMANTIC_MANIFEST).find(manifestItem =>
                     manifestItem.technical_id === id
                 ) || {};
             }
 
-            // Construimos el objeto compilado (El Fenotipo)
+            // AXIOMA V8.5 (ADR-017): Merge Profundo Híbrido
+            // Frontend (semanticRef) es la base constitucional
+            // Backend (item) añade/sobrescribe específicamente
+            const baseMerge = this._deepMerge(semanticRef, item);
+
+            const cleanConfig = semanticRef.config ? { ...semanticRef.config } : {};
+            if (cleanConfig.icon && typeof cleanConfig.icon !== 'string') {
+                cleanConfig.icon = null;
+            }
+
             const compiled = {
-                ...item,
+                ...baseMerge,
                 id: id,
-                omd: item.omd || item.OMD || id || semanticRef.technical_id || 'UNKNOWN_OMD',
-                slot: item.slot || item.SLOT || semanticRef.slot || inferSlot(item),
+                omd: baseMerge.omd || baseMerge.OMD || id || semanticRef.technical_id || 'UNKNOWN_OMD',
+                slot: baseMerge.slot || baseMerge.SLOT || semanticRef.slot || inferSlot(baseMerge),
 
-                // AXIOMA: Asegurar campos para ComponentProjector (ADR-008)
-                // AXIOMA: Asegurar campos para ComponentProjector (ADR-008)
-                LABEL: item.LABEL || item.label || semanticRef.LABEL || semanticRef.functional_name || 'UNIT_SKELETON',
-                ARCHETYPE: item.ARCHETYPE || item.archetype || (item.ARCHETYPES ? item.ARCHETYPES[0] : null) || (semanticRef.config ? semanticRef.config.archetype : 'SERVICE'),
-                DOMAIN: item.DOMAIN || item.domain || (semanticRef.config ? semanticRef.config.intent : 'SYSTEM'),
+                // AXIOMA: Mapeo de Identidad Virtual (Frontend Priority)
+                LABEL: baseMerge.LABEL || baseMerge.label || semanticRef.LABEL || semanticRef.functional_name || 'UNIT_SKELETON',
+                ARCHETYPE: baseMerge.ARCHETYPE || semanticRef.ARCHETYPE || (cleanConfig.archetype || 'SERVICE').toUpperCase(),
+                DOMAIN: baseMerge.DOMAIN || semanticRef.DOMAIN || (cleanConfig.intent || 'SYSTEM').toUpperCase(),
 
-                layer: item.LEVEL || item.level || semanticRef.layer || 'NIVEL_3',
+                layer: baseMerge.LEVEL || baseMerge.level || semanticRef.layer || 'NIVEL_3',
                 // AXIOMA: Normalización de Capacidades (Inferencia de IO)
-                CAPABILITIES: this._normalizeCapabilities(item.CAPABILITIES || item.capabilities || item.methods || {}),
-                ui_layout_hint: item.ui_layout_hint || semanticRef.ui_layout_hint || 'LAYOUT_SMART_FORM'
+                CAPABILITIES: this._normalizeCapabilities(baseMerge.CAPABILITIES || baseMerge.capabilities || baseMerge.methods || {}),
+                ui_layout_hint: baseMerge.ui_layout_hint || semanticRef.ui_layout_hint || 'LAYOUT_SMART_FORM'
             };
+
+            // SERIALIZATION GUARD: Eliminar cualquier propiedad que sea función o símbolo
+            Object.keys(compiled).forEach(key => {
+                const val = compiled[key];
+                if (typeof val === 'function' || typeof val === 'symbol') {
+                    delete compiled[key];
+                }
+            });
 
             this._enrichedRegistry[id.toLowerCase()] = compiled;
             return compiled;
@@ -131,6 +190,9 @@ class LawCompiler {
                 type: meta.type || 'SIGNAL',
                 human_label: meta.human_label || meta.desc || key
             };
+
+            // Sanitización de capabilities
+            if (typeof normalized[key].icon !== 'string') delete normalized[key].icon;
         });
         return normalized;
     }
@@ -165,6 +227,31 @@ class LawCompiler {
      */
     getRenderManifest() {
         return this._renderManifest;
+    }
+
+    /**
+     * Sugiere nodos compatibles basados en el Arquetipo de origen.
+     * AXIOMA: Las sugerencias facilitan el flujo de datos entre capas.
+     */
+    getCompatibleNodes(sourceArchetype) {
+        if (!this._isCompiled) return [];
+        const arch = (sourceArchetype || '').toUpperCase();
+
+        // Reglas de Propagación Sugerida
+        return this._renderManifest.filter(m => {
+            const targetArch = (m.ARCHETYPE || '').toUpperCase();
+
+            // 1. Orígenes (VAULT/ADAPTER) sugieren Procesamiento (LLM/NODE) o Destinos (SLOT)
+            if (arch === 'VAULT' || arch === 'DATABASE') {
+                return ['LLM', 'SERVICE', 'NODE', 'SLOT', 'EMAIL'].includes(targetArch);
+            }
+            // 2. Inteligencia/Lógica sugiere Destinos o Comunicación
+            if (arch === 'LLM' || arch === 'SERVICE' || arch === 'NODE') {
+                return ['SLOT', 'EMAIL', 'CHAT', 'DATABASE'].includes(targetArch);
+            }
+
+            return false;
+        }).slice(0, 5); // Limitar sugerencias
     }
 
     /**

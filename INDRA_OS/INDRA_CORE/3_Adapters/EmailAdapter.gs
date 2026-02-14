@@ -267,7 +267,7 @@ function createEmailAdapter({ errorHandler, tokenManager }) {
                 return {
                     results: items,
                     items: items, // Forward compatibility
-                    ORIGIN_SOURCE: 'gmail',
+                    ORIGIN_SOURCE: 'email',
                     SCHEMA: schema,
                     PAGINATION: {
                         total: items.length,

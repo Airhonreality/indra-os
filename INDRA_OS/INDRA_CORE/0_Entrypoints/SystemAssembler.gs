@@ -59,8 +59,8 @@ function _assembleServerOnlyStack(factories, monitoringService, overrides = {}, 
   const configurator = overrides.configurator || createConfigurator({ manifest: constitution, errorHandler });
   const keyGenerator = overrides.keyGenerator || createKeyGenerator();
   const connectionTester = overrides.connectionTester || createConnectionTester({ errorHandler });
-  const sheetAdapter = overrides.sheetAdapter || createSheetAdapter({ errorHandler });
   const driveAdapter = overrides.driveAdapter || createDriveAdapter({ errorHandler });
+  const sheetAdapter = overrides.sheetAdapter || createSheetAdapter({ errorHandler, driveAdapter });
   
   const googleDocsAdapter = overrides.googleDocsAdapter || createGoogleDocsAdapter({ errorHandler, driveAdapter });
   const googleSlidesAdapter = overrides.googleSlidesAdapter || createGoogleSlidesAdapter({ errorHandler, driveAdapter });

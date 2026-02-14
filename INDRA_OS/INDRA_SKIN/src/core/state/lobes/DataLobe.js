@@ -72,19 +72,56 @@ export const dataReducer = (state, action) => {
             const metadata = dataPayload.metadata || { hydrationLevel: 100, total: items.length };
 
             // AXIOMA: Reificación Directa (Auto-Render)
-            // 1. Si el silo cargado es el artefacto que estamos mirando, inyectamos la data al vuelo.
             let updatedActiveLayout = state.phenotype.activeLayout;
             if (updatedActiveLayout?.id === nodeId) {
                 updatedActiveLayout = { ...updatedActiveLayout, ...dataPayload, items };
             }
 
-            // 2. Propagación a Artefactos del Grafo (Evitar limbo de datos en el Diagrama Fractal)
-            const updatedArtifacts = (state.phenotype.artifacts || []).map(art => {
-                // Buscamos coincidencia por ID (Soberanía de Identidad)
-                if (art.id === nodeId || art.data?.id === nodeId) {
+            // 1. Inferencia de Columnas (Smarter Hydration)
+            const rawCols = dataPayload.SCHEMA?.columns || dataPayload.columns || [];
+            let cols = Array.isArray(rawCols) ? rawCols : [];
+
+            // Si no hay esquema explícito, inferimos de la primera fila
+            if (cols.length === 0 && items.length > 0) {
+                const firstRow = items[0];
+                const fields = firstRow.fields || firstRow.properties || firstRow.Properties || firstRow;
+                cols = Object.keys(fields)
+                    .filter(key => !key.startsWith('_') && key !== 'id' && key !== 'ID')
+                    .map(key => ({ id: key, label: key.toUpperCase() }));
+            }
+
+            // 2. Propagación a Artefactos del Grafo
+            const finalArtifacts = (state.phenotype.artifacts || []).map(art => {
+                const isMatch = art.id === nodeId || art.data?.id === nodeId;
+                if (isMatch) {
+                    const isDatabase = dataPayload.SCHEMA?.columns || dataPayload.columns || art.ARCHETYPE === 'DATABASE' || art.schemaId === 'DATABASE_NODE';
+
+                    // AXIOMA: Flujo de Datos Unificado (Single Output Port)
+                    // En lugar de puertos por columna, ofrecemos un único puerto de salida de datos.
+                    const databaseCapabilities = isDatabase ? {
+                        'DATA_STREAM': {
+                            io: 'STREAM',
+                            type: 'TABLE',
+                            human_label: 'DATA_SOURCE 📡'
+                        }
+                    } : {};
+
+                    // AXIOMA: Normalización Preventiva de Capacidades (State Hygiene)
+                    // Si detectamos claves legacy (con espacios), las migramos a claves canónicas (con guiones bajos)
+                    const normalizedCapabilities = { ...art.CAPABILITIES, ...databaseCapabilities };
+                    if (normalizedCapabilities['QUERY FILTER']) {
+                        if (!normalizedCapabilities.QUERY_FILTER) {
+                            normalizedCapabilities.QUERY_FILTER = normalizedCapabilities['QUERY FILTER'];
+                        }
+                        delete normalizedCapabilities['QUERY FILTER'];
+                    }
+
                     return {
                         ...art,
-                        data: { ...art.data, ...dataPayload, items, _reifiedAt: Date.now() }
+                        ARCHETYPE: isDatabase ? (art.ARCHETYPE || 'DATABASE') : art.ARCHETYPE,
+                        schemaId: isDatabase ? 'DATABASE_NODE' : art.schemaId,
+                        data: { ...art.data, ...dataPayload, items, _reifiedAt: Date.now() },
+                        CAPABILITIES: normalizedCapabilities
                     };
                 }
                 return art;
@@ -95,11 +132,11 @@ export const dataReducer = (state, action) => {
                 phenotype: {
                     ...state.phenotype,
                     activeLayout: updatedActiveLayout,
-                    artifacts: updatedArtifacts,
-                    vault: items, // AXIOMA: La última carga exitosa es la vista activa del Vault.
+                    artifacts: finalArtifacts,
+                    vault: items,
                     silos: {
                         ...state.phenotype.silos,
-                        [nodeId]: dataPayload // ← PRESERVAR PAYLOAD COMPLETO (ORIGIN_SOURCE, SCHEMA, etc.)
+                        [nodeId]: dataPayload
                     },
                     siloMetadata: {
                         ...state.phenotype.siloMetadata,
@@ -152,33 +189,71 @@ export const dataReducer = (state, action) => {
 
             if (archetype === 'BRIDGE') archetype = 'VAULT';
 
+            const mime = artifact.mimeType || artifact.data?.mimeType || '';
             const isDatabase =
-                artifact.mimeType === 'application/vnd.indra.notion-db' ||
-                artifact.mimeType === 'application/vnd.google-apps.spreadsheet' ||
-                artifact.mimeType?.includes('sheet') ||
+                mime === 'application/vnd.indra.notion-db' ||
+                mime === 'application/vnd.google-apps.spreadsheet' ||
+                mime.includes('sheet') ||
                 artifact.type === 'DATABASE' ||
+                artifact.data?.type === 'DATABASE' ||
                 archetype === 'DATABASE';
 
             if (isDatabase) {
                 archetype = 'DATABASE';
                 capabilities = {
                     ...capabilities,
-                    "rows": { "io": "OUTPUT", "type": "JSON", "human_label": "Data Rows 🔢" },
+                    "onRowSelect": { "io": "OUTPUT", "type": "JSON", "human_label": "Data Rows 🔢" },
                     "query": { "io": "INPUT", "type": "QUERY", "human_label": "Query Filter 🔍" }
                 };
+
+                // AXIOMA: Normalización Estricta en la Creación (Root Fix)
+                // Si la capacidad 'query' o variantes existen, las unificamos en QUERY_FILTER
+                const filterKey = Object.keys(capabilities).find(k => k.replace(/_/g, ' ').trim().toUpperCase() === 'QUERY FILTER');
+                if (filterKey && filterKey !== 'QUERY_FILTER') {
+                    capabilities.QUERY_FILTER = capabilities[filterKey];
+                    delete capabilities[filterKey];
+                } else if (!filterKey && !capabilities.QUERY_FILTER) {
+                    // Si no existe ninguna, usamos la canónica 'QUERY_FILTER' (no 'query')
+                    capabilities.QUERY_FILTER = { "io": "INPUT", "type": "QUERY", "human_label": "QUERY_FILTER 🔍" };
+                    if (capabilities.query) delete capabilities.query; // Limpiar la genérica 'query' si existe
+                }
+
+                // AXIOMA: Hidratación Proactiva de Puertos de Columna
+                const cols = artifact.data?.columns || artifact.columns || [];
+                if (Array.isArray(cols)) {
+                    cols.forEach(col => {
+                        const colId = col.id || col.ID;
+                        capabilities[`col:${colId}`] = {
+                            io: 'OUTPUT',
+                            type: col.type?.toUpperCase() || 'STRING',
+                            human_label: `${col.label || colId} 💎`
+                        };
+                    });
+                }
             }
 
+            // AXIOMA: Morfogénesis (Lista de Arquetipos Disponibles)
+            const availableArchetypes = artifact.ARCHETYPES || artifact.data?.ARCHETYPES || [archetype];
+            if (isDatabase && !availableArchetypes.includes('DATABASE')) availableArchetypes.push('DATABASE');
+            if (isDatabase && !availableArchetypes.includes('VAULT')) availableArchetypes.push('VAULT');
+            if (!availableArchetypes.includes('NODE')) availableArchetypes.push('NODE');
+
             const newGraphNode = {
-                id: artifact.id || `temp_node_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-                schemaId: schemaId || (artifact?.type === 'DIRECTORY' ? 'FOLDER_NODE' : 'FILE_NODE'),
+                id: artifact.id || `node_${crypto.randomUUID().split('-')[0]}_${Date.now().toString(36)}`,
+                schemaId: isDatabase ? 'DATABASE_NODE' : (schemaId || (artifact?.type === 'DIRECTORY' ? 'FOLDER_NODE' : 'FILE_NODE')),
                 LABEL: label,
                 DOMAIN: domain,
                 ARCHETYPE: archetype,
+                ARCHETYPES: availableArchetypes, // Atributo de primer nivel para el Morpher
+                // AXIOMA: Determinismo de Identidad (ADR-009)
+                ORIGIN_SOURCE: (artifact.ORIGIN_SOURCE || artifact.origin || artifact.data?.ORIGIN_SOURCE)?.toLowerCase(),
                 x: safePos.x,
                 y: safePos.y,
-                data: artifact || {},
+                // AXIOMA: Coherencia de Datos (Data = Metadata)
+                // Aseguramos que la versión interna de CAPABILITIES en 'data' también esté normalizada
+                data: { ...artifact, ARCHETYPES: availableArchetypes, CAPABILITIES: capabilities },
                 CAPABILITIES: capabilities,
-                _isDirty: true // AXIOMA: Soberanía de Escritura
+                _isDirty: true
             };
 
             return {
@@ -192,30 +267,54 @@ export const dataReducer = (state, action) => {
 
         case 'COSMOS_MOUNTED': {
             const flowState = action.payload?.flow_state || {};
+            const cosmosId = action.payload.id || action.payload.cosmos_id || action.payload.ID;
+
+            // AXIOMA: Resolución de Etiqueta Soberana (v14.1)
+            const resolvedLabel = action.payload.LABEL || action.payload.label || action.payload.identity?.label || action.payload.NAME || action.payload.name || cosmosId;
+
             const cosmosData = {
                 ...action.payload,
-                id: action.payload.id || action.payload.cosmos_id || action.payload.ID
+                id: cosmosId,
+                LABEL: resolvedLabel
             };
 
-            // AXIOMA: Desempaquetado Genérico de Silos
-            const newSilos = {};
-            const newSiloMetadata = {};
+            // AXIOMA: Desempaquetado Genérico de Silos y Metadata Persistida
+            const newSilos = action.payload?.silos || {};
+            const newSiloMetadata = action.payload?.siloMetadata || {};
             let primaryVaultData = [];
 
-            Object.entries(flowState).forEach(([key, silo]) => {
-                const items = Array.isArray(silo) ? silo : (silo?.items || silo?.vault_tree || []);
-                newSilos[key] = items;
-                newSiloMetadata[key] = {
-                    hydrationLevel: action.payload?._SIGNAL === 'PATIENCE_TOKEN' ? 20 : 100,
-                    status: 'SYNCED',
-                    total: items.length,
-                    source: 'CACHE'
-                };
-                // Si es el primer silo o se llama drive/root, lo usamos como vista inicial
-                if (!primaryVaultData.length || key === 'drive' || key === 'root') {
+            // Si hay silos o metadata en el payload (L2), los priorizamos pero manteniendo el vault de cloud si es root
+            Object.entries(newSilos).forEach(([key, items]) => {
+                if (!primaryVaultData.length || key === 'drive' || key === 'root' || key === 'vault') {
                     primaryVaultData = items;
                 }
             });
+
+            // AXIOMA: Determinismo de Identidad (ADR-009)
+            // Se elimina el bautismo heurístico. La identidad debe ser declarada en el origen.
+            const persistentArtifacts = (action.payload?.artifacts || []);
+
+            // 🔍 DIAGNÓSTICO TEMPORAL: Detectar Duplicados en Origen
+            console.group('🧬 [COSMOS_MOUNTED] Diagnostic Report');
+            console.log('📦 Raw Payload Artifacts:', action.payload?.artifacts);
+            console.log('📊 Processed Artifacts Count:', persistentArtifacts.length);
+
+            // Detectar duplicados por ID
+            const idCounts = persistentArtifacts.reduce((acc, art) => {
+                acc[art.id] = (acc[art.id] || 0) + 1;
+                return acc;
+            }, {});
+            const duplicates = Object.entries(idCounts).filter(([id, count]) => count > 1);
+
+            if (duplicates.length > 0) {
+                console.error('⚠️ DUPLICATES DETECTED IN BACKEND JSON:', duplicates);
+                duplicates.forEach(([id, count]) => {
+                    console.log(`   ID: ${id} appears ${count} times`);
+                });
+            } else {
+                console.log('✅ No duplicates in artifacts array');
+            }
+            console.groupEnd();
 
             return {
                 ...state,
@@ -230,7 +329,7 @@ export const dataReducer = (state, action) => {
                     silos: { ...state.phenotype.silos, ...newSilos },
                     vault: primaryVaultData,
                     siloMetadata: { ...state.phenotype.siloMetadata, ...newSiloMetadata },
-                    artifacts: action.payload?.artifacts || [],
+                    artifacts: persistentArtifacts,
                     relationships: action.payload?.relationships || []
                 }
             };
@@ -252,7 +351,7 @@ export const dataReducer = (state, action) => {
             }
 
             const newRelationship = {
-                id: `temp_rel_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+                id: `rel_${crypto.randomUUID().split('-')[0]}_${Date.now().toString(36)}`,
                 source, target, sourcePort, targetPort,
                 created_at: new Date().toISOString(),
                 _isDirty: true
@@ -333,18 +432,29 @@ export const dataReducer = (state, action) => {
         case 'VAULT_ITEM_RENAMED': {
             const renNodeId = (action.payload.nodeId || 'drive').toLowerCase();
             const renSilo = state.phenotype.silos[renNodeId] || [];
+            const itemId = action.payload.itemId;
+            const newName = action.payload.newName;
+
+            // AXIOMA: Sincronía de Identidad (Namespace Sync)
+            let updatedCosmosIdentity = state.phenotype.cosmosIdentity;
+            if (updatedCosmosIdentity?.id === itemId) {
+                updatedCosmosIdentity = { ...updatedCosmosIdentity, LABEL: newName, name: newName, identity: { ...updatedCosmosIdentity.identity, label: newName } };
+            }
+
             return {
                 ...state,
                 phenotype: {
                     ...state.phenotype,
-                    vault: state.phenotype.vault.map(n => n.id === action.payload.itemId ? { ...n, name: action.payload.newName } : n),
+                    cosmosIdentity: updatedCosmosIdentity,
+                    vault: state.phenotype.vault.map(n => n.id === itemId ? { ...n, name: newName } : n),
                     silos: {
                         ...state.phenotype.silos,
-                        [renNodeId]: Array.isArray(renSilo) ? renSilo.map(n => n.id === action.payload.itemId ? { ...n, name: action.payload.newName } : n) : renSilo
+                        [renNodeId]: Array.isArray(renSilo) ? renSilo.map(n => n.id === itemId ? { ...n, name: newName } : n) : renSilo
                     },
                     artifacts: state.phenotype.artifacts.map(node =>
-                        node.data?.id === action.payload.itemId ? { ...node, LABEL: action.payload.newName, _isDirty: true } : node
-                    )
+                        node.data?.id === itemId ? { ...node, LABEL: newName, _isDirty: true } : node
+                    ),
+                    activeLayout: state.phenotype.activeLayout?.id === itemId ? { ...state.phenotype.activeLayout, LABEL: newName, label: newName } : state.phenotype.activeLayout
                 }
             };
         }
@@ -387,10 +497,8 @@ export const dataReducer = (state, action) => {
                         ...state.phenotype.silos,
                         ...silos
                     },
-                    siloMetadata: {
-                        ...state.phenotype.siloMetadata,
-                        ...hydratedData.siloMetadata
-                    }
+                    siloMetadata: updatedSiloMetadata, // Use the updated metadata
+                    artifacts: updatedArtifacts // Use the updated artifacts
                 }
             };
         }
@@ -480,6 +588,7 @@ export const dataReducer = (state, action) => {
             };
         }
 
+
         case 'UPDATE_COSMOS_REGISTRY':
             return {
                 ...state,
@@ -512,7 +621,6 @@ export const dataReducer = (state, action) => {
                     : art;
             });
 
-            // 2. Marcar Relaciones (Integridad)
             const updatedRelationships = state.phenotype.relationships.map(rel => {
                 const isSource = String(rel.source).toLowerCase() === String(artifactId).toLowerCase();
                 const isTarget = String(rel.target).toLowerCase() === String(artifactId).toLowerCase();
@@ -528,6 +636,19 @@ export const dataReducer = (state, action) => {
                     artifacts: updatedArtifacts,
                     relationships: updatedRelationships,
                     _relationshipsDirty: true
+                }
+            };
+        }
+
+        case 'UPDATE_NODE': {
+            const { id, updates } = action.payload;
+            return {
+                ...state,
+                phenotype: {
+                    ...state.phenotype,
+                    artifacts: state.phenotype.artifacts.map(art =>
+                        art.id === id ? { ...art, ...updates, _isDirty: true } : art
+                    )
                 }
             };
         }

@@ -25,7 +25,7 @@ class SynapticDispatcher {
      * @param {number} ttl - Time To Live (Loop-Breaker)
      * @param {Set} visitedNodes - Nodos ya visitados en esta cadena (Loop-Breaker)
      */
-    async propagate(context, sourceNodeId, data, ttl = 10, visitedNodes = new Set()) {
+    async propagate(context, sourceNodeId, data, ttl = 10, visitedNodes = new Set(), sourceCapability = null) {
         const { state, execute } = context;
         if (ttl <= 0) {
             console.warn(`[SynapticDispatcher] 🛡️ TTL EXPIRED for ${sourceNodeId}. Signal auto-terminated.`);
@@ -40,8 +40,13 @@ class SynapticDispatcher {
         visitedNodes.add(sourceNodeId);
 
         // 1. Identificar Relaciones Salientes
+        // AXIOMA DE FILTRADO: Solo propagamos por el puerto que disparó, o por columnas si es un row-select.
         const outgoingRelationships = state.phenotype.relationships?.filter(
-            rel => rel.source === sourceNodeId && !rel._isDeleted
+            rel => rel.source === sourceNodeId && !rel._isDeleted && (
+                !sourceCapability ||
+                rel.sourcePort === sourceCapability ||
+                (sourceCapability === 'onRowSelect' && rel.sourcePort?.startsWith('col:'))
+            )
         ) || [];
 
         if (outgoingRelationships.length === 0) return;
@@ -68,6 +73,13 @@ class SynapticDispatcher {
                 const sourceNode = state.phenotype.artifacts.find(n => n.id === sourceNodeId);
                 const sourceCap = sourceNode?.CAPABILITIES?.[rel.sourcePort];
                 const targetCap = targetNode.CAPABILITIES?.[targetPort] || targetNode.CAPABILITIES?.[capability];
+
+                // AXIOMA: Extracción de Columnas (Deep Data Mining)
+                if (rel.sourcePort?.startsWith('col:') && typeof data === 'object' && data !== null) {
+                    const fieldName = rel.sourcePort.replace('col:', '');
+                    transmutedData = data[fieldName] !== undefined ? data[fieldName] : data;
+                    console.log(`[SynapticDispatcher] 💎 Extracted [${fieldName}] from row payload.`);
+                }
 
                 if (sourceCap?.type === 'BLOB' && targetCap?.type === 'DATAFRAME') {
                     // Transmutación: De Archivo a Texto (ID o Nombre)

@@ -1,0 +1,3 @@
+Siempre que hbales de un archivo ennucialo en su forma metaforica asi el arquitecto diseñador no dev podra entender el sistema...
+
+Los doucmentos mas canonicos

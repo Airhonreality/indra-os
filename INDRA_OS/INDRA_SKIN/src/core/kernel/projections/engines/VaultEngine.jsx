@@ -33,7 +33,7 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
 
     // AXIOMA: Consciencia del Cosmos (Distinción Cognitiva)
     // Obtenemos los IDs de los artefactos que YA están vinculados al Cosmos activo.
-    const cosmosArtifacts = state.phenotype.cosmos?.artifacts || [];
+    const cosmosArtifacts = state.phenotype.artifacts || [];
     // Normalizamos a un Set para búsqueda O(1) y manejo de tipos (si son objetos o strings)
     const linkedIds = React.useMemo(() => new Set(
         Array.isArray(cosmosArtifacts) ? cosmosArtifacts.map(a => (typeof a === 'string' ? a : a.id)) : []
@@ -64,6 +64,13 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
     const [accounts, setAccounts] = useState([]);
     const [activeAccount, setActiveAccount] = useState(null);
 
+    // AXIOMA: Sincronización de Identidad Sugerida (Reacción al Cambio de Contexto)
+    useEffect(() => {
+        if (data.id && data.id.toLowerCase() !== activeSource) {
+            setActiveSource(data.id.toLowerCase());
+        }
+    }, [data.id]);
+
     // [TASK: Account Discovery]
     useEffect(() => {
         const discoverAccounts = async () => {
@@ -86,10 +93,30 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
         setCommand('');
     }, [nodeId]);
 
-    // AXIOMA: Soberanía de Datos Local (Cosmos) vs Remota (Silos)
-    const siloData = activeSource === 'cosmos'
+    // AXIOMA: Soberanía de Datos (ADR-010: Imperative Hydration + ADR-014: Pure State)
+    // ÚNICA FUENTE DE VERDAD: state.phenotype.artifacts
+    const rawSiloData = activeSource === 'cosmos'
         ? (state.phenotype.artifacts || [])
-        : (state.phenotype.silos?.[nodeId] || []);
+        : (() => {
+            const silo = state.phenotype.silos?.[nodeId];
+            if (!silo) return [];
+            if (Array.isArray(silo)) return silo; // Backward compatibility
+            return silo.results || silo.items || silo.rows || [];
+        })();
+
+    // AXIOMA: Deduplicación Determinista (Prevención de Duplicate Keys)
+    // Si el mismo ID aparece múltiples veces (bug de hidratación), GANAMOS el más reciente/completo.
+    const siloData = React.useMemo(() => {
+        // Filtrar zombies (artefactos marcados como borrados)
+        const alive = rawSiloData.filter(item => !item._isDeleted);
+
+        // Deduplicar por ID usando Map (mantiene el último encontrado)
+        const deduped = Array.from(
+            new Map(alive.map(item => [item.id, item])).values()
+        );
+
+        return deduped;
+    }, [rawSiloData]);
 
     // AXIOMA: Integra Prisma de Filtrado (UseTransversalHook)
     const {
@@ -99,7 +126,7 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
         setFilter,
         activeFilters
     } = useFilterPrism(siloData, {
-        searchKeys: ['name', 'mimeType', 'type']
+        searchKeys: ['name', 'LABEL', 'mimeType', 'type']  // Agregamos 'LABEL' para búsqueda de artefactos Cosmos
     });
 
     // AXIOMA: Sincronización de Comandos con Prisma
@@ -108,20 +135,6 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
             setSearchTerm(command);
         }
     }, [command]);
-
-    // AXIOMA: Filtro Dinámico de Cosmos (Estabilizado)
-    const cosmosFilter = React.useCallback((item) => linkedIds.has(item.id), [linkedIds]);
-
-    useEffect(() => {
-        if (activeSource === 'cosmos') {
-            setFilter('id', cosmosFilter);
-        } else {
-            // Solo limpiar si realmente hay un filtro de id activo
-            if (activeFilters['id']) {
-                setFilter('id', undefined);
-            }
-        }
-    }, [activeSource, cosmosFilter, setFilter, activeFilters]);
 
     // AXIOMA: Si no hay ID, el componente está en "Limbo de Identidad".
     // No fallamos a 'drive' silenciosamente. Preferimos proyectar la verdad del error.
@@ -134,7 +147,7 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                     Este motor de bóveda no ha recibido un ID de nodo válido desde el Core.
                     El sistema no puede determinar qué silo de datos proyectar.
                 </p>
-                <div className="bg-black/50 p-4 rounded-xl border border-[var(--border-subtle)] w-full max-w-md">
+                <div className="bg-[var(--surface-header)] p-4 rounded-xl border border-[var(--border-subtle)] w-full max-w-md">
                     <span className="text-[9px] font-black text-[var(--accent)] uppercase block mb-2">Protocolo de Reparación:</span>
                     <ul className="text-[10px] text-[var(--text-soft)] space-y-2 list-disc pl-4">
                         <li>Verifica que el adaptador en <code className="text-[var(--accent)]">SystemAssembler.gs</code> esté decorado correctamente.</li>
@@ -230,13 +243,15 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
         } else if (node.type === 'DATABASE' || node.type === 'GRID' || node.mimeType?.includes('sheet')) {
             addLog(`Manifesting ${node.name} into Reality Engine...`, 'SUCCESS');
             // AXIOMA: Manifestación Directa.
+            // AXIOMA: Identidad Imperativa (Pasaporte Soberano)
+            // Se elimina el fallback heurístico. El origen es el activeSource actual.
             execute('SELECT_ARTIFACT', {
                 ...node,
                 LABEL: node.name,
-                ARCHETYPES: ['DATABASE', 'VAULT'], // Duplicidad intencional para MatrixNavigator
+                ARCHETYPES: ['DATABASE', 'VAULT'],
                 ARCHETYPE: 'DATABASE',
                 DOMAIN: 'DATABASE_L1',
-                ORIGIN_SOURCE: node.ORIGIN_SOURCE || activeSource || 'drive',
+                ORIGIN_SOURCE: activeSource,
                 ACCOUNT_ID: activeAccount
             });
 
@@ -498,7 +513,7 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
             >
                 <div className="w-full h-full flex flex-col overflow-hidden relative">
                     {/* SELECTOR DE SOBERANÍA (Tabs Tácticas) */}
-                    <nav className="flex items-center gap-1 p-2 bg-black/40 border-b border-white/5 shrink-0 overflow-x-auto scrollbar-hide">
+                    <nav className="flex items-center gap-1 p-2 bg-[var(--surface-header)] border-b border-[var(--border-subtle)] shrink-0 overflow-x-auto scrollbar-hide">
                         {VAULT_SOURCES.map(source => (
                             <button
                                 key={source.id}
@@ -507,7 +522,7 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                                     flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[9px] font-black uppercase tracking-widest
                                     ${activeSource === source.id
                                         ? 'bg-[var(--accent)]/10 border-[var(--accent)]/40 text-[var(--accent)]'
-                                        : 'bg-transparent border-transparent text-[var(--text-dim)] hover:bg-white/5'}
+                                        : 'bg-transparent border-transparent text-[var(--text-dim)] hover:bg-[var(--surface-header)]'}
                                 `}
                             >
                                 {Icons[source.icon] && React.createElement(Icons[source.icon], { size: 10 })}
@@ -517,10 +532,10 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
 
                         {/* SELECTOR DE IDENTIDAD (Multi-Account Support) */}
                         {accounts.length > 1 && (
-                            <div className="ml-auto flex items-center gap-2 px-3 border-l border-white/10">
+                            <div className="ml-auto flex items-center gap-2 px-3 border-l border-[var(--border-subtle)]">
                                 <span className="text-[7px] font-black text-[var(--text-dim)] uppercase tracking-tighter">Identity:</span>
                                 <select
-                                    className="bg-black/60 border border-white/10 rounded px-2 py-0.5 text-[8px] font-mono text-[var(--accent)] outline-none cursor-pointer"
+                                    className="bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded px-2 py-0.5 text-[8px] font-mono text-[var(--accent)] outline-none cursor-pointer"
                                     value={activeAccount || ''}
                                     onChange={(e) => setActiveAccount(e.target.value)}
                                 >
@@ -538,13 +553,13 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                     {!data.hideSearch && (
                         <>
                             {/* BARRA DE BÚSQUEDA TÁCTICA */}
-                            <div className="px-6 py-4 flex items-center gap-3 bg-black/10 shrink-0">
+                            <div className="px-6 py-4 flex items-center gap-3 bg-[var(--surface-header)] shrink-0">
                                 <div className="flex-1 relative group">
                                     <Icons.Search size={12} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-dim)] group-focus-within:text-[var(--accent)] transition-colors" />
                                     <input
                                         type="text"
                                         placeholder="Escanear Bóveda..."
-                                        className="w-full bg-black/40 border border-white/5 rounded-full pl-10 pr-4 py-2 text-[10px] font-mono text-[var(--text-soft)] outline-none focus:border-[var(--accent)]/30 transition-all shadow-inner"
+                                        className="w-full bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-full pl-10 pr-4 py-2 text-[10px] font-mono text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/30 transition-all shadow-inner"
                                         value={command}
                                         onChange={(e) => setCommand(e.target.value)}
                                         onKeyDown={handleSearch}
@@ -552,14 +567,14 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                                 </div>
                                 <button
                                     onClick={() => setIsFilterOpen(!isFilterOpen)}
-                                    className={`p-2 rounded-full border transition-all duration-300 ${isFilterOpen ? 'bg-[var(--accent)] text-black border-[var(--accent)]' : 'bg-white/5 border-white/5 text-[var(--text-dim)] hover:text-white'}`}
+                                    className={`p-2 rounded-full border transition-all duration-300 ${isFilterOpen ? 'bg-[var(--accent)] text-black border-[var(--accent)]' : 'bg-[var(--surface-header)] border-[var(--border-subtle)] text-[var(--text-dim)] hover:text-[var(--text-primary)]'}`}
                                     title="Filtros de Proyección"
                                 >
                                     <Icons.Filter size={12} />
                                 </button>
                                 <button
                                     onClick={() => execute('FETCH_VAULT_CONTENT', { nodeId, folderId: currentPath[currentPath.length - 1].id, accountId: activeAccount, refresh: true })}
-                                    className="p-2 rounded-full bg-white/5 border border-white/5 text-[var(--text-dim)] hover:text-white transition-all hover:rotate-180 duration-500"
+                                    className="p-2 rounded-full bg-[var(--surface-header)] border border-[var(--border-subtle)] text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-all hover:rotate-180 duration-500"
                                 >
                                     <Icons.Sync size={12} />
                                 </button>
@@ -567,11 +582,11 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
 
                             {/* PRISMA DE FILTRADO (UI Expansible) */}
                             {isFilterOpen && (
-                                <div className="px-6 py-2 bg-black/20 border-b border-white/5 flex flex-wrap gap-2 animate-in slide-in-from-top duration-200">
+                                <div className="px-6 py-2 bg-[var(--surface-header)] border-b border-[var(--border-subtle)] flex flex-wrap gap-2 animate-in slide-in-from-top duration-200">
                                     {/* Botón Reset */}
                                     <button
                                         onClick={() => { clearFilters(); }}
-                                        className="px-2 py-1 rounded-md border border-red-500/30 text-red-400 text-[8px] font-bold uppercase hover:bg-red-500/10"
+                                        className="px-2 py-1 rounded-md border border-red-500/30 text-red-500 text-[8px] font-bold uppercase hover:bg-red-500/10"
                                     >
                                         PURGAR
                                     </button>
@@ -581,13 +596,13 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                                         <>
                                             <button
                                                 onClick={() => setFilter('mimeType', (i) => i.mimeType?.includes('spreadsheet'))}
-                                                className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['mimeType'] ? 'bg-green-500/20 border-green-500 text-green-400' : 'border-white/10 text-[var(--text-dim)] hover:bg-white/5'}`}
+                                                className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['mimeType'] ? 'bg-green-500/20 border-green-500 text-green-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'}`}
                                             >
                                                 MATRICES (SHEETS)
                                             </button>
                                             <button
                                                 onClick={() => setFilter('mimeType', (i) => i.mimeType?.includes('document'))}
-                                                className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['mimeType'] ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'border-white/10 text-[var(--text-dim)] hover:bg-white/5'}`}
+                                                className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['mimeType'] ? 'bg-blue-500/20 border-blue-500 text-blue-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'}`}
                                             >
                                                 MANIFIESTOS (DOCS)
                                             </button>
@@ -598,13 +613,13 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                                         <>
                                             <button
                                                 onClick={() => setFilter('name', (i) => i.name?.toLowerCase().endsWith('.skp'))}
-                                                className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['name'] ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'border-white/10 text-[var(--text-dim)] hover:bg-white/5'}`}
+                                                className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['name'] ? 'bg-cyan-500/20 border-cyan-500 text-cyan-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'}`}
                                             >
                                                 MOLDES (SKP)
                                             </button>
                                             <button
                                                 onClick={() => setFilter('name', (i) => i.name?.toLowerCase().endsWith('.dwg'))}
-                                                className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['name'] ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400' : 'border-white/10 text-[var(--text-dim)] hover:bg-white/5'}`}
+                                                className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['name'] ? 'bg-indigo-500/20 border-indigo-500 text-indigo-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'}`}
                                             >
                                                 PLANOS (DWG)
                                             </button>
@@ -613,13 +628,13 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                                     {/* COMMON FILTERS */}
                                     <button
                                         onClick={() => setFilter('type', 'DIRECTORY')}
-                                        className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['type'] === 'DIRECTORY' ? 'bg-amber-500/20 border-amber-500 text-amber-400' : 'border-white/10 text-[var(--text-dim)] hover:bg-white/5'}`}
+                                        className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['type'] === 'DIRECTORY' ? 'bg-amber-500/20 border-amber-500 text-amber-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'}`}
                                     >
                                         CONTENEDORES
                                     </button>
                                     <button
                                         onClick={() => setFilter('type', (i) => i.type !== 'DIRECTORY')}
-                                        className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['type'] && activeFilters['type'] !== 'DIRECTORY' ? 'bg-purple-500/20 border-purple-500 text-purple-400' : 'border-white/10 text-[var(--text-dim)] hover:bg-white/5'}`}
+                                        className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['type'] && activeFilters['type'] !== 'DIRECTORY' ? 'bg-purple-500/20 border-purple-500 text-purple-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'}`}
                                     >
                                         ENTIDADES
                                     </button>
@@ -629,12 +644,12 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                     )}
 
                     {/* BREADCRUMBS DE PROFUNDIDAD */}
-                    <div className="px-6 py-2 border-b border-white/5 flex items-center gap-2 overflow-x-auto scrollbar-hide shrink-0 bg-black/5">
+                    <div className="px-6 py-2 border-b border-[var(--border-subtle)] flex items-center gap-2 overflow-x-auto scrollbar-hide shrink-0 bg-[var(--surface-header)]">
                         {currentPath.map((path, idx) => (
                             <React.Fragment key={path.id}>
                                 <button
                                     onClick={() => goToBreadcrumb(idx)}
-                                    className={`text-[8px] font-black uppercase tracking-widest hover:text-[var(--accent)] transition-all ${idx === currentPath.length - 1 ? 'text-[var(--text-vibrant)]' : 'text-[var(--text-dim)]'}`}
+                                    className={`text-[8px] font-black uppercase tracking-widest hover:text-[var(--accent)] transition-all ${idx === currentPath.length - 1 ? 'text-[var(--text-primary)]' : 'text-[var(--text-dim)]'}`}
                                 >
                                     {path.name}
                                 </button>
@@ -673,7 +688,7 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                                                 ${cognitiveStyle} ${typeColorClass}
                                                 ${selectedNode?.id === node.id
                                                     ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30 shadow-2xl !opacity-100 !grayscale-0 !scale-105'
-                                                    : 'bg-[var(--bg-secondary)]/10 border-white/5 hover:bg-white/5'}
+                                                    : 'bg-[var(--surface-card)] border-[var(--border-subtle)] hover:bg-[var(--surface-header)]'}
                                                 ${isSidebar ? 'flex-row text-left !items-start !text-left p-3' : 'flex-col'}
                                             `}
                                         >
@@ -682,17 +697,17 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                                                 <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-[var(--accent)] rounded-full shadow-[0_0_5px_var(--accent)] z-10"></div>
                                             )}
 
-                                            <div className={`${isSidebar ? 'w-8 h-8 mr-3' : 'w-12 h-12 mb-3'} rounded-xl bg-black/20 flex items-center justify-center text-xl group-hover:scale-110 transition-all duration-500 shadow-inner shrink-0`}>
+                                            <div className={`${isSidebar ? 'w-8 h-8 mr-3' : 'w-12 h-12 mb-3'} rounded-xl bg-[var(--surface-header)] flex items-center justify-center text-xl group-hover:scale-110 transition-all duration-500 shadow-inner shrink-0`}>
                                                 {node.type === 'DIRECTORY' ? (
-                                                    <span className="text-amber-400/80">📂</span>
+                                                    <span className="text-amber-500">📂</span>
                                                 ) : (node.type === 'DATABASE' || node.mimeType?.includes('sheet') ? (
                                                     <Icons.Database size={24} color="var(--accent)" />
                                                 ) : (
-                                                    <span className="text-blue-400/80">📄</span>
+                                                    <span className="text-blue-500">📄</span>
                                                 ))}
                                             </div>
                                             <div className="flex flex-col flex-1 overflow-hidden">
-                                                <span className="text-[10px] font-bold text-[var(--text-soft)] truncate w-full break-words group-hover:text-[var(--text-vibrant)]">
+                                                <span className="text-[10px] font-bold text-[var(--text-primary)] truncate w-full break-words group-hover:text-[var(--accent)]">
                                                     {node.name}
                                                 </span>
                                                 <span className={`text-[7px] font-mono uppercase mt-0.5 tracking-tighter opacity-60 ${node.type === 'DATABASE' || node.mimeType?.includes('sheet') ? 'text-[var(--accent)] font-black' : 'text-[var(--text-dim)]'}`}>

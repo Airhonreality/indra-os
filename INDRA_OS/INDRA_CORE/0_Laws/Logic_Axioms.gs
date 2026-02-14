@@ -73,6 +73,7 @@ var LOGIC_AXIOMS = Object.freeze({
         'public_verifySovereignEnclosure',
         'public_getArtifactSchemas',
         'public_executeAction',
+        'public_reifyDatabase',
         'sensing_scanArtifacts',
         'adminTools_setSystemToken'
     ]

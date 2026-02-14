@@ -67,7 +67,7 @@ return {
   items: [ 
     { 
       id: "...",      // Requerido: ID único del objeto
-      name: "...",    // Requerido: Nombre para mostrar
+      name: "...",    // Requerido: Nombre para mostrar (Identidad Manifestada)
       type: "FILE",   // FILE o DIRECTORY (Ontología Base)
       mimeType: "...", // Para iconografía inteligente
       lastUpdated: "ISO_DATE",
@@ -81,6 +81,18 @@ return {
   }
 };
 ```
+
+### 3.1 LEY DE SOBERANÍA LEXICAL (V10.0)
+**Axioma**: "Un ID ciego es un error; una Identidad Manifestada es la ley."
+
+Cada adaptador es el **soberano único** de sus reglas de traducción. El sistema prohíbe las heurísticas globales (ej: adivinar un nombre por la longitud del ID). 
+
+**Reglas de Oro del Mapeador:**
+1.  **Independencia de Dominio**: El mapeador de Notion no se inyecta en Sheets. Cada adaptador debe auto-definirse.
+2.  **Referencia por Metadatos**: El mapeo debe basarse en el **Esquema (Schema)** o en **Convenciones de Nomenclatura** del propio dominio.
+    *   *Ejemplo Notion*: Si el Schema dice `type: relation`, el adaptador DEBE buscar el nombre de la página vinculada.
+    *   *Ejemplo Sheets*: Si una columna empieza con `@` o termina en `_ID`, el adaptador DEBE intentar resolver esa identidad.
+3.  **Resultado Canónico**: El adaptador siempre debe retornar un objeto `{ id, name }` para cualquier campo que represente una entidad vinculada. Esto permite que el Frontend proyecte el Nombre pero conserve el ID para acciones futuras.
 
 **Beneficios de esta Criba:**
 1.  **Aduana de Datos**: Si un adaptador (ej: Mail) devuelve este objeto, la UI lo renderizará instantáneamente sin necesidad de ajustar motores.

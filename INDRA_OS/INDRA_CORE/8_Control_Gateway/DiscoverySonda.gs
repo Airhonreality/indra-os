@@ -49,16 +49,21 @@ function createDiscoverySonda({ driveAdapter, configurator, monitoringService })
   }
 
   function _parseDescription(desc, fallbackName) {
-    if (!desc) return { label: fallbackName.replace('.json', ''), description: 'Materia oscura detectada.' };
+    // AXIOMA: Eliminación de Heurística (ADR-010)
+    // Ya no intentamos "adivinar" el esquema desde el string de descripción.
+    // Solo extraemos metadatos explícitos si el formato es JSON válido.
+    if (!desc) return { label: fallbackName.replace('.json', ''), status: 'ARTIFACT_RAW' };
+    
     try {
       const meta = JSON.parse(desc);
       return {
         label: meta.label || fallbackName.replace('.json', ''),
-        description: meta.desc || 'Artefacto indexado vía Surface Reading.',
-        schema: meta.schema || 'UNDEFINED'
+        description: meta.desc || 'Artefacto indexado.',
+        // El esquema debe ser validado contra el BlueprintRegistry, no inducido aquí.
+        indx_schema: meta.schema || 'UNDEFINED'
       };
     } catch (e) {
-      return { label: fallbackName, description: 'Error en firma de metadatos.' };
+      return { label: fallbackName, status: 'ARTIFACT_RAW', error: 'Metadata corrupta o inexistente.' };
     }
   }
 

@@ -67,6 +67,7 @@ export const SEMANTIC_MANIFEST = {
         "functional_name": "Monitor de Trazabilidad",
         "LABEL": "Monitor de Trazabilidad",
         "layer": "NIVEL_3",
+        "layer": "NIVEL_3",
         "slot": "TERMINAL_STATUS",
         "config": { "archetype": "SERVICE", "icon": "Activity" }
     },
@@ -109,4 +110,16 @@ export const SEMANTIC_MANIFEST = {
         "config": { "archetype": "REALITY", "intent": "DIAGNOSTIC" }
     }
     */
+    "SLOT_NODE": {
+        "technical_id": "slot_node",
+        "label": "Cotizador Inteligente (Slot Node)",
+        "functional_name": "Calculadora de Realidad",
+        "description": "Nodo compuesto para proyecciones multifacéticas y formularios inteligentes.",
+        "ARCHETYPE": "UTILITY", // AXIOMA: Clasificación Macro-App
+        "ARCHETYPES": ["UTILITY", "SLOT", "NODE"],
+        "DOMAIN": "UI_PROJECTION", // AXIOMA: Proyección de interfaces Frontend
+        "visibility": "PUBLIC",
+        "isVirtual": true,
+        "config": { "archetype": "SLOT", "icon": "Layout" }
+    }
 };

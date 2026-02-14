@@ -86,7 +86,7 @@ function createCalendarAdapter({ errorHandler }) {
       return {
         results: items,
         items: items, // Backward compatibility
-        ORIGIN_SOURCE: 'google_calendar',
+        ORIGIN_SOURCE: 'calendar',
         SCHEMA: schema,
         PAGINATION: {
           hasMore: !!response.nextPageToken,

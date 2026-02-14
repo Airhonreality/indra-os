@@ -209,6 +209,93 @@ export const Icons = {
             <circle cx="12" cy="12" r="3" />
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </IconBase>
+    ),
+    Help: (props) => (
+        <IconBase {...props}>
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+        </IconBase>
+    ),
+    ArrowRight: (props) => (
+        <IconBase {...props}>
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+        </IconBase>
+    ),
+    Maximize: (props) => (
+        <IconBase {...props}>
+            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+        </IconBase>
+    ),
+    Cpu: (props) => (
+        <IconBase {...props}>
+            <rect x="4" y="4" width="16" height="16" rx="2" ry="2" />
+            <rect x="9" y="9" width="6" height="6" />
+            <line x1="9" y1="1" x2="9" y2="4" />
+            <line x1="15" y1="1" x2="15" y2="4" />
+            <line x1="9" y1="20" x2="9" y2="23" />
+            <line x1="15" y1="20" x2="15" y2="23" />
+            <line x1="20" y1="9" x2="23" y2="9" />
+            <line x1="20" y1="15" x2="23" y2="15" />
+            <line x1="1" y1="9" x2="4" y2="9" />
+            <line x1="1" y1="15" x2="4" y2="15" />
+        </IconBase>
+    ),
+    Connect: (props) => (
+        <IconBase {...props}>
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        </IconBase>
+    ),
+    TV_SCREEN: (props) => (
+        <IconBase {...props}>
+            <rect x="2" y="3" width="20" height="15" rx="2" />
+            <path d="M7 21h10" />
+            <path d="M12 18v3" />
+        </IconBase>
+    ),
+    PDF: (props) => (
+        <IconBase {...props}>
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <path d="M9 15h3a2 2 0 0 0 0-4H9v4Z" />
+        </IconBase>
+    ),
+    BRIDGE: (props) => (
+        <IconBase {...props}>
+            <path d="M3 11c8 0 10 0 18 0" />
+            <path d="M3 15c8 0 10 0 18 0" />
+            <path d="M6 11v4" />
+            <path d="M18 11v4" />
+            <path d="M12 11v4" />
+        </IconBase>
+    ),
+    GRAVITY: (props) => (
+        <IconBase {...props}>
+            <path d="m12 2 3 3h-2v12h2l-3 3-3-3h2V5H9l3-3Z" />
+        </IconBase>
+    ),
+    ENTROPY: (props) => (
+        <IconBase {...props}>
+            <circle cx="12" cy="12" r="10" />
+            <path d="M8 12h8" />
+            <path d="M12 8v8" />
+            <path d="m15 9-6 6" />
+            <path d="m9 9 6 6" />
+        </IconBase>
+    ),
+    DIMENSIONS: (props) => (
+        <IconBase {...props}>
+            <path d="M21 3v18H3V3h18Zm-2 2H5v14h14V5Z" />
+            <path d="M12 8v8" />
+            <path d="M8 12h8" />
+        </IconBase>
+    ),
+    Check: (props) => (
+        <IconBase {...props}>
+            <polyline points="20 6 9 17 4 12" />
+        </IconBase>
     )
 };
 

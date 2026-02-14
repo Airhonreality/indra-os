@@ -14,13 +14,15 @@ import ProjectionDeck from './components/ProjectionDeck';
 import DevLabHood from './components/DevLabHood';
 import { MOCK_GENOTYPE, MOCK_VAULT_DATA } from '../../core/kernel/projections/mocks/MockFactory';
 import compiler from '../../core/laws/Law_Compiler';
+import { createForensicEngine } from './engines/ForensicEngine';
+import { createDeterminismEngine } from './engines/DeterminismEngine';
 
 /**
  * DevLab: El entorno soberano de desarrollo e ingeniería.
  * Arquitectura Folderizada (V12.5) - Modular y Agnóstica.
  */
 const DevLab = () => {
-    const { state, execute } = useAxiomaticStore();
+    const { state, dispatch, execute } = useAxiomaticStore();
     const [showSelector, setShowSelector] = useState(false);
     const [isTesting, setIsTesting] = useState(false);
 
@@ -36,79 +38,44 @@ const DevLab = () => {
     const targetId = labState.targetId || 'DRIVE';
     const perspective = labState.perspective || 'VAULT';
 
-    // Resolución de Artefacto Televisado
+    // AXIOMA: Resolución de Artefacto Televisado (Reality Switch)
+    // AXIOMA: Soberanía del Estado (The State Is The Truth)
     const selectedArtifact = useMemo(() => {
-        // AXIOMA: Inyección de Simulacro (MOCKS)
-        if (labState.isMockEnabled) {
-            const mockId = (targetId === 'VAULT' || targetId === 'BRIDGE') ? 'DRIVE' : targetId;
+        // 1. PRIMERA DIRECTIVA: ¿Es un Prototipo del Garage inyectado o solicitado?
+        const garageKey = targetId.startsWith('garage_') ? targetId.split('_')[1].toUpperCase() : targetId.toUpperCase();
+        const garagePrototype = MOCK_GENOTYPE.GARAGE_PROTOTYPES?.[garageKey] || MOCK_GENOTYPE.GARAGE_PROTOTYPES?.[targetId.toUpperCase()];
 
-            // 1. Prioridad: Mock Específico Definido en Genotipo
-            const mockCanon = MOCK_GENOTYPE.COMPONENT_REGISTRY[mockId] || MOCK_GENOTYPE.COMPONENT_REGISTRY[mockId.toUpperCase()];
-            if (mockCanon) return { ...mockCanon, id: mockId, _isMock: true };
-
-            // 2. Prioridad: Datos de Bóveda Simulados
-            const mockVaultItem = MOCK_VAULT_DATA.find(item => item.id === targetId);
-            if (mockVaultItem) return { ...mockVaultItem, _isMock: true };
-
-            // 3. Fallback: Mock Generativo (Intercepción de Canon Real)
-            // Usamos la estructura real pero inyectamos datos falsos
-            const realCanon = adapter.L0?.COMPONENT_REGISTRY?.[targetId] || compiler.getCanon(targetId);
-            if (realCanon) {
-                return {
-                    ...realCanon,
-                    id: targetId,
-                    _isMock: true,
-                    LABEL: `${realCanon.LABEL || targetId} (SIM)`,
-                    // Sobrescribir signos vitales con estática
-                    VITAL_SIGNS: {
-                        "SIMULATION": { "criticality": "NOMINAL", "value": "ACTIVE", "trend": "stable" },
-                        "LATENCY": { "criticality": "WARNING", "value": "12ms", "trend": "fluctuating" }
-                    },
-                    // AXIOMA: Datos de Relleno para Evitar Fetch Real
-                    data: {
-                        columns: [
-                            { id: 'id', label: 'ID', type: 'STRING' },
-                            { id: 'sim_status', label: 'SIM_STATUS', type: 'TAG' },
-                            { id: 'throughput', label: 'THROUGHPUT', type: 'NUMBER' }
-                        ],
-                        rows: [
-                            { id: 'sim_01', sim_status: 'ACTIVE', throughput: 120 },
-                            { id: 'sim_02', sim_status: 'IDLE', throughput: 0 },
-                            { id: 'sim_03', sim_status: 'ERROR', throughput: 45 }
-                        ]
-                    }
-                };
-            }
-
-            // 4. Fallback Final: Fantasma Sintético
-            // AXIOMA: Mapeo de Arquetipo Dinámico para evitar Fantasmas ServiceView
-            let ghostArchetype = 'SERVICE';
-            if (targetId === 'NODE' || targetId === 'ADAPTER') ghostArchetype = 'NODE';
-            else if (targetId === 'DATABASE') ghostArchetype = 'DATABASE';
-            else if (targetId === 'VAULT' || targetId === 'FILES') ghostArchetype = 'VAULT';
-
+        if (garagePrototype) {
             return {
+                ...garagePrototype,
                 id: targetId,
-                LABEL: `${targetId} (GHOST)`,
-                ARCHETYPE: ghostArchetype,
-                DOMAIN: 'SYNTHETIC',
-                CAPABILITIES: {
-                    "ping": { "io": "READ", "type": "SIGNAL", "desc": "Synthetic ping" },
-                    "trace": { "io": "WRITE", "type": "LOG", "desc": "Log output" }
-                },
-                _isMock: true
+                _isGhost: true,
+                _isMock: true,
+                LABEL: garagePrototype.LABEL || `${garageKey} (PROTOTYPE)`
             };
         }
 
-        // 1. Buscar en la Ontología L0 (Cánones del Sistema)
-        const canon = adapter.L0?.COMPONENT_REGISTRY?.[targetId] || compiler.getCanon(targetId);
-        if (canon) return canon;
-
-        // 2. Buscar en el Fenotipo (Instancias activas)
+        // 2. SEGUNDA DIRECTIVA: ¿Existe ya en el Fenotipo (Real)?
         const instance = state.phenotype.artifacts?.find(a => a.id === targetId);
         if (instance) return instance;
 
-        // 3. Fallback: Proyección de Sombra Estructural
+        // 3. TERCERA DIRECTIVA: ¿Es un Canon del Sistema (L0)?
+        const canon = adapter.L0?.COMPONENT_REGISTRY?.[targetId] || compiler.getCanon(targetId);
+        if (canon) return canon;
+
+        // 4. CUARTA DIRECTIVA: Mock de Fallback por mapeo de motor
+        const engineToMockMap = {
+            'VAULT': 'DRIVE', 'DATABASE': 'DATABASE', 'NODE': 'NODE',
+            'COMMUNICATION': 'EMAIL', 'REALITY': 'COSMOS', 'SLOT': 'SLOT_MANAGER'
+        };
+        const mockId = engineToMockMap[targetId.toUpperCase()] || targetId;
+        const fallback = MOCK_GENOTYPE.COMPONENT_REGISTRY[mockId] || MOCK_GENOTYPE.COMPONENT_REGISTRY[mockId.toUpperCase()];
+
+        if (fallback) {
+            return { ...fallback, id: targetId, _isMock: true, LABEL: `${fallback.LABEL} (FALLBACK)` };
+        }
+
+        // 5. ÚLTIMO RECURSO: Proyección de Sombra
         return { id: targetId, LABEL: targetId.toUpperCase(), ARCHETYPE: targetId === 'VAULT' ? 'VAULT' : 'ADAPTER' };
     }, [targetId, labState.isMockEnabled, state.phenotype.artifacts]);
 
@@ -119,6 +86,8 @@ const DevLab = () => {
 
     // Inicialización del Motor de Caos (Inyección de Dependencia)
     const chaosEngine = useMemo(() => createChaosEngine(execute), [execute]);
+    const forensicEngine = useMemo(() => createForensicEngine(dispatch, execute), [dispatch, execute]);
+    const determinismEngine = useMemo(() => createDeterminismEngine(dispatch, execute, state), [dispatch, execute, state]);
 
     if (!adapter.isIgnited) return (
         <div className="w-screen h-screen bg-[var(--bg-deep)] flex flex-col items-center justify-center gap-4">
@@ -157,6 +126,7 @@ const DevLab = () => {
             <DevLabHood
                 activeTarget={targetId}
                 activePerspective={perspective}
+                activeArchetype={selectedArtifact?.ARCHETYPE}
                 onSelectTarget={(id) => execute('SET_LAB_TARGET', id)}
                 onSelectPerspective={(p) => execute('SET_LAB_PERSPECTIVE', p)}
                 isMockEnabled={labState.isMockEnabled}
@@ -167,6 +137,27 @@ const DevLab = () => {
                 onRunChaosTest={() => chaosEngine.igniteChaosTest(setIsTesting)}
                 onRunAudits={() => chaosEngine.v12SovereigntyAudit(setIsTesting)}
                 onRunDiagnostic={() => execute('RUN_DIAGNOSTIC')}
+                onRunTrace={() => {
+                    const isNotionUuid = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(selectedId);
+                    const isDatabase = targetId === 'DATABASE' || selectedArtifact.ARCHETYPE === 'DATABASE';
+
+                    if (selectedId && (isDatabase || isNotionUuid)) {
+                        console.log(`[DevLab] 🛰️ Launching Sovereign Trace for: ${selectedId}`);
+                        execute('TRACE_SOVEREIGN_DATABASE', { databaseId: selectedId, nodeId: 'notion' });
+                    } else {
+                        console.warn(`[DevLab] ⚠️ Trace Blocked: ID ${selectedId} does not look like a Database.`, { targetId, archetype: selectedArtifact.ARCHETYPE });
+                        execute('LOG_ENTRY', { msg: "⚠️ Selecciona una Database de Notion para trazar.", type: 'WARNING' });
+                    }
+                }}
+                onRunForensics={() => {
+                    if (selectedId) {
+                        forensicEngine.igniteForensicChain(selectedId);
+                    } else {
+                        execute('LOG_ENTRY', { msg: "⚠️ Selecciona un artefacto para la autopsia.", type: 'WARNING' });
+                    }
+                }}
+                onRunDeterminismProbe={() => determinismEngine.probeDeterminismIntegrity(setIsTesting)}
+                execute={execute}
             />
 
             {/* CONTROLES DE CAMPO (Delegados a SovereignSphere) */}

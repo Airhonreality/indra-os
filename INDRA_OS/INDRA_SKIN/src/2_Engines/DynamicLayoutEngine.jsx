@@ -99,9 +99,9 @@ const DynamicLayoutEngine = () => {
                                         componentId={state.phenotype.activeLayout.id}
                                         data={state.phenotype.activeLayout}
                                         perspective={
-                                            ['VAULT', 'BRIDGE'].includes(state.phenotype.devLab?.perspective)
-                                                ? 'VAULT'
-                                                : (state.phenotype.devLab?.perspective || 'VAULT')
+                                            state.sovereignty.mode === 'DEV_LAB'
+                                                ? (state.phenotype.devLab?.perspective || 'VAULT')
+                                                : 'BRIDGE'
                                         }
                                     />
                                 </div>

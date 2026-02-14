@@ -104,27 +104,31 @@ const SovereignGuard = {
    * Ejecuta una invocación segura sobre un nodo.
    */
   secureInvoke: function(nodeKey, methodName, input, { nodes, laws, mcepCore, errorHandler, blueprintRegistry, monitoringService }) {
-    const node = nodes[nodeKey];
-    if (!node) throw errorHandler.createError("DISCOVERY_ERROR", `Node '${nodeKey}' not found.`);
+    // AXIOMA: Traducción de Identidad Semántica (Human-to-Technical)
+    const technicalNodeKey = this._resolveNodeKey(nodeKey);
+    
+    const node = nodes[technicalNodeKey];
+    if (!node) throw errorHandler.createError("DISCOVERY_ERROR", `Node '${technicalNodeKey}' (aliased from '${nodeKey}') not found.`);
+    
     const method = node[methodName];
-    if (typeof method !== 'function') throw errorHandler.createError("DISCOVERY_ERROR", `Method '${methodName}' not found in '${nodeKey}'.`);
+    if (typeof method !== 'function') throw errorHandler.createError("DISCOVERY_ERROR", `Method '${methodName}' not found in '${technicalNodeKey}'.`);
 
     // AXIOMA V12: Interceptor de Realidad (Middleware de Soberanía)
     const snapshotSignal = this._checkRealityPiggyback(input, { nodes, monitoringService });
 
     // AXIOMA: Whitelist Gate (L4 Security)
-    if (!this.isWhitelisted(nodeKey, methodName, { nodes, laws, mcepCore })) {
-      throw errorHandler.createError("SECURITY_BLOCK", `Invocation denied: Tool '${nodeKey}_${methodName}' is not in the authorized MCEP whitelist.`);
+    if (!this.isWhitelisted(technicalNodeKey, methodName, { nodes, laws, mcepCore })) {
+      throw errorHandler.createError("SECURITY_BLOCK", `Invocation denied: Tool '${technicalNodeKey}_${methodName}' is not in the authorized MCEP whitelist.`);
     }
 
     // AXIOMA: Soberanía de Contratos (El QUÉ)
     const schema = ContractRegistry.get(methodName) || (node.schemas && node.schemas[methodName]);
     
     const logic = laws.axioms || {};
-    const isTier1 = logic.CRITICAL_SYSTEMS && logic.CRITICAL_SYSTEMS.includes(nodeKey);
+    const isTier1 = logic.CRITICAL_SYSTEMS && logic.CRITICAL_SYSTEMS.includes(technicalNodeKey);
     
     if (!schema) {
-      if (isTier1) throw errorHandler.createError("ARCHITECTURAL_BLOCK", `Method '${methodName}' in Tier 1 '${nodeKey}' has no schema.`);
+      if (isTier1) throw errorHandler.createError("ARCHITECTURAL_BLOCK", `Method '${methodName}' in Tier 1 '${technicalNodeKey}' has no schema.`);
       const res = method.call(node, input);
       return this._imprintSnapshotSignal(res, snapshotSignal);
     }
@@ -138,6 +142,33 @@ const SovereignGuard = {
 
     const result = method.call(node, input);
     return this._imprintSnapshotSignal(result, snapshotSignal);
+  },
+
+  /**
+   * AXIOMA: Diccionario de Identidad Humana (L4-Soberanía Lexical)
+   * Traduce alias comunes del frontend a unidades técnicas del núcleo.
+   * @private
+   */
+  _resolveNodeKey: function(key) {
+    if (!key) return key;
+    const normalized = key.toLowerCase();
+    
+    const DICTIONARY = {
+      'sheets': 'sheet',
+      'vault': 'drive',
+      'files': 'drive',
+      'drive': 'drive',
+      'gmail': 'email',
+      'emails': 'email',
+      'notion_db': 'notion',
+      'tokenmanager': 'tokenManager', // Resuelve discrepancia de casing
+      'network': 'networkDispatcher',
+      'adapter': 'sensing',
+      'public': 'public',
+      'system': 'public'
+    };
+    
+    return DICTIONARY[normalized] || normalized;
   },
 
   /**

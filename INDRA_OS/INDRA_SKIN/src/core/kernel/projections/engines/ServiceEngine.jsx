@@ -8,8 +8,16 @@ import { Icons } from '../../../../4_Atoms/IndraIcons';
  */
 const ServiceEngine = ({ data, perspective }) => {
     // 1. Sensado del Canon
-    const { LABEL, DOMAIN, CAPABILITIES, VITAL_SIGNS } = data;
+    const { LABEL, DOMAIN, CAPABILITIES: rawCaps, VITAL_SIGNS, technical_id } = data;
     const isIntelligence = DOMAIN === 'INTELLIGENCE' || DOMAIN === 'COGNITIVE';
+
+    // AXIOMA: Fallback de Capacidades para Servicios Fantasma
+    const CAPABILITIES = (rawCaps && Object.keys(rawCaps).length > 0) ? rawCaps : (data._isGhost ? {
+        "can_think": true,
+        "can_process": true,
+        "can_hallucinate": false,
+        "can_reify": true
+    } : {});
 
     // 2. Determinar estado de salud del proceso
     const status = VITAL_SIGNS?.status || 'ACTIVE';
@@ -56,7 +64,7 @@ const ServiceEngine = ({ data, perspective }) => {
                             <span className="text-[10px] text-[var(--text-vibrant)]">Sensing context in active Cosmos...</span>
                         </div>
                         <div className="flex items-center gap-3 italic text-[var(--accent)]">
-                            <span className="text-[9px] opacity-50">>></span>
+                            <span className="text-[9px] opacity-50">{'>>'}  </span>
                             <span className="text-[10px]">Awaiting cognitive trigger...</span>
                         </div>
                     </div>

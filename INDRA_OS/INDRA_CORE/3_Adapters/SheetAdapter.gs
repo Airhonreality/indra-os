@@ -4,10 +4,12 @@
 //       para garantizar la atomicidad en cualquier contexto de ejecución.
 // ======================================================================
 
-function createSheetAdapter({ errorHandler }) {
+function createSheetAdapter({ errorHandler, driveAdapter }) {
   if (!errorHandler || typeof errorHandler.createError !== 'function') {
     throw new TypeError('SheetAdapter requiere un errorHandler válido.');
   }
+
+  const identityCache = {}; // AXIOMA: Caché de Resonancia Lexical
 
   function _getSheet(payload) {
     const { sheetId, sheetName = null } = payload;
@@ -94,10 +96,56 @@ function createSheetAdapter({ errorHandler }) {
 
     return objects.map(obj => {
       return headers.map(header => {
+        const val = obj[header];
+        // Si es un objeto de identidad Indra {id, name}, extraer el id para guardar en la celda
+        const cellVal = (val && typeof val === 'object' && val.id) ? val.id : val;
         // Convertir undefined/null a string vacío (normalización)
-        return (obj[header] !== undefined && obj[header] !== null) ? obj[header] : '';
+        return (cellVal !== undefined && cellVal !== null) ? cellVal : '';
       });
     });
+  }
+
+  /**
+   * Resuelve identidades basadas en convenciones de nomenclatura de columnas.
+   * LEY DE SOBERANÍA LEXICAL: @Prefix o _ID Suffix.
+   * @private
+   */
+  function _hydrateIdentity(rows, headers) {
+      const identityKeys = headers.filter(h => h.startsWith('@') || h.endsWith('_ID'));
+      if (identityKeys.length === 0) return;
+
+      const uniqueIds = new Set();
+      rows.forEach(row => {
+          identityKeys.forEach(key => {
+              const val = row[key];
+              if (val && typeof val === 'string' && val.length > 20 && !identityCache[val]) {
+                  uniqueIds.add(val);
+              }
+          });
+      });
+
+      if (uniqueIds.size > 0) {
+          uniqueIds.forEach(id => {
+              try {
+                  // AXIOMA: Resolución via Membrana (DriveAdapter)
+                  // No saltamos la aduana con DriveApp, usamos el adaptador inyectado.
+                  const fileData = driveAdapter.retrieve({ fileId: id });
+                  identityCache[id] = fileData.name || id;
+              } catch (e) {
+                  identityCache[id] = id; // Fallback Determinista
+              }
+          });
+      }
+
+      // Inyectar objetos de identidad
+      rows.forEach(row => {
+          identityKeys.forEach(key => {
+              const val = row[key];
+              if (val && identityCache[val]) {
+                  row[key] = { id: val, name: identityCache[val] };
+              }
+          });
+      });
   }
 
   function createSheet(payload) {
@@ -291,6 +339,9 @@ function createSheetAdapter({ errorHandler }) {
       // Convertir a objetos usando helper
       const rows = _mapArrayToObject(headers, dataRows);
 
+      // AXIOMA: Hidratación Determinista (Soberanía Lexical)
+      _hydrateIdentity(rows, headers);
+
       // AXIOMA: Reducción de Entropía (Inferencia de Esquema)
       const schema = {
           columns: headers.map(h => ({
@@ -303,7 +354,7 @@ function createSheetAdapter({ errorHandler }) {
       // Normalizar a ISR (Indra Standard Response)
       return {
           results: rows.map(r => _mapDataEntry(r, sheetName || 'primary')),
-          ORIGIN_SOURCE: 'drive',
+          ORIGIN_SOURCE: 'sheets',
           SCHEMA: schema,
           PAGINATION: {
               hasMore: false,

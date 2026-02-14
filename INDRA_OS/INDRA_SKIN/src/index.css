@@ -9,78 +9,85 @@
     --indra-layer-scale: 0.96;
     --indra-layer-blur: 20px;
 
-    /* DEFAULT THEME (DARK / INDRA NATIVE) */
-    --bg-deep: #050505;
-    --bg-primary: #0a0a0a;
-    --bg-secondary: #121212;
+    /* DEFAULT THEME (DARK / INDRA NATIVE) - Legibility Optimized */
+    --bg-deep: #0a0a0c;
+    --bg-primary: #0f0f12;
+    --bg-secondary: #1a1a1f;
 
-    --text-primary: #f0f0f0;
-    --text-secondary: #a0a0a0;
-    --text-dim: #505050;
+    --text-primary: #f9fafb;
+    --text-secondary: #a1a1aa;
+    --text-dim: #636b7a;
+    --text-soft: #e5e7eb;
+    --text-vibrant: #ffffff;
 
-    --border-color: rgba(255, 255, 255, 0.1);
-    --border-subtle: rgba(255, 255, 255, 0.05);
+    --border-color: rgba(255, 255, 255, 0.14);
+    --border-subtle: rgba(255, 255, 255, 0.08);
 
     --accent: #00d2ff;
     --accent-rgb: 0, 210, 255;
     --accent-glow: #33e1ff;
-
-    --text-soft: #f0f0f0;
-    --text-vibrant: #ffffff;
-    --border-vibrant: rgba(0, 210, 255, 0.4);
+    --border-vibrant: rgba(0, 210, 255, 0.5);
 
     --success: #10b981;
     --error: #ef4444;
 
-    --indra-glass-bg: rgba(20, 20, 20, 0.6);
-    --indra-glass-border: rgba(255, 255, 255, 0.1);
-    --hex-opacity: 0.05;
+    --indra-glass-bg: rgba(18, 18, 22, 0.75);
+    --indra-glass-border: rgba(255, 255, 255, 0.15);
+    --hex-opacity: 0.07;
+
+    --surface-card: rgba(0, 0, 0, 0.3);
+    --surface-header: rgba(255, 255, 255, 0.05);
+    --glass-overlay: rgba(255, 255, 255, 0.03);
 }
 
 [data-theme='light'] {
-    --bg-deep: #f0f2f5;
+    --bg-deep: #cbd5e1;
     --bg-primary: #ffffff;
-    --bg-secondary: #f8f9fa;
+    --bg-secondary: #f1f5f9;
 
-    --text-primary: #111827;
-    --text-secondary: #4b5563;
-    --text-dim: #9ca3af;
-    --text-soft: #374151;
+    --text-primary: #000000;
+    --text-secondary: #000000;
+    --text-dim: #1e293b;
+    --text-soft: #000000;
     --text-vibrant: #000000;
 
-    --border-color: rgba(0, 0, 0, 0.08);
-    --border-subtle: rgba(0, 0, 0, 0.04);
-    --border-vibrant: rgba(0, 86, 179, 0.3);
+    --border-color: rgba(0, 0, 0, 0.4);
+    --border-subtle: rgba(0, 0, 0, 0.25);
+    --border-vibrant: rgba(37, 99, 235, 0.8);
 
     --accent: #2563eb;
     --accent-rgb: 37, 99, 235;
-    --accent-glow: #3b82f6;
+    --accent-glow: #1d4ed8;
 
-    --success: #10b981;
-    --error: #ef4444;
-    --error-surface: rgba(239, 68, 68, 0.08);
-    --warning: #f59e0b;
-    --warning-surface: rgba(245, 158, 11, 0.08);
+    --success: #059669;
+    --error: #dc2626;
+    --error-surface: rgba(220, 38, 38, 0.25);
+    --warning: #d97706;
+    --warning-surface: rgba(217, 119, 6, 0.25);
 
-    --indra-glass-bg: rgba(255, 255, 255, 0.7);
-    --indra-glass-border: rgba(0, 0, 0, 0.08);
-    --hex-opacity: 0.03;
+    --indra-glass-bg: rgba(255, 255, 255, 0.98);
+    --indra-glass-border: rgba(0, 0, 0, 0.3);
+    --hex-opacity: 0.25;
+
+    --surface-card: rgba(255, 255, 255, 0.9);
+    --surface-header: rgba(0, 0, 0, 0.12);
+    --glass-overlay: rgba(0, 0, 0, 0.1);
 }
 
 [data-theme='dark'] {
-    --bg-deep: #050505;
-    --bg-primary: #0a0a0a;
-    --bg-secondary: #121212;
+    --bg-deep: #0a0a0c;
+    --bg-primary: #0f0f12;
+    --bg-secondary: #1a1a1f;
 
     --text-primary: #f9fafb;
-    --text-secondary: #9ca3af;
-    --text-dim: #4b5563;
-    --text-soft: #d1d5db;
+    --text-secondary: #a1a1aa;
+    --text-dim: #636b7a;
+    --text-soft: #e5e7eb;
     --text-vibrant: #ffffff;
 
-    --border-color: rgba(255, 255, 255, 0.1);
-    --border-subtle: rgba(255, 255, 255, 0.05);
-    --border-vibrant: rgba(0, 210, 255, 0.4);
+    --border-color: rgba(255, 255, 255, 0.14);
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-vibrant: rgba(0, 210, 255, 0.5);
 
     --accent: #00d2ff;
     --accent-rgb: 0, 210, 255;
@@ -92,9 +99,13 @@
     --warning: #fbbf24;
     --warning-surface: rgba(251, 191, 36, 0.15);
 
-    --indra-glass-bg: rgba(20, 20, 20, 0.65);
-    --indra-glass-border: rgba(255, 255, 255, 0.1);
-    --hex-opacity: 0.05;
+    --indra-glass-bg: rgba(18, 18, 22, 0.75);
+    --indra-glass-border: rgba(255, 255, 255, 0.15);
+    --hex-opacity: 0.07;
+
+    --surface-card: rgba(0, 0, 0, 0.3);
+    --surface-header: rgba(255, 255, 255, 0.05);
+    --glass-overlay: rgba(255, 255, 255, 0.03);
 }
 
 /* Patrón Hexagonal Sutil (Matriz de Indra) */

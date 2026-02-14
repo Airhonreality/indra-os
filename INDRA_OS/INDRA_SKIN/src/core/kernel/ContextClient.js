@@ -8,6 +8,7 @@
 import InterdictionUnit from '../state/InterdictionUnit';
 import backendLogger from '../utils/BackendLogger';
 import Validator_IO_node_Data from '../state/Infrastructure/Validator_IO_node_Data';
+import AxiomaticDB from '../state/Infrastructure/AxiomaticDB';
 
 class ContextClient {
     constructor() {
@@ -132,9 +133,21 @@ class ContextClient {
                 const processed = backendLogger.processResponse(scrubbing, 'listAvailableCosmos');
 
                 if (processed && processed.artifacts) {
-                    this.memoryCache.set(cacheKey, processed.artifacts);
-                    if (!includeAll) this.memoryCache.set('availableCosmos', processed.artifacts);
+                    // AXIOMA: Filtrado de Ruido (Solo Realidades Válidas)
+                    // Ignoramos JSONs basura que no sean Cosmos.
+                    const validCosmos = processed.artifacts.filter(art =>
+                        (art.type === 'COSMOS' ||
+                            (art.name && art.name.toLowerCase().includes('cosmos')) ||
+                            (art.identity && art.identity.label)) &&
+                        !(art.id && String(art.id).startsWith('temp_'))
+                    );
+
+                    this.memoryCache.set(cacheKey, validCosmos);
+                    if (!includeAll) this.memoryCache.set('availableCosmos', validCosmos);
                     this._savePersistence();
+
+                    // Retornamos la lista filtrada
+                    processed.artifacts = validCosmos;
                 }
 
                 return processed;
@@ -268,6 +281,32 @@ class ContextClient {
      * Elimina un Cosmos vía Gateway Público.
      */
     async deleteCosmos(cosmosId) {
+        // 1. Optimistic Update (FAT CLIENT)
+        // Eliminamos de la memoria inmediatamente
+        const currentList = this.memoryCache.get('availableCosmos') || [];
+        const optimisticList = currentList.filter(c => c.id !== cosmosId);
+        this.memoryCache.set('availableCosmos', optimisticList);
+        this._savePersistence();
+
+        // 2. Deep Clean (L7 + Iron Memory + Session)
+        // Eliminamos todo rastro local para evitar resurrección zombie.
+        try {
+            console.log(`🗑️ [ContextClient] Deep Cleaning: ${cosmosId}`);
+            localStorage.removeItem(`INDRA_COSMOS_${cosmosId}`);
+            await AxiomaticDB.deleteCosmos(`COSMOS_STATE_${cosmosId}`);
+
+            // Si era el cosmos activo por defecto, lo olvidamos
+            if (localStorage.getItem('LAST_ACTIVE_COSMOS_ID') === cosmosId) {
+                localStorage.removeItem('LAST_ACTIVE_COSMOS_ID');
+                // Si la sesión está activa en este cosmos, la matamos
+                if (window.AxiomaticStore && window.AxiomaticStore.dispatch) {
+                    window.AxiomaticStore.dispatch({ type: 'CLEAR_COSMOS_SESSION' });
+                }
+            }
+        } catch (e) {
+            console.warn("[ContextClient] Deep Clean partial failure:", e);
+        }
+
         try {
             const response = await InterdictionUnit.call('cosmos', 'deleteCosmos', { cosmosId });
 
@@ -275,6 +314,7 @@ class ContextClient {
             return backendLogger.processResponse(scrubbing, 'deleteCosmos');
         } catch (error) {
             console.error(`🛑 [ContextClient] Delete failed: ${error.message}`);
+            // Rollback (Opcional, por ahora confiamos en el reload si falla)
             throw error;
         }
     }

@@ -1,0 +1,2 @@
+1. SObre el sistema de autolayout engine basada en motores agnosticos tanto para UI como Editores graficos, desacoplar logica de canvas y edicion formal de su artefacto de invoación, revisar si se peude implementar el editor grafico @ISK_ProjectionAdapter_v2.md de manera purista para formas basicas y texto.
+

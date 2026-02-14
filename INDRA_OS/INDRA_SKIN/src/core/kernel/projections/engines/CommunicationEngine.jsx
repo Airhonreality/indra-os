@@ -25,6 +25,17 @@ const CommunicationEngine = ({ data }) => {
     const [activeThread, setActiveThread] = useState(null);
     const [inputBuffer, setInputBuffer] = useState('');
 
+    // AXIOMA: Hidratación de Mocks para Garage
+    useEffect(() => {
+        if (data._isMock || data._isGhost) {
+            const mockData = injectAxiomaticMock('MAIL', 'COMMUNICATION');
+            if (mockData && mockData.threads) {
+                setThreads(mockData.threads);
+                setActiveThread(mockData.threads[0]);
+            }
+        }
+    }, [data._isMock, data._isGhost]);
+
     // RENDERIZADO DE BARRA LATERAL (Independiente del Modo)
     const Sidebar = () => (
         <div className="w-1/3 min-w-[250px] border-r border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 flex flex-col">

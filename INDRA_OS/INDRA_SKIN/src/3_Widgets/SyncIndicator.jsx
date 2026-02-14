@@ -18,44 +18,25 @@ const SyncIndicator = () => {
     const isOffline = session?.syncStatus === 'OFFLINE';
 
     return (
-        <div className="fixed bottom-32 right-10 flex flex-col gap-2 z-[500] animate-fade-in group">
+        <div className="fixed bottom-10 left-10 flex flex-col gap-2 z-[100] animate-fade-in group pointer-events-none">
 
-            {/* Cabecera del Estado de Sincronía V12 */}
+            {/* Cabecera del Estado de Sincronía V12 - Versión Minimalista Izquierda */}
             <div className={`
-                glass rounded-2xl p-4 flex items-center gap-4 border transition-all duration-500
-                ${isOffline ? 'border-[var(--error)]/50 shadow-[0_0_20px_var(--error-surface)]' :
-                    isRetry ? 'border-[var(--warning)]/50 shadow-[0_0_20px_var(--warning-surface)]' :
-                        'border-[var(--accent)]/30'}
-                ${isLoading ? 'shadow-[0_0_15px_rgba(0,210,255,0.1)]' : ''}
+                glass rounded-full px-4 py-2 flex items-center gap-3 border transition-all duration-500 bg-black/40
+                ${isOffline ? 'border-[var(--error)]/30' :
+                    isRetry ? 'border-[var(--warning)]/30' :
+                        'border-white/5'}
             `}>
-                <div className={`relative ${isLoading || isRetry ? 'animate-spin-slow' : ''}`}>
-                    <Icons.Sync className={`w-5 h-5 ${isOffline ? 'text-[var(--error)]' : isRetry ? 'text-[var(--warning)]' : 'text-[var(--accent)]'}`} />
-                    {isLoading && (
-                        <div className="absolute inset-0 bg-[var(--accent)] blur-md opacity-20 animate-pulse"></div>
-                    )}
+                <div className={`${isLoading || isRetry ? 'animate-spin-slow' : ''}`}>
+                    <Icons.Sync className={`w-3 h-3 ${isOffline ? 'text-[var(--error)]' : isRetry ? 'text-[var(--warning)]' : 'text-white/20'}`} />
                 </div>
 
                 <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">
-                        Sincronía de Realidad
-                    </span>
-                    <span className="text-[9px] font-mono opacity-60">
-                        {isLoading ? 'Transmitiendo Snapshot...' : (isOffline ? 'Modo Offline (Soberanía Local)' : isRetry ? `Reintentando (${session.failedSyncAttempts}/4)` : 'Sincronizado')}
+                    <span className="text-[7px] font-black uppercase tracking-[0.2em] text-white/40">
+                        {isLoading ? 'SYNCING_REALITY' : (isOffline ? 'LOCAL_SOVEREIGNTY' : isRetry ? 'RETRYING_SYNC' : 'REALITY_SYNCED')}
                     </span>
                 </div>
             </div>
-
-            {isOffline && (
-                <div className="bg-[var(--error-surface)] backdrop-blur-md rounded-lg p-2 border border-[var(--error)]/20 text-[8px] font-mono text-[var(--error)] mt-1 max-w-[200px] animate-pulse">
-                    ⚠️ MODO OFFLINE: Los cambios solo persisten localmente hasta recuperar conexión.
-                </div>
-            )}
-
-            {(isRetry && session.lastSyncError) && (
-                <div className="bg-[var(--warning-surface)] backdrop-blur-md rounded-lg p-2 border border-[var(--warning)]/20 text-[8px] font-mono text-[var(--warning)] mt-1 max-w-[200px]">
-                    ⚠️ REINTENTO: {session.lastSyncError.message || 'Error de conexión'}
-                </div>
-            )}
         </div>
     );
 };

@@ -35,8 +35,10 @@ const useSyncOrchestrator = create((set, get) => ({
         const axState = useAxiomaticState.getState();
 
         // AXIOMA V12: Limpieza Semántica con DataConventions
-        // Elimina campos volátiles (_isDirty, _simulated, _liveData, _cache, etc.)
+        // 1. Filtrar Fantasmas (GHOST PROTOCOL)
+        // 2. Limpiar campos volátiles
         const cleanArtifacts = (axStore.phenotype.artifacts || [])
+            .filter(art => !art._isGhost && !art._isMock) // 🛡️ ELIMINAR FANTASMAS
             .map(art => cleanArtifactForSnapshot(art));
 
         const cleanRelationships = cleanRelationshipsForSnapshot(

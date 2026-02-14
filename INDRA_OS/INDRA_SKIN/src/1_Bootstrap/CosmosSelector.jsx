@@ -9,8 +9,10 @@ import React, { useState, useEffect } from 'react';
 import { useAxiomaticStore } from '../core/state/AxiomaticStore';
 import useAxiomaticState from '../core/state/AxiomaticState';
 import adapter from '../core/Sovereign_Adapter';
+import contextClient from '../core/kernel/ContextClient';
 import ComponentProjector from '../core/kernel/ComponentProjector';
 import ArtifactExplorer from './ArtifactExplorer';
+import HoldToDeleteButton from '../4_Atoms/HoldToDeleteButton';
 
 const CosmosSelector = () => {
     const { state, execute } = useAxiomaticStore();
@@ -34,17 +36,10 @@ const CosmosSelector = () => {
         execute('MOUNT_COSMOS', { cosmosId: selectedCosmosId });
     };
 
-    const handleDeleteCosmos = async (id, label) => {
-        if (!window.confirm(`¿Estás seguro de que deseas eliminar la realidad "${label || id}"?\nEsta acción moverá el archivo a la papelera.`)) return;
-
-        try {
-            // AXIOMA: Eliminación vía Adapter (V12)
-            await adapter.call('cosmos', 'deleteCosmos', { cosmosId: id });
-            execute('START_DISCOVERY'); // Actualizar lista de universos
-            if (selectedCosmosId === id) setSelectedCosmosId(null);
-        } catch (err) {
-            setLocalError(`Delete Failed: ${err.message}`);
-        }
+    const handleDeleteCosmos = (id) => {
+        // AXIOMA: Delegación Soberana (El Store lo maneja TODO en tiempo real)
+        execute('DELETE_COSMOS', { cosmosId: id });
+        if (selectedCosmosId === id) setSelectedCosmosId(null);
     };
 
     const handleCreateCosmos = async (payload) => {
@@ -54,14 +49,14 @@ const CosmosSelector = () => {
         try {
             const identity = payload.identity || { label: payload.label, description: payload.description };
 
-            // AXIOMA: Génesis Sincrónico (Capa 1)
-            // No creamos ID temporal, esperamos al servidor para obtener la Verdad.
-            const tempId = `temp_${Date.now()}`;
+            // AXIOMA: Identidad Determinista al Nacer (UUID Final)
+            const finalUuid = `cosmos_${crypto.randomUUID().split('-')[0]}_${Date.now().toString(36)}`;
+
             const response = await adapter.call('cosmos', 'saveCosmos', {
-                cosmosId: tempId,
+                cosmosId: finalUuid,
+                fileName: identity.label ? `${identity.label}.cosmos.json` : "mi_universo.cosmos.json",
                 cosmos: {
-                    id: tempId,
-                    ...payload,
+                    id: finalUuid,
                     identity: {
                         label: identity.label || "Sin Título",
                         description: identity.description || "Realidad persistida por Indra App"
@@ -73,12 +68,22 @@ const CosmosSelector = () => {
                 }
             });
 
-            if (response && (response.id || response.new_id)) {
-                // Forzar actualización inmediata de la lista
-                execute('START_DISCOVERY');
+            if (response && response.success && (response.id || response.new_id || response.fileId)) {
+                const realId = response.new_id || response.id || response.fileId;
+
+                console.info(`%c ✨ [Genesis] Identity granted by Core: ${realId}`, "color: #10b981; font-weight: bold;");
+
+                // 4. AXIOMA: Inmediatez de Propósito. Si lo creo, quiero habitarlo.
                 setIsCreating(false);
+                setSelectedCosmosId(realId);
+
+                // Forzamos un pequeño delay para que Drive asiente el archivo
+                setTimeout(() => {
+                    execute('MOUNT_COSMOS', { cosmosId: realId });
+                }, 500);
+
             } else {
-                throw new Error(response.error || "El servidor no devolvió una identidad válida.");
+                throw new Error(response?.error || response?.result?.error || "El servidor no devolvió una identidad válida.");
             }
         } catch (err) {
             setLocalError(`Fallo en el Génesis: ${err.message}`);
@@ -194,20 +199,14 @@ const CosmosSelector = () => {
                                         </div>
                                     </div>
 
-                                    {/* Botón de Borrado - siempre visible en hover */}
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeleteCosmos(artifact.id, artifact.identity?.label);
-                                        }}
-                                        className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-500/20 rounded-lg text-red-500 transition-all z-20 absolute right-4"
-                                        title="Eliminar Realidad"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
-                                            <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" />
-                                        </svg>
-                                    </button>
+                                    {/* Botón de Borrado - Cinético (Hold to Delete) */}
+                                    <div className="opacity-0 group-hover:opacity-100 absolute right-4 transition-all z-20 hover:scale-110">
+                                        <HoldToDeleteButton
+                                            onComplete={() => handleDeleteCosmos(artifact.id)}
+                                            size={32}
+                                            iconSize={16}
+                                        />
+                                    </div>
 
                                     {selectedCosmosId === artifact.id && (
                                         <div className="absolute right-0 top-0 h-full w-1 bg-[var(--accent)]"></div>

@@ -209,6 +209,23 @@ const ContractRegistry = {
         outputs: { result: { type: "any" } }
       }
     },
+    reifyDatabase: {
+      description: "Forces the reification of a database artifact into a hydrated silo using deterministic identity resolution.",
+      semantic_intent: "TRIGGER",
+      exposure: "public",
+      io_interface: {
+        inputs: {
+          databaseId: { type: "string", description: "The technical ID of the database." },
+          nodeId: { type: "string", description: "The deterministic origin source (sheets, notion, calendar, email)." },
+          accountId: { type: "string", optional: true, description: "Account context for the request." }
+        },
+        outputs: {
+          success: { type: "boolean" },
+          results: { type: "array" },
+          ORIGIN_SOURCE: { type: "string" }
+        }
+      }
+    },
     // --- L8 GATEWAY SCHEMAS ---
     validateSession: {
       description: "Validates an existing session anchor via the Session Commander.",

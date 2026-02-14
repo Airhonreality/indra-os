@@ -80,15 +80,26 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
             const sense = _deepSense(item.id, driveAdapter);
             category = sense.category;
             type = sense.type;
+            
+            // AXIOMA: Soberanía de Origen Profunda (Detectar Notion/Sheets en metadata)
+            if (sense.origin) {
+              item.ORIGIN_SOURCE = sense.origin;
+            }
           }
         }
+        
+        // AXIOMA: Determinismo de Identidad (ADR-009)
+        // Eliminada la heurística basada en nombres (".includes('notion')").
+        // El origen ahora es puramente declarativo (vía deepSense o metadatos explícitos).
+        const finalOrigin = item.ORIGIN_SOURCE || null;
 
         return {
           id: item.id,
           name: item.name,
           canonicalCategory: category,
           canonicalType: type,
-          lastUpdated: item.lastUpdated
+          lastUpdated: item.lastUpdated,
+          ORIGIN_SOURCE: finalOrigin // Inyectamos el origen detectado
         };
       });
     } catch (e) {
@@ -405,10 +416,21 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
     try {
       const file = drive.retrieve({ fileId: fileId, type: 'json' });
       const data = file.content;
-      if (data.nodes || data.artifacts) return { category: 'project', type: 'cosmos' };
-      if (data.steps) return { category: 'flow', type: 'logic' };
-      if (data.fields) return { category: 'form', type: 'interactive' };
-      return { category: 'asset', type: 'data' };
+      
+      const res = { category: 'asset', type: 'data', origin: data.ORIGIN_SOURCE || data.nodeId || null };
+      
+      if (data.nodes || data.artifacts) {
+        res.category = 'project';
+        res.type = 'cosmos';
+      } else if (data.steps) {
+        res.category = 'flow';
+        res.type = 'logic';
+      } else if (data.fields) {
+        res.category = 'form';
+        res.type = 'interactive';
+      }
+      
+      return res;
     } catch (e) {
       return { category: 'asset', type: 'corrupted' };
     }

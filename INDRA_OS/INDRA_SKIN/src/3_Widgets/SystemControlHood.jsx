@@ -11,6 +11,8 @@ import { Icons } from '../4_Atoms/IndraIcons';
 import SecurityVault from './SecurityVault';
 import useAxiomaticState from '../core/state/AxiomaticState';
 
+import { resolveIcon, resolveArtifactLabel } from '../core/kernel/projections/VisualHydrator';
+
 const SystemControlHood = () => {
     const { state, execute } = useAxiomaticStore();
     const session = useAxiomaticState(s => s.session);
@@ -23,7 +25,7 @@ const SystemControlHood = () => {
     const devLabPerspective = state.phenotype.devLab?.perspective;
 
     // UI State Global
-    const { ui, focusStack, cosmosIdentity } = state.phenotype;
+    const { ui, focusStack, cosmosIdentity, artifacts } = state.phenotype;
 
     const navLayer = state.ui_layer_override;
     const isCosmosMounted = !!cosmosIdentity?.id;
@@ -32,10 +34,22 @@ const SystemControlHood = () => {
     let path = [];
     if (isDevLab) {
         path = [{ id: 'DEV_LAB', label: 'Laboratory', archetype: 'LAB', icon: Icons.Lab }];
-        if (devLabTarget) path.push({ id: 'TARGET', label: devLabTarget, archetype: 'TARGET', icon: Icons.Terminal });
-        if (devLabPerspective) path.push({ id: 'PERSPECTIVE', label: devLabPerspective, archetype: 'VIEW', icon: Icons.Eye });
+        if (devLabTarget) {
+            // HIDRATACIÓN: Convertir ID técnico a LABEL elegante
+            const elegantLabel = resolveArtifactLabel(devLabTarget, artifacts);
+            path.push({ id: 'TARGET', label: elegantLabel, archetype: 'TARGET', icon: Icons.Terminal });
+        }
+        // Deduplicación: Si la perspectiva es igual al target (ej: VAULT / VAULT), no la añadimos.
+        if (devLabPerspective && devLabPerspective !== devLabTarget) {
+            path.push({ id: 'PERSPECTIVE', label: devLabPerspective, archetype: 'VIEW', icon: Icons.Eye });
+        }
     } else {
-        path = isCosmosMounted ? ((focusStack && focusStack.length > 0) ? focusStack : [cosmosIdentity]) : [];
+        // En modo LIVE, ignoramos los artefactos Fantasma (Ghosts) para no romper el linaje real
+        path = isCosmosMounted
+            ? ((focusStack && focusStack.length > 0)
+                ? focusStack.filter(a => !a._isGhost)
+                : [cosmosIdentity])
+            : [];
     }
 
     const handleThemeToggle = () => {
@@ -58,6 +72,26 @@ const SystemControlHood = () => {
                 ${isDevLab ? 'border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.1)]' : 'border-[var(--border-subtle)]'}
                 ${isExpanded ? 'bg-[var(--bg-deep)] pr-2' : ''}
             `}>
+                {/* AXIOMA V12: Reality Navigator (Restored Breadcrumbs) */}
+                {path.length > 0 && (
+                    <div className="hidden md:flex items-center gap-1 pl-3 pr-2 border-r border-[var(--border-subtle)] mr-2 h-6">
+                        {path.map((step, index) => (
+                            <div
+                                key={step.id || index}
+                                className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-colors"
+                                onClick={() => {
+                                    // AXIOMA: Navegación por Migajas
+                                    if (step.id === 'DEV_LAB') execute('SET_MODE', { mode: 'DEV_LAB' });
+                                    else if (step.id === cosmosIdentity?.id) execute('EXIT_FOCUS');
+                                    else execute('SELECT_ARTIFACT', step);
+                                }}
+                            >
+                                <span className="opacity-50">/</span>
+                                <span>{step.LABEL || step.label || step.identity?.label || step.NAME || step.name || step.id}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
                 {/* AXIOMA V12: Indicador de Sincronía (Offline Badge) */}
                 {session?.syncStatus === 'OFFLINE' && (
                     <div className="flex items-center gap-2 px-3 py-1 ml-1 bg-[var(--error-surface)] text-[var(--error)] rounded-full border border-[var(--error)]/20 animate-pulse">

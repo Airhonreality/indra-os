@@ -27,11 +27,14 @@ const ARCHETYPE_REGISTRY = {
     'MAIL': CommunicationEngine,
     'MESSAGING': CommunicationEngine,
     'CHAT': CommunicationEngine,
+    'EMAIL': CommunicationEngine, // Added based on the intent from the edit snippet
 
     // 3. LÓGICA Y PROCESAMIENTO (Compute)
     'NODE': NodeEngine,         // Nodos de Procesamiento (Lógica Pura)
     'AGENT': NodeEngine,        // Agentes Inteligentes
     'SERVICE': ServiceEngine,   // Servicios de IA / Microservicios
+    'LLM': ServiceEngine,       // Motor de Modelos de Lenguaje
+    'INTELLIGENCE': ServiceEngine,
 
     // 4. REALIDAD Y ESPACIO (Spatial)
     'REALITY': RealityEngine,   // Motor ISK / WebGL
@@ -39,6 +42,10 @@ const ARCHETYPE_REGISTRY = {
 
     // 5. INFRAESTRUCTURA DE UI (Layout)
     'SLOT': SlotEngine,         // Contenedores dinámicos
+    'SLOT_NODE': SlotEngine,    // Alias para motor de proyecciones
+    'UTILITY': SlotEngine,      // Motor Base para Herramientas Mayores (Macro-Apps)
+    'STYLING': NodeEngine,      // Alias para nodos de estilo (Widgets)
+    'MATH': NodeEngine,         // Nodos de lógica matemática
     'WIDGET': NodeEngine,       // Micro-aplicaciones (Fallback a Node)
 
     // 6. ADAPTADORES (Legacy/External)

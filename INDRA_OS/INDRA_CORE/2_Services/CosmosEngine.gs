@@ -199,7 +199,8 @@ function createCosmosEngine({ driveAdapter, configurator, monitoringService, err
     
     if (!cosmosId) throw errorHandler.createError('INVALID_INPUT', 'ID de Cosmos requerido.');
 
-    const isNew = cosmosId.toString().startsWith('temp_');
+    const idStr = String(cosmosId);
+    const isNew = idStr.startsWith('temp_') || idStr.startsWith('cosmos_') || idStr.length < 10;
     const flowsFolderId = configurator.retrieveParameter({ key: 'ORBITAL_FOLDER_FLOWS_ID' });
 
     // 1. Delegación de Integridad Atómica (PHYSICAL TRUTH) via L8 Validator
@@ -256,7 +257,8 @@ function createCosmosEngine({ driveAdapter, configurator, monitoringService, err
 
         if (isNew) {
             storePayload.folderId = flowsFolderId;
-            storePayload.fileName = `${(label || 'unnamed').replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
+            const safeLabel = (label || 'unnamed').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            storePayload.fileName = `${safeLabel}_${idStr}.cosmos.json`;
         } else {
             storePayload.fileId = cosmosId;
         }
@@ -324,9 +326,19 @@ function createCosmosEngine({ driveAdapter, configurator, monitoringService, err
         validator.verifyAtomicLock(data.content, revisionHash);
       }
 
-      // 3. Unpack del Sobre
-      const envelope = JSON.parse(data.content);
-      if (!envelope.payload) throw new Error("El archivo físico no tiene un formato de Sobre válido.");
+      // 3. Unpack del Sobre (Safe Parsing)
+      let envelope;
+      if (typeof data.content === 'string') {
+        try {
+          envelope = JSON.parse(data.content);
+        } catch (e) {
+          throw new Error("Contenido físico corrupto: No es un JSON válido.");
+        }
+      } else {
+        envelope = data.content;
+      }
+      
+      if (!envelope || !envelope.payload) throw new Error("El archivo físico no tiene un formato de Sobre válido.");
 
       // 4. Fusión Profunda (Deep Merge)
       const updatedPayload = _deepMerge(envelope.payload, delta);

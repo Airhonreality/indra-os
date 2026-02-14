@@ -71,17 +71,28 @@ export const MOCK_GENOTYPE = {
 
         "SLOT_MANAGER": {
             "LABEL": "Reality Slot",
-            "ARCHETYPE": "SLOT_NODE",
+            "ARCHETYPE": "SLOT",
             "DOMAIN": "ORCHESTRATION",
             "CAPABILITIES": {
-                "RENDER_VIEW": { "io": "READ", "type": "SIGNAL", "desc": "Proyectar vista hacia el dashboard" },
-                "EXPORT_PDF": { "io": "WRITE", "type": "BLOB", "desc": "Materializar documento estático" },
-                "STYLE_SYNC": { "io": "INPUT", "type": "DATAFRAME", "desc": "Sincronizar ADN visual" }
+                "RENDER_VIEW": { "label": "Proyectar Vista", "icon": "📺", "status": "CONNECTED", "value": "ACTIVE", "desc": "Proyectar vista hacia el dashboard" },
+                "EXPORT_PDF": { "label": "Exportar PDF", "icon": "📄", "status": "DEFAULT", "value": "READY", "desc": "Materializar documento estático" },
+                "STYLE_SYNC": { "label": "Sincronía ADN", "icon": "🧬", "status": "CONNECTED", "value": "v1.2", "desc": "Sincronizar ADN visual" },
+                "DATA_BRIDGE": { "label": "Puente de Datos", "icon": "🌉", "status": "BROKEN", "value": "OFFLINE", "desc": "Enlace físico con el Core" }
             },
             "views": [
-                { "id": "v1", "label": "Tablero de Control", "type": "CANVAS_INFINITE" },
+                { "id": "v1", "label": "Tablero de Control", "type": "DASHBOARD" },
                 { "id": "v2", "label": "Factura Impresa", "type": "DOCUMENT_PAGINATED" }
             ]
+        },
+        "COSMOS": {
+            "LABEL": "Cosmos Reality",
+            "ARCHETYPE": "REALITY",
+            "DOMAIN": "SPATIAL",
+            "CAPABILITIES": {
+                "GRAVITY": { "label": "Gravedad", "icon": "🌌", "status": "CONNECTED", "value": "9.8m/s²" },
+                "ENTROPY": { "label": "Entropía", "icon": "⏳", "status": "DEFAULT", "value": "LOW" },
+                "DIMENSIONS": { "label": "Dimensiones", "icon": "📐", "status": "CONNECTED", "value": "3D + TIME" }
+            }
         },
         "LLM": {
             "LABEL": "Cognitive Engine",
@@ -102,8 +113,9 @@ export const MOCK_GENOTYPE = {
             "ARCHETYPE": "NODE",
             "DOMAIN": "LOGIC",
             "CAPABILITIES": {
-                "process": { "io": "TRIGGER", "type": "SIGNAL", "desc": "Execute logic" },
-                "result": { "io": "READ", "type": "DATAFRAME", "desc": "Output data" }
+                "PROCESS": { "label": "Procesador", "icon": "⚡", "status": "CONNECTED", "value": "8 Cores" },
+                "MEMORY": { "label": "Memoria RAM", "icon": "🧠", "status": "CONNECTED", "value": "16GB" },
+                "UPTIME": { "label": "Tiempo Activo", "icon": "⏱️", "status": "DEFAULT", "value": "12d 4h" }
             },
             "VITAL_SIGNS": {
                 "CPU": { "criticality": "NOMINAL", "value": "12%", "trend": "stable" }
@@ -114,9 +126,9 @@ export const MOCK_GENOTYPE = {
             "ARCHETYPE": "DATABASE",
             "DOMAIN": "DATA_L1",
             "CAPABILITIES": {
-                "query": { "io": "READ", "type": "DATAFRAME", "desc": "Ejecutar SQL/NoSQL" },
-                "persist": { "io": "WRITE", "type": "SIGNAL", "desc": "Guardar registro" },
-                "schema": { "io": "READ", "type": "DATAFRAME", "desc": "Obtener esquema" }
+                "QUERY": { "label": "Consultas", "icon": "🔍", "status": "CONNECTED", "value": "SQL_INIT" },
+                "PERSISTENCE": { "label": "Persistencia", "icon": "💾", "status": "CONNECTED", "value": "NOMINAL" },
+                "SCHEMA_VOL": { "label": "Volumen", "icon": "📊", "status": "DEFAULT", "value": "1.2 TB" }
             },
             "VITAL_SIGNS": {
                 "CONNECTIONS": { "criticality": "NOMINAL", "value": "4/10", "trend": "flat" }
@@ -137,6 +149,68 @@ export const MOCK_GENOTYPE = {
                     { id: 4, nombre: 'Delta Systems', contacto: 'Ana Martinez', estado: 'ACTIVO', prioridad: 4 },
                     { id: 5, nombre: 'Epsilon Tech', contacto: 'Carlos Sanchez', estado: 'ACTIVO', prioridad: 2 }
                 ]
+            }
+        }
+    },
+
+    "GARAGE_PROTOTYPES": {
+        "VAULT": {
+            "id": "garage_vault", "LABEL": "PROTOTYPE_VAULT", "ARCHETYPE": "VAULT", "DOMAIN": "SYSTEM",
+            "items": [
+                { id: 'g1', name: 'Prototype Folder A', type: 'DIRECTORY' },
+                { id: 'g2', name: 'Prototype Folder B', type: 'DIRECTORY' },
+                { id: 'g3', name: 'Mock_Database.db', type: 'DATABASE' },
+                { id: 'g4', name: 'Design_System.pdf', type: 'FILE', mimeType: 'application/pdf' }
+            ]
+        },
+        "DATABASE": {
+            "id": "garage_db", "LABEL": "PROTOTYPE_DB", "ARCHETYPE": "DATABASE", "DOMAIN": "DATA_L1",
+            "data": {
+                "columns": [
+                    { id: 'id', label: 'ID', type: 'string' },
+                    { id: 'status', label: 'Status', type: 'tag' },
+                    { id: 'value', label: 'Value', type: 'number' }
+                ],
+                "rows": [
+                    { id: 'row_1', status: 'ACTIVE', value: 100 },
+                    { id: 'row_2', status: 'PENDING', value: 50 },
+                    { id: 'row_3', status: 'CLOSED', value: 75 }
+                ]
+            }
+        },
+        "SLOT": {
+            "id": "garage_slot", "LABEL": "PROTOTYPE_SLOT", "ARCHETYPE": "SLOT", "DOMAIN": "ORCHESTRATION",
+            "CAPABILITIES": {
+                "RENDER_VIEW": { "label": "Proyectar Vista", "icon": "TV_SCREEN", "status": "CONNECTED", "value": "ACTIVE", "desc": "Proyectar vista hacia el dashboard" },
+                "EXPORT_PDF": { "label": "Exportar PDF", "icon": "PDF", "status": "DEFAULT", "value": "READY", "desc": "Materializar documento estático" },
+                "STYLE_SYNC": { "label": "Sincronía ADN", "icon": "SYNC", "status": "CONNECTED", "value": "v1.2", "desc": "Sincronizar ADN visual" },
+                "DATA_BRIDGE": { "label": "Puente de Datos", "icon": "BRIDGE", "status": "BROKEN", "value": "OFFLINE", "desc": "Enlace físico con el Core" }
+            },
+            "views": [
+                { "id": "v1", "label": "Tablero de Control", "type": "DASHBOARD" },
+                { "id": "v2", "label": "Factura Impresa", "type": "DOCUMENT_PAGINATED" }
+            ]
+        },
+        "COMMUNICATION": {
+            "id": "garage_comm", "LABEL": "PROTOTYPE_COMM", "ARCHETYPE": "COMMUNICATION", "DOMAIN": "COMMUNICATION",
+            "CAPABILITIES": {
+                "INBOX": { "label": "Bandeja de Entrada", "icon": "CHAT", "status": "CONNECTED", "value": "12 New" },
+                "SYNC_MAIL": { "label": "Sincronizar", "icon": "SYNC", "status": "DEFAULT", "value": "LIVE" }
+            }
+        },
+        "LLM": {
+            "id": "garage_llm", "LABEL": "PROTOTYPE_LLM", "ARCHETYPE": "SERVICE", "DOMAIN": "INTELLIGENCE",
+            "CAPABILITIES": {
+                "GENERATE": { "label": "Generar", "icon": "SYNC", "status": "CONNECTED", "value": "NOMINAL" },
+                "ANALYZE": { "label": "Analizar", "icon": "SYNC", "status": "DEFAULT", "value": "IDLE" }
+            }
+        },
+        "REALITY": {
+            "id": "garage_cosmos", "LABEL": "PROTOTYPE_REALITY", "ARCHETYPE": "REALITY", "DOMAIN": "SPATIAL",
+            "CAPABILITIES": {
+                "GRAVITY": { "label": "Gravedad", "icon": "GRAVITY", "status": "CONNECTED", "value": "9.8m/s²" },
+                "ENTROPY": { "label": "Entropía", "icon": "ENTROPY", "status": "DEFAULT", "value": "LOW" },
+                "DIMENSIONS": { "label": "Dimensiones", "icon": "DIMENSIONS", "status": "CONNECTED", "value": "3D + TIME" }
             }
         }
     },

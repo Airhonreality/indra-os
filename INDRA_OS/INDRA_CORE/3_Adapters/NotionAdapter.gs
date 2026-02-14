@@ -63,6 +63,7 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
   // ============================================================
   
   const schemaCache = {};
+  const relationCache = {}; // AXIOMA: Caché de Resonancia de Títulos
 
   // --- INDRA CANON: Normalización Semántica ---
 
@@ -617,6 +618,121 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
     return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
   }
   
+  /**
+   * Resuelve los nombres legibles de las relaciones para que el Front no vea UUIDs ciegos.
+   * AXIOMA: Soberanía Lexical (L1).
+   * @private
+   */
+  function _hydrateRelationLabels(results, accountId, databaseId) {
+    if (!databaseId) return _injectRelationLabels(results);
+
+    const uniqueIds = new Set();
+    const schema = _getDatabaseSchema(databaseId);
+    const relationKeys = Object.keys(schema).filter(k => schema[k].type === 'relation');
+
+    if (relationKeys.length === 0) return _injectRelationLabels(results);
+
+    // 1. Recolectar UUIDs de relaciones usando estrictamente las claves del SCHEMA
+    results.forEach(row => {
+      relationKeys.forEach(key => {
+        const val = row[key];
+        if (Array.isArray(val)) {
+          val.forEach(item => {
+            if (typeof item === 'string' && !relationCache[item]) {
+              uniqueIds.add(item);
+            }
+          });
+        }
+      });
+    });
+
+    if (uniqueIds.size === 0) {
+        // Aún si no hay IDs nuevos, inyectamos los nombres de la caché
+        _injectRelationLabels(results);
+        return;
+    }
+
+    _monitor.info(`[Notion:Hydrator] Resolviendo nombres para ${uniqueIds.size} relaciones nuevas...`);
+    
+    // 2. AXIOMA: Parallel Fetching (UrlFetchApp.fetchAll)
+    // Convertimos N llamadas secuenciales en 1 llamada paralela masiva.
+    // Esto reduce el tiempo de N*Tiempo a max(Tiempo).
+    
+    const idsToFetch = Array.from(uniqueIds);
+    // Limitamos el burst a 5 por seguridad de quota (Bandwidth quota exceeded con 30)
+    const batchSize = 5;
+    const batches = [];
+    
+    for (let i = 0; i < idsToFetch.length; i += batchSize) {
+        batches.push(idsToFetch.slice(i, i + batchSize));
+    }
+
+    const authToken = _getToken(accountId);
+    
+    batches.forEach((batchIds, batchIndex) => {
+        const requests = batchIds.map(id => ({
+            url: NOTION_BASE_URL + '/pages/' + id,
+            method: 'get',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Notion-Version': NOTION_API_VERSION,
+                'Content-Type': 'application/json'
+            },
+            muteHttpExceptions: true
+        }));
+
+        _monitor.info(`[Notion:Hydrator] Disparando Batch ${batchIndex + 1}/${batches.length} (${requests.length} parallel calls)...`);
+        
+        try {
+            const responses = UrlFetchApp.fetchAll(requests);
+            
+            responses.forEach((resp, idx) => {
+                const originalId = batchIds[idx];
+                if (resp.getResponseCode() === 200) {
+                    try {
+                        const page = JSON.parse(resp.getContentText());
+                        const props = page.properties || {};
+                        const titleKey = Object.keys(props).find(k => props[k].type === 'title');
+                        const titleArr = props[titleKey]?.title || [];
+                        relationCache[originalId] = titleArr[0]?.plain_text || "Untitled Relation";
+                    } catch (parseError) {
+                        _monitor.warn(`[Notion:Hydrator] Error parseando respuesta para ${originalId}`);
+                        relationCache[originalId] = originalId;
+                    }
+                } else {
+                    _monitor.warn(`[Notion:Hydrator] Fallo HTTP ${resp.getResponseCode()} para ${originalId}`);
+                    relationCache[originalId] = originalId;
+                }
+            });
+            
+        } catch (e) {
+            _monitor.error(`[Notion:Hydrator] Batch Fetch Fatal Error: ${e.message}`);
+            // Fallback total para este batch
+            batchIds.forEach(id => relationCache[id] = id);
+        }
+    });
+
+    // 3. Inyectar nombres en los resultados
+    _injectRelationLabels(results);
+  }
+
+  function _injectRelationLabels(results) {
+      results.forEach(row => {
+          Object.keys(row).forEach(key => {
+              if (key.startsWith('_')) return;
+              const val = row[key];
+              if (Array.isArray(val)) {
+                  row[key] = val.map(id => {
+                      if (typeof id === 'string' && relationCache[id]) {
+                          return { id, name: relationCache[id] };
+                      }
+                      return id;
+                  });
+              }
+          });
+      });
+  }
+
   // ============================================================
   // MÉTODOS PÚBLICOS: PÁGINAS Y BASES DE DATOS
   // ============================================================
@@ -760,9 +876,22 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
       payload: requestPayload,
       accountId: resolvedPayload.accountId
     });
+
+    // AXIOMA: BARRERA DE AISLAMIENTO (Directiva #2)
+    // Aplanamos cada resultado para que el Core trabaje con objetos limpios
+    const flattenedResults = (response.results || []).map(page => ({
+        id: page.id,
+        ...(_flattenProperties(page.properties) || {}),
+        _raw: page // Preservamos el original para operaciones avanzadas
+    }));
+
+    // AXIOMA: Hidratación de Identidad (Recuperar nombres para relaciones)
+    if (flattenedResults.length > 0) {
+        _hydrateRelationLabels(flattenedResults, resolvedPayload.accountId, resolvedPayload.databaseId);
+    }
     
     return {
-      results: response.results,
+      results: flattenedResults,
       ORIGIN_SOURCE: 'notion',
       SCHEMA: schema,
       PAGINATION: {

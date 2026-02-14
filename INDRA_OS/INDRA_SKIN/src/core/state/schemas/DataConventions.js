@@ -45,7 +45,9 @@ export const PERSISTENCE_RULES = {
         '_lastFetched',    // Timestamp de última consulta
         '_adapterState',   // Estado interno volátil del adapter
         '_uiState',        // Estado de UI (collapsed, selected, etc.)
-        '_virtualData'     // Datos calculados que se regeneran al montar
+        '_virtualData',    // Datos calculados que se regeneran al montar
+        '_isGhost',        // 👻 Artefactos Fantasma del Garage (No persistir)
+        '_isMock'          // 🧪 Artefactos de Prueba (No persistir)
     ],
 
     /**

@@ -3,7 +3,6 @@ import compiler from '../laws/Law_Compiler';
 import { resolveEngine } from '../registers/Archetype_Registry';
 import SchemaFormEngine from './projections/engines/SchemaFormEngine';
 import NodeEngine from './projections/engines/NodeEngine'; // Mantenemos import directo para caso edge NODE
-import MatrixNavigator from '../../4_Elements/MatrixNavigator';
 import { useAxiomaticStore } from '../state/AxiomaticStore';
 
 /**
@@ -97,16 +96,40 @@ const ComponentProjector = ({ componentId, data, perspective = 'VAULT', schemaId
         }
     }, [effectiveMode]); // Dependencia ÚNICA y estable
 
+    // AXIOMA: Isomorfismo de Identidad (Smarter Fallback)
+    const isDatabaseArtifact =
+        schemaId === 'DATABASE_NODE' ||
+        normalizedCanon.data?.type === 'DATABASE' ||
+        normalizedCanon.ARCHETYPE === 'DATABASE' ||
+        (normalizedCanon.ARCHETYPES && normalizedCanon.ARCHETYPES.includes('DATABASE'));
+
+    const isVaultArtifact =
+        normalizedCanon.ARCHETYPE === 'VAULT' ||
+        (normalizedCanon.ARCHETYPES && normalizedCanon.ARCHETYPES.includes('VAULT'));
+
     // RESOLUCIÓN SOBERANA (ADR-006)
     let Engine = resolveEngine(effectiveMode);
+
+    // AXIOMA: Soberanía de Perspectiva (Proyección de Pantalla Completa vs Nodo)
+    if (perspective !== 'NODE' && perspective !== 'SCHEMA_PROJECTION') {
+        // REGLA DE ORO: En el puente principal (Bridge), si el artefacto tiene alma de DB o VAULT,
+        // ignoramos el modo 'NODE' compacto a menos que sea la ÚNICA opción.
+        if (isDatabaseArtifact) {
+            Engine = resolveEngine('DATABASE');
+        } else if (isVaultArtifact) {
+            Engine = resolveEngine('VAULT');
+        } else {
+            const ForceEngine = resolveEngine(perspective || effectiveMode);
+            if (ForceEngine && ForceEngine !== NodeEngine) {
+                Engine = ForceEngine;
+            }
+        }
+    }
 
     if (perspective === 'NODE') Engine = NodeEngine;
 
     return (
         <div className="flex flex-col h-full relative">
-            {/* AXIOMA: Navegador de Matriz (Orígenes + Perspectivas) */}
-            <MatrixNavigator currentArtifact={normalizedCanon} />
-
             {/* Renderizado de la Realidad */}
             <div className="flex-1 overflow-hidden relative">
                 <Engine

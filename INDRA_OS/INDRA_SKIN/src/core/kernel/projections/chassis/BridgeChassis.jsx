@@ -16,11 +16,11 @@ const BridgeChassis = ({ title, domain, data, inspectorPanel, children, slotId }
             {/* LADO A: EL LIENZO (CONTENIDO PRINCIPAL) */}
             <main className="flex-1 h-full relative overflow-hidden flex flex-col min-w-0">
                 {/* Header Interno del Chasis */}
-                <header className="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-black/20 backdrop-blur-md z-10 shrink-0">
+                <header className="h-14 border-b border-[var(--border-color)] flex items-center justify-between px-6 bg-[var(--surface-header)] backdrop-blur-md z-10 shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)] animate-pulse"></div>
                         <div className="flex flex-col">
-                            <h2 className="text-[10px] font-black tracking-[0.2em] text-white uppercase truncate max-w-[150px]">{title}</h2>
+                            <h2 className="text-[10px] font-black tracking-[0.2em] text-[var(--text-primary)] uppercase truncate max-w-[150px]">{title}</h2>
                             <span className="text-[7px] font-mono text-[var(--text-dim)] uppercase tracking-widest">{domain}</span>
                         </div>
                     </div>
@@ -29,7 +29,7 @@ const BridgeChassis = ({ title, domain, data, inspectorPanel, children, slotId }
                         {/* AXIOMA: Si es Sidebar, el inspector es una capa flotante o se oculta */}
                         <button
                             onClick={() => setIsInspectorOpen(!isInspectorOpen)}
-                            className={`p-1.5 rounded-lg transition-all ${isInspectorOpen ? 'bg-[var(--accent)] text-black' : 'text-white/40 hover:bg-white/5'}`}
+                            className={`p-1.5 rounded-lg transition-all ${isInspectorOpen ? 'bg-[var(--accent)] text-black' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-header)]'}`}
                             title="Toggle Inspector"
                         >
                             <Icons.SidebarRight size={14} />
@@ -46,7 +46,7 @@ const BridgeChassis = ({ title, domain, data, inspectorPanel, children, slotId }
             {/* LADO B: EL INSPECTOR (DERECHA / ABAJO) */}
             <aside
                 className={`
-                    border-white/10 bg-black/60 backdrop-blur-3xl transition-all duration-500 ease-out flex flex-col overflow-hidden
+                    border-[var(--border-color)] bg-[var(--bg-secondary)] backdrop-blur-3xl transition-all duration-500 ease-out flex flex-col overflow-hidden
                     ${isSidebar
                         ? (isInspectorOpen ? 'h-1/2 w-full border-t' : 'h-0 w-full border-t-0')
                         : (isInspectorOpen ? 'w-[320px] h-full border-l' : 'w-0 h-full border-l-0')
@@ -55,13 +55,11 @@ const BridgeChassis = ({ title, domain, data, inspectorPanel, children, slotId }
                 style={{ zIndex: 30 }}
             >
                 <div className={`${isSidebar ? 'w-full' : 'w-[320px]'} h-full flex flex-col`}>
-                    <header className="h-12 border-b border-white/5 flex items-center px-6 shrink-0 justify-between">
+                    <header className="h-12 border-b border-[var(--border-subtle)] flex items-center px-6 shrink-0 justify-between bg-[var(--surface-header)]">
                         <span className="text-[8px] font-black tracking-[0.3em] text-[var(--accent)] uppercase opacity-60">Intelligence_Unit</span>
-                        {isSidebar && (
-                            <button onClick={() => setIsInspectorOpen(false)} className="text-[var(--text-dim)] hover:text-white">
-                                <Icons.Close size={12} />
-                            </button>
-                        )}
+                        <button onClick={() => setIsInspectorOpen(false)} className="text-[var(--text-dim)] hover:text-[var(--text-primary)] p-1 rounded hover:bg-[var(--surface-header)] transition-colors">
+                            <Icons.Close size={12} />
+                        </button>
                     </header>
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-5">
@@ -69,7 +67,7 @@ const BridgeChassis = ({ title, domain, data, inspectorPanel, children, slotId }
                     </div>
 
                     {!isSidebar && (
-                        <footer className="p-4 border-t border-white/5 bg-black/20">
+                        <footer className="p-4 border-t border-[var(--border-subtle)] bg-[var(--surface-header)]">
                             <div className="flex flex-col gap-2">
                                 <div className="flex justify-between items-center text-[7px] font-mono text-[var(--text-dim)] uppercase">
                                     <span>Artifact_ID:</span>

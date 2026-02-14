@@ -270,7 +270,13 @@ function createDriveAdapter({ errorHandler, monitoringService }) {
             }
 
             if (payload.fileId) {
-                const file = DriveApp.getFileById(payload.fileId);
+                const idStr = String(payload.fileId);
+                // AXIOMA: Protección de Identidad. No intentar cargar IDs semánticos/front en Drive.
+                if (idStr.startsWith('cosmos_') || idStr.startsWith('temp_')) {
+                    throw errorHandler.createError('INVALID_INPUT', `Store: No se puede usar un ID semántico (${idStr}) como ID físico de Drive.`);
+                }
+
+                const file = DriveApp.getFileById(idStr);
                 const contentAsString = isBlob ? payload.content.getDataAsString() : payload.content;
                 file.setContent(contentAsString);
                 // AXIOMA: Soporte de Metadatos (Surface Reading)

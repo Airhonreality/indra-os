@@ -263,6 +263,159 @@ class PersistenceManager {
             localStorage.setItem(this.storageKey, JSON.stringify(obj));
         } catch (e) { console.warn('[PersistenceManager] Meta-save fail:', e); }
     }
+
+    /**
+     * ADR-012: Identity Reconciliation Protocol
+     * Fase 5: Persistencia y Entropía (TGS)
+     * 
+     * Reconcilia el estado entre Frontend (IndexedDB) y Backend (Drive).
+     * Aplica higiene de datos ANTES de que lleguen al Store.
+     * 
+     * @param {Object} localState - Estado cargado desde IndexedDB
+     * @param {Object} backendState - Estado cargado desde Drive (o null si falló)
+     * @returns {Object} - Estado reconciliado y sanitizado
+     */
+    async reconcileCosmosState(localState, backendState = null) {
+        console.log('🚀 [DEBUG] reconcileCosmosState CALLED', {
+            hasLocal: !!localState,
+            hasBackend: !!backendState,
+            localArtifactsCount: localState?.artifacts?.length || 0
+        });
+
+        console.group('🔬 [ADR-012] Reconciliation Protocol');
+
+        // 1. Determinar la Verdad (Timestamp Comparison)
+        let truthState = localState;
+        let truthSource = 'LOCAL';
+
+        if (backendState) {
+            const localTimestamp = new Date(localState?.last_modified || localState?._timestamp || 0).getTime();
+            const backendTimestamp = new Date(backendState?.last_modified || backendState?._timestamp || 0).getTime();
+
+            console.log(`📅 Local timestamp: ${new Date(localTimestamp).toISOString()}`);
+            console.log(`📅 Backend timestamp: ${new Date(backendTimestamp).toISOString()}`);
+
+            if (backendTimestamp > localTimestamp) {
+                truthState = backendState;
+                truthSource = 'BACKEND';
+                console.log('✅ Backend is newer, using backend state');
+            } else {
+                console.log('✅ Local is newer or equal, using local state');
+            }
+        } else {
+            console.log('⚠️ Backend unavailable, using local state');
+        }
+
+        // 2. Estado de Higiene (Middleware de Limpieza)
+        const sanitizedState = this._sanitizeCosmosState(truthState);
+
+        // 3. Sincronización Bidireccional
+        if (truthSource === 'LOCAL' && backendState === null) {
+            console.log('🔄 Backend unavailable, state will sync on next connection');
+            // TODO: Marcar para sincronización diferida cuando el backend vuelva
+        } else if (truthSource === 'LOCAL' && backendState) {
+            console.log('📤 Local is newer, should upload to backend');
+            // TODO: Trigger background upload
+        }
+
+        console.log(`✅ Reconciliation complete. Truth source: ${truthSource}`);
+        console.groupEnd();
+
+        return sanitizedState;
+    }
+
+    /**
+     * Middleware de Higiene de Datos (Data Sanitization)
+     * Aplica las siguientes transformaciones:
+     * 1. Deduplicación de artefactos por ID
+     * 2. Normalización de capabilities (QUERY FILTER → QUERY_FILTER)
+     * 3. Filtrado de zombies (_isDeleted: true)
+     */
+    _sanitizeCosmosState(state) {
+        if (!state) return state;
+
+        console.group('🧹 [Hygiene] State Sanitization');
+
+        const sanitized = { ...state };
+
+        // 1. Deduplicación de Artefactos
+        if (Array.isArray(sanitized.artifacts)) {
+            const beforeCount = sanitized.artifacts.length;
+
+            // Filtrar zombies
+            const alive = sanitized.artifacts.filter(art => !art._isDeleted);
+
+            // Deduplicar por ID (Map mantiene el último encontrado)
+            const dedupedMap = new Map();
+            alive.forEach(art => {
+                dedupedMap.set(art.id, art);
+            });
+
+            sanitized.artifacts = Array.from(dedupedMap.values());
+
+            const afterCount = sanitized.artifacts.length;
+            if (beforeCount !== afterCount) {
+                console.warn(`⚠️ Removed ${beforeCount - afterCount} duplicate/zombie artifacts`);
+            } else {
+                console.log('✅ Artifacts array is clean (no duplicates)');
+            }
+
+            // 2. Normalización de Capabilities
+            sanitized.artifacts = sanitized.artifacts.map(art => {
+                if (!art.CAPABILITIES) return art;
+
+                const normalizedCaps = { ...art.CAPABILITIES };
+
+                // Normalizar QUERY_FILTER
+                const filterKey = Object.keys(normalizedCaps).find(
+                    k => k.replace(/_/g, ' ').trim().toUpperCase() === 'QUERY FILTER'
+                );
+
+                if (filterKey && filterKey !== 'QUERY_FILTER') {
+                    normalizedCaps.QUERY_FILTER = normalizedCaps[filterKey];
+                    delete normalizedCaps[filterKey];
+                    console.log(`🔧 Normalized '${filterKey}' → 'QUERY_FILTER' for artifact ${art.id}`);
+                }
+
+                // Normalizar capabilities dentro de data (coherencia)
+                const normalizedArt = {
+                    ...art,
+                    CAPABILITIES: normalizedCaps
+                };
+
+                if (art.data && typeof art.data === 'object') {
+                    normalizedArt.data = {
+                        ...art.data,
+                        CAPABILITIES: normalizedCaps
+                    };
+                }
+
+                return normalizedArt;
+            });
+        }
+
+        // 3. Limpieza de Relaciones Huérfanas
+        if (Array.isArray(sanitized.relationships)) {
+            const artifactIds = new Set(sanitized.artifacts?.map(a => a.id) || []);
+            const beforeRelCount = sanitized.relationships.length;
+
+            sanitized.relationships = sanitized.relationships.filter(rel =>
+                !rel._isDeleted &&
+                artifactIds.has(rel.source) &&
+                artifactIds.has(rel.target)
+            );
+
+            const afterRelCount = sanitized.relationships.length;
+            if (beforeRelCount !== afterRelCount) {
+                console.warn(`⚠️ Removed ${beforeRelCount - afterRelCount} orphaned/zombie relationships`);
+            }
+        }
+
+        console.log('✅ State sanitization complete');
+        console.groupEnd();
+
+        return sanitized;
+    }
 }
 
 const instance = new PersistenceManager();

@@ -3,7 +3,7 @@ function debug_DiagnoseCosmosAccess() {
   
   // 1. Ignite System
   try {
-    const sys = SystemAssembler.assemble();
+    const sys = SystemAssembler.assembleServerStack();
     console.log("✅ System Assembled.");
     
     // 2. Check Node Existence

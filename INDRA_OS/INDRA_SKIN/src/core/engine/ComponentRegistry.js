@@ -33,3 +33,6 @@ export const resolveComponent = (uiClass) => {
 };
 
 export default ComponentRegistry;
+
+
+

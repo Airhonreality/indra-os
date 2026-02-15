@@ -10,7 +10,7 @@ Este esquema es la **Verdad Única** para la validación de forma literal post-r
 /INDRA_OS (Repositorio Maestro Unificado)
 │
 ├── 📂 INDRA_CORE (L0/L1 - El Genotipo / Headless Logic - Google Apps Script)
-│   ├── 📂 0_Laws            <-- Leyes Axiomáticas (STARK_CASE)
+│   ├── 📂 0_Laws            <-- Leyes Axiomáticas (AXIOM_CASE)
 │   │   ├── 📄 System_Constitution.gs      <-- SSOT: Registro de Componentes
 │   │   ├── 📄 System_Hierarchy.gs         <-- Jerarquía de Niveles
 │   │   ├── 📄 Visual_Grammar.gs           <-- Mapeo Archetype → UI Intent
@@ -68,13 +68,13 @@ Este esquema es la **Verdad Única** para la validación de forma literal post-r
 
 | Capa | Nombre Canónico | Función | SSOT |
 | :--- | :--- | :--- | :--- |
-| **L0** | **GENOTIPO** | Axiomas, UIDB, Ontología STARK. | `System_Constitution.gs` |
+| **L0** | **GENOTIPO** | Axiomas, UIDB, Ontología AXIOM. | `System_Constitution.gs` |
 | **L1** | **PROYECCIÓN** | Destilación de realidad para el exterior. | `ProjectionKernel.gs` |
 | **L2** | **FENOTIPO** | Manifestación visual y experiencia de usuario. | `SkinAssembler.js` |
 
 ---
 
-## 🧬 III. Nomenclatura Canónica de Componentes (STARK_CASE)
+## 🧬 III. Nomenclatura Canónica de Componentes (AXIOM_CASE)
 
 ### Adaptadores (ADAPTERS)
 | ID Canónico | Label UI | Domain | Archivo |
@@ -102,7 +102,7 @@ Este esquema es la **Verdad Única** para la validación de forma literal post-r
 
 ## ⚖️ IV. Reglas de Validación Literal (Checklist de Cumplimiento)
 
-1.  **Regla de Naming STARK**: Todas las claves en `COMPONENT_REGISTRY` (L0) deben ser `UPPER_CASE` con guiones bajos (ej: `DRIVE_ADAPTER`).
+1.  **Regla de Naming AXIOM**: Todas las claves en `COMPONENT_REGISTRY` (L0) deben ser `UPPER_CASE` con guiones bajos (ej: `DRIVE_ADAPTER`).
 2.  **Regla de No-Duplicidad**: Prohibido el uso de alias para corregir tipado (ej. no más `ADMINTOOLS` si ya existe `ADMIN_TOOLS`).
 3.  **Regla de Pureza de Despliegue**: 
     - **INDRA_CORE** sube vía `clasp push` ignorando activos web (`.claspignore` filtra `/INDRA_SKIN`).
@@ -142,3 +142,8 @@ El **SkinAssembler.js** consume esta proyección y genera la UI sin hardcoding.
 ---
 
 *Este esquema es el ancla del sistema. Cualquier desviación de este mapa se considera Entropía de Arquitectura.*
+
+
+
+
+

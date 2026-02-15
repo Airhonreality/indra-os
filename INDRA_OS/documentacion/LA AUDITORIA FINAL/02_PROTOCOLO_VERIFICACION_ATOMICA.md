@@ -7,7 +7,7 @@ Este protocolo debe ejecutarse tras cada refactorización para garantizar que la
 ## 🔬 Test 1: El Handshake de Identidad (Handshake Check)
 **Objetivo:** Verificar que el Core y el Front hablan el mismo idioma sin traductores.
 1. Ejecutar `PublicAPI.getSystemHierarchyProjection()`.
-2. El JSON resultante **debe** contener claves `STARK_CASE` que coincidan 1:1 con el `FrontAssembler.js`.
+2. El JSON resultante **debe** contener claves `AXIOM_CASE` que coincidan 1:1 con el `FrontAssembler.js`.
 3. **Falla si:** Existe algún alias manual (ej: `if (node === 'TokenManager' || node === 'TOKEN_MANAGER')`).
 
 ## 🔬 Test 2: Purga de la Constitución (UIDB Audit)
@@ -31,3 +31,8 @@ El sistema solo se certifica como **ESTABLE** cuando:
 
 ---
 *Si no puedes verificarlo atómicamente, no existe.*
+
+
+
+
+

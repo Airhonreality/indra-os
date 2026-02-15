@@ -3,7 +3,7 @@
 ## 📦 Artefactos Desplegados
 
 ### 1. **ISK_ProjectionAdapter.gs** (ACTUALIZADO)
-**Ubicación**: `OrbitalCore_Codex_v1/3_Adapters/ISK_ProjectionAdapter.gs`
+**Ubicación**: `INDRACore_Codex_v1/3_Adapters/ISK_ProjectionAdapter.gs`
 
 **Nuevas Funcionalidades**:
 - ✅ `createSnapshot(context_id, snapshot_label)` - Gestión de versiones
@@ -18,7 +18,7 @@
 ---
 
 ### 2. **ISK_ProjectionAdapter.spec.js** (NUEVO)
-**Ubicación**: `OrbitalCore_Codex_v1/3_Adapters/ISK_ProjectionAdapter.spec.js`
+**Ubicación**: `INDRACore_Codex_v1/3_Adapters/ISK_ProjectionAdapter.spec.js`
 
 **Cobertura de Tests**:
 - ✅ **Section 1**: Identity & Contract Validation (2 tests)
@@ -68,7 +68,7 @@ Todos los métodos públicos tienen schemas completos:
 ## 🧪 Integración con Suite de Tests
 
 ### Archivo de Runner
-**Ubicación**: `OrbitalCore_Codex_v1/6_Tests/RunAllTests.gs`
+**Ubicación**: `INDRACore_Codex_v1/6_Tests/RunAllTests.gs`
 
 El adaptador será descubierto automáticamente por el test runner porque:
 1. ✅ Sigue el patrón `*.spec.js`
@@ -83,7 +83,7 @@ RunAllTests.runAllTests()
 
 **Resultado Esperado**:
 ```
-🧪 ORBITAL CORE - TEST RUNNER
+🧪 INDRA CORE - TEST RUNNER
 ========================================
 Descubiertas 290 pruebas para ejecutar... (+11 de ISK_ProjectionAdapter)
 
@@ -209,7 +209,7 @@ function cleanupOldSnapshots(context_id, maxSnapshots = 10) {
 
 ## ✅ Conclusión
 
-El `ISK_ProjectionAdapter` v2.0.0 está **completamente integrado** en el OrbitalCore:
+El `ISK_ProjectionAdapter` v2.0.0 está **completamente integrado** en el INDRACore:
 
 - ✅ Cumple con todas las leyes de Capa 0
 - ✅ Tiene suite de tests completa
@@ -219,3 +219,8 @@ El `ISK_ProjectionAdapter` v2.0.0 está **completamente integrado** en el Orbita
 - ✅ Incluye gestión de versiones (snapshots)
 
 **Estado**: PRODUCTION READY 🚀
+
+
+
+
+

@@ -30,17 +30,77 @@ function createConfigurator({ manifest, errorHandler }) {
     const VALID_PREFIXES = ['core:', 'skin:', 'adapter:', 'sys:', 'app:', 'flow:'];
     const LOCK_TIMEOUT_MS = 5000;
 
-    const SYSTEM_PREFIX = 'ORBITAL_';
+    // AXIOMA: Soberanía Técnica - Nomenclatura Agnóstica
+    const SYSTEM_PREFIX = 'SYS_';
+    const CORE_PREFIX = 'CORE_';
 
     /**
-     * Asegura que toda clave tenga un prefijo para evitar colisiones.
+     * @private
+     * AXIOMA: Migración de Soberanía Técnica (Big Bang)
+     * Transforma llaves de branding (Indra/Orbital) en llaves técnicas (CORE/SYS).
+     */
+    (function _runAgnosticMigration() {
+        const MIGRATION_KEY = 'SYS_MIGRATION_V16';
+        if (properties.getProperty(MIGRATION_KEY) === 'DONE') return;
+        
+        console.log("[Configurator] 🏛️ Iniciando Migración Técnica Agnóstica...");
+        const all = properties.getProperties();
+        const legacyPrefixes = ['INDRA_', 'ORBITAL_'];
+        
+        // Mapeo Estándar de Infraestructura (Normalización Forzada)
+        const INFRA_MAP = {
+          'CORE_ROOT_ID': 'CORE_ROOT',
+          'ROOT_ID': 'CORE_ROOT',
+          'ROOT': 'CORE_ROOT',
+          'FOLDER_FLOWS_ID': 'CORE_FLOWS_ID',
+          'FOLDER_TEMPLATES_ID': 'CORE_TEMPLATES_ID',
+          'FOLDER_ASSETS_ID': 'CORE_ASSETS_ID',
+          'FOLDER_OUTPUT_ID': 'CORE_OUTPUT_ID',
+          'FOLDER_SYSTEM_ID': 'SYS_SYSTEM_ID',
+          'JOB_QUEUE_ID': 'SYS_JOB_QUEUE_ID',
+          'AUDIT_LOG_ID': 'SYS_AUDIT_LOG_ID'
+        };
+
+        Object.keys(all).forEach(key => {
+            legacyPrefixes.forEach(prefix => {
+                if (key.startsWith(prefix)) {
+                    let baseKey = key.substring(prefix.length);
+                    // Si la baseKey ya empezaba con CORE_, removerlo para normalizar
+                    if (baseKey.startsWith('CORE_')) baseKey = baseKey.substring(5);
+
+                    // Si la baseKey es ROOT o termina en _ID, normalizar a ROOT
+                    if (baseKey === 'ROOT' || baseKey === 'ROOT_ID' || baseKey === 'CORE_ROOT_ID') baseKey = 'CORE_ROOT_ID';
+
+                    let newKey = INFRA_MAP[baseKey] || INFRA_MAP['CORE_' + baseKey];
+                    
+                    if (!newKey) {
+                        const isCore = baseKey.includes('ROOT') || baseKey.includes('API_KEY') || baseKey.includes('TOKEN');
+                        newKey = isCore ? CORE_PREFIX + baseKey : SYSTEM_PREFIX + baseKey;
+                    }
+                    
+                    if (!properties.getProperty(newKey)) {
+                        properties.setProperty(newKey, all[key]);
+                        console.log(`[Configurator] 🔄 Autoinstalación: ${key} -> ${newKey}`);
+                    }
+                }
+            });
+        });
+        properties.setProperty(MIGRATION_KEY, 'DONE');
+        console.log("[Configurator] ✅ Migración Técnica completada.");
+    })();
+
+    /**
+     * Asegura que toda clave tenga un prefijo técnico para evitar colisiones.
      * @private
      */
     function _prefixKey(key) {
         if (typeof key !== 'string') return key;
         if (VALID_PREFIXES.some(prefix => key.startsWith(prefix))) return key;
-        if (key.startsWith(SYSTEM_PREFIX)) return key;
-        return SYSTEM_PREFIX + key;
+        if (key.startsWith(SYSTEM_PREFIX) || key.startsWith(CORE_PREFIX)) return key;
+        
+        // Regla de Prefijación por Naturaleza
+        const isCore = key.includes('ROOT') || key.includes('API_KEY') || key.includes('TOKEN');
+        return isCore ? CORE_PREFIX + key : SYSTEM_PREFIX + key;
     }
 
     /**
@@ -50,10 +110,9 @@ function createConfigurator({ manifest, errorHandler }) {
     function _validateKey(key) {
         if (typeof key !== 'string' || key.trim().length === 0) return false;
         
-        // Validar que YA tenga un prefijo válido (no aplicar _prefixKey aquí)
-        // Esto asegura que solo se acepten keys con namespace explícito
         return VALID_PREFIXES.some(prefix => key.startsWith(prefix)) || 
-               key.startsWith(SYSTEM_PREFIX);
+               key.startsWith(SYSTEM_PREFIX) || 
+               key.startsWith(CORE_PREFIX);
     }
 
 
@@ -64,17 +123,6 @@ function createConfigurator({ manifest, errorHandler }) {
     function storeParameter(payload) {
         let { key, value } = payload || {};
         
-        if (!_validateKey(key)) {
-            const displayKey = typeof key === 'string' ? key : JSON.stringify(key);
-            throw errorHandler.createError(
-                'NAMESPACE_ERROR', 
-                `storeParameter: Key '${displayKey}' lacks a valid namespace prefix or is invalid.`, 
-                { key }
-            );
-        }
-
-        const finalKey = _prefixKey(key);
-
         if (typeof value !== 'string') {
             throw errorHandler.createError(
                 'CONFIGURATION_ERROR', 
@@ -82,6 +130,8 @@ function createConfigurator({ manifest, errorHandler }) {
                 { key }
             );
         }
+
+        const finalKey = _prefixKey(key);
 
         const lock = LockService.getScriptLock();
         try {
@@ -114,8 +164,6 @@ function createConfigurator({ manifest, errorHandler }) {
      */
     function retrieveParameter(payload) {
         let { key } = payload || {};
-        const prefixedKey = _prefixKey(key);
-        
         if (typeof key !== 'string' || key.trim().length === 0) {
             throw errorHandler.createError(
                 'CONFIGURATION_ERROR', 
@@ -123,40 +171,17 @@ function createConfigurator({ manifest, errorHandler }) {
                 { payload }
             );
         }
+
+        const prefixedKey = _prefixKey(key);
+        
         try {
             let value = properties.getProperty(prefixedKey);
 
-            // --- AXIOMA: MIGRACIÓN AGNOSTICA (LLEGACY FALLBACK) ---
-            // Si no existe con el prefijo, intentamos encontrar la versión legacy
-            if (value === null) {
-                // Posibilidad A: La clave se pasó sin prefijo (ej: 'SYSTEM_TOKEN')
-                // Posibilidad B: La clave se pasó con prefijo (ej: 'ORBITAL_SYSTEM_TOKEN') pero existe como legacy
-                const legacyKey = prefixedKey.startsWith(SYSTEM_PREFIX) 
-                    ? prefixedKey.substring(SYSTEM_PREFIX.length) 
-                    : key;
-
-                if (legacyKey !== prefixedKey) {
-                    value = properties.getProperty(legacyKey);
-                    if (value !== null) {
-                        console.log(`[Configurator] 🔄 Auto-migrando legacy '${legacyKey}' -> '${prefixedKey}'`);
-                        const lock = LockService.getScriptLock();
-                        if (lock.tryLock(LOCK_TIMEOUT_MS)) {
-                            try {
-                                properties.setProperty(prefixedKey, value);
-                            } finally {
-                                lock.releaseLock();
-                            }
-                        }
-                    }
-                }
-            }
-
-            // CAPA DE COMPATIBILIDAD AGNOSTICA (TokenManager fallback): 
-            // Si no existe en PS, buscar en el Manifest si esta clave tiene un mapeo a TokenManager
+            // CAPA DE COMPATIBILIDAD EXTERNA (TokenManager fallback): 
+            // Si no existe tras migración, buscar en el Manifest si esta clave tiene un mapeo a TokenManager
             if (value === null && _tokenManager && manifest && (manifest.CONNECTIONS || manifest.requiredConnections)) {
                 const connections = manifest.CONNECTIONS || manifest.requiredConnections;
                 
-                // Buscar en las conexiones del manifest cuál coincide con esta 'key'
                 let connectionId = null;
                 let connectionConfig = null;
 
@@ -164,7 +189,6 @@ function createConfigurator({ manifest, errorHandler }) {
                   connectionId = connections.find(id => id === key);
                   connectionConfig = {};
                 } else {
-                  // Mapeo STARK: id es la clave (ej: NOTION_API_KEY)
                   const entry = Object.entries(connections).find(([id, conf]) => {
                     return id === key || (conf && conf.legacyKey === key);
                   });
@@ -176,12 +200,11 @@ function createConfigurator({ manifest, errorHandler }) {
 
                 if (connectionId) {
                     const provider = connectionConfig.provider || connectionId.split('_')[0].toLowerCase();
-                    
                     try {
                         const tokenData = _tokenManager.getToken({ provider });
                         return tokenData ? tokenData.apiKey : null;
                     } catch (e) {
-                        console.warn(`[Configurator] Backward compatibility failed for ${key}: ${e.message}`);
+                        console.warn(`[Configurator] TokenManager resolution failed for ${key}: ${e.message}`);
                         return null;
                     }
                 }
@@ -372,3 +395,8 @@ function createConfigurator({ manifest, errorHandler }) {
         setTokenManager
     };
 }
+
+
+
+
+

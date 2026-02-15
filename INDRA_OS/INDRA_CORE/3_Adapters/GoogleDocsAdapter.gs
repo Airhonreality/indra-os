@@ -4,9 +4,25 @@
  * Dharma: Automatización documental de alta precisión mediante batchUpdate y sync Markdown.
  */
 
-function createGoogleDocsAdapter({ errorHandler, driveAdapter }) {
+function createGoogleDocsAdapter({ errorHandler, driveAdapter, tokenManager }) {
 
   if (!errorHandler) throw new Error('GoogleDocsAdapter: errorHandler is required');
+
+  /**
+   * @description Obtiene el token para una cuenta de Google.
+   * @param {string|null} accountId 
+   * @returns {string|null} Access token o null si debe usar la sesión de DocumentApp
+   */
+  function _getAccessToken(accountId) {
+    if (!tokenManager) return null;
+    try {
+      const tokenData = tokenManager.getToken({ provider: 'google', accountId });
+      return tokenData ? (tokenData.accessToken || tokenData.apiKey) : null;
+    } catch (e) {
+      console.warn(`GoogleDocsAdapter: No se pudo obtener token para cuenta ${accountId}, usando sesión default.`);
+      return null;
+    }
+  }
 
   /**
    * Crea un nuevo documento y lo ubica en una carpeta si se especifica.
@@ -14,7 +30,7 @@ function createGoogleDocsAdapter({ errorHandler, driveAdapter }) {
   function create(payload) {
     const { title, folderId } = payload;
     try {
-      const doc = DocumentApp.create(title || 'Nuevo Documento Orbital');
+      const doc = DocumentApp.create(title || 'Nuevo Documento Indra');
       const documentId = doc.getId();
       
       if (folderId && driveAdapter) {
@@ -218,14 +234,31 @@ function createGoogleDocsAdapter({ errorHandler, driveAdapter }) {
   }
 
   function verifyConnection(payload = {}) {
+    const accountId = payload.accountId || null;
+    const accessToken = _getAccessToken(accountId);
+    
     try {
-      // Light probe
-      const doc = DocumentApp.create('SystemProbe_Temp');
-      const id = doc.getId();
-      DriveApp.getFileById(id).setTrashed(true);
-      return { status: "ACTIVE" };
+        if (accessToken) {
+            // Verificación vía REST API
+            const response = UrlFetchApp.fetch("https://docs.googleapis.com/v1/documents?pageSize=1", {
+               method: "get",
+               headers: { "Authorization": "Bearer " + accessToken },
+               muteHttpExceptions: true
+            });
+            if (response.getResponseCode() === 200) {
+                return { status: "ACTIVE", success: true };
+            } else {
+                return { status: "BROKEN", success: false, error: `Docs API Error: ${response.getContentText()}` };
+            }
+        } else {
+            // Light probe para sesión nativa
+            const doc = DocumentApp.create('SystemProbe_Temp');
+            const id = doc.getId();
+            DriveApp.getFileById(id).setTrashed(true);
+            return { status: "ACTIVE", success: true };
+        }
     } catch (e) {
-      return { status: "BROKEN", error: e.message };
+      return { status: "BROKEN", success: false, error: e.message };
     }
   }
 
@@ -252,12 +285,10 @@ function createGoogleDocsAdapter({ errorHandler, driveAdapter }) {
     return { results: [], message: "Not a database engine" };
   }
 
-    // --- SOVEREIGN CANON V8.0 ---
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
   const CANON = {
-    LABEL: "Docs Interface",
     ARCHETYPE: "ADAPTER",
     DOMAIN: "DOCUMENT_ENGINE",
-    SEMANTIC_INTENT: "EDITOR",
     CAPABILITIES: {
       "create": {
         "io": "WRITE",
@@ -305,14 +336,6 @@ function createGoogleDocsAdapter({ errorHandler, driveAdapter }) {
            "document": { "type": "object", "desc": "Indra DocumentRecord structure." }
         }
       }
-    },
-    VITAL_SIGNS: {
-       "DOCS_API": { "criticality": "NOMINAL", "value": "ACTIVE", "trend": "flat" },
-       "LOCK_RATIO": { "criticality": "WARNING", "value": "LOW", "trend": "stable" }
-    },
-    UI_LAYOUT: {
-      "SIDE_PANEL": "ENABLED",
-      "TERMINAL_STREAM": "ENABLED"
     }
   };
 
@@ -338,6 +361,7 @@ function createGoogleDocsAdapter({ errorHandler, driveAdapter }) {
     query,
     queryDatabaseContent,
     verifyConnection,
+    setTokenManager: (tm) => { tokenManager = tm; },
     // Original methods
     id: "googleDocs", // Will be overridden
     create,
@@ -347,4 +371,9 @@ function createGoogleDocsAdapter({ errorHandler, driveAdapter }) {
     exportDocument
   };
 }
+
+
+
+
+
 

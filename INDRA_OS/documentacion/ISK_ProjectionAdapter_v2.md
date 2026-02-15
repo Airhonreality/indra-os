@@ -1,7 +1,7 @@
 # 📘 ISK_ProjectionAdapter - Documentación Técnica
 
 ## Identificación
-- **Archivo**: `OrbitalCore_Codex_v1/3_Adapters/ISK_ProjectionAdapter.gs`
+- **Archivo**: `INDRACore_Codex_v1/3_Adapters/ISK_ProjectionAdapter.gs`
 - **Versión**: 2.0.0 (Snapshot Management)
 - **Dharma**: Gestor de Realidad y Proyección Multidimensional
 - **Archetype**: `SYSTEM_INFRA`
@@ -304,7 +304,7 @@ throw errorHandler.createError("ADAPTER_ERROR", "Failed to...");
 └─────────────────────────────────────────┘
                 ↓ POST /api/indra/commitSpatialChanges
 ┌─────────────────────────────────────────┐
-│  OrbitalCore (Backend)                  │
+│  INDRACore (Backend)                  │
 │  ┌──────────────────────────────────┐   │
 │  │  ISK_ProjectionAdapter.gs        │   │
 │  │  → commitSpatialChanges()        │   │
@@ -407,6 +407,11 @@ Todos los métodos están expuestos vía `ProjectionKernel.getProjection()` con 
 
 ## 📚 Referencias
 
-- [Spatial_Physics.gs](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/OrbitalCore_Codex_v1/0_Laws/Spatial_Physics.gs) - Leyes físicas del ISK
-- [ProjectionKernel.gs](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/OrbitalCore_Codex_v1/2_Services/ProjectionKernel.gs) - Proyector de capacidades
+- [Spatial_Physics.gs](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRACore_Codex_v1/0_Laws/Spatial_Physics.gs) - Leyes físicas del ISK
+- [ProjectionKernel.gs](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRACore_Codex_v1/2_Services/ProjectionKernel.gs) - Proyector de capacidades
 - [USSP Protocol](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRA_FRONT_V2/IndraSpatialKernel/04%20PROTOCOLO%20DE%20MENSAJERÍA%20ESPACIAL%20(ISK-PM)) - Especificación del protocolo
+
+
+
+
+

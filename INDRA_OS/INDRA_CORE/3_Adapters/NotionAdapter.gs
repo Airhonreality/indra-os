@@ -87,7 +87,7 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
     return {
       id: page.id,
       collection: collectionId,
-      fields: _flattenProperties(page.properties),
+      fields: page.properties ? _flattenProperties(page.properties) : {},
       timestamp: page.last_edited_time,
       raw: page
     };
@@ -881,7 +881,8 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
     // Aplanamos cada resultado para que el Core trabaje con objetos limpios
     const flattenedResults = (response.results || []).map(page => ({
         id: page.id,
-        ...(_flattenProperties(page.properties) || {}),
+        fields: _flattenProperties(page.properties) || {},
+        ...(_flattenProperties(page.properties) || {}), // Spread for Grid compatibility
         _raw: page // Preservamos el original para operaciones avanzadas
     }));
 
@@ -1413,21 +1414,14 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
   // RETORNAR INTERFAZ PÚBLICA (Object.freeze - Axioma 1 DADC)
   // ============================================================
   
-  // --- SOVEREIGN CANON V8.0 (Poly-Archetype Composition) ---
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
   const CANON = {
-      LABEL: "Notion",
-      // AXIOMA: Identidad Compuesta. Notion no es una cosa, es muchas.
-      // El Frontend iterará esta lista y montará los motores necesarios (Tabs/Vistas).
+      // AXIOMA: Identidad Técnica Pura. 
       ARCHETYPES: ["ADAPTER", "VAULT", "GRID", "DOC"], 
-      
-      // Fallback para sistemas legacy que esperan un solo string
-      // AUDITORÍA: Forzamos VAULT para que el Frontend actual use VaultEngine (Drive-like UX).
       ARCHETYPE: "VAULT", 
-      
       DOMAIN: "KNOWLEDGE_GRAPH",
-      SEMANTIC_INTENT: "BRIDGE",
       
-      // 1. MATH & LOGIC CAPABILITIES (Notion Native Engines)
+      // 1. MATH & LOGIC CAPABILITIES (Technical Engine)
       MATH_CAPABILITIES: {
           "engine": "NOTION_FORMULA", 
           "injectable": true, 
@@ -1438,7 +1432,7 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
           }
       },
 
-      // 2. DUAL INTERFACE CAPABILITIES (The Chameleon)
+      // 2. FUNCTIONAL CAPABILITIES
       CAPABILITIES: {
           listContents: { desc: "Explora la estructura del grafo de Notion como un sistema de archivos.", exposure: "public" },
           queryDatabase: { desc: "Consulta una base de datos con filtros y ordenación.", exposure: "public" },
@@ -1449,59 +1443,7 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
           appendBlockChildren: { desc: "Añade bloques de contenido a una página.", exposure: "public" },
           updatePageProperties: { desc: "Actualiza las propiedades de una página.", exposure: "public" },
           createPage: { desc: "Crea una nueva página.", exposure: "public" },
-          createDatabase: { desc: "Crea una nueva base de datos.", exposure: "public" },
-          "read_content": { 
-              "io": "READ", "desc": "Read as Document (Markdown)",
-              "inputs": { "pageId": "string" }
-          },
-          "query_db": { 
-              "io": "READ", "desc": "Read as DataGrid (Rows/Cols)", 
-              "inputs": { "databaseId": "string", "filter": "object" }
-          },
-          "search": {
-              "io": "READ", "desc": "Global Workspace Search",
-              "inputs": { "query": "string" }
-          },
-          "create_page": { 
-              "io": "WRITE", "desc": "Generate new page entry", 
-              "inputs": { "parent": "object", "properties": "object" }
-          },
-          "append_block": { 
-              "io": "WRITE", "desc": "Write content (Doc Mode)", 
-              "inputs": { "blockId": "string", "children": "array" }
-          },
-          "update_props": { 
-              "io": "WRITE", "desc": "Update fields (Grid Mode)", 
-              "inputs": { "pageId": "string", "properties": "object" }
-          },
-          "configure_schema": {
-              "io": "WRITE", "desc": "Mutate Structure (Create DB)",
-              "inputs": { "parentPageId": "string", "title": "string", "properties": "object" }
-          }
-      },
-
-      // 3. VITAL SIGNS
-      VITAL_SIGNS: {
-          "API_RATE": { "criticality": "WARNING", "value": "3 req/sec", "trend": "variable" },
-          "TOKEN_STATUS": { "criticality": "NOMINAL", "value": "VALID", "trend": "stable" }
-      },
-
-      // 4. UI PROJECTION MANIFEST
-      UI_LAYOUT: {
-          "SIDE_PANEL": "ENABLED",
-          "TERMINAL_STREAM": "ENABLED",
-          "VIEW_MODE_SELECTOR": {
-              "DEFAULT": "GRID",
-              "OPTIONS": ["GRID", "DOC", "VAULT"] // <--- The Polymorphic Lens
-          }
-      },
-      PERSISTENCE_CONTRACT: {
-        "vault_tree": {
-            "ttl": 300,           // 5 minutes
-            "scope": "COSMOS",
-            "hydrate": true,
-            "compute": "EAGER"
-        }
+          createDatabase: { desc: "Crea una nueva base de datos.", exposure: "public" }
       }
   };
 
@@ -1688,3 +1630,8 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
     }
   };
 }
+
+
+
+
+

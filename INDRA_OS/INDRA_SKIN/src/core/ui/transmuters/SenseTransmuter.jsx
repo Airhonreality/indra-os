@@ -24,13 +24,13 @@ export const SenseTransmuter = ({ atom }) => {
 
         case 'PROGRESS_BAR':
             return (
-                <div className="stark-atom stack-v gap-1">
+                <div className="axiom-atom stack-v gap-1">
                     <div className="flex justify-between items-center">
-                        <span className="stark-atom-label">{manifest.label}</span>
+                        <span className="axiom-atom-label">{manifest.label}</span>
                         <span className="text-tiny font-mono text-white/40">{manifest.value}%</span>
                     </div>
-                    <div className="stark-atom-progress">
-                        <div className="stark-progress-fill" style={{ width: `${manifest.value}%` }}></div>
+                    <div className="axiom-atom-progress">
+                        <div className="axiom-progress-fill" style={{ width: `${manifest.value}%` }}></div>
                     </div>
                 </div>
             );
@@ -51,3 +51,6 @@ export const SenseTransmuter = ({ atom }) => {
             return null;
     }
 };
+
+
+

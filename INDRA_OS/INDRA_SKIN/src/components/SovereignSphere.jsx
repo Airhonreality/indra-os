@@ -19,7 +19,7 @@ import './SovereignSphere.css';
 const SovereignSphere = ({ syncStatus = 'SYNCED', onClick }) => {
     const [particles, setParticles] = useState([]);
 
-    // Generar partículas orbitales (efecto molecular)
+    // Generar partículas INDRAes (efecto molecular)
     useEffect(() => {
         const particleCount = 12;
         const generated = Array.from({ length: particleCount }, (_, i) => ({
@@ -89,7 +89,7 @@ const SovereignSphere = ({ syncStatus = 'SYNCED', onClick }) => {
                 <div className="sphere-nucleus" />
             </motion.div>
 
-            {/* Partículas Orbitales (Efecto Molecular) */}
+            {/* Partículas INDRAes (Efecto Molecular) */}
             {particles.map((particle) => (
                 <motion.div
                     key={particle.id}
@@ -133,3 +133,6 @@ const SovereignSphere = ({ syncStatus = 'SYNCED', onClick }) => {
 };
 
 export default SovereignSphere;
+
+
+

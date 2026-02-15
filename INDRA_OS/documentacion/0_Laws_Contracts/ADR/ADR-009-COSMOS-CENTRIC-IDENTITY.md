@@ -25,3 +25,8 @@ Se establece el modelo de **Soberanía de Linaje (Sovereign Lineage)**. La ident
 
 ## Ley de Impedancia Relacionada
 "El mapa ES el territorio. Un nodo sin origen no es una unidad de realidad, es entropía."
+
+
+
+
+

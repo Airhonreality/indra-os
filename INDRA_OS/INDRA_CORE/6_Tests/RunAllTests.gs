@@ -109,7 +109,7 @@ function RunAllTests() {
   summary.total = testNames.length;
 
   console.log('========================================');
-  console.log('🧪 ORBITAL CORE - TEST RUNNER');
+  console.log('🧪 Indra CORE - TEST RUNNER');
   console.log('========================================');
   
   if (testNames.length === 0) {
@@ -119,27 +119,36 @@ function RunAllTests() {
   }
   console.log('');
   
-  console.log('=== 🔬 INTEGRATION FORENSIC CHECK ===');
+  console.log('=== 🔬 ADP: AXIOMATIC DIAGNOSTIC PACKAGE (V12) ===');
+  _ensureAnchoredForTests();
   try {
     const startAssembly = new Date().getTime();
-    console.log('Ensamblando sistema para validación preliminar...');
-    const stack = (typeof _assembleExecutionStack === 'function') ? _assembleExecutionStack() : null;
+    console.log('Iniciando Ciclo de Juicio Axiomático...');
     
-    if (stack) {
-       // El assembaje fue exitoso (si hubiera fallado, PublicAPI habría lanzado el error detallado)
-       console.log(`✅ Sistema ensamblado y auditado correctamente en ${new Date().getTime() - startAssembly}ms.`);
-       console.log('La Soberanía Axiomática ha certificado la pureza estructural.');
-    } else {
-       console.log('⚠️ _assembleExecutionStack no encontrado o no retornó el stack. Saltando validación preliminar.');
-    }
+    // Pilar 1: Soberanía e Identidad
+    const sov = diag_Sovereignty_Identity_Audit();
+    if (sov.coherence < 100) throw new Error(`Fallo de Soberanía: Coherencia al ${sov.coherence}%`);
+
+    // Pilar 2: Ensamblaje y Despacho
+    const assembly = diag_Assembly_Stack_Audit();
+    if (assembly.coherence < 80) throw new Error(`Fallo de Ensamblaje: Coherencia al ${assembly.coherence}%`);
+
+    // Pilar 3: Estabilidad de Realidad
+    const reality = diag_Reality_Stability_Audit();
+    if (reality.coherence < 70) throw new Error(`Fallo de Estabilidad: Coherencia al ${reality.coherence}%`);
+
+    // Pilar 4: Detector de Zombies (Opcional pero recomendado)
+    const zombies = diag_Zombie_Logic_Forensics();
+    if (zombies.zombieCount > 2) console.warn(`⚠️ Alta densidad de zombies detectada (${zombies.zombieCount})`);
+
+    console.log(`✅ Sistema Certificado por ADP en ${new Date().getTime() - startAssembly}ms.`);
   } catch (e) {
-    console.error('\n🛑 [ARCHITECTURAL_HALT] PRE-FLIGHT CHECK FAILED');
-    console.error('El runner ha abortado la ejecución porque el sistema viola los contratos fundamentales.');
+    console.error('\n🛑 [ARCHITECTURAL_HALT] ADP CHECK FAILED');
+    console.error('El runner ha abortado la ejecución porque el sistema viola los pilares fundamentales.');
     console.error('---------------------------------------------------');
     console.error(e.message);
     console.error('---------------------------------------------------');
-    // Abortar todo
-    throw new Error('TEST RUNNER ABORTED: System integrity check failed. See logs for details.');
+    throw new Error(`ADP_HALT: ${e.message}`);
   }
 
   for (let i = 0; i < testNames.length; i++) {
@@ -326,3 +335,22 @@ function _getPublicAPI() {
   globalThis._memoizedPublicAPI = stack.public;
   return stack.public;
 }
+
+/**
+ * Asegura que el sistema tenga un anclaje (CORE_ROOT) para evitar fallos de ensamblaje en tests.
+ */
+function _ensureAnchoredForTests() {
+  const eh = createErrorHandler();
+  const conf = createConfigurator({ errorHandler: eh });
+  const anchorKey = SYSTEM_CONSTITUTION.ANCHOR_PROPERTY;
+  
+  if (!conf.retrieveParameter({ key: anchorKey })) {
+    console.log("[TEST-RUNNER] ⚓ System not anchored. Setting temporary mock anchor for tests...");
+    conf.storeParameter({ key: anchorKey, value: 'mock-root-folder-id' });
+  }
+}
+
+
+
+
+

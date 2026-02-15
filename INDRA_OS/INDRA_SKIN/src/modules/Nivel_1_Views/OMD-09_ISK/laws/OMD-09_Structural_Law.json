@@ -1,7 +1,7 @@
 {
     "omd_09": {
         "id": "view_ui_designer_ide",
-        "clase_ui": "STARK_DESIGN_IDE",
+        "clase_ui": "AXIOM_DESIGN_IDE",
         "engine": "VECTOR_2D_CANVAS",
         "description": "Kernel de manifestación de realidades y diseño espacial (Indra Spatial Kernel).",
         "distribucion_espacial": {
@@ -166,3 +166,5 @@
         ]
     }
 }
+
+

@@ -162,3 +162,6 @@ export class SpatialRenderer {
         this.vaos.set(archetype, vao);
     }
 }
+
+
+

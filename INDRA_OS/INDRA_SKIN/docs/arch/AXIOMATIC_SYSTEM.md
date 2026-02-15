@@ -6,11 +6,11 @@ Este documento detalla la integración técnica entre las tres capas fundamental
 
 ---
 
-## Capa 1: El Substrato (Stark Theme CSS)
+## Capa 1: El Substrato (AXIOM Theme CSS)
 **Responsabilidad:** Definir las leyes físicas de la materia (Estética, Tokens, Átomos base).
 
-*   **Ubicación:** `src/styles/stark_theme.css`
-*   **Función:** No contiene lógica ni conocimiento de los módulos. Es un diccionario de clases canónicas (`.stark-atom-*`) y variables de diseño.
+*   **Ubicación:** `src/styles/axiom_theme.css`
+*   **Función:** No contiene lógica ni conocimiento de los módulos. Es un diccionario de clases canónicas (`.axiom-atom-*`) y variables de diseño.
 *   **Elementos Clave:**
     *   **Tokens:** Variables CSS para colores (`--accent-primary`), tipografía y espaciado.
     *   **Átomos Base:** Definición visual de inputs, botones de ignición y tickets de datos.
@@ -45,7 +45,7 @@ Este documento detalla la integración técnica entre las tres capas fundamental
 ## Flujo de Transmutación (Data Path)
 1.  **LEY (JSON):** Define que el módulo tiene un átomo `{ "id": "btn", "type": "ACTION_IGNITION" }`.
 2.  **MÓDULO (React):** Recibe la ley e invoca al `AxiomaticTransmuter` pasándole dicho átomo.
-3.  **TRANSMUTADOR (Interpreter):** Identifica el tipo, delega al `ActionTransmuter` y este le asigna la clase `.stark-atom-btn-primary`.
+3.  **TRANSMUTADOR (Interpreter):** Identifica el tipo, delega al `ActionTransmuter` y este le asigna la clase `.axiom-atom-btn-primary`.
 4.  **TEMA (CSS):** Aplica los estilos finales (colores, sombras, animaciones).
 
 ---
@@ -56,3 +56,8 @@ Este documento detalla la integración técnica entre las tres capas fundamental
 *   **Información errónea:** La falla está en el **DNA** (JSON de la Ley estructural).
 
 *Documento revisado bajo el protocolo de Integridad Axiomática v1.0*
+
+
+
+
+

@@ -13,8 +13,8 @@ Abstracción de Layouts Anidados: Para las anidaciones HTML en el JSON, utiliza 
 --
 Validación de Contratos IO: Implementa un "Linter Visual". Si el usuario compone un JSON que el Core no podrá interpretar (ej. falta una key requerida por Notion), la UI debe resaltar el error en el flujo antes de la ejecución. Esto se llama "Prevención de Errores por Diseño" (Donald Norman).
 
-En la mayoría de las apps, el usuario se loguea y gestiona sus APIs dentro de cada flujo. En Orbital Core, esto se eleva a una capa de infraestructura superior para reducir la carga mental de mantenimiento.
-El Concepto: Imagina a "Orbital" como una embajada. Tú no llevas tus credenciales de Google, Notion y Slack a cada habitación (cada flujo); las dejas en la Caja Fuerte (Vault) de la entrada.
+En la mayoría de las apps, el usuario se loguea y gestiona sus APIs dentro de cada flujo. En INDRA Core, esto se eleva a una capa de infraestructura superior para reducir la carga mental de mantenimiento.
+El Concepto: Imagina a "INDRA" como una embajada. Tú no llevas tus credenciales de Google, Notion y Slack a cada habitación (cada flujo); las dejas en la Caja Fuerte (Vault) de la entrada.
 Funcionamiento Ergonómico:
 Separación de Concerns: La "Cuenta" es una entidad abstracta que contiene el Token y el Refresh Log.
 Inyección de Identidad: Cuando diseñas un flujo (ej. "Enviar reporte de Sheets a Notion"), no configuras el login de Google. Simplemente seleccionas el objeto Account("Google_Personal").
@@ -42,7 +42,7 @@ Ejemplo Práctico:
 Si conectas una API de Social Media (Twitter), el componente camaleón se convierte en un "Feed de Post".
 Si conectas una API de Finanzas (Sheets), el mismo componente se transmuta en una "Hoja de Cálculo" o "Libro Contable".
 ¿Por qué es esto Ergonomía Cognitiva de Vanguardia?
-Porque estamos aplicando el concepto de Affordances Percibidas. El usuario no tiene que aprender a usar 10 herramientas diferentes. Solo aprende a usar Orbital, y Orbital "se disfraza" de la herramienta que el usuario necesita en cada momento del flujo.
+Porque estamos aplicando el concepto de Affordances Percibidas. El usuario no tiene que aprender a usar 10 herramientas diferentes. Solo aprende a usar INDRA, y INDRA "se disfraza" de la herramienta que el usuario necesita en cada momento del flujo.
 
 
 
@@ -76,3 +76,5 @@ Validación en Tiempo Real (Pre-vuelo):
 En el panel view_ui_preview, aparece un mensaje de WhatsApp simulado a la izquierda y un cuadro de calendario a la derecha. El usuario ve cómo el texto "Cita mañana a las 5" se "mueve" visualmente por el andamio y rellena el hueco del calendario.
 Consolidación (Materialización):
 Una vez que el usuario ve que el andamio soporta el peso del dato simulado sin errores, pulsa "Publicar". El andamio desaparece y se convierte en una infraestructura de ejecución activa en el Core (GAS).
+
+

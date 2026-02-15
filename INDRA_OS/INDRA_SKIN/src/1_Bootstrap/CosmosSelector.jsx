@@ -10,7 +10,7 @@ import { useAxiomaticStore } from '../core/state/AxiomaticStore';
 import useAxiomaticState from '../core/state/AxiomaticState';
 import adapter from '../core/Sovereign_Adapter';
 import contextClient from '../core/kernel/ContextClient';
-import ComponentProjector from '../core/kernel/ComponentProjector';
+import ProjectionMatrix from '../core/kernel/ProjectionMatrix';
 import ArtifactExplorer from './ArtifactExplorer';
 import HoldToDeleteButton from '../4_Atoms/HoldToDeleteButton';
 
@@ -95,7 +95,7 @@ const CosmosSelector = () => {
         return (
             <div className="w-full h-full flex flex-col justify-start items-center p-8 pt-28 bg-[var(--bg-primary)] overflow-hidden">
                 <div className="max-w-2xl w-full max-h-[80vh] flex flex-col p-8 bg-[var(--bg-secondary)]/90 border border-[var(--border-subtle)] rounded-3xl backdrop-blur-xl shadow-2xl animate-in zoom-in-95 duration-500 overflow-hidden">
-                    <ComponentProjector
+                    <ProjectionMatrix
                         perspective="SCHEMA_PROJECTION"
                         schemaId="COSMOS_V1"
                         onCommit={handleCreateCosmos}
@@ -247,3 +247,6 @@ const CosmosSelector = () => {
 };
 
 export default CosmosSelector;
+
+
+

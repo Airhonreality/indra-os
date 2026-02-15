@@ -92,7 +92,7 @@ function testRenderEngine_Axiom3_ContextStackPriority() {
     const engine = createRenderEngine({ errorHandler });
 
     const localContext = { user: "Local_User", status: "local" };
-    const globalContext = { user: "Global_User", system: "orbital" };
+    const globalContext = { user: "Global_User", system: "Indra" };
 
     // TEST 3A
     const result1 = engine.render("Usuario: {{user}}", localContext, globalContext);
@@ -100,7 +100,7 @@ function testRenderEngine_Axiom3_ContextStackPriority() {
 
     // TEST 3B
     const result2 = engine.render("Sistema: {{system}}", localContext, globalContext);
-    assert.strictEqual(result2, "Sistema: orbital", "AXIOM 3 FAILURE: Fallback a contexto global fallo.");
+    assert.strictEqual(result2, "Sistema: Indra", "AXIOM 3 FAILURE: Fallback a contexto global fallo.");
 
     // TEST 3C
     const result3 = engine.render("Data: {{value}}", {}, { value: "found" });
@@ -475,3 +475,8 @@ function runRenderEngineAllTests() {
 function testRenderEngine() {
   return runRenderEngineAllTests();
 }
+
+
+
+
+

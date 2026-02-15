@@ -38,3 +38,8 @@ Se establece el **Axioma de Propagación Universal**:
 *   [x] Fix aplicado en `AxiomaticStore.jsx`.
 *   [x] Caso `IGNITE_SYSTEM` implementado en `axiomaticReducer`.
 *   [x] Validación de arranque exitosa.
+
+
+
+
+

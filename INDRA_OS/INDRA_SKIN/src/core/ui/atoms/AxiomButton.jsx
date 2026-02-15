@@ -1,18 +1,18 @@
 import React from 'react';
 
 /**
- * ATOM: StarkButton
+ * ATOM: AxiomButton
  * DHARMA: Unidad de ejecución axiomática.
  */
-const StarkButton = ({ label, onClick, isIgnited, style = {}, variant = 'primary' }) => {
+const AxiomButton = ({ label, onClick, isIgnited, style = {}, variant = 'primary' }) => {
     return (
         <button
             onClick={onClick}
-            className={`stark-atom-btn stark-atom-btn-${variant}`}
+            className={`axiom-atom-btn axiom-atom-btn-${variant}`}
             style={{
                 padding: '8px 4px',
                 fontSize: '8px',
-                borderRadius: 'var(--stark-border-radius)',
+                borderRadius: 'var(--axiom-border-radius)',
                 backgroundColor: isIgnited ? 'rgba(var(--omd-accent-rgb), 0.1)' : 'transparent',
                 color: isIgnited ? 'var(--omd-accent)' : 'var(--text-dim)',
                 border: `1px solid ${isIgnited ? 'var(--omd-accent)' : 'var(--border-color)'}`,
@@ -28,4 +28,7 @@ const StarkButton = ({ label, onClick, isIgnited, style = {}, variant = 'primary
     );
 };
 
-export default StarkButton;
+export default AxiomButton;
+
+
+

@@ -177,3 +177,6 @@ class CompressionManager {
 // Singleton
 const compressionManager = new CompressionManager();
 export default compressionManager;
+
+
+

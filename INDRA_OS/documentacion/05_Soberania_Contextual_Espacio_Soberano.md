@@ -44,3 +44,8 @@ El sistema transita por ciclos de vida contextuales:
 
 > [!IMPORTANT]
 > Indra OS no es multi-usuario en el sentido tradicional (base de datos centralizada); es **Multi-Espacio**. Cada transacción es una proyección independiente y soberana sobre un núcleo compartido.
+
+
+
+
+

@@ -46,3 +46,8 @@ El espacio spatial se divide en 3 zonas verticales invisibles que guían el fluj
 ## 4. Estética de los Nodos
 - **Simplicidad Geométrica:** Los nodos abandonan el estilo "Ventana de Windows". Son bloques de datos limpios.
 - **Visualización de Carga:** El nodo cambia su "luminosidad" o "pulso" basado en la frecuencia de datos que lo atraviesa (Heartbeat ISK).
+
+
+
+
+

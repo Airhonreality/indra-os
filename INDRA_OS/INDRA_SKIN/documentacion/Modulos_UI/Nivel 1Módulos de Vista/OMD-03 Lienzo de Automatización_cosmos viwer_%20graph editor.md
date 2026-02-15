@@ -61,3 +61,8 @@ Los nodos no son ventanas aisladas, son estaciones de un mismo proceso.
 ## 6. Auditoría de Ergonomía Cognitiva
 - **Eliminación del 'Loco dragging'**: El usuario ya no organiza nodos; el usuario conecta intenciones. El sistema garantiza la limpieza visual.
 - **Revelación Progresiva**: Evitamos el parálisis por análisis ocultando herramientas complejas hasta que el nodo tiene el arquetipo necesario para usarlas.
+
+
+
+
+

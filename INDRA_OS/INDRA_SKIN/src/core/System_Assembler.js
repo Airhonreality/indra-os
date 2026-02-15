@@ -104,6 +104,7 @@ class SystemAssembler {
         const errors = [];
         const manifest = compiler.getRenderManifest();
         const L0 = adapter.L0;
+        const assignedSlots = {};
 
         console.log("🔍 [Assembler] Iniciando Auditoría de Coherencia...");
 
@@ -119,9 +120,17 @@ class SystemAssembler {
                 console.warn(`[Assembler] Host ${law.omd} inicializado sin artefactos activos.`);
             }
 
-            // B. Verificación de Slot
+            // B. Verificación de Slot (Relajada V12)
+            // AXIOMA: No todo módulo tiene cuerpo físico (Slot). Algunos son espíritus (Servicios).
             if (!law.slot || law.slot === 'UNDEFINED') {
-                errors.push(`FRACTURA ANATÓMICA: El módulo ${law.omd} no tiene un Slot asignado.`);
+                console.info(`[Assembler] 👻 ${law.omd} registrado como SERVICIO BACKEND (Sin UI Slot).`);
+            } else {
+                // AXIOMA V12 (ADR-016): Validación de Física de Proyección
+                // Solo validamos colisiones para entidades con cuerpo (UI).
+                if (assignedSlots[law.slot]) {
+                    errors.push(`COLISIÓN DE REALIDAD: El slot físico '${law.slot}' ya está ocupado por ${assignedSlots[law.slot]}. (Intento de ${law.omd})`);
+                }
+                assignedSlots[law.slot] = law.omd;
             }
 
             // C. Verificación de Identidad
@@ -163,3 +172,6 @@ class SystemAssembler {
 
 const assembler = new SystemAssembler();
 export default assembler;
+
+
+

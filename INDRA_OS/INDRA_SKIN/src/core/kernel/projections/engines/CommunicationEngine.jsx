@@ -12,8 +12,34 @@ import { useAxiomaticStore } from '../../../state/AxiomaticStore';
 import { injectAxiomaticMock } from '../../../state/Infrastructure/AxiomaticMocks';
 
 const CommunicationEngine = ({ data }) => {
-    const { LABEL, ARCHETYPE, CAPABILITIES = {}, VITAL_SIGNS = {} } = data;
-    const { execute } = useAxiomaticStore();
+    const { state, execute } = useAxiomaticStore();
+    const { LABEL, ARCHETYPE: initialArchetype, DOMAIN, id: nodeId } = data;
+    const { adapter } = state.sovereignty;
+
+    // AXIOMA: Soberanía de Origen (Descubrimiento Dinámico de Canales)
+    const COMM_SOURCES = React.useMemo(() => {
+        const registry = state.genotype?.COMPONENT_REGISTRY || {};
+        return Object.values(registry)
+            .filter(node =>
+                node.ARCHETYPE === 'COMMUNICATION' ||
+                node.ARCHETYPE === 'MAIL' ||
+                node.ARCHETYPE === 'MESSAGING' ||
+                node.DOMAIN === 'COMMUNICATION'
+            )
+            .map(node => ({
+                id: node.id,
+                label: node.LABEL || node.id,
+                icon: node.ARCHETYPE === 'MAIL' ? 'Inbox' : 'MessageCircle', // Usamos nombres de iconos aproximados
+                archetype: node.ARCHETYPE
+            }));
+    }, [state.genotype?.COMPONENT_REGISTRY]);
+
+    // ESTADO DE IDENTIDAD Y SELECCIÓN
+    const [activeSource, setActiveSource] = useState(nodeId || (COMM_SOURCES[0]?.id || 'gmail'));
+    const [accounts, setAccounts] = useState([]);
+    const [activeAccount, setActiveAccount] = useState(null);
+    const [loading, setLoading] = useState(false);
+
 
     // ESTADO POLIMÓRFICO: Modo de Vista (Mail vs Chat)
     // Por defecto: Si es MAIL, usa 'INBOX'. Si es MESSAGING, usa 'CHAT'. Unificado usa 'SPLIT'.
@@ -25,24 +51,90 @@ const CommunicationEngine = ({ data }) => {
     const [activeThread, setActiveThread] = useState(null);
     const [inputBuffer, setInputBuffer] = useState('');
 
-    // AXIOMA: Hidratación de Mocks para Garage
+    // AXIOMA: Descubrimiento de Identidades por Canal
     useEffect(() => {
-        if (data._isMock || data._isGhost) {
-            const mockData = injectAxiomaticMock('MAIL', 'COMMUNICATION');
-            if (mockData && mockData.threads) {
-                setThreads(mockData.threads);
-                setActiveThread(mockData.threads[0]);
+        const discoverAccounts = async () => {
+            if (!activeSource) return;
+            try {
+                const result = await adapter.executeAction('tokenManager:listTokenAccounts', { provider: activeSource });
+                if (Array.isArray(result)) {
+                    setAccounts(result);
+                    const defaultAcc = result.find(a => a.isDefault) || result[0];
+                    if (defaultAcc) setActiveAccount(defaultAcc.id);
+                }
+            } catch (e) {
+                console.warn(`[CommunicationEngine] Discovery failed for ${activeSource}:`, e);
+                setAccounts([]);
             }
-        }
-    }, [data._isMock, data._isGhost]);
+        };
+        discoverAccounts();
+    }, [activeSource]);
 
-    // RENDERIZADO DE BARRA LATERAL (Independiente del Modo)
+    // AXIOMA: Reificación de Hilos (Threads)
+    useEffect(() => {
+        if (activeAccount && activeSource) {
+            execute('FETCH_COMMUNICATION_CONTENT', { nodeId: activeSource, accountId: activeAccount });
+        }
+    }, [activeAccount, activeSource]);
+
+    // AXIOMA: Consumo de Silo (Caché L1)
+    useEffect(() => {
+        const siloData = state.phenotype.silos?.[activeSource];
+        if (siloData) {
+            const items = Array.isArray(siloData) ? siloData : (siloData.items || siloData.results || []);
+            setThreads(items.map(item => ({
+                id: item.id,
+                sender: item.raw?.from || 'Unknown',
+                subject: item.name || 'No Subject',
+                preview: item.raw?.snippet || '',
+                time: item.lastUpdated ? new Date(item.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '---',
+                unread: item.raw?.isUnread || false,
+                type: (initialArchetype === 'MAIL' || item.mimeType === 'message/rfc822') ? 'MAIL' : 'CHAT'
+            })));
+        }
+    }, [state.phenotype.silos, activeSource]);
+
+
+
+    // RENDERIZADO DE BARRA LATERAL (Hub de Comunicación)
     const Sidebar = () => (
-        <div className="w-1/3 min-w-[250px] border-r border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 flex flex-col">
+        <div className="w-1/3 min-w-[280px] border-r border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 flex flex-col">
+            {/* TABS DE CANALES */}
+            <div className="flex bg-[var(--surface-header)] border-b border-[var(--border-subtle)] overflow-x-auto scrollbar-hide shrink-0">
+                {COMM_SOURCES.map(source => (
+                    <button
+                        key={source.id}
+                        onClick={() => setActiveSource(source.id)}
+                        className={`px-3 py-2 text-[8px] font-black uppercase tracking-tighter border-b-2 transition-all ${activeSource === source.id ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--text-dim)]'}`}
+                    >
+                        {source.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* SELECTOR DE IDENTIDAD */}
+            {accounts.length > 0 && (
+                <div className="p-2 bg-[var(--bg-primary)]/40 border-b border-[var(--border-subtle)] flex items-center gap-2">
+                    <span className="text-[7px] font-bold text-[var(--text-dim)] uppercase">Account:</span>
+                    <select
+                        className="flex-1 bg-transparent border-none text-[9px] font-mono text-[var(--accent)] outline-none cursor-pointer"
+                        value={activeAccount || ''}
+                        onChange={(e) => setActiveAccount(e.target.value)}
+                    >
+                        {accounts.map(acc => (
+                            <option key={acc.id} value={acc.id} className="bg-[var(--bg-deep)]">
+                                {acc.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
             <div className="p-4 border-b border-[var(--border-subtle)] flex justify-between items-center">
                 <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)]">
-                    {ARCHETYPE === 'MAIL' ? 'INBOX' : 'CONVERSATIONS'}
+                    {activeSource?.toUpperCase() || 'INBOX'}
                 </span>
+
                 <span className="text-[9px] font-mono text-[var(--accent)] bg-[var(--accent)]/10 px-1.5 py-0.5 rounded">
                     {threads.filter(t => t.unread).length} NEW
                 </span>
@@ -154,3 +246,6 @@ const CommunicationEngine = ({ data }) => {
 };
 
 export default CommunicationEngine;
+
+
+

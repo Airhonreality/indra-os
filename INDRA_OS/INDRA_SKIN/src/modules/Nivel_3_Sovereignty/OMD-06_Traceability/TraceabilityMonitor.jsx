@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { StateBridge } from '../../../core/state/StateBridge';
 
-/**
- * OMD-06: Monitor de Trazabilidad Humano (The Trace)
- * DHARMA: Ventana a la salud metabólica del sistema.
- */
 const TraceabilityMonitor = ({ law }) => {
     const [events, setEvents] = useState([]);
     const [selectedEvent, setSelectedEvent] = useState(null);
@@ -11,13 +8,14 @@ const TraceabilityMonitor = ({ law }) => {
     // Conexión con el Sistema de Logs Axiomáticos
     useEffect(() => {
         const checkLogs = () => {
-            if (window.INDRA_DEBUG && window.INDRA_DEBUG.logs) {
-                setEvents([...window.INDRA_DEBUG.logs]);
+            const logs = StateBridge.getLogs();
+            if (logs.length !== events.length) {
+                setEvents(logs);
             }
         };
         const interval = setInterval(checkLogs, 500);
         return () => clearInterval(interval);
-    }, []);
+    }, [events.length]);
 
     const visual = law.visual_config || {};
 
@@ -47,7 +45,7 @@ const TraceabilityMonitor = ({ law }) => {
                 <div className="flex flex-col items-end">
                     <span className="text-[5px] font-mono text-white/20 uppercase tracking-[0.3em]">System_Pulse</span>
                     <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-black text-accent-primary tracking-widest">ACTIVE_STARK</span>
+                        <span className="text-[9px] font-black text-accent-primary tracking-widest">ACTIVE_Axiom</span>
                         <div className="w-2 h-2 border border-accent-primary/30 rotate-45 flex items-center justify-center">
                             <div className="w-0.5 h-0.5 bg-accent-primary shadow-[0_0_8px_rgba(0,210,255,0.8)]"></div>
                         </div>
@@ -72,3 +70,6 @@ const TraceabilityMonitor = ({ law }) => {
 };
 
 export default TraceabilityMonitor;
+
+
+

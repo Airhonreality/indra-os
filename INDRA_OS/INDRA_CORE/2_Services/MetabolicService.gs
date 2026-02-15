@@ -15,7 +15,7 @@ function createMetabolicService({ configurator, errorHandler, driveAdapter, jobQ
    * Limpia la carpeta de salida (outputs) de archivos viejos.
    */
   function runAssetJanitor() {
-    const outputFolderId = configurator.retrieveParameter({ key: 'ORBITAL_FOLDER_OUTPUT_ID' });
+    const outputFolderId = configurator.retrieveParameter({ key: 'INDRA_FOLDER_OUTPUT_ID' });
     if (!outputFolderId) return { success: false, reason: "No output folder configured." };
     
     const maxAgeDays = 7; // Configurable en el futuro
@@ -111,4 +111,9 @@ function createMetabolicService({ configurator, errorHandler, driveAdapter, jobQ
     executeDailyMaintenance
   };
 }
+
+
+
+
+
 

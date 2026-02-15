@@ -1,4 +1,4 @@
-# 🏛️ 07. La Matriz de las 7 Leyes Soberanas (Indra OS v8.1 - STARK)
+# 🏛️ 07. La Matriz de las 7 Leyes Soberanas (Indra OS v8.1 - AXIOM)
 
 > **Mantra:** "Siete leyes para gobernar la realidad; una arquitectura para proyectarlas a todas."
 
@@ -35,7 +35,7 @@ Define cómo la inteligencia artificial (IA) interpreta las otras leyes.
 
 ### 1.6 `Visual_Grammar` & `UI_Distribution` (Anatomía y Estética)
 Transforma el "Qué" en "Cómo se siente" y define los órganos de la Shell (Carcasa).
-*   **Contenido:** Tokens Visuales, paletas de colores Stark, y mapas de Slots (`SIDEBAR`, `CANVAS`).
+*   **Contenido:** Tokens Visuales, paletas de colores AXIOM, y mapas de Slots (`SIDEBAR`, `CANVAS`).
 *   **Función:** Organiza los sentidos del usuario y proporciona una piel estética coherente con la Ley.
 
 ### 1.7 `Spatial_Physics` (Motor de Disposición Espacial)
@@ -68,4 +68,9 @@ El Scaffolding es el proceso mediante el cual Indra OS construye la interfaz des
 
 ---
 
-*Fin del Documento - Indra OS v8.1 STARK (Integridad del Sistema Certificada)*
+*Fin del Documento - Indra OS v8.1 AXIOM (Integridad del Sistema Certificada)*
+
+
+
+
+

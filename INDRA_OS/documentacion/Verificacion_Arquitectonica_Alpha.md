@@ -8,7 +8,7 @@ Este documento detalla la estructura final esperada y los requisitos axiomático
 
 ### 1. El Genotipo (INDRA_CORE - L0)
 **Archivo Maestro:** `System_Constitution.gs`
-- **Requisito:** Todas las entradas en `COMPONENT_REGISTRY` deben seguir el patrón `STARK_CASE` (ej. `DRIVE_ADAPTER`, `TOKEN_MANAGER`).
+- **Requisito:** Todas las entradas en `COMPONENT_REGISTRY` deben seguir el patrón `AXIOM_CASE` (ej. `DRIVE_ADAPTER`, `TOKEN_MANAGER`).
 - **Función:** Proyectar el ADN del sistema sin conocer la forma final de la UI.
 
 ### 2. Los Ensambladores (Assemblers)
@@ -55,7 +55,7 @@ Este documento detalla la estructura final esperada y los requisitos axiomático
 ### Test 1: Handshake de Identidad
 **Objetivo:** Verificar que Core y Skin hablan el mismo idioma sin traductores.
 1. Ejecutar `PublicAPI.getSystemHierarchyProjection()`.
-2. El JSON resultante **debe** contener claves `STARK_CASE` que coincidan 1:1 con el `SkinAssembler.js`.
+2. El JSON resultante **debe** contener claves `AXIOM_CASE` que coincidan 1:1 con el `SkinAssembler.js`.
 3. **Falla si:** Existe algún alias manual (ej: `if (node === 'TokenManager' || node === 'TOKEN_MANAGER')`).
 
 ### Test 2: Purga de la Constitución (UIDB Audit)
@@ -91,3 +91,8 @@ El sistema solo se certifica como **ESTABLE** cuando:
 ---
 
 *Este documento es la brújula para la fase final de implementación. Si no puedes verificarlo atómicamente, no existe.*
+
+
+
+
+

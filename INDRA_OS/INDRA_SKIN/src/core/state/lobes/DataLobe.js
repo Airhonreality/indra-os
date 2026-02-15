@@ -5,6 +5,7 @@
  */
 import Validator_IO_node_Data from '../Infrastructure/Validator_IO_node_Data';
 import { injectAxiomaticMock } from '../Infrastructure/AxiomaticMocks';
+import useAxiomaticState from '../AxiomaticState';
 
 
 export const initialDataState = {
@@ -395,7 +396,7 @@ export const dataReducer = (state, action) => {
             const itemId = action.payload.itemId;
 
             const now = Date.now();
-            const currentCycle = (window.useAxiomaticState?.getState?.() || { session: { revisionCycle: 0 } }).session.revisionCycle;
+            const currentCycle = useAxiomaticState.getState().session.revisionCycle;
 
             // Tarea 1: Marcado Lógico (Tombstone Protocol)
             // No borramos físicamente aún; creamos una "Lápida" con marca de tiempo y ciclo.
@@ -568,7 +569,7 @@ export const dataReducer = (state, action) => {
             };
 
         case 'PURGE_TOMBSTONES': {
-            const currentCycle = (window.useAxiomaticState?.getState?.() || { session: { revisionCycle: 0 } }).session.revisionCycle;
+            const currentCycle = useAxiomaticState.getState().session.revisionCycle;
 
             const soulsToKeep = (item) => {
                 if (!item._isDeleted) return true;
@@ -611,7 +612,7 @@ export const dataReducer = (state, action) => {
         case 'REMOVE_ARTIFACT': {
             const artifactId = action.payload.id;
             const now = Date.now();
-            const currentCycle = (window.useAxiomaticState?.getState?.() || { session: { revisionCycle: 0 } }).session.revisionCycle;
+            const currentCycle = useAxiomaticState.getState().session.revisionCycle;
 
             // 1. Marcar Artefacto (Tombstone)
             const updatedArtifacts = state.phenotype.artifacts.map(art => {
@@ -657,3 +658,6 @@ export const dataReducer = (state, action) => {
             return state;
     }
 };
+
+
+

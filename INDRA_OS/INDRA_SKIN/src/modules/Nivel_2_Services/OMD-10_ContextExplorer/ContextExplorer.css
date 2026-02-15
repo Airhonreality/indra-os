@@ -7,7 +7,7 @@
     flex-direction: column;
     height: 100%;
     background: var(--bg-secondary);
-    font-family: var(--stark-font);
+    font-family: var(--axiom-font);
 }
 
 .source-header {
@@ -151,16 +151,19 @@
     }
 }
 
-/* Custom Stark Scrollbar */
-.scroll-stark::-webkit-scrollbar {
+/* Custom Axiom Scrollbar */
+.scroll-Axiom::-webkit-scrollbar {
     width: 4px;
 }
 
-.scroll-stark::-webkit-scrollbar-track {
+.scroll-Axiom::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.scroll-stark::-webkit-scrollbar-thumb {
+.scroll-Axiom::-webkit-scrollbar-thumb {
     background: var(--border-highlight);
     border-radius: 2px;
 }
+
+
+

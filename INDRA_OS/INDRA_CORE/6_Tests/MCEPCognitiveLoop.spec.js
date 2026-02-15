@@ -52,3 +52,8 @@ function testMCEP_CognitiveLoop_Diagnostics() {
     console.log("--- ✅ DIAGNÓSTICO COMPLETADO CON ÉXITO ---");
     return true;
 }
+
+
+
+
+

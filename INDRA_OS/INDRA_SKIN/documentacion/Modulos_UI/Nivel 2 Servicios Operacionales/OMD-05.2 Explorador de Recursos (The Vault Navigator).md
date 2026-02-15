@@ -58,3 +58,7 @@ JSON
 Reducción de la Incertidumbre: Al permitir navegar visualmente por Drive o Notion dentro de Indra, el usuario no tiene que copiar y pegar IDs largos y complejos.
 Prevención de Errores de Ruta: El sistema solo permite "Fijar" recursos que son compatibles con el nodo actual. Si el nodo espera una tabla, el 05.2 deshabilita la selección de archivos de imagen.
 Continuidad de Flujo: El paso de "Navegar" a "Fijar" y luego a "Mapear" es una línea recta. El usuario siente que está "conectando tuberías" de forma física.
+
+
+
+

@@ -8,8 +8,8 @@ Para evitar el colapso visual (pantallas negras o contenido cortado), INDRA util
 
 ### La Jerarquía de Altura:
 1. **The Root (`#root`)**: Forzado a `100vh`.
-2. **The Shell (`stark-shell`)**: Contenedor Flex principal.
-3. **The Slot (`stark-slot`)**: Cada ranura (sidebar, canvas) posee `flex: 1` y `overflow: hidden`.
+2. **The Shell (`axiom-shell`)**: Contenedor Flex principal.
+3. **The Slot (`axiom-slot`)**: Cada ranura (sidebar, canvas) posee `flex: 1` y `overflow: hidden`.
 4. **The Module (`clase_ui`)**: Ocupa el 100% del slot mediante Flexbox, nunca mediante medidas fijas en PX.
 
 > [!IMPORTANT]
@@ -81,3 +81,8 @@ Cada `action_core` definido en el JSON debe tener un caso correspondiente en el 
 
 **Certificado por:** Arquitecto de Soberanía Visual
 **Versión:** 2.1.0-CANONICAL
+
+
+
+
+

@@ -44,14 +44,10 @@ function createMathService({ errorHandler }) {
     }
   }
 
-  // --- SOVEREIGN CANON V8.0 (Poly-Archetype) ---
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
   const CANON = {
-      LABEL: "Math Engine",
-      // AXIOMA: Identidad Compuesta. Servicio base + Capacidad de Cómputo Pura.
-      ARCHETYPES: ["SERVICE", "COMPUTE"],
-      ARCHETYPE: "SERVICE", // Fallback Legacy
+      ARCHETYPE: "SERVICE",
       DOMAIN: "LOGIC",
-      SEMANTIC_INTENT: "COMPUTE",
       CAPABILITIES: {
           "calculate": {
               "io": "READ",
@@ -70,9 +66,6 @@ function createMathService({ errorHandler }) {
                 "currencyCode": { "type": "string", "optional": true } 
               }
           }
-      },
-      VITAL_SIGNS: {
-          "PRECISION": { "criticality": "NOMINAL", "value": "IEEE-754", "trend": "stable" }
       }
   };
 
@@ -81,10 +74,9 @@ function createMathService({ errorHandler }) {
   }
 
   return {
-    CANON,
+    CANON: CANON,
     id: "math",
     description: "Industrial engine for deterministic computation and institutional formatting.",
-    semantic_intent: "LOGIC",
     
     // Legacy Bridge
     get schemas() {
@@ -105,4 +97,9 @@ function createMathService({ errorHandler }) {
     formatCurrency
   };
 }
+
+
+
+
+
 

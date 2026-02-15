@@ -142,3 +142,6 @@ describe('DataConventions - Persistencia Selectiva', () => {
         expect(clean._liveData).toBeUndefined();
     });
 });
+
+
+

@@ -61,3 +61,8 @@ function testGoogleDocsAdapter_MarkdownParser() {
         globalThis.Docs = originalDocs;
     }
 }
+
+
+
+
+

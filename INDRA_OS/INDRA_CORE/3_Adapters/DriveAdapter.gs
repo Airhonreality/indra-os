@@ -25,7 +25,7 @@
  * @param {Object} dependencies - Dependencias inyectadas
  * @returns {Object} Instancia inmutable de DriveAdapter
  */
-function createDriveAdapter({ errorHandler, monitoringService }) {
+function createDriveAdapter({ errorHandler, monitoringService, tokenManager }) {
     // Axioma: Fail-Fast Principle
     if (!errorHandler || typeof errorHandler.createError !== 'function') {
         throw new TypeError('createDriveAdapter: errorHandler contract not fulfilled');
@@ -48,6 +48,22 @@ function createDriveAdapter({ errorHandler, monitoringService }) {
     } catch (e) {
         // En entornos de test o simulados, el ID de ROOT es simbólico
         ROOT_ID = 'ROOT_SYSTEM_FALLBACK';
+    }
+
+    /**
+     * @description Obtiene el token para una cuenta de Google.
+     * @param {string|null} accountId 
+     * @returns {string|null} Access token o null si debe usar la sesión de DriveApp
+     */
+    function _getAccessToken(accountId) {
+        if (!tokenManager) return null;
+        try {
+            const tokenData = tokenManager.getToken({ provider: 'google', accountId });
+            return tokenData ? (tokenData.accessToken || tokenData.apiKey) : null;
+        } catch (e) {
+            console.warn(`DriveAdapter: No se pudo obtener token para cuenta ${accountId}, usando sesión default.`);
+            return null;
+        }
     }
 
     function _mapFileNode(item, type) {
@@ -611,19 +627,49 @@ function createDriveAdapter({ errorHandler, monitoringService }) {
     }
 
 
-
-    // --- INDRA CANON: Definición Soberana (V8.0 Updated) ---
-    const CANON = {
-        LABEL: "Google Drive",
-        // AXIOMA: Identidad Compuesta. 
-        // Renderiza el Tab Base (Adapter) y el Tab de Archivos (Vault).
-        ARCHETYPES: ["ADAPTER", "VAULT"],
-        ARCHETYPE: "VAULT", // Fallback Legacy
+    /**
+     * @description Verifica la conectividad y validez del token para una cuenta específica.
+     * @param {object} payload - { accountId? }
+     * @returns {object} { status: "ACTIVE" | "BROKEN", success: boolean, error? }
+     */
+    function verifyConnection(payload = {}) {
+        const accountId = payload.accountId || null;
+        const accessToken = _getAccessToken(accountId);
         
-        DOMAIN: "KNOWLEDGE",
+        try {
+            if (accessToken) {
+                // Validación vía REST API de Google Drive
+                const response = UrlFetchApp.fetch("https://www.googleapis.com/drive/v3/about?fields=user", {
+                   headers: { "Authorization": "Bearer " + accessToken },
+                   muteHttpExceptions: true
+                });
+                
+                if (response.getResponseCode() === 200) {
+                    return { status: "ACTIVE", success: true };
+                } else {
+                    return { status: "BROKEN", success: false, error: `Drive API Error: ${response.getContentText()}` };
+                }
+            } else {
+                 // Fallback: Sesión por defecto del script
+                 DriveApp.getRootFolder();
+                 return { status: "ACTIVE", success: true };
+            }
+        } catch (e) {
+            return { status: "BROKEN", success: false, error: e.message };
+        }
+    }
+
+    // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+    const CANON = {
+        LABEL: "Google Drive (Native)",
+        ARCHETYPES: ["ADAPTER", "VAULT"],
+        ARCHETYPE: "VAULT",
+        DOMAIN: "STORAGE",
+
         CAPABILITIES: {
-            "search": { // Mapped from find
+            "search": { 
                 "io": "READ",
+                "risk": 1,
                 "desc": "Global semantic search",
                 "exposure": "public",
                 "inputs": {
@@ -634,8 +680,9 @@ function createDriveAdapter({ errorHandler, monitoringService }) {
                     "foundItems": { "type": "array", "desc": "Collection of DriveAsset nodes." }
                 }
             },
-            "upload": { // Mapped from store
+            "upload": { 
                 "io": "WRITE",
+                "risk": 2,
                 "desc": "Blob storage ingestion",
                 "exposure": "public",
                 "inputs": {
@@ -646,8 +693,14 @@ function createDriveAdapter({ errorHandler, monitoringService }) {
                     "mimeType": { "type": "string", "desc": "IANA media type." }
                 }
             },
+            "store": { 
+                "io": "WRITE", 
+                "risk": 2,
+                "desc": "Unified persistence (alias of upload)"
+            },
             "move": {
                 "io": "WRITE",
+                "risk": 2,
                 "desc": "Relocate atomic unit",
                 "exposure": "public",
                 "inputs": {
@@ -658,6 +711,7 @@ function createDriveAdapter({ errorHandler, monitoringService }) {
             },
             "listContents": {
                 "io": "READ",
+                "risk": 1,
                 "desc": "List folder contents physically",
                 "exposure": "public",
                 "inputs": {
@@ -667,79 +721,68 @@ function createDriveAdapter({ errorHandler, monitoringService }) {
                     "items": { "type": "array", "desc": "List of file/folder nodes." }
                 }
             },
-            "sync": {
-                 "io": "REFRESH", // New placeholder capability
-                 "desc": "Force state consistency"
+            "share": {
+                "io": "ADMIN",
+                "risk": 3,
+                "desc": "Permissions governance (Grant)",
+                "exposure": "public",
+                "inputs": {
+                    "fileId": { "type": "string", "desc": "Target asset ID." },
+                    "email": { "type": "string", "desc": "Target user email." },
+                    "role": { "type": "string", "desc": "viewer | writer" }
+                }
             },
-            // Technical Capabilities (Hidden from high-level view but preserved for integrity)
-            "cleanFolderByAge": { "io": "INHIBIT", "desc": "Garbage collection", "inputs": { "folderId": {"type": "string"}, "maxAgeDays": {"type": "number"} } },
-            "share": { "io": "WRITE", "desc": "Modify ACL", "inputs": { "fileId": {"type": "string"}, "email": {"type": "string"}, "role": {"type": "string"} } }
-        },
-        VITAL_SIGNS: {
-            "LATENCY": { "criticality": "NOMINAL", "value": "45ms", "trend": "stable" },
-            "STORAGE": { "criticality": "WARNING", "value": "85%", "trend": "rising" },
-            "API_QUOTA": { "criticality": "NOMINAL", "value": "1200/min", "trend": "stable" }
-        },
-        UI_LAYOUT: {
-            "SIDE_PANEL": "ENABLED",
-            "TERMINAL_STREAM": "ENABLED"
+            "deleteItem": {
+                "io": "WRITE",
+                "risk": 3,
+                "desc": "Atomic destruction (Trash)",
+                "exposure": "public",
+                "inputs": {
+                    "id": { "type": "string", "desc": "Asset ID to delete." }
+                }
+            },
+            "sync": {
+                 "io": "REFRESH",
+                 "risk": 1,
+                 "desc": "Force state consistency"
+            }
         },
         PERSISTENCE_CONTRACT: {
-            "vault_tree": {
-                "ttl": 300,           // 5 minutes
-                "scope": "COSMOS",
-                "hydrate": true,
-                "compute": "EAGER"
-            },
-            "folder_sizes": {
-                "ttl": 3600,          // 1 hour
-                "scope": "COSMOS",
-                "hydrate": false,
-                "compute": "LAZY"
-            },
-            "recent_files": {
-                "ttl": 60,            // 1 minute
-                "scope": "SESSION",
-                "hydrate": true,
-                "compute": "EAGER"
-            }
+            "vault_tree": { "ttl": 300, "scope": "COSMOS", "hydrate": true, "compute": "EAGER" },
+            "folder_sizes": { "ttl": 3600, "scope": "COSMOS", "hydrate": false, "compute": "LAZY" },
+            "recent_files": { "ttl": 60, "scope": "SESSION", "hydrate": true, "compute": "EAGER" }
         }
     };
 
-    function verifyConnection() {
-        try {
-            DriveApp.getRootFolder();
-            return { success: true, status: "ACTIVE" };
-        } catch (e) {
-            return { success: false, status: "BROKEN", error: e.message };
-        }
-    }
 
-    return {
-        // Identidad Canónica (Auto-Descubrimiento)
+    // AXIOMA: Retorno del Nodo Soberano
+    const schemas = (function() {
+        const s = {};
+        for (const [key, cap] of Object.entries(CANON.CAPABILITIES)) {
+            s[key] = {
+                description: cap.desc,
+                exposure: cap.exposure || "private",
+                risk: cap.risk || 1, // Default to low risk
+                io_interface: { inputs: cap.inputs || {}, outputs: cap.outputs || {} }
+            };
+        }
+        return s;
+    })();
+
+    return Object.freeze({
+        id: "drive", // Identidad del Trabajador
         CANON: CANON,
-        
-        // Métodos Operativos (Sovereign Aliases)
-        search: find,
-        upload: store,
-        sync: () => ({ status: "SYNCED" }), // Placeholder implementation
-        
-        id: "drive", // Será sobreescrito por el Assembler
-        find,
-        resolvePath,
-        store,
-        createFolder,
+        schemas,
+        // Métodos expuestos
         retrieve,
-        share,
+        store,
+        find,
         move,
-        deleteItem,
-        retrieveAsBlob,
-        revokePermission,
-        cleanFolderByAge,
-        listContents: (payload = {}) => {
+        resolvePath,
+        createFolder,
+        listContents: function(payload = {}) {
             const { folderId = 'ROOT', query = '' } = payload;
             const items = [];
-            let hasMore = false;
 
             try {
                 // CASO 1: Búsqueda Inducida (Induced Search)
@@ -817,6 +860,7 @@ function createDriveAdapter({ errorHandler, monitoringService }) {
                 s[key] = {
                     description: cap.desc,
                     exposure: cap.exposure || "private",
+                    risk: cap.risk || 1,
                     io_interface: { inputs: cap.inputs || {}, outputs: cap.outputs || {} }
                 };
             }
@@ -825,7 +869,13 @@ function createDriveAdapter({ errorHandler, monitoringService }) {
         createFile: store,
         updateFile: store,
         readFile: (payload) => retrieve(payload).content,
-        revokeAccess: revokePermission
-    };
+        revokeAccess: revokePermission,
+        setTokenManager: (tm) => { tokenManager = tm; }
+    });
 }
+
+
+
+
+
 

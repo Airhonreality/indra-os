@@ -4,9 +4,25 @@
  * Dharma: Creación y administración dinámica de formularios de Google.
  */
 
-function createGoogleFormsAdapter({ errorHandler, driveAdapter }) {
+function createGoogleFormsAdapter({ errorHandler, driveAdapter, tokenManager }) {
 
   if (!errorHandler) throw new Error('GoogleFormsAdapter: errorHandler is required');
+
+  /**
+   * @description Obtiene el token para una cuenta de Google.
+   * @param {string|null} accountId 
+   * @returns {string|null} Access token o null si debe usar la sesión de FormApp
+   */
+  function _getAccessToken(accountId) {
+    if (!tokenManager) return null;
+    try {
+      const tokenData = tokenManager.getToken({ provider: 'google', accountId });
+      return tokenData ? (tokenData.accessToken || tokenData.apiKey) : null;
+    } catch (e) {
+      console.warn(`GoogleFormsAdapter: No se pudo obtener token para cuenta ${accountId}, usando sesión default.`);
+      return null;
+    }
+  }
 
   /**
    * Crea un nuevo formulario.
@@ -14,7 +30,7 @@ function createGoogleFormsAdapter({ errorHandler, driveAdapter }) {
   function create(payload) {
     const { title, description, folderId } = payload;
     try {
-      const form = FormApp.create(title || 'Formulario Orbital');
+      const form = FormApp.create(title || 'Formulario Indra');
       if (description) form.setDescription(description);
       
       const formId = form.getId();
@@ -191,13 +207,30 @@ function createGoogleFormsAdapter({ errorHandler, driveAdapter }) {
   };
 
   function verifyConnection(payload = {}) {
+    const accountId = payload.accountId || null;
+    const accessToken = _getAccessToken(accountId);
+    
     try {
-      const f = FormApp.create('SystemProbe_Temp');
-      const id = f.getId();
-      DriveApp.getFileById(id).setTrashed(true);
-      return { status: "ACTIVE" };
+        if (accessToken) {
+            // Verificación vía REST API (Forms API doesn't have a simple list, but Drive API about does)
+            const response = UrlFetchApp.fetch("https://www.googleapis.com/drive/v3/about?fields=user", {
+               method: "get",
+               headers: { "Authorization": "Bearer " + accessToken },
+               muteHttpExceptions: true
+            });
+            if (response.getResponseCode() === 200) {
+                return { status: "ACTIVE", success: true };
+            } else {
+                return { status: "BROKEN", success: false, error: `Forms/Drive API Error: ${response.getContentText()}` };
+            }
+        } else {
+            const f = FormApp.create('SystemProbe_Temp');
+            const id = f.getId();
+            DriveApp.getFileById(id).setTrashed(true);
+            return { status: "ACTIVE", success: true };
+        }
     } catch (e) {
-      return { status: "BROKEN", error: e.message };
+      return { status: "BROKEN", success: false, error: e.message };
     }
   }
 
@@ -237,6 +270,7 @@ function createGoogleFormsAdapter({ errorHandler, driveAdapter }) {
     query,
     queryDatabaseContent, // Mapped to getResponses for Forms
     verifyConnection,
+    setTokenManager: (tm) => { tokenManager = tm; },
     // Original methods
     create,
     addItems,
@@ -246,4 +280,9 @@ function createGoogleFormsAdapter({ errorHandler, driveAdapter }) {
   };
 
 }
+
+
+
+
+
 

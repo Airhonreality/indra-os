@@ -24,7 +24,7 @@ function testCipherAdapter_Native_Dharma() {
 
     const errorHandler = createErrorHandler();
     const cipher = createCipherAdapter({ errorHandler });
-    const masterKey = "stark-secret-key-2048";
+    const masterKey = "Axiom-secret-key-2048";
     const secretMessage = "My deeply secret information 12345!";
 
     const encrypted = cipher.encrypt({ text: secretMessage, key: masterKey });
@@ -180,3 +180,8 @@ function RunCipherAdapterNativeTests() {
 
     return { passed, failed, total: tests.length, failures };
 }
+
+
+
+
+

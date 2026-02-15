@@ -120,3 +120,8 @@ Una vez desplegado el código (`clasp push`), el `SystemAssembler` inyectará tu
 
 ** Autoridad:** INDRA Core Team
 ** Versión:** 1.0 (Poly-Archetype Standard)
+
+
+
+
+

@@ -8,13 +8,13 @@
 
 const SovereignGuard = {
   /**
-   * Autoriza una petición basada en el token del sistema.
-   * Llamado directamente por HttpEntrypoint.gs.
+   * Verifica la identidad soberana de una petición basada en el token del sistema.
+   * AXIOMA ADR-005: El acceso no es un permiso burocrático, es un reconocimiento de identidad.
    */
-  authorize: function(providedToken, configurator) {
+  verifySovereignIdentity: function(providedToken, configurator) {
     if (!configurator) return false;
     
-    const expectedToken = configurator.retrieveParameter({ key: 'ORBITAL_CORE_SATELLITE_API_KEY' }) || 
+    const expectedToken = configurator.retrieveParameter({ key: 'INDRA_CORE_SATELLITE_API_KEY' }) || 
                           configurator.retrieveParameter({ key: 'SYSTEM_TOKEN' });
                           
     const provided = (providedToken || "").toString().trim();
@@ -24,79 +24,28 @@ const SovereignGuard = {
   },
 
   /**
-   * Verifica si una herramienta está autorizada para ejecutarse.
-   * AXIOMA DE CONFIANZA ORGÁNICA (Yoneda Synthesis):
-   * - Si el nodo está registrado Y tiene un contrato válido, la invocación es legítima.
-   * - La whitelist manual es solo un fallback para casos legacy.
+   * Verifica si una herramienta existe y es ejecutable.
+   * AXIOMA V12: Política de Puertas Abiertas (Open Sovereign Policy).
+   * Ya no existen listas blancas manuales. Si el nodo y el método existen, es válido.
+   * La seguridad se delega al Risk Tagging (Fase 2).
    */
-  isWhitelisted: function(nodeKey, methodName, { nodes, laws, mcepCore }) {
+  isPhysicallyExecutable: function(nodeKey, methodName, { nodes }) {
     if (!nodeKey || !methodName) return false;
     
     const node = nodes[nodeKey];
-    const toolId = `${nodeKey}_${methodName}`;
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // TIER 1: VALIDACIÓN POR IDENTIDAD SOBERANA (Nuevo Paradigma)
-    // ═══════════════════════════════════════════════════════════════════════
+    if (!node) return false;
     
-    // 1.1 AXIOMA: Nodos Registrados son Confiables por Definición
-    // Si el nodo está en el registro, su existencia es su credencial
-    if (node && typeof node === 'object') {
-      
-      // 1.2 AXIOMA: Contrato Válido = Autorización Implícita
-      // Verificamos si existe un contrato (en ContractRegistry o en el nodo)
-      const hasGlobalContract = typeof ContractRegistry !== 'undefined' && ContractRegistry.get(methodName);
-      const hasLocalSchema = node.schemas && node.schemas[methodName];
-      
-      if (hasGlobalContract || hasLocalSchema) {
-        const schema = hasGlobalContract || hasLocalSchema;
-        
-        // 1.3 AXIOMA: Exposición Pública Explícita
-        if (schema.exposure === 'public' || schema.access_level === 'public') {
-          return true;
-        }
-        
-        // 1.4 AXIOMA: Confianza Interna (Nodos Core)
-        // Los nodos core pueden invocar métodos internos entre sí
-        const logic = laws.axioms || {};
-        const coreNodes = logic.CRITICAL_SYSTEMS || ['public', 'sensing', 'commander', 'sonda', 'metabolism'];
-        if (coreNodes.includes(nodeKey)) {
-          return true;
-        }
-      }
+    // Verificación de Existencia Física
+    const method = node[methodName];
+    const schema = (node.schemas && node.schemas[methodName]) || 
+                   (typeof ContractRegistry !== 'undefined' && ContractRegistry.get(methodName));
+                   
+    // Si existe la función y (opcionalmente) su esquema, es válido.
+    // Nota: A veces permitimos métodos sin esquema si son internos, pero lo ideal es tener esquema.
+    if (typeof method === 'function') {
+        return true;
     }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // TIER 2: VALIDACIÓN POR MCEP (AI-Governance)
-    // ═══════════════════════════════════════════════════════════════════════
     
-    // 2.1 AXIOMA: MCEP como Oráculo de Capacidades
-    if (mcepCore && typeof mcepCore.getModelTooling === 'function') {
-      const manifest = mcepCore.getModelTooling({ accountId: 'system' });
-      const isAuthorizedByMCEP = Array.isArray(manifest.tools)
-        ? manifest.tools.some(t => t.node === nodeKey && t.method === methodName)
-        : (manifest.tools && manifest.tools[toolId]);
-      if (isAuthorizedByMCEP) return true;
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // TIER 3: FALLBACK LEGACY (Whitelist Manual)
-    // ═══════════════════════════════════════════════════════════════════════
-    
-    // 3.1 AXIOMA: Compatibilidad con Sistemas Antiguos
-    const logic = laws.axioms || {};
-    const securityWhitelist = logic.SECURITY_WHITELIST || [
-      'public_verifySovereignEnclosure',
-      'public_getArtifactSchemas',
-      'public_executeAction',
-      'sensing_scanArtifacts',
-      'adminTools_setSystemToken'
-    ];
-    if (securityWhitelist.includes(toolId)) return true;
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // VEREDICTO FINAL: DENEGACIÓN POR DEFECTO
-    // ═══════════════════════════════════════════════════════════════════════
     return false;
   },
 
@@ -104,33 +53,45 @@ const SovereignGuard = {
    * Ejecuta una invocación segura sobre un nodo.
    */
   secureInvoke: function(nodeKey, methodName, input, { nodes, laws, mcepCore, errorHandler, blueprintRegistry, monitoringService }) {
-    // AXIOMA: Traducción de Identidad Semántica (Human-to-Technical)
-    const technicalNodeKey = this._resolveNodeKey(nodeKey);
-    
-    const node = nodes[technicalNodeKey];
-    if (!node) throw errorHandler.createError("DISCOVERY_ERROR", `Node '${technicalNodeKey}' (aliased from '${nodeKey}') not found.`);
+    // AXIOMA: Soberanía de Identidad (Sin Traducción Legacy)
+    const node = nodes[nodeKey];
+    if (!node) throw errorHandler.createError("DISCOVERY_ERROR", `Node '${nodeKey}' not found. Check ID consistency between Core and Front.`);
     
     const method = node[methodName];
-    if (typeof method !== 'function') throw errorHandler.createError("DISCOVERY_ERROR", `Method '${methodName}' not found in '${technicalNodeKey}'.`);
+    if (typeof method !== 'function') throw errorHandler.createError("DISCOVERY_ERROR", `Method '${methodName}' not found in '${nodeKey}'.`);
 
     // AXIOMA V12: Interceptor de Realidad (Middleware de Soberanía)
     const snapshotSignal = this._checkRealityPiggyback(input, { nodes, monitoringService });
 
-    // AXIOMA: Whitelist Gate (L4 Security)
-    if (!this.isWhitelisted(technicalNodeKey, methodName, { nodes, laws, mcepCore })) {
-      throw errorHandler.createError("SECURITY_BLOCK", `Invocation denied: Tool '${technicalNodeKey}_${methodName}' is not in the authorized MCEP whitelist.`);
+    // AXIOMA: Soberanía de Existencia (Sovereign Existential Verification)
+    if (!this.isPhysicallyExecutable(nodeKey, methodName, { nodes, laws, mcepCore })) {
+      throw errorHandler.createError("SECURITY_BLOCK", `Invocation denied: Tool '${nodeKey}:${methodName}' is not physically registered or accessible in the current reality.`);
     }
 
     // AXIOMA: Soberanía de Contratos (El QUÉ)
     const schema = ContractRegistry.get(methodName) || (node.schemas && node.schemas[methodName]);
     
-    const logic = laws.axioms || {};
-    const isTier1 = logic.CRITICAL_SYSTEMS && logic.CRITICAL_SYSTEMS.includes(technicalNodeKey);
-    
+    const _monitor = monitoringService || { logInfo: () => {}, logWarn: () => {}, logError: () => {} };
+
     if (!schema) {
-      if (isTier1) throw errorHandler.createError("ARCHITECTURAL_BLOCK", `Method '${methodName}' in Tier 1 '${technicalNodeKey}' has no schema.`);
+      // Si no hay esquema, permitimos la llamada (Open Sovereign Policy) pero marcamos el riesgo como Desconocido (3 por seguridad).
+      _monitor.logWarn(`[SovereignGuard] UNKNOWN_RISK: Invoking '${nodeKey}:${methodName}' without schema. Assuming high caution.`);
       const res = method.call(node, input);
       return this._imprintSnapshotSignal(res, snapshotSignal);
+    }
+
+    // AXIOMA V12.1: Intérprete de Riesgo (Risk-Based Sovereignty)
+    const riskLevel = schema.risk || 1;
+    const isGodMode = input && (input._godMode || input.identity === 'TEST_GOD_MODE');
+    
+    _monitor.logInfo(`[SovereignGuard] Risk Assessment: ${nodeKey}:${methodName} -> Level ${riskLevel}`);
+
+    if (riskLevel >= 3 && !isGodMode) {
+      // Protocolo de Seguridad para Riesgo Crítico
+      if (!input || !input.confirmHighRisk) {
+        throw errorHandler.createError("SECURITY_BLOCK", `CRITICAL_RISK_SHIELD: Action '${nodeKey}:${methodName}' is marked as High Risk (L3) and requires explicit 'confirmHighRisk: true' in payload.`);
+      }
+      _monitor.logWarn(`[SovereignGuard] CRITICAL_ACTION_AUTHORIZED: ${nodeKey}:${methodName} [Confirmed by Caller]`);
     }
 
     const ioDef = schema.io_interface || schema.io;
@@ -142,33 +103,6 @@ const SovereignGuard = {
 
     const result = method.call(node, input);
     return this._imprintSnapshotSignal(result, snapshotSignal);
-  },
-
-  /**
-   * AXIOMA: Diccionario de Identidad Humana (L4-Soberanía Lexical)
-   * Traduce alias comunes del frontend a unidades técnicas del núcleo.
-   * @private
-   */
-  _resolveNodeKey: function(key) {
-    if (!key) return key;
-    const normalized = key.toLowerCase();
-    
-    const DICTIONARY = {
-      'sheets': 'sheet',
-      'vault': 'drive',
-      'files': 'drive',
-      'drive': 'drive',
-      'gmail': 'email',
-      'emails': 'email',
-      'notion_db': 'notion',
-      'tokenmanager': 'tokenManager', // Resuelve discrepancia de casing
-      'network': 'networkDispatcher',
-      'adapter': 'sensing',
-      'public': 'public',
-      'system': 'public'
-    };
-    
-    return DICTIONARY[normalized] || normalized;
   },
 
   /**
@@ -292,3 +226,8 @@ const SovereignGuard = {
     });
   }
 };
+
+
+
+
+

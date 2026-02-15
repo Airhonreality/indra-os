@@ -1,4 +1,4 @@
-# 🕋 ORBITAL CORE CODEX (El Sol Negro)
+# 🕋 INDRA CORE CODEX (El Sol Negro)
 
 > **Versión:** 4.0 (Axiomática)
 > **Estatus:** Centro de Gravedad del Backend
@@ -47,3 +47,7 @@ El registro histórico de la evolución del Core se encuentra en **[Bitacora](./
 
 ---
 *Fin del Índice Maestro - Versión 4.0 (Sellado por INDRA OS)*
+
+
+
+

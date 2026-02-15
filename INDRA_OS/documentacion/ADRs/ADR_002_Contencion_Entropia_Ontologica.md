@@ -8,9 +8,9 @@ El sistema presentaba una alta entropía operativa manifestada en discrepancias 
 ## Decisión: Implementación del Modelo Alpha
 Se decide colapsar la ambigüedad eliminando artificios de "disimulo" de entropía y estableciendo una Verdad Única basada en la Teoría General de Sistemas (TGS).
 
-### 1. Unificación Ontológica (STARK_CASE)
+### 1. Unificación Ontológica (AXIOM_CASE)
 - El Core (L0) actúa como el único "Dador de Nombres". 
-- Se adopta el estándar **STARK_CASE** para todas las claves maestras en el `COMPONENT_REGISTRY`.
+- Se adopta el estándar **AXIOM_CASE** para todas las claves maestras en el `COMPONENT_REGISTRY`.
 - El Front-End no puede "inventar" nombres; debe reflejar la proyección del Core.
 
 ### 2. Segregación Funcional de Assemblers
@@ -28,3 +28,8 @@ Se decide colapsar la ambigüedad eliminando artificios de "disimulo" de entrop�
 
 ---
 *Firmado: Antigravity AI (en alineación con los principios Solar-Punk v3).*
+
+
+
+
+

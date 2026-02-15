@@ -23,7 +23,7 @@ No es un botón, es un núcleo gravitacional que emana luz según su estado.
 │  │ └─────────────────────────┘  │  │
 │  └───────────────────────────────┘  │
 └─────────────────────────────────────┘
-      + 12 partículas orbitales
+      + 12 partículas INDRAes
 ```
 
 ---
@@ -196,7 +196,7 @@ function SovereignSphereWebGL({ syncStatus }) {
       ░░░▒▒▒▒▒▒▒▒░░░
          ░░░░░░░
          
-    ▫ ▫  ▫   ▫ ▫   ← Partículas orbitales
+    ▫ ▫  ▫   ▫ ▫   ← Partículas INDRAes
    ▫     ▫   ▫    ▫
 ```
 
@@ -213,3 +213,8 @@ function SovereignSphereWebGL({ syncStatus }) {
 ---
 
 ¿Quieres que proceda con la integración en el Hood y la conexión con InterdictionUnit, o prefieres explorar la versión WebGL premium primero?
+
+
+
+
+

@@ -4,9 +4,25 @@
  * Dharma: Automatización y manipulación de presentaciones de Google mediante Slides API v1.
  */
 
-function createGoogleSlidesAdapter({ errorHandler, driveAdapter }) {
+function createGoogleSlidesAdapter({ errorHandler, driveAdapter, tokenManager }) {
 
   if (!errorHandler) throw new Error('GoogleSlidesAdapter: errorHandler is required');
+
+  /**
+   * @description Obtiene el token para una cuenta de Google.
+   * @param {string|null} accountId 
+   * @returns {string|null} Access token o null si debe usar la sesión de SlidesApp
+   */
+  function _getAccessToken(accountId) {
+    if (!tokenManager) return null;
+    try {
+      const tokenData = tokenManager.getToken({ provider: 'google', accountId });
+      return tokenData ? (tokenData.accessToken || tokenData.apiKey) : null;
+    } catch (e) {
+      console.warn(`GoogleSlidesAdapter: No se pudo obtener token para cuenta ${accountId}, usando sesión default.`);
+      return null;
+    }
+  }
 
   /**
    * Crea una nueva presentación.
@@ -14,7 +30,7 @@ function createGoogleSlidesAdapter({ errorHandler, driveAdapter }) {
   function create(payload) {
     const { title, folderId } = payload;
     try {
-      const presentation = SlidesApp.create(title || 'Presentación Orbital');
+      const presentation = SlidesApp.create(title || 'Presentación Indra');
       const presentationId = presentation.getId();
       
       if (folderId && driveAdapter) {
@@ -205,13 +221,37 @@ function createGoogleSlidesAdapter({ errorHandler, driveAdapter }) {
   };
 
   function verifyConnection(payload = {}) {
+    const accountId = payload.accountId || null;
+    const accessToken = _getAccessToken(accountId);
+    
     try {
-      const p = SlidesApp.create('SystemProbe_Temp');
-      const id = p.getId();
-      DriveApp.getFileById(id).setTrashed(true);
-      return { status: "ACTIVE" };
+        if (accessToken) {
+            // Verificación vía REST API
+            const response = UrlFetchApp.fetch("https://slides.googleapis.com/v1/presentations/1KiV3XNf_HkK6Y4A8E5fO5n7_xQ7m2tX_K9BvY5w6FzE?fields=id", {
+               method: "get",
+               headers: { "Authorization": "Bearer " + accessToken },
+               muteHttpExceptions: true
+            });
+            // Nota: El ID anterior es un placeholder. Mejor usar Drive API about para validez general de token.
+            const driveResponse = UrlFetchApp.fetch("https://www.googleapis.com/drive/v3/about?fields=user", {
+               method: "get",
+               headers: { "Authorization": "Bearer " + accessToken },
+               muteHttpExceptions: true
+            });
+
+            if (driveResponse.getResponseCode() === 200) {
+                return { status: "ACTIVE", success: true };
+            } else {
+                return { status: "BROKEN", success: false, error: `Slides/Drive API Error: ${driveResponse.getContentText()}` };
+            }
+        } else {
+            const p = SlidesApp.create('SystemProbe_Temp');
+            const id = p.getId();
+            DriveApp.getFileById(id).setTrashed(true);
+            return { status: "ACTIVE", success: true };
+        }
     } catch (e) {
-      return { status: "BROKEN", error: e.message };
+      return { status: "BROKEN", success: false, error: e.message };
     }
   }
 
@@ -238,12 +278,10 @@ function createGoogleSlidesAdapter({ errorHandler, driveAdapter }) {
     return { results: [], message: "Not a database engine" };
   }
 
-    // --- SOVEREIGN CANON V8.0 ---
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
   const CANON = {
-    LABEL: "Slides Interface",
     ARCHETYPE: "ADAPTER",
     DOMAIN: "DOCUMENT_ENGINE",
-    SEMANTIC_INTENT: "EDITOR",
     CAPABILITIES: {
       "create": {
         "io": "WRITE",
@@ -301,13 +339,6 @@ function createGoogleSlidesAdapter({ errorHandler, driveAdapter }) {
           "document": { "type": "object", "desc": "Indra PresentationRecord structure." }
         }
       }
-    },
-    VITAL_SIGNS: {
-       "SLIDES_API": { "criticality": "NOMINAL", "value": "ACTIVE", "trend": "flat" }
-    },
-    UI_LAYOUT: {
-      "SIDE_PANEL": "ENABLED",
-      "TERMINAL_STREAM": "ENABLED"
     }
   };
 
@@ -333,6 +364,7 @@ function createGoogleSlidesAdapter({ errorHandler, driveAdapter }) {
     query,
     queryDatabaseContent,
     verifyConnection,
+    setTokenManager: (tm) => { tokenManager = tm; },
     // Original methods
     id: "googleSlides", // Will be overridden
     create,
@@ -343,4 +375,9 @@ function createGoogleSlidesAdapter({ errorHandler, driveAdapter }) {
     retrieve
   };
 }
+
+
+
+
+
 

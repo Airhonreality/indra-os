@@ -22,8 +22,14 @@ export const CONFIG = {
     // API Key (Se recomienda manejar vía Vault/Portal, no por Config)
     SYSTEM_TOKEN: getSafePersisted('INDRA_SESSION_TOKEN') || getSafeEnv('VITE_SYSTEM_TOKEN', ''),
 
-    CLIENT_NAME: getSafeEnv('VITE_CLIENT_NAME', 'INDRA_V2_STARK'),
-    VERSION: getSafeEnv('VITE_VERSION', '2.0.0')
+    CLIENT_NAME: getSafeEnv('VITE_CLIENT_NAME', 'INDRA_V2_Axiom'),
+    VERSION: getSafeEnv('VITE_VERSION', '2.0.0'),
+
+    // Bóveda de Realidades (Cores Conocidos)
+    getKnownCores: () => {
+        const stored = localStorage.getItem('INDRA_KNOWN_CORES');
+        return stored ? JSON.parse(stored) : [];
+    }
 };
 
 /**
@@ -36,3 +42,6 @@ export const updateCoreUrl = (newUrl) => {
         window.location.reload();
     }
 };
+
+
+

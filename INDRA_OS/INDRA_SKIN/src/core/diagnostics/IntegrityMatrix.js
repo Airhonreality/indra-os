@@ -95,3 +95,6 @@ class IntegrityMatrix {
 
 const diagnostic = new IntegrityMatrix();
 export default diagnostic;
+
+
+

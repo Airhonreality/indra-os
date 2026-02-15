@@ -51,3 +51,8 @@ function testGoogleSlidesAdapter_BatchLogic() {
         globalThis.Slides = originalSlides;
     }
 }
+
+
+
+
+

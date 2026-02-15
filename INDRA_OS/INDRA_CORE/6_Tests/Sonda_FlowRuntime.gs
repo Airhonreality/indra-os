@@ -214,11 +214,11 @@ function testSonda_JobFlow_FullCycle() {
     cache.put(cacheKey, JSON.stringify(embeddedFlow), 600);
     
     console.log('\n🚀 Procesando job via PublicAPI...');
-    var result = stack.public.processSpecificJob(mockJob);
+    var result = stack.public.executeAction({ action: 'public:processSpecificJob', payload: mockJob });
     
-    console.log('\n✅ Ejecución finalizada. Status: ' + result.status);
+    console.log('\n✅ Ejecución finalizada. Status: ' + (result.payload ? result.payload.status : 'ERROR'));
     
-    if (result && result.status === 'completed') {
+    if (result && result.success && result.payload.status === 'completed') {
       console.log('✅ VALIDACIÓN EXITOSA: Job marcado como completed');
       return true;
     } else {
@@ -235,3 +235,8 @@ function testSonda_JobFlow_FullCycle() {
     console.log('='.repeat(80));
   }
 }
+
+
+
+
+

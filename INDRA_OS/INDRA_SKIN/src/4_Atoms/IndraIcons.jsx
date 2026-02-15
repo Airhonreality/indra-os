@@ -1,6 +1,6 @@
 /**
  * IndraIcons.jsx
- * SISTEMA DE ICONOGRAFÍA SOBERANA (Stark v8.0)
+ * SISTEMA DE ICONOGRAFÍA SOBERANA (Axiom v8.0)
  * DHARMA: Pureza geométrica y legibilidad técnica.
  */
 
@@ -300,3 +300,6 @@ export const Icons = {
 };
 
 export default Icons;
+
+
+

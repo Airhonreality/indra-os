@@ -62,7 +62,7 @@ JSON
   "indra_os_v5_5": {
     "laws_reference": ["CORE_LOGIC", "VISUAL_GRAMMAR", "SPATIAL_ENGINE"],
     "ui_shell": {
-      "layout_mode": "STARK_HUD",
+      "layout_mode": "AXIOM_HUD",
       "panels": [
         {
           "id": "view_flow_orchestrator",
@@ -96,3 +96,7 @@ Reducción de la Carga de Evaluación: Gracias al Monitor de Trazabilidad Humano
 Agnosticismo Total: El sistema trata a una base de datos de Notion y a un sensor de temperatura con la misma gramática visual, permitiendo que el cerebro humano aplique los mismos patrones de resolución de problemas a cualquier dominio.
 Veredicto Final:
 Indra OS v5.5 es una Extensión Cognitiva. Permite que un solo individuo orqueste realidades digitales complejas con la precisión de un ingeniero y la libertad de un artista. La arquitectura está lista para la Ignición.
+
+
+
+

@@ -57,13 +57,7 @@ export const useSignifier = (nodeId) => {
         };
     }
 
-    // 3. PoC: Sincronización con el Motor de Realidad (ISK)
-    if (globalLoading && window.ISK_SIGNALS?.GLOBAL_RESONANCE !== undefined) {
-        // El ISK sobreescribe el pulso con su cálculo físico
-        signifier.iskResonance = window.ISK_SIGNALS.GLOBAL_RESONANCE;
-        // Podemos incluso usarlo para que el color 'vibre'
-        signifier.opacity = 0.5 + (window.ISK_SIGNALS.GLOBAL_RESONANCE * 0.5);
-    }
+    // 3. PoC: Sincronización con el Motor de Realidad (ISK) - Bloque removido por pureza (ADR-016)
 
     return {
         ...signifier,
@@ -71,3 +65,6 @@ export const useSignifier = (nodeId) => {
         metadata
     };
 };
+
+
+

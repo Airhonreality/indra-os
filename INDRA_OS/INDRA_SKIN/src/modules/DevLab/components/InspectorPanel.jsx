@@ -144,3 +144,6 @@ const InspectorPanel = ({ state, execute, selectedId, isDnaOpen }) => {
 };
 
 export default InspectorPanel;
+
+
+

@@ -1,7 +1,7 @@
 /**
  * src/core/kernel/SovereignBridge.js
  * 🛰️ CAPA 1: PUENTE DE SOBERANÍA (The Core-UI Gateway)
- * Dharma: Proveer un punto de acceso unificado y seguro a la lógica del OrbitalCore.
+ * Dharma: Proveer un punto de acceso unificado y seguro a la lógica del INDRACore.
  */
 
 class SovereignBridge {
@@ -192,3 +192,6 @@ class SovereignBridge {
 
 const bridge = new SovereignBridge();
 export default bridge;
+
+
+

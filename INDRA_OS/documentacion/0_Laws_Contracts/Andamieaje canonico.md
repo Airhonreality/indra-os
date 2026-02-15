@@ -59,3 +59,7 @@ Si un Adapter como Blender trae 50 sub-arquetipos, la UI podría colapsar.
 
 ## 5. Conclusión Axiomática
 El andamiaje es agnóstico al contenido. No importa si es un editor de facturas o un motor 3D; si el artefacto declara su identidad mediante arquetipos, el sistema proyecta la interfaz necesaria de manera bimodal y fractal.
+
+
+
+

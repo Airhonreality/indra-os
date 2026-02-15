@@ -61,3 +61,8 @@ Para añadir un nuevo servicio (ej. **Dropbox**) en V9.0, **NO SE TOCA CÓDIGO D
 1.  **Backend:** Crear `DropboxAdapter.gs`. Definir `CANON` con `ARCHETYPE: "VAULT"` y `CAPABILITIES`.
 2.  **Backend:** Registrar en `SystemAssembler.gs`.
 3.  **Frontend:** **NADA**. El sistema lo descubrirá, le asignará el `VaultEngine` y funcionará automáticamente.
+
+
+
+
+

@@ -4,12 +4,28 @@
 //       para garantizar la atomicidad en cualquier contexto de ejecución.
 // ======================================================================
 
-function createSheetAdapter({ errorHandler, driveAdapter }) {
+function createSheetAdapter({ errorHandler, driveAdapter, tokenManager }) {
   if (!errorHandler || typeof errorHandler.createError !== 'function') {
     throw new TypeError('SheetAdapter requiere un errorHandler válido.');
   }
 
   const identityCache = {}; // AXIOMA: Caché de Resonancia Lexical
+
+  /**
+   * @description Obtiene el token para una cuenta de Google.
+   * @param {string|null} accountId 
+   * @returns {string|null} Access token o null si debe usar la sesión de SpreadsheetApp
+   */
+  function _getAccessToken(accountId) {
+    if (!tokenManager) return null;
+    try {
+      const tokenData = tokenManager.getToken({ provider: 'google', accountId });
+      return tokenData ? (tokenData.accessToken || tokenData.apiKey) : null;
+    } catch (e) {
+      console.warn(`SheetAdapter: No se pudo obtener token para cuenta ${accountId}, usando sesión default.`);
+      return null;
+    }
+  }
 
   function _getSheet(payload) {
     const { sheetId, sheetName = null } = payload;
@@ -354,7 +370,7 @@ function createSheetAdapter({ errorHandler, driveAdapter }) {
       // Normalizar a ISR (Indra Standard Response)
       return {
           results: rows.map(r => _mapDataEntry(r, sheetName || 'primary')),
-          ORIGIN_SOURCE: 'sheets',
+          ORIGIN_SOURCE: 'sheet',
           SCHEMA: schema,
           PAGINATION: {
               hasMore: false,
@@ -530,26 +546,44 @@ function createSheetAdapter({ errorHandler, driveAdapter }) {
   }
 
 
-  function verifyConnection() {
+  /**
+   * @description Verifica la conectividad y validez del token para una cuenta específica.
+   * @param {object} payload - { accountId? }
+   * @returns {object} { status: "ACTIVE" | "BROKEN", success: boolean, error? }
+   */
+  function verifyConnection(payload = {}) {
+    const accountId = payload.accountId || null;
+    const accessToken = _getAccessToken(accountId);
+    
     try {
-      SpreadsheetApp.getActiveSpreadsheet(); // Probe
-      return { status: "ACTIVE" };
+        if (accessToken) {
+            // Verificación vía REST API de Sheets (Drive API about works too for general access)
+            const response = UrlFetchApp.fetch("https://www.googleapis.com/drive/v3/about?fields=user", {
+               method: "get",
+               headers: { "Authorization": "Bearer " + accessToken },
+               muteHttpExceptions: true
+            });
+            if (response.getResponseCode() === 200) {
+                return { status: "ACTIVE", success: true };
+            } else {
+                return { status: "BROKEN", success: false, error: `Sheets/Drive API Error: ${response.getContentText()}` };
+            }
+        } else {
+            SpreadsheetApp.getActiveSpreadsheet(); // Probe native
+            return { status: "ACTIVE", success: true };
+        }
     } catch (e) {
-      return { status: "BROKEN", error: e.message };
+      return { status: "BROKEN", success: false, error: e.message };
     }
   }
 
-    // --- SOVEREIGN CANON V8.0 (Poly-Archetype Composition) ---
+    // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
     const CANON = {
-        LABEL: "Sheets Interface",
-        
-        // AXIOMA: Identidad Compuesta. Sheet es la base de datos industrial.
-        // Frontend renderiza: Tab General (Adapter) + Tab Datos (Grid).
+        // AXIOMA: Identidad Técnica Pura. 
         ARCHETYPES: ["ADAPTER", "GRID"], 
-        ARCHETYPE: "DATAGRID", // Fallback Legacy
-        
+        ARCHETYPE: "DATAGRID",
         DOMAIN: "DATA",
-        SEMANTIC_INTENT: "BRIDGE",
+
         MATH_CAPABILITIES: {
             "engine": "NATIVE_GS_FORMULA",
             "injectable": true,
@@ -563,14 +597,14 @@ function createSheetAdapter({ errorHandler, driveAdapter }) {
         },
         CAPABILITIES: {
             "create": { 
-                "io": "WRITE", "desc": "Init spreadsheet", 
+                "io": "WRITE", "risk": 2, "desc": "Init spreadsheet", 
                 "inputs": {
                     "name": { type: "string", desc: "Display identifier." },
                     "header": { type: "array", desc: "Column definitions." }
                 } 
             },
             "read": { 
-                "io": "READ", "desc": "Fetch rows", 
+                "io": "READ", "risk": 1, "desc": "Fetch rows", 
                 "inputs": {
                     "sheetId": { type: "string", desc: "Target ID." },
                     "sheetName": { type: "string", desc: "Optional tab name." }
@@ -580,14 +614,14 @@ function createSheetAdapter({ errorHandler, driveAdapter }) {
                 }
             },
             "append": { 
-                "io": "WRITE", "desc": "Insert batch rows", 
+                "io": "WRITE", "risk": 2, "desc": "Insert batch rows", 
                 "inputs": {
                     "sheetId": { type: "string", desc: "Target ID." },
                     "rows": { type: "array", desc: "Data objects to insert." }
                 }
             },
             "update": { 
-                "io": "WRITE", "desc": "Modify cell/row", 
+                "io": "WRITE", "risk": 2, "desc": "Modify cell/row", 
                 "inputs": {
                     "sheetId": { type: "string", desc: "Target ID." },
                     "rowNumber": { type: "number", desc: "Row index." },
@@ -596,7 +630,7 @@ function createSheetAdapter({ errorHandler, driveAdapter }) {
                 } 
             },
             "query": { 
-                "io": "READ", "desc": "Find by value", 
+                "io": "READ", "risk": 1, "desc": "Find by value", 
                 "inputs": {
                     "sheetId": { type: "string", desc: "Target ID." },
                     "columnIndex": { type: "number", desc: "Search column." },
@@ -604,8 +638,7 @@ function createSheetAdapter({ errorHandler, driveAdapter }) {
                 } 
             },
             "compute": {
-                "io": "WRITE", 
-                "desc": "Inject native formula (V8 Optimized)", 
+                "io": "WRITE", "risk": 2, "desc": "Execute formula block",
                 "inputs": {
                     "sheetId": { "type": "string" },
                     "sheetName": { "type": "string", "optional": true },
@@ -613,14 +646,6 @@ function createSheetAdapter({ errorHandler, driveAdapter }) {
                     "formula": { "type": "string", "desc": "Formula starting with =" } 
                 }
             }
-        },
-        VITAL_SIGNS: {
-            "SHEETS_API": { "criticality": "NOMINAL", "value": "ACTIVE", "trend": "flat" },
-            "CALC_TIME": { "criticality": "NOMINAL", "value": "<200ms", "trend": "stable" }
-        },
-        UI_LAYOUT: {
-            "SIDE_PANEL": "ENABLED",
-            "TERMINAL_STREAM": "ENABLED"
         }
     };
 
@@ -631,22 +656,25 @@ function createSheetAdapter({ errorHandler, driveAdapter }) {
     // Sovereign Aliases
     create: createSheet,
     read: getRows,
+    listContents: getRows, // AXIOMA: Señal Universal (V9.0)
     append: insertRowsBatch,
     update: updateCell,
     query: findRowByValue,
     compute: injectFormula,
     
     // Legacy Bridge
-    get schemas() {
+    schemas: (function() {
         const s = {};
         for (const [key, cap] of Object.entries(CANON.CAPABILITIES)) {
             s[key] = {
                 description: cap.desc,
+                exposure: cap.exposure || "private",
+                risk: cap.risk || 1,
                 io_interface: { inputs: cap.inputs || {}, outputs: cap.outputs || {} }
             };
         }
         return s;
-    },
+    })(),
 
     // Technical Methods
     id: "sheet", // Override
@@ -687,8 +715,14 @@ function createSheetAdapter({ errorHandler, driveAdapter }) {
         throw errorHandler.createError('EXTERNAL_API_ERROR', 'Fallo al limpiar filas.', { originalError: e.message });
       }
     },
+    setTokenManager: (tm) => { tokenManager = tm; },
     _mapArrayToObject,
     _mapObjectToArray
   };
 }
+
+
+
+
+
 

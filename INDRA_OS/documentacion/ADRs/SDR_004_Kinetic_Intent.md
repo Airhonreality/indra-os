@@ -42,3 +42,8 @@ Este patrón reemplaza la interrogación pasiva por un compromiso activo:
 
 ## 5. Referencias
 *   Inspirado en mecánicas de desmantelamiento en videojuegos y sistemas operativos táctiles modernos.
+
+
+
+
+

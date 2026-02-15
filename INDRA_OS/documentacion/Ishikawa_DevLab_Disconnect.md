@@ -51,3 +51,8 @@ graph TD
 
 1.  **Refactorizar Fallback en DevLab:** Hacer que el arquetipo del mock generativo sea dinámico o por defecto `NODE` para ver la estructura de puertos.
 2.  **Hidratar Mock de DATABASE:** Inyectar filas y columnas de ejemplo en el `MockFactory`.
+
+
+
+
+

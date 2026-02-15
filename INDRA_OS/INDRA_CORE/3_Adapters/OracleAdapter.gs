@@ -268,13 +268,11 @@ function createOracleAdapter({ errorHandler, tokenManager }) {
         return { status: "ACTIVE", info: "Knowledge Discovery Circuits Ready" };
     }
 
-    // --- SOVEREIGN CANON V8.0 (Intelligence Standard) ---
+    // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
     const CANON = {
         id: "oracle",
-        LABEL: "Oracle Web Sensing",
         ARCHETYPE: "SERVICE",
         DOMAIN: "INTELLIGENCE",
-        SEMANTIC_INTENT: "ORACLE",
         CAPABILITIES: {
             "search": { 
                 "io": "READ", 
@@ -291,13 +289,6 @@ function createOracleAdapter({ errorHandler, tokenManager }) {
                 "desc": "Recursive cognitive research",
                 "inputs": schemas.deepResearch.io_interface.inputs
             }
-        },
-        VITAL_SIGNS: {
-            "DISCOVERY_LATENCY": { "criticality": "NOMINAL", "value": "2.4s", "trend": "stable" },
-            "CIRCUIT_HEALTH": { "criticality": "NOMINAL", "value": "OPTIMAL", "trend": "flat" }
-        },
-        UI_LAYOUT: {
-            "TERMINAL_STREAM": "ENABLED"
         }
     };
 
@@ -325,4 +316,9 @@ function createOracleAdapter({ errorHandler, tokenManager }) {
         verifyConnection
     };
 }
+
+
+
+
+
 

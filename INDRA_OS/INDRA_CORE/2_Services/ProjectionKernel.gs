@@ -1,6 +1,6 @@
 /**
  * 🛰️ PROJECTION KERNEL (2_Services/ProjectionKernel.gs)
- * Version: 1.0.0 (Stark Level 2048)
+ * Version: 14.5.0 (Axiom Level 2048)
  * Dharma: Destilar la realidad del Core en un Esquema de Proyección seguro para el Satélite.
  */
 
@@ -46,17 +46,14 @@ function createProjectionKernel({ configurator, errorHandler, laws = {}, driveAd
           // Prioridad 2: Hint basado en Arquetipo.
           // Prioridad 3: Fallback a SMART_FORM.
           
-          const domainInfo = axioms.DOMAINS?.[component.domain] || {};
-          let uiLayoutHint = component.ui_layout_hint || 'LAYOUT_SMART_FORM';
-          
-          if (!component.ui_layout_hint) {
-            const archetypeMap = {
-               'VAULT': 'LAYOUT_DATA_INSPECTOR',
-               'MESSENGER': 'LAYOUT_COMMUNICATION_HUB',
-               'ORCHESTRATOR': 'LAYOUT_CANVAS_NODE'
-            };
-            uiLayoutHint = archetypeMap[component.archetype] || 'LAYOUT_SMART_FORM';
-          }
+          // AXIOMA V12: Estética Soberana (ADR-016)
+          // El Kernel ya no impone disfraces. El componente decide cómo quiere ser proyectado.
+          // Si no tiene hint, el Frontend usará el motor por defecto (Smart Form).
+          // (uiLayoutHint ya está inicializado arriba)
+
+          const domainInfo = (hierarchy && typeof hierarchy.getDomainInfo === 'function') 
+                             ? hierarchy.getDomainInfo(component.domain) 
+                             : { label: component.domain || 'SYSTEM_CORE' };
 
           contracts[key] = {
             id: component.id,
@@ -79,7 +76,7 @@ function createProjectionKernel({ configurator, errorHandler, laws = {}, driveAd
     return {
       contracts: contracts,
       timestamp: new Date().toISOString(),
-      version: constitution.version || '1.1.0-STARK'
+      version: constitution.version || '14.5.0-SOVEREIGN'
     };
   }
 
@@ -107,7 +104,7 @@ function createProjectionKernel({ configurator, errorHandler, laws = {}, driveAd
         meta: {
           environment: 'production',
           timestamp: new Date().toISOString(),
-          version: constitution.version || 'OrbitalCore (Stark Ready)'
+          version: constitution.version || 'SovereignCore (Axiom Ready)'
         }
       };
     } catch (e) {
@@ -133,21 +130,45 @@ function createProjectionKernel({ configurator, errorHandler, laws = {}, driveAd
    * Centraliza la política de seguridad de exposición.
    */
   function isMethodExposed(executionStack, executorKey, methodName) {
-    // AXIOMA (v8.2): Resolución Centralizada
+    // AXIOMA: Normalización de Alias de Sistema
+    if (executorKey === 'system') executorKey = 'public';
+    
+    // AXIOMA (v12): Soberanía de Exposición (Open Policy)
     const component = resolveComponent(executionStack, executorKey);
     
-    // GUARD: Debe ser un componente con esquemas
-    if (!component || typeof component !== 'object' || !component.schemas) return false;
+    // GUARD: Debe ser un objeto válido
+    if (!component || typeof component !== 'object') return false;
     
-    const schema = component.schemas[methodName];
+    const schema = (component.schemas && component.schemas[methodName]) || 
+                   (typeof ContractRegistry !== 'undefined' && ContractRegistry.get(methodName));
     
-    // GUARD: El método debe tener esquema y no ser interno
-    if (!schema || schema.exposure === 'internal') return false;
+    // Si tiene esquema y es explícitamente interno, bloqueamos.
+    if (schema && schema.exposure === 'internal') {
+      console.warn(`[ProjectionKernel] BLOCKED: '${executorKey}:${methodName}' is marked as 'internal'.`);
+      return false;
+    }
 
-    // GUARD: El método debe existir y no ser privado (_)
+    // GUARD: El método debe existir físicamente y no ser privado (_)
     if (typeof component[methodName] !== 'function' || methodName.startsWith('_')) return false;
 
+    // AXIOMA V12: Si existe y no es interno, está expuesto (Total Polymorphism).
     return true;
+  }
+
+  /**
+   * RF-6: Valida si un método tiene exposición PÚBLICA (accesible sin token).
+   */
+  function isMethodPublic(executionStack, executorKey, methodName) {
+    // AXIOMA: Normalización de Alias de Sistema
+    if (executorKey === 'system') executorKey = 'public';
+    
+    const component = resolveComponent(executionStack, executorKey);
+    if (!component || typeof component !== 'object') return false;
+
+    const schema = (component.schemas && component.schemas[methodName]) || 
+                   (typeof ContractRegistry !== 'undefined' && ContractRegistry.get(methodName));
+    
+    return schema && schema.exposure === 'public';
   }
 
   /**
@@ -277,10 +298,16 @@ function createProjectionKernel({ configurator, errorHandler, laws = {}, driveAd
     getProjection,
     getFilteredContext,
     isMethodExposed,
+    isMethodPublic,
     resolveComponent, // <--- EXPOSED TRUTH
     getSystemHierarchyProjection, 
     resource_weight: 'medium'
   });
 }
+
+
+
+
+
 
 

@@ -37,3 +37,6 @@ export const useAxiomaticSense = (entity) => {
 
     return { data, isLoading, error };
 };
+
+
+

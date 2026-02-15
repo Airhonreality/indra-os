@@ -78,7 +78,7 @@ function createAudioAdapter({ errorHandler, tokenManager }) {
                 // Simulación de rastro industrial para flujos de prueba
                 console.info(`AudioAdapter: TTS requested for text: "${text.substring(0, 50)}..." [VOICE: ${voice}]`);
                 return {
-                    audioUrl: "https://storage.googleapis.com/orbital-core-assets/audio_placeholder.mp3",
+                    audioUrl: "https://storage.googleapis.com/Indra-core-assets/audio_placeholder.mp3",
                     metadata: { status: "simulated", reason: "no_cloud_credentials" }
                 };
             }
@@ -86,7 +86,7 @@ function createAudioAdapter({ errorHandler, tokenManager }) {
             // Si llegamos aquí en test environment con mock-key, simulamos éxito
             if (connection.apiKey === 'mock-key') {
                 return {
-                    audioUrl: "https://storage.googleapis.com/orbital-core-assets/audio_synthesized_mock.mp3",
+                    audioUrl: "https://storage.googleapis.com/Indra-core-assets/audio_synthesized_mock.mp3",
                     audioBlob: {}, 
                     metadata: { status: "success", backend: "mock" }
                 };
@@ -133,13 +133,26 @@ function createAudioAdapter({ errorHandler, tokenManager }) {
         }
     }
 
-    function verifyConnection() {
-        return { status: "ACTIVE", info: "Audio Processing Logic Ready" };
+    function verifyConnection(payload = {}) {
+        const accountId = payload.accountId || 'system_default';
+        const connection = tokenManager ? tokenManager.getToken({ provider: 'google_cloud', accountId }) : null;
+        
+        if (connection && connection.apiKey) {
+            return { status: "ACTIVE", success: true, message: "Credential present for Google Cloud" };
+        }
+        return { status: "ACTIVE", success: true, info: "Audio Processing Logic Ready (Fallback Mode)" };
     }
+
+    // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+    const CANON = {
+        ARCHETYPE: "ADAPTER",
+        DOMAIN: "ACOUSTIC_INTELLIGENCE",
+        CAPABILITIES: schemas
+    };
 
     return {
         description: "Industrial engine for acoustic synthesis, linguistic transcription, and multi-modal audio processing.",
-        semantic_intent: "BRIDGE",
+        CANON: CANON,
         schemas: schemas,
         // Protocol Mapping (ORACLE_V1)
         search: textToSpeech,
@@ -151,4 +164,9 @@ function createAudioAdapter({ errorHandler, tokenManager }) {
         speechToText
     };
 }
+
+
+
+
+
 

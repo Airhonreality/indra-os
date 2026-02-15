@@ -7,7 +7,6 @@
 function createDebugAdapter({ monitoringService, configurator }) {
   
   const CANON = {
-    LABEL: "Debug Control Panel",
     ARCHETYPE: "SYSTEM_UTILITY",
     DOMAIN: "SYSTEM_CORE",
     
@@ -83,39 +82,6 @@ function createDebugAdapter({ monitoringService, configurator }) {
           }
         }
       }
-    },
-    
-    VITAL_SIGNS: {
-      BACKEND_LOGS: {
-        criticality: "NOMINAL",
-        value: "ENABLED",
-        trend: "stable",
-        source: "MonitoringService"
-      },
-      FRONTEND_LOGS: {
-        criticality: "NOMINAL",
-        value: "ENABLED",
-        trend: "stable",
-        source: "localStorage"
-      },
-      LOG_LEVEL: {
-        criticality: "NOMINAL",
-        value: "INFO",
-        trend: "stable",
-        source: "PropertiesService"
-      },
-      BUFFER_SIZE: {
-        criticality: "NOMINAL",
-        value: "0 logs",
-        trend: "stable",
-        source: "MonitoringService"
-      }
-    },
-    
-    UI_LAYOUT: {
-      SIDE_PANEL: "ENABLED",
-      TERMINAL_STREAM: "DISABLED",
-      WIDGET_TYPE: "TOGGLE_PANEL"
     }
   };
   
@@ -249,3 +215,8 @@ function createDebugAdapter({ monitoringService, configurator }) {
     verifyConnection
   });
 }
+
+
+
+
+

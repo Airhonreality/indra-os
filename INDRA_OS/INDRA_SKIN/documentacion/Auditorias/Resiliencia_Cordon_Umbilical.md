@@ -1,7 +1,7 @@
 # Auditoría de Resiliencia: El Cordón Umbilical (Core/Front)
 ## Metodología: Auditoría de Coherencia Sistémica y Estructural.
 
-Este documento evalúa la solidez del puente entre el **OrbitalCore (Backend Layer 0)** y la **Manifestación (Frontend Stark)** mediante 5 matrices de alta densidad.
+Este documento evalúa la solidez del puente entre el **INDRACore (Backend Layer 0)** y la **Manifestación (Frontend AXIOM)** mediante 5 matrices de alta densidad.
 
 ---
 
@@ -78,4 +78,9 @@ Evaluación del ciclo de vida de la información en el cordón.
 - **Desincronización Core**: Cambios profundos en el Core que no se reflejen en tiempo real en las leyes front.
 
 ---
-**Conclusión de la Auditoría**: El cordón umbilical es **Resiliente y Stark**. Hemos superado la fase de "Entropía Visual" para entrar en la fase de "Orden Soberano". El sistema es inteligente, liviano y está listo para ser inyectado en un entorno de agentes autónomos via MCP.
+**Conclusión de la Auditoría**: El cordón umbilical es **Resiliente y AXIOM**. Hemos superado la fase de "Entropía Visual" para entrar en la fase de "Orden Soberano". El sistema es inteligente, liviano y está listo para ser inyectado en un entorno de agentes autónomos via MCP.
+
+
+
+
+

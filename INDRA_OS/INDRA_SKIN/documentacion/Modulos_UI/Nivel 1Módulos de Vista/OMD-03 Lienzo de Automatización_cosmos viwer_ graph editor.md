@@ -28,7 +28,7 @@ B. Depuración Viva (Live Debugging)
 Doble Clic en Cable: Inserta automáticamente un nodo OBSERVER (Rol 10) para monitorear el tráfico.
 Hover de Datos: Al pasar el mouse sobre un cable, se invoca una mini-ventana del OMD-10 (Context Explorer) mostrando el último payload que pasó por ahí.
 4. Comportamiento Camaleónico (Adaptatividad)
-Regla de Mutación 01 (Modo Ejecución): Cuando el flujo se activa (PLAY), el lienzo entra en "Stark Mode". Los nodos se vuelven semitransparentes y los cables brillan intensamente según el volumen de datos.
+Regla de Mutación 01 (Modo Ejecución): Cuando el flujo se activa (PLAY), el lienzo entra en "AXIOM Mode". Los nodos se vuelven semitransparentes y los cables brillan intensamente según el volumen de datos.
 Regla de Mutación 02 (Aislamiento): Al seleccionar un nodo, todos los cables y nodos no conectados a él se atenúan (opacity: 0.2), resaltando el "Camino Crítico" de esa lógica.
 5. Estrategia de Scaffolding (Andamiaje)
 Sombra de Proyección: Al arrastrar un nodo desde el catálogo, el lienzo proyecta una sombra en el grid indicando dónde aterrizará y qué puertos tiene.
@@ -55,7 +55,7 @@ JSON
     "interaction_rules": {
       "onConnect": "VALIDATE_MASTERLAW",
       "onDoubleClickCable": "INSERT_OBSERVER",
-      "onPlay": "ACTIVATE_STARK_MODE"
+      "onPlay": "ACTIVATE_AXIOM_MODE"
     }
   }
 }
@@ -65,9 +65,9 @@ El orquestador es el espejo visual del `CoreOrchestrator`. Su verdad proviene de
 
 | Dimensión | Artefacto de Referencia |
 | :--- | :--- |
-| **Artefacto Lógico (Logic)** | [CoreOrchestrator.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/1_Core/CoreOrchestrator.gs) |
-| **Fuentes de Ley (Laws)** | [Spatial_Physics.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/0_Laws/Spatial_Physics.gs) |
-| **Mapeo de Nodos** | [SchemaRegistry.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/1_Core/SchemaRegistry.gs) |
+| **Artefacto Lógico (Logic)** | [CoreOrchestrator.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/1_Core/CoreOrchestrator.gs) |
+| **Fuentes de Ley (Laws)** | [Spatial_Physics.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/0_Laws/Spatial_Physics.gs) |
+| **Mapeo de Nodos** | [SchemaRegistry.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/1_Core/SchemaRegistry.gs) |
 
 ### Métodos Expuestos (Public API)
 - `executeFlow()`: Disparador de ejecución soberana.
@@ -80,3 +80,7 @@ El orquestador es el espejo visual del `CoreOrchestrator`. Su verdad proviene de
 Reducción de la Carga de Error: El sistema de "Cables que Rebotan" y "Puertos que Brillan" elimina el 90% de los errores de conexión antes de que el flujo se ejecute.
 Consciencia Situacional: El "Data Pulse" permite al usuario "sentir" dónde está el cuello de botella de su automatización solo con mirar la velocidad de las partículas.
 Haptic Feedback: Cada conexión exitosa emite una micro-vibración (en dispositivos compatibles) o un "clic" sonoro de alta frecuencia, cerrando el bucle de confirmación humana.
+
+
+
+

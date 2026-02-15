@@ -261,15 +261,11 @@ function createWhatsAppAdapter({ errorHandler, tokenManager }) {
     return normalized;
   }
 
-  // --- INDRA CANON: Definición Soberana ---
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
   const CANON = {
-    LABEL: "WhatsApp Business",
     ARCHETYPE: "ADAPTER",
     DOMAIN: "COMMUNICATION",
-    CAPABILITIES: schemas,
-    VITAL_SIGNS: {
-      "STATUS": { "criticality": "NOMINAL", "value": "CONNECTED" }
-    }
+    CAPABILITIES: schemas
   };
 
   return {
@@ -286,4 +282,9 @@ function createWhatsAppAdapter({ errorHandler, tokenManager }) {
     configureIdentity
   };
 }
+
+
+
+
+
 

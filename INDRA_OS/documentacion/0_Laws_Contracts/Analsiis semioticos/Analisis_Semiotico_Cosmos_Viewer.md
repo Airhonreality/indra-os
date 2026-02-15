@@ -196,3 +196,8 @@ Para levantar esta UI modular sin romper el sistema, seguiremos este orden estri
     1.  Implementar dibujo de aristas (SVG Lines) en `GraphEngine`.
     2.  Definir puertos en `ComponentProjector` (Inputs/Outputs visuales).
     3.  Actualizar `state.phenotype.relationships` al conectar.
+
+
+
+
+

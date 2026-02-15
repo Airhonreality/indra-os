@@ -5,6 +5,7 @@
  * AXIOMA: "El cliente es el observador; la interdicción es su filtro."
  */
 
+import { StateBridge } from '../state/StateBridge';
 import InterdictionUnit from '../state/InterdictionUnit';
 import backendLogger from '../utils/BackendLogger';
 import Validator_IO_node_Data from '../state/Infrastructure/Validator_IO_node_Data';
@@ -299,8 +300,9 @@ class ContextClient {
             if (localStorage.getItem('LAST_ACTIVE_COSMOS_ID') === cosmosId) {
                 localStorage.removeItem('LAST_ACTIVE_COSMOS_ID');
                 // Si la sesión está activa en este cosmos, la matamos
-                if (window.AxiomaticStore && window.AxiomaticStore.dispatch) {
-                    window.AxiomaticStore.dispatch({ type: 'CLEAR_COSMOS_SESSION' });
+                const stateSnapshot = StateBridge.getState();
+                if (stateSnapshot && typeof stateSnapshot.dispatch === 'function') {
+                    stateSnapshot.dispatch({ type: 'CLEAR_COSMOS_SESSION' });
                 }
             }
         } catch (e) {
@@ -322,3 +324,6 @@ class ContextClient {
 
 export const contextClient = new ContextClient();
 export default contextClient;
+
+
+

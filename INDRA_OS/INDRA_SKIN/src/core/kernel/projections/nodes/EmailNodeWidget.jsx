@@ -58,3 +58,6 @@ const EmailNodeWidget = ({ data, execute }) => {
 };
 
 export default EmailNodeWidget;
+
+
+

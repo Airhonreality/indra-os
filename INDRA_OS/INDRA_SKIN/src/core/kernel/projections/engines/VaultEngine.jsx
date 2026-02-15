@@ -20,12 +20,30 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
     const isDevLab = state.sovereignty.mode === 'DEV_LAB';
 
     // AXIOMA: Soberanía de Origen (Selector Interno)
-    const VAULT_SOURCES = [
-        { id: 'drive', label: 'GDrive', icon: 'Vault', color: '#4285F4' },
-        { id: 'notion', label: 'Notion', icon: 'List', color: '#000000' },
-        { id: 'local', label: 'Local', icon: 'Desktop', color: '#FF9800' },
-        { id: 'cosmos', label: 'Cosmos', icon: 'Cosmos', color: '#9C27B0' } // LENTE DE REALIDAD
-    ];
+    // AXIOMA: Soberanía de Origen (Descubrimiento Dinámico)
+    const VAULT_SOURCES = React.useMemo(() => {
+        const registry = state.genotype?.COMPONENT_REGISTRY || {};
+        const discovered = Object.values(registry)
+            .filter(node =>
+                node.ARCHETYPE === 'VAULT' ||
+                node.ARCHETYPE === 'ADAPTER' ||
+                node.DOMAIN === 'STORAGE'
+            )
+            .map(node => ({
+                id: node.id,
+                label: node.LABEL || node.id,
+                icon: node.id === 'drive' ? 'Vault' : (node.id === 'notion' ? 'List' : 'ADAPTER'),
+                color: node.id === 'drive' ? '#4285F4' : '#6366F1'
+            }));
+
+        // Inyectamos fuentes virtuales y fallbacks canónicos
+        const sources = [...discovered];
+        if (!sources.find(s => s.id === 'drive')) sources.unshift({ id: 'drive', label: 'GDrive', icon: 'Vault', color: '#4285F4' });
+        if (!sources.find(s => s.id === 'cosmos')) sources.push({ id: 'cosmos', label: 'Cosmos', icon: 'Cosmos', color: '#9C27B0' });
+
+        return sources;
+    }, [state.genotype?.COMPONENT_REGISTRY]);
+
     // AXIOMA: Soberanía de Identidad Sugerida. 
     // Priorizamos el ID que viene del contrato (data.id) sobre el valor por defecto.
     const initialSource = (data.id || 'drive').toLowerCase();
@@ -42,7 +60,7 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
     const nodeId = activeSource.toLowerCase();
     const { label: statusLabel, progress, color: signifierColor, pulse } = useSignifier(nodeId);
 
-    const isSidebar = slotId?.includes('SIDEBAR');
+
 
     // 1. State Definitions (Axiomatic Refactor)
     const [command, setCommand] = useState('');
@@ -93,16 +111,37 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
         setCommand('');
     }, [nodeId]);
 
+    // AXIOMA: Reconciliación de Identidad (Refresco ante cambio de cuenta)
+    useEffect(() => {
+        if (activeAccount && activeSource !== 'cosmos') {
+            console.log(`[VaultEngine] Identity Shift Detected (${activeAccount}). Refreshing Silo...`);
+            execute('FETCH_VAULT_CONTENT', {
+                nodeId,
+                folderId: currentPath[currentPath.length - 1].id,
+                accountId: activeAccount,
+                refresh: true
+            });
+        }
+    }, [activeAccount]);
+
+
     // AXIOMA: Soberanía de Datos (ADR-010: Imperative Hydration + ADR-014: Pure State)
     // ÚNICA FUENTE DE VERDAD: state.phenotype.artifacts
-    const rawSiloData = activeSource === 'cosmos'
-        ? (state.phenotype.artifacts || [])
-        : (() => {
-            const silo = state.phenotype.silos?.[nodeId];
-            if (!silo) return [];
-            if (Array.isArray(silo)) return silo; // Backward compatibility
-            return silo.results || silo.items || silo.rows || [];
-        })();
+    // AXIOMA: Recuperación y Aplanamiento de la Data (Prioridad: Props > Silo > Auto-Fetch)
+    const rawSiloData = useMemo(() => {
+        // 1. Prioridad: Data inyectada directamente (Mocks o Prefetch)
+        const injectedData = data.items || data.results || data.rows || data.data?.items || data.data?.results;
+        if (Array.isArray(injectedData)) return injectedData;
+
+        // 2. Prioridad: Modo Cosmos (Grafo Local)
+        if (activeSource === 'cosmos') return state.phenotype.artifacts || [];
+
+        // 3. Prioridad: Silos de Memoria (Caché L1)
+        const silo = state.phenotype.silos?.[nodeId];
+        if (!silo) return [];
+        if (Array.isArray(silo)) return silo;
+        return silo.results || silo.items || silo.rows || [];
+    }, [data, activeSource, state.phenotype.artifacts, state.phenotype.silos, nodeId]);
 
     // AXIOMA: Deduplicación Determinista (Prevención de Duplicate Keys)
     // Si el mismo ID aparece múltiples veces (bug de hidratación), GANAMOS el más reciente/completo.
@@ -207,8 +246,9 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
             // AXIOMA: Búsqueda Inducida (Profundización Constante)
             // Si no es un comando de protocolo, disparamos búsqueda remota en el Core.
             if (command && !command.startsWith('/')) {
-                execute('FETCH_VAULT_CONTENT', { nodeId, query: command });
+                execute('FETCH_VAULT_CONTENT', { nodeId, query: command, accountId: activeAccount });
             }
+
 
             // Usamos un timeout para simular latencia de escaneo y resetear UI
             setTimeout(() => setLocalScanning(false), 800);
@@ -531,7 +571,7 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                         ))}
 
                         {/* SELECTOR DE IDENTIDAD (Multi-Account Support) */}
-                        {accounts.length > 1 && (
+                        {accounts.length > 0 && (
                             <div className="ml-auto flex items-center gap-2 px-3 border-l border-[var(--border-subtle)]">
                                 <span className="text-[7px] font-black text-[var(--text-dim)] uppercase tracking-tighter">Identity:</span>
                                 <select
@@ -545,6 +585,13 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                                         </option>
                                     ))}
                                 </select>
+                                <button
+                                    onClick={() => execute('SELECT_ARTIFACT', { id: 'IDENTITY_MANAGER', ARCHETYPE: 'IDENTITY', LABEL: 'Identity Manager', provider: activeSource })}
+                                    className="p-1.5 rounded-lg hover:bg-white/5 text-[var(--text-dim)] hover:text-[var(--accent)] transition-all"
+                                    title="Gestionar Cuentas"
+                                >
+                                    <Icons.Settings size={12} />
+                                </button>
                             </div>
                         )}
                     </nav>
@@ -825,3 +872,6 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
 };
 
 export default VaultEngine;
+
+
+

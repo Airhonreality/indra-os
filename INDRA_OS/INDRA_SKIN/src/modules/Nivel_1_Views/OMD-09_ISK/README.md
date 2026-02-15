@@ -22,3 +22,6 @@ El ISK se comunica con los servicios globales mediante un bus de eventos agnóst
 *   `isk-spawn-entity`: Emitido por HUD, escuchado por Canvas.
 *   `isk-entity-selected`: Emitido por Canvas, escuchado por el Context Inspector.
 *   `indra/variable`: Draggable desde el Context Explorer hacia cualquier slot del Inspector.
+
+
+

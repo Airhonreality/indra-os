@@ -14,7 +14,7 @@ function createIntelligenceOrchestrator({ errorHandler, configurator, driveAdapt
    */
   function _saveCognitiveSession(prompt, response, history, model) {
     try {
-      const folderId = configurator.retrieveParameter({ key: 'ORBITAL_FOLDER_MEMORY_ID' });
+      const folderId = configurator.retrieveParameter({ key: 'INDRA_FOLDER_MEMORY_ID' });
       if (!folderId) return;
 
       const fullHistory = [...history, { io_behavior: 'user', content: prompt }, { io_behavior: 'assistant', content: response }];
@@ -57,7 +57,7 @@ function createIntelligenceOrchestrator({ errorHandler, configurator, driveAdapt
   }
 
   /**
-   * Main interaction point for the ORBITAL ARCHITECT.
+   * Main interaction point for the Indra ARCHITECT.
    * Optimized for token efficiency via Dynamic Tooling.
    */
   function askArchitect({ prompt, history, model, accountId, currentFlow, nodes }) {
@@ -76,7 +76,7 @@ function createIntelligenceOrchestrator({ errorHandler, configurator, driveAdapt
     
     // Obtenemos el prompt soberano de las Leyes
     const architectLaw = (typeof COGNITIVE_PROMPTS !== 'undefined') 
-                        ? COGNITIVE_PROMPTS.SYSTEM_ROLES.ORBITAL_ARCHITECT 
+                        ? COGNITIVE_PROMPTS.SYSTEM_ROLES.INDRA_ARCHITECT 
                         : null;
 
     if (!architectLaw) throw errorHandler.createError('SYSTEM_FAILURE', '[Intelligence] COGNITIVE_PROMPTS Law not found.');
@@ -150,12 +150,10 @@ function createIntelligenceOrchestrator({ errorHandler, configurator, driveAdapt
     }
   }
 
-  // --- SOVEREIGN CANON V8.0 ---
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
   const CANON = {
-      LABEL: "Orbital Architect",
       ARCHETYPE: "ORCHESTRATOR",
       DOMAIN: "INTELLIGENCE",
-      SEMANTIC_INTENT: "BRAIN",
       CAPABILITIES: {
           "askArchitect": {
               "io": "READ",
@@ -167,24 +165,13 @@ function createIntelligenceOrchestrator({ errorHandler, configurator, driveAdapt
                   "currentFlow": { "type": "object", "optional": true }
               }
           }
-      },
-      VITAL_SIGNS: {
-          "COGNITION": { "criticality": "NOMINAL", "value": "HIGH", "trend": "stable" }
-      },
-      UI_LAYOUT: {
-          "SIDE_PANEL": "ENABLED",
-          "TERMINAL_STREAM": "ENABLED"
       }
   };
 
   return {
-    CANON,
-    id: "orbital_architect",
-    label: "Orbital Architect",
+    CANON: CANON,
+    id: "INDRA_architect",
     description: "Industrial reasoning engine for workspace orchestration and AI-driven topological design.",
-    archetype: "ORCHESTRATOR",
-    domain: "INTELLIGENCE",
-    semantic_intent: "BRAIN",
     
     // Legacy Bridge
     get schemas() {
@@ -198,7 +185,13 @@ function createIntelligenceOrchestrator({ errorHandler, configurator, driveAdapt
         return s;
     },
 
+    label: "Indra Architect",
     askArchitect
   };
 }
+
+
+
+
+
 

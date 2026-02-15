@@ -102,3 +102,6 @@ const LogFilter = ({ filters, setFilters, logs }) => {
 };
 
 export default LogFilter;
+
+
+

@@ -31,3 +31,8 @@ Los tests de Indra OS están diseñados para ser **informativos, no poéticos**:
 
 > [!IMPORTANT]
 > **Regla de Oro:** Nunca hagas un `clasp push` si `ContractCompliance` reporta deudas técnicas superiores al 0%. La soberanía no admite excepciones.
+
+
+
+
+

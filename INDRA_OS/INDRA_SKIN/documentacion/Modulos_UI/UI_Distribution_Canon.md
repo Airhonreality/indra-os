@@ -109,3 +109,8 @@ Para garantizar la **Soberanía Mental**, la interfaz debe respetar los límites
 | OMD-07 | SIDE_PRI | 320px | 50%* | Recuperación de Memoria |
 | OMD-08 | SIDE_PRI | 320px | 50%* | Adquisición de Potencia |
 | OMD-09 | CANVAS | 100% | 100% | Transmutación de Realidad |
+
+
+
+
+

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAxiomaticStore } from '../../../core/state/AxiomaticStore';
-import ComponentProjector from '../../../core/kernel/ComponentProjector';
+import ProjectionMatrix from '../../../core/kernel/ProjectionMatrix';
 
 /**
  * ProjectionDeck
@@ -58,7 +58,7 @@ const ProjectionDeck = ({ componentId, data, perspective, isTesting }) => {
 
                         {/* PROYECTOR AXIOMÁTICO (El Corazón del Lab) */}
                         <div className="flex-1 relative overflow-hidden">
-                            <ComponentProjector
+                            <ProjectionMatrix
                                 componentId={componentId}
                                 data={renderData}
                                 perspective={perspective}
@@ -88,3 +88,6 @@ const ProjectionDeck = ({ componentId, data, perspective, isTesting }) => {
 };
 
 export default ProjectionDeck;
+
+
+

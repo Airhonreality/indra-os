@@ -9,8 +9,23 @@
  * @param {object} dependencies - Dependencias inyectadas.
  * @returns {object} El adaptador congelado.
  */
-function createMapsAdapter({ errorHandler }) {
+function createMapsAdapter({ errorHandler, tokenManager }) {
     if (!errorHandler) throw new Error("MapsAdapter: errorHandler is required");
+
+    /**
+     * @description Obtiene el token para una cuenta de Google (Cloud API Key).
+     * @param {string|null} accountId 
+     * @returns {string|null} API Key o null si debe usar el servicio nativo de GAS
+     */
+    function _getAccessToken(accountId) {
+      if (!tokenManager) return null;
+      try {
+        const tokenData = tokenManager.getToken({ provider: 'google', accountId });
+        return tokenData ? (tokenData.accessToken || tokenData.apiKey) : null;
+      } catch (e) {
+        return null;
+      }
+    }
 
     const schemas = {
         getTravelTime: {
@@ -166,16 +181,12 @@ function createMapsAdapter({ errorHandler }) {
         }
     }
 
-    // --- INDRA CANON: Definición Soberana ---
-    const CANON = {
-        LABEL: "Maps Interface",
-        ARCHETYPE: "ADAPTER",
-        DOMAIN: "SPATIAL",
-        CAPABILITIES: schemas,
-        VITAL_SIGNS: {
-            "LATENCY": { "criticality": "NOMINAL", "value": "25ms" }
-        }
-    };
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+  const CANON = {
+      ARCHETYPE: "ADAPTER",
+      DOMAIN: "SPATIAL",
+      CAPABILITIES: schemas
+  };
 
     return {
         description: "Industrial engine for geolocalization, logistical rounting, and spatial coordinate transformation.",
@@ -184,10 +195,16 @@ function createMapsAdapter({ errorHandler }) {
         schemas: schemas,
         // Protocol mapping (SYS_V1)
         verifyConnection,
+        setTokenManager: (tm) => { tokenManager = tm; },
         // Original methods
         getTravelTime,
         findNearby,
         geocode
     };
 }
+
+
+
+
+
 

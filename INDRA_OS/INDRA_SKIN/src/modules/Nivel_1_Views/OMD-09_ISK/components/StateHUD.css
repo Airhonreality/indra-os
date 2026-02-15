@@ -11,7 +11,7 @@
     background: var(--bg-tertiary, #151515);
     border-top: 1px solid var(--border-color, #333);
     padding: 0 16px;
-    font-family: var(--stark-font, monospace);
+    font-family: var(--axiom-font, monospace);
     font-size: 11px;
     user-select: none;
     color: var(--text-dim, #888);
@@ -61,7 +61,7 @@
     cursor: pointer;
     font-size: 11px;
     font-weight: 600;
-    font-family: var(--stark-font, sans-serif);
+    font-family: var(--axiom-font, sans-serif);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -89,3 +89,6 @@
     font-size: 10px;
     letter-spacing: 1px;
 }
+
+
+

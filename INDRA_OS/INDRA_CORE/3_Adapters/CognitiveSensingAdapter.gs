@@ -25,7 +25,7 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
   }
 
   function discoverSeed(input) {
-    const { rootName = 'ORBITAL_ROOT' } = input || {};
+    const { rootName = 'INDRA_ROOT' } = input || {};
     try {
       const results = driveAdapter.find({ query: `name = '${rootName}' and mimeType = 'application/vnd.google-apps.folder'` });
       if (results.foundItems && results.foundItems.length > 0) {
@@ -38,7 +38,7 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
   }
 
   function initializeSeed(input) {
-    const { rootName = 'ORBITAL_ROOT' } = input || {};
+    const { rootName = 'INDRA_ROOT' } = input || {};
     try {
       const result = driveAdapter.resolvePath({ 
         rootFolderId: 'root', 
@@ -244,7 +244,7 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
         // o mapeamos categorías específicas.
         let targetFolderId;
         if (path === '/') {
-            targetFolderId = configurator.retrieveParameter({ key: 'ORBITAL_CORE_ROOT_ID' });
+            targetFolderId = configurator.retrieveParameter({ key: 'INDRA_CORE_ROOT_ID' });
         } else {
             // Lógica de resolución de path (ej: indra://proyectos -> ID de carpetaproyectos)
             const resolved = driveAdapter.resolvePath({ path: path.replace('indra://', '') });
@@ -337,7 +337,7 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
       };
 
       // 2. Persistencia Atómica con Anclaje Físico (REPARADO V12.1)
-      const flowsFolderId = configurator.retrieveParameter({ key: 'ORBITAL_FOLDER_FLOWS_ID' });
+      const flowsFolderId = configurator.retrieveParameter({ key: 'INDRA_FOLDER_FLOWS_ID' });
       const isNew = cosmosId.toString().startsWith('temp_');
 
       const storePayload = {
@@ -522,13 +522,16 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
     }
   }
 
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+  const CANON = {
+      ARCHETYPE: "ADAPTER",
+      DOMAIN: "SENSING",
+      CAPABILITIES: schemas
+  };
+
   return {
-    id: "sensing",
-    label: "Cognitive Sensor",
-    archetype: "ADAPTER",
-    domain: "SENSING",
+    CANON: CANON,
     description: "Industrial engine for system-wide introspection, multi-layered sensing, and deterministic diagnostic circuits.",
-    semantic_intent: "SENSOR",
     schemas: schemas,
     // Protocol mapping (ORACLE_V1)
     search: find,
@@ -552,4 +555,9 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
     validateArtifact: (artifact, type) => blueprintRegistry.validatePayload(artifact, blueprintRegistry.ARTIFACT_SCHEMAS[type])
   };
 }
+
+
+
+
+
 

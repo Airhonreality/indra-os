@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import compiler from '../../core/laws/Law_Compiler';
-import ComponentProjector from '../../core/kernel/ComponentProjector';
+import ProjectionMatrix from '../../core/kernel/ProjectionMatrix';
 import Icons from '../../4_Atoms/IndraIcons';
 import { useAxiomaticStore } from '../../core/state/AxiomaticStore';
 
@@ -108,7 +108,7 @@ const DefaultSkeleton = ({ law, cosmosContext, phenotype, slotId, perspective = 
                         {Icons.ChevronRight ? <Icons.ChevronRight className="rotate-180" size={14} /> : '←'}
                     </button>
                 )}
-                <ComponentProjector
+                <ProjectionMatrix
                     componentId={activeComponentId}
                     cosmosContext={cosmosContext}
                     phenotype={phenotype}
@@ -183,3 +183,6 @@ const DefaultSkeleton = ({ law, cosmosContext, phenotype, slotId, perspective = 
 };
 
 export default DefaultSkeleton;
+
+
+

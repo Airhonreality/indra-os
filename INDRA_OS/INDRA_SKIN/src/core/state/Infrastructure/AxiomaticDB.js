@@ -107,3 +107,6 @@ class AxiomaticDB {
 
 const instance = new AxiomaticDB();
 export default instance;
+
+
+

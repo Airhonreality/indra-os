@@ -22,13 +22,13 @@ var SystemAssembler = createSystemAssembler();
 function _buildSystemContext({ constitution, configurator, accountId = 'system', cosmosId = null }) {
   if (!configurator) throw new Error("_buildSystemContext requiere la dependencia 'configurator'.");
   try {
-    const anchorKey = constitution?.ANCHOR_PROPERTY || 'ORBITAL_CORE_ROOT_ID';
+    const anchorKey = constitution?.ANCHOR_PROPERTY || 'CORE_ROOT';
     const rootFolderId = configurator.retrieveParameter({ key: anchorKey });
-    const flowsFolderId = configurator.retrieveParameter({ key: 'ORBITAL_FOLDER_FLOWS_ID' });
-    const templatesFolderId = configurator.retrieveParameter({ key: 'ORBITAL_FOLDER_TEMPLATES_ID' });
-    const assetsFolderId = configurator.retrieveParameter({ key: 'ORBITAL_FOLDER_ASSETS_ID' });
-    const outputFolderId = configurator.retrieveParameter({ key: 'ORBITAL_FOLDER_OUTPUT_ID' });
-    // ADN Transaccional (Estado de Gracia)
+    const flowsFolderId = configurator.retrieveParameter({ key: 'CORE_FLOWS_ID' });
+    const templatesFolderId = configurator.retrieveParameter({ key: 'CORE_TEMPLATES_ID' });
+    const assetsFolderId = configurator.retrieveParameter({ key: 'CORE_ASSETS_ID' });
+    const outputFolderId = configurator.retrieveParameter({ key: 'CORE_OUTPUT_ID' });
+    
     return { 
       accountId, 
       cosmosId, 
@@ -59,18 +59,14 @@ function _assembleServerOnlyStack(factories, monitoringService, overrides = {}, 
   const configurator = overrides.configurator || createConfigurator({ manifest: constitution, errorHandler });
   const keyGenerator = overrides.keyGenerator || createKeyGenerator();
   const connectionTester = overrides.connectionTester || createConnectionTester({ errorHandler });
-  const driveAdapter = overrides.driveAdapter || createDriveAdapter({ errorHandler });
-  const sheetAdapter = overrides.sheetAdapter || createSheetAdapter({ errorHandler, driveAdapter });
-  
-  const googleDocsAdapter = overrides.googleDocsAdapter || createGoogleDocsAdapter({ errorHandler, driveAdapter });
-  const googleSlidesAdapter = overrides.googleSlidesAdapter || createGoogleSlidesAdapter({ errorHandler, driveAdapter });
-  const googleFormsAdapter = overrides.googleFormsAdapter || createGoogleFormsAdapter({ errorHandler, driveAdapter });
-  const cipherAdapter = overrides.cipherAdapter || createCipherAdapter({ errorHandler });
-  
   const effectiveMonitor = overrides.monitoringService || monitoringService || { 
     logDebug: () => {}, logInfo: () => {}, logWarn: () => {}, logError: () => {},
     logEvent: () => {}, sendCriticalAlert: () => {}
   };
+
+  const driveAdapter = overrides.driveAdapter || createDriveAdapter({ errorHandler, monitoringService: effectiveMonitor });
+  const sheetAdapter = overrides.sheetAdapter || createSheetAdapter({ errorHandler, driveAdapter });
+  const cipherAdapter = overrides.cipherAdapter || createCipherAdapter({ errorHandler });
 
   let tokenManager;
   try {
@@ -79,12 +75,22 @@ function _assembleServerOnlyStack(factories, monitoringService, overrides = {}, 
     if (effectiveMonitor.logError) effectiveMonitor.logError(`[ServerStack] Critical failure creating TokenManager: ${e.message}`);
     tokenManager = { label: 'BROKEN_TokenManager', isBroken: true, error: e.message };
   }
+
+  const googleDocsAdapter = overrides.googleDocsAdapter || createGoogleDocsAdapter({ errorHandler, driveAdapter, tokenManager });
+  const googleSlidesAdapter = overrides.googleSlidesAdapter || createGoogleSlidesAdapter({ errorHandler, driveAdapter, tokenManager });
+  const googleFormsAdapter = overrides.googleFormsAdapter || createGoogleFormsAdapter({ errorHandler, driveAdapter, tokenManager });
   const googleDriveRestAdapter = overrides.googleDriveRestAdapter || createGoogleDriveRestAdapter({ errorHandler, tokenManager });
   
   if (configurator && configurator.setTokenManager) configurator.setTokenManager(tokenManager);
+  if (driveAdapter.setTokenManager) driveAdapter.setTokenManager(tokenManager);
+  if (sheetAdapter.setTokenManager) sheetAdapter.setTokenManager(tokenManager);
+  if (googleDocsAdapter.setTokenManager) googleDocsAdapter.setTokenManager(tokenManager);
+  if (googleSlidesAdapter.setTokenManager) googleSlidesAdapter.setTokenManager(tokenManager);
+  if (googleFormsAdapter.setTokenManager) googleFormsAdapter.setTokenManager(tokenManager);
 
   const renderEngine = overrides.renderEngine || createRenderEngine({ errorHandler, monitoringService: effectiveMonitor });
-  const calendarAdapter = overrides.calendarAdapter || createCalendarAdapter({ errorHandler });
+  const calendarAdapter = overrides.calendarAdapter || createCalendarAdapter({ errorHandler, tokenManager });
+  if (calendarAdapter.setTokenManager) calendarAdapter.setTokenManager(tokenManager);
 
   const blueprintRegistry = overrides.blueprintRegistry || createBlueprintRegistry({ laws });
   const flowCompiler = overrides.flowCompiler || createFlowCompiler({ errorHandler, blueprintRegistry });
@@ -148,8 +154,7 @@ function _assembleExecutionStack(overrides = {}) {
     semantic_intent: "SCHEMA",
     constitution: typeof SYSTEM_CONSTITUTION !== 'undefined' ? SYSTEM_CONSTITUTION : {},
     axioms: typeof LOGIC_AXIOMS !== 'undefined' ? LOGIC_AXIOMS : {},
-    topology: typeof SYSTEM_HIERARCHY !== 'undefined' ? SYSTEM_HIERARCHY : {},
-    distribution: typeof UI_DISTRIBUTION !== 'undefined' ? UI_DISTRIBUTION : {}
+    topology: typeof SYSTEM_HIERARCHY !== 'undefined' ? SYSTEM_HIERARCHY : {}
   });
 
   const laws = overrides.laws || SOVEREIGN_LAWS;
@@ -189,8 +194,6 @@ function _assembleExecutionStack(overrides = {}) {
 
   // ============================================================
   // AXIOMA V8.4: Inyección Centralizada de Dependencias
-  // Todos los adaptadores reciben el mismo conjunto base de deps.
-  // Esto elimina hardcoding y garantiza consistencia.
   // ============================================================
   
   const baseAdapterDeps = {
@@ -202,35 +205,65 @@ function _assembleExecutionStack(overrides = {}) {
     keyGenerator: serverStack.keyGenerator
   };
 
-  // Adaptadores con creación segura (ahora usando baseAdapterDeps)
-  const lowFiPdfAdapter = overrides.lowFiPdfAdapter || _safeCreate('LowFi_PdfAdapter', createLowFi_PdfAdapter, baseAdapterDeps);
-  
-  const notionAdapter = overrides.notionAdapter || _safeCreate('NotionAdapter', createNotionAdapter, baseAdapterDeps);
-  if (!notionAdapter) console.error('[SystemAssembler] CRITICAL: NotionAdapter is UNDEFINED after creation attempt.');
-  
-  const emailAdapter = overrides.emailAdapter || _safeCreate('EmailAdapter', createEmailAdapter, baseAdapterDeps);
-  const llmAdapter = overrides.llmAdapter || _safeCreate('LLMAdapter', createLLMAdapter, baseAdapterDeps);
-  const mapsAdapter = overrides.mapsAdapter || _safeCreate('MapsAdapter', createMapsAdapter, baseAdapterDeps);
-  
-  const whatsappAdapter = overrides.whatsappAdapter || _safeCreate('WhatsAppAdapter', createWhatsAppAdapter, baseAdapterDeps);
-  const instagramAdapter = overrides.instagramAdapter || _safeCreate('InstagramAdapter', createInstagramAdapter, baseAdapterDeps);
-  const tiktokAdapter = overrides.tiktokAdapter || _safeCreate('TikTokAdapter', createTikTokAdapter, baseAdapterDeps);
+  /**
+   * AXIOMA V14: Auto-Descubrimiento Universal (ADR-006)
+   * Escanea el entorno global e instaura la soberanía de los adaptadores.
+   * Ahora incluye agregadores (Messenger, YouTube) resolviendo sus dependencias en runtime.
+   */
+  function _discoverAllAdapters(baseDeps, overrides) {
+    const discovered = {};
+    const global = (typeof globalThis !== 'undefined') ? globalThis : (function() { return this; })();
+    
+    // Lista de fábricas disponibles
+    const factories = Object.keys(global).filter(key => key.startsWith('create') && key.endsWith('Adapter'));
 
-  const messengerAdapter = overrides.messengerAdapter || _safeCreate('MessengerAdapter', createMessengerAdapter, { 
-    ...baseAdapterDeps,
-    adapters: {
-      whatsapp: whatsappAdapter,
-      instagram: instagramAdapter,
-      tiktok: tiktokAdapter
-    }
-  });
+    // 1. Instanciar Adaptadores Atómicos (Los que no dependen de otros adaptadores)
+    factories.forEach(key => {
+      const adapterName = key.replace('create', '').replace('Adapter', '');
+      const nodeKey = adapterName.toLowerCase();
+      
+      // AXIOMA: Filtrado de Identidad (No instanciar mocks ni núcleos protegidos)
+      if (adapterName.startsWith('Mock')) return;
 
-  const oracleAdapter = overrides.oracleAdapter || _safeCreate('OracleAdapter', createOracleAdapter, baseAdapterDeps);
-  const audioAdapter = overrides.audioAdapter || _safeCreate('AudioAdapter', createAudioAdapter, baseAdapterDeps);
-  const youtubeAdapter = overrides.youtubeAdapter || _safeCreate('YouTubeAdapter', createYouTubeAdapter, { 
-    ...baseAdapterDeps,
-    sensingService: oracleAdapter 
-  });
+      const protectedList = [
+        'DriveAdapter', 'SheetAdapter', 'CalendarAdapter', 'TokenManager', 
+        'PublicAPI', 'CognitiveSensingAdapter', 'SpatialProjectionAdapter',
+        'IntelligenceOrchestrator'
+      ];
+      
+      if (protectedList.includes(adapterName + 'Adapter') || protectedList.includes(adapterName) || overrides[nodeKey] || overrides[nodeKey + 'Adapter']) return;
+
+      try {
+        if (typeof global[key] === 'function') {
+          // Inyectamos las dependencias base.
+          discovered[nodeKey] = _safeCreate(adapterName + 'Adapter', global[key], baseDeps);
+        }
+      } catch (e) {
+        console.warn(`[SystemAssembler] Salto inicial de ${key}: ${e.message}`);
+      }
+    });
+
+    // 2. Resolver Dependencias Cruzadas (Agregadores)
+    factories.forEach(key => {
+      const adapterName = key.replace('create', '').replace('Adapter', '');
+      const nodeKey = adapterName.toLowerCase();
+      
+      const isAggregator = ['Messenger', 'YouTube'].includes(adapterName);
+      if (isAggregator) {
+        const aggregatorDeps = {
+          ...baseDeps,
+          adapters: discovered,
+          sensingService: discovered.oracle
+        };
+        discovered[nodeKey] = _safeCreate(adapterName + 'Adapter', global[key], aggregatorDeps);
+      }
+    });
+    
+    return discovered;
+  }
+
+  // --- IGNICIÓN DE DESCUBRIMIENTO ---
+  const discovered = _discoverAllAdapters(baseAdapterDeps, overrides);
   
   // Debug Adapter (Logging Control)
   const debugAdapter = overrides.debugAdapter || _safeCreate('DebugAdapter', createDebugAdapter, { 
@@ -278,9 +311,6 @@ function _assembleExecutionStack(overrides = {}) {
   const collectionService = createCollectionService({ errorHandler: serverStack.errorHandler, renderEngine: serverStack.renderEngine });
   const flowControlService = createFlowControlService({ errorHandler: serverStack.errorHandler });
 
-
-
-
   const cosmosEngine = overrides.cosmosEngine || _safeCreate('CosmosEngine', createCosmosEngine, {
     driveAdapter: serverStack.driveAdapter,
     configurator: serverStack.configurator,
@@ -289,35 +319,30 @@ function _assembleExecutionStack(overrides = {}) {
     validator: serverStack.realityValidator // Mapeo correcto: realityValidator -> validator
   });
 
-  const nodesRegistry = { 
+  // --- REGISTRO CENTRAL DE NODOS ---
+  const initialNodes = {
     drive: serverStack.driveAdapter, 
-    sheet: serverStack.sheetAdapter, 
-    email: emailAdapter, 
-    notion: notionAdapter,
-    llm: llmAdapter,
-    maps: mapsAdapter,
-    messenger: messengerAdapter,
-    whatsapp: whatsappAdapter,
-    instagram: instagramAdapter,
-    tiktok: tiktokAdapter,
-    oracle: oracleAdapter,
-    audio: audioAdapter,
-    youtube: youtubeAdapter,
-    debug: debugAdapter,
+    sheet: serverStack.sheetAdapter,
+    calendar: serverStack.calendarAdapter,
+    googleDriveRest: serverStack.googleDriveRestAdapter,
+    googleDocs: serverStack.googleDocsAdapter,
+    googleSlides: serverStack.googleSlidesAdapter,
+    googleForms: serverStack.googleFormsAdapter,
+    cipher: serverStack.cipherAdapter,
+    debug: debugAdapter
+  };
+
+  const nodesRegistry = { 
+    ...initialNodes,
+    ...discovered,
     isk: spatialProjectionAdapter,
     monitoring: serverStack.monitoringService,
-    calendar: serverStack.calendarAdapter,
     config: serverStack.configurator,
     sensing: sensingAdapter, 
     tokenManager: serverStack.tokenManager,
     metabolism: metabolicService,
     networkDispatcher: networkDispatcher, // Burst mode infrastructure
-    googleDriveRest: serverStack.googleDriveRestAdapter,
-    googleDocs: serverStack.googleDocsAdapter,
-    googleSlides: serverStack.googleSlidesAdapter,
-    googleForms: serverStack.googleFormsAdapter,
     adminTools: adminTools,
-    cipher: serverStack.cipherAdapter, 
     // CAPA 8: CONTROL GATEWAY (Federal Agents)
     commander: serverStack.sessionCommander,
     validator: serverStack.realityValidator,
@@ -351,74 +376,60 @@ function _assembleExecutionStack(overrides = {}) {
     if (!node || typeof node !== 'object') return node;
 
     // AXIOMA: Mutability for Decoration
-    // Si el nodo está congelado (Object.freeze), debemos clonarlo para poder decorarlo.
     if (Object.isFrozen(node)) {
       node = { ...node }; 
     }
 
-    // AXIOMA V8.0: Auto-Descubrimiento Canónico (Fractal Sovereignty)
-    // Prioridad 1: El Canon interno del Artefacto (Definición Soberana)
-    // Prioridad 2: La Constitución Central (Override de Sistema)
-    
+    // AXIOMA V8.0: Auto-Descubrimiento Canónico
     const internalCanon = (typeof node.getCanon === 'function') ? node.getCanon() : (node.CANON || {});
     const centralConfig = registryMetadata[key.toUpperCase()] || {};
 
-    // Fusión de Identidad (Soberanía Pura Indra v8.0)
-    // El Artefacto es la fuente primaria, pero la Constitución puede aplicar leyes globales.
-    const finalIdentity = {
-        id: key.toLowerCase(), // AXIOMA: Identidad Persistente (L7) como base
-        ...centralConfig,      // Leyes Constitucionales (Overrides)
-        ...internalCanon,     // Soberanía del Artefacto (Verdad Viva)
+    // Fusión de Identidad V15 (Technical Sovereignty)
+    // LABEL y DESCRIPTION son GENOTIPO (Autodefinición del Adaptador).
+    // ICON y otros metadatos visuales son FENOTIPO (Capa Skin).
+    const sovereignCanon = {
+        id: key.toLowerCase(), 
         LABEL: internalCanon.LABEL || centralConfig.LABEL || key,
+        DESCRIPTION: internalCanon.DESCRIPTION || centralConfig.DESCRIPTION || node.description || "",
         ARCHETYPE: internalCanon.ARCHETYPE || centralConfig.ARCHETYPE || "SERVICE", 
         DOMAIN: internalCanon.DOMAIN || centralConfig.DOMAIN || "SYSTEM_CORE",
-        SEMANTIC_INTENT: internalCanon.SEMANTIC_INTENT || centralConfig.SEMANTIC_INTENT || "STREAM",
         CAPABILITIES: internalCanon.CAPABILITIES || centralConfig.CAPABILITIES || node.schemas || {},
-        VITAL_SIGNS: internalCanon.VITAL_SIGNS || centralConfig.VITAL_SIGNS || {},
         DATA_CONTRACT: internalCanon.DATA_CONTRACT || centralConfig.DATA_CONTRACT || node.schemas || {} 
     };
 
-    // Asegurar que el ID no se pierda en el spread si venía algo raro
-    finalIdentity.id = key.toLowerCase();
+    // Propiedades Visuales (Fenotipo) - Se extraen del Canon para la Skin
+    const fenotype = {
+        SEMANTIC_INTENT: internalCanon.SEMANTIC_INTENT || centralConfig.SEMANTIC_INTENT || "STREAM"
+        // VITAL_SIGNS ha sido removido del Core por falta de claridad ontológica
+    };
 
-    // Decoración In-Place (Mutación controlada de la referencia local)
-    // Inyectamos la identidad procesada en una propiedad estandarizada 'canon'
-    node.canon = finalIdentity;
+    node.canon = sovereignCanon; // ✅ Canon Técnico (Genotipo)
     
-    // Y también en la raíz del objeto para accesos directos legacy
-    // IMPORTANTE: No sobrescribir métodos functionales
-    if (!node.label) node.label = finalIdentity.LABEL;
-    if (!node.domain) node.domain = finalIdentity.DOMAIN;
-    if (!node.semantic_intent) node.semantic_intent = finalIdentity.SEMANTIC_INTENT;
-
-    // Inyectar identidad en el nodo vivo
+    // Inyectar propiedades legacy en el nodo para compatibilidad
     node.id = key;
-    node.label = finalIdentity.LABEL;
-    // AXIOMA V8.0: Dual-Binding de Identidad (Singular Legacy + Plural Soberano)
-    node.archetype = finalIdentity.ARCHETYPE;
-    node.archetypes = finalIdentity.ARCHETYPES || [finalIdentity.ARCHETYPE];
-    
-    node.domain = finalIdentity.DOMAIN;
-    node.semantic_intent = finalIdentity.SEMANTIC_INTENT;
-    node.schemas = finalIdentity.CAPABILITIES;
-    // node.canon = finalIdentity; // Exponemos el canon completo para inspección (ya hecho arriba)
+    node.label = sovereignCanon.LABEL;
+    node.description = sovereignCanon.DESCRIPTION; // Restaurado como Genotipo
+    node.archetype = sovereignCanon.ARCHETYPE;
+    node.archetypes = [sovereignCanon.ARCHETYPE];
+    node.domain = sovereignCanon.DOMAIN;
+    node.schemas = sovereignCanon.CAPABILITIES;
+    // node.semantic_intent = fenotype.SEMANTIC_INTENT; // Descomentar si rompe algo legacy
 
-    // Actualizar el Registro Central en Memoria (Esto es lo que se envía al Front)
-    registryMetadata[key.toUpperCase()] = finalIdentity;
+    // ACTUALIZACIÓN DE SEGURIDAD: Si existe node.CANON (Mayúsculas), lo purificamos también
+    if (node.CANON) {
+        node.CANON = sovereignCanon;
+    }
     
     return node;
   }
 
   // AXIOMA: Decoración Universal (No discriminación de nodos)
-  // Antes solo decorábamos 'intelligence'. Ahora democratizamos la identidad.
-  // Decoración inicial de la pila base con re-asignación (Identidad Puente)
   Object.keys(nodesRegistry).forEach(key => {
     nodesRegistry[key] = _decorate(key, nodesRegistry[key]);
   });
 
   // AXIOMA: Motor de Inferencia de Capacidades (MCEP Sovereign)
-  // Instanciamos el traductor cognitivo que servirá a la IA y a la API.
-  const mcepCore = createMCEP_Core({ 
+  const mcepCore = overrides.mcepCore || createMCEP_Core({ 
     laws, 
     nodesRegistry, 
     errorHandler: serverStack.errorHandler, 
@@ -462,8 +473,6 @@ function _assembleExecutionStack(overrides = {}) {
     ...nodesRegistry
   };
   
-  // AXIOMA: Conciencia Ontológica (L7)
-  // Permitir que el TokenManager descubra proveedores desde el registro de nodos consolidado
   if (serverStack.tokenManager && serverStack.tokenManager.setNodesRegistry) {
     serverStack.tokenManager.setNodesRegistry(nodes);
   }
@@ -497,17 +506,11 @@ function _assembleExecutionStack(overrides = {}) {
     mcepCore: mcepCore
   });
   
-  // Decoración explícita para PublicAPI
   const decoratedPublic = _decorate('public', publicApi);
   
-  // AXIOMA: Congelamiento final del Registro de Nodos
   Object.freeze(nodes);
 
-  /**
-   * Ejecuta el Teardown (Homeostasis) de todos los nodos que lo soporten.
-   */
   function teardown() {
-    // Definimos el monitor localmente si no está disponible en este scope
     const _monitor = serverStack.monitoringService || { logInfo: () => {}, logError: () => {} };
     _monitor.logInfo("[SystemAssembler] 🔄 Iniciando Teardown Sistémico...");
     
@@ -525,28 +528,30 @@ function _assembleExecutionStack(overrides = {}) {
 
   return {
     ...serverStack,
+    ...discovered,
     blueprintRegistry: serverStack.blueprintRegistry,
     jobQueueService,
-    notionAdapter,
+    notionAdapter: discovered.notion, 
     coreOrchestrator,
     public: decoratedPublic,
     nodes: nodes,
-    cosmosEngine: cosmosEngine, // Expuesto solo para uso interno de pruebas o diagnóstico
+    validator: serverStack.realityValidator, // Explicit for Audit Compliance
+    cosmosEngine: cosmosEngine, 
     monitoringService: serverStack.monitoringService,
     adminTools,
+    system: decoratedPublic,
     projectionKernel,
     spatialProjectionAdapter,
-    // Alias para compatibilidad externa (Mapeados al API Público purificado)
+    blueprintRegistry: serverStack.blueprintRegistry,
     sensing: {
       ...sensingAdapter,
-      scanArtifacts: (input) => publicApi.scanArtifacts(input),
-      saveSnapshot: (payload) => publicApi.saveSnapshot(payload)
+      scanArtifacts: (input) => publicApi.executeAction({ action: 'sensing:scanArtifacts', payload: input }),
+      saveSnapshot: (payload) => publicApi.executeAction({ action: 'sensing:saveSnapshot', payload: payload })
     },
-    // Aggregated nodes for identity
     manifest: _decorate('manifest', { ...constitution }),
     flows: _decorate('flows', flowRegistry),
     intelligence: nodes.intelligence,
-    teardown, // Added teardown function
+    teardown, 
     systemInitializer: _decorate('systemInitializer', createSystemInitializer({ ...serverStack }))
   };
 }
@@ -592,3 +597,8 @@ function _assembleInjestStack(overrides = {}) {
     tokenManager
   };
 }
+
+
+
+
+

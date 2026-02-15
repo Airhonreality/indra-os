@@ -35,9 +35,12 @@ export const ReactiveMapper = ({ targetType, onConnect }) => {
                 </div>
             </div>
 
-            <button className="stark-btn-action">Activate Mapping</button>
+            <button className="axiom-btn-action">Activate Mapping</button>
         </div>
     );
 };
 
 export default ReactiveMapper;
+
+
+

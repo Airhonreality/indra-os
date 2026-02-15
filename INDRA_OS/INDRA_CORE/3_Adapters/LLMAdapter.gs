@@ -135,14 +135,14 @@ function createLLMAdapter({ errorHandler, tokenManager, configurator }) {
     // Inject History
     history.forEach(msg => {
       contents.push({
-        io_behavior: msg.role === 'assistant' ? 'model' : 'user',
+        role: msg.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: msg.text || msg.content }]
       });
     });
 
     // Inject Current Prompt (combined with system if it's the only message or if explicitly requested)
     const lastPart = {
-      io_behavior: 'user',
+      role: 'user',
       parts: [{ text: systemInstruction ? `[SYSTEM_INSTRUCTION]\n${systemInstruction}\n\n[USER_PROMPT]\n${prompt}` : prompt }]
     };
     contents.push(lastPart);
@@ -219,19 +219,21 @@ function createLLMAdapter({ errorHandler, tokenManager, configurator }) {
 
     const messages = [];
     if (systemInstruction) {
-      messages.push({ io_behavior: 'system', content: systemInstruction });
+      messages.push({ role: 'system', content: systemInstruction });
     }
 
     // Inject History
     history.forEach(msg => {
+      // AXIOMA: Mapeo de Roles (Indra -> OpenAI/Groq)
+      const role = (msg.role === 'assistant' || msg.io_behavior === 'assistant') ? 'assistant' : 'user';
       messages.push({ 
-        io_behavior: msg.role === 'assistant' ? 'assistant' : 'user', 
-        content: msg.text || msg.content 
+        role: role, 
+        content: msg.text || msg.content || "" 
       });
     });
 
     // Inject Current Prompt
-    messages.push({ io_behavior: 'user', content: prompt });
+    messages.push({ role: 'user', content: prompt || "" });
 
     const requestBody = {
       model: payloadModel,
@@ -265,7 +267,10 @@ function createLLMAdapter({ errorHandler, tokenManager, configurator }) {
         timestamp: new Date().toISOString()
       };
 
-      return _mapDocumentRecord(outputText, metadata);
+      return {
+        response: outputText,
+        metadata: metadata
+      };
     } catch (e) {
       throw errorHandler.createError('LLM_PROVIDER_ERROR', `Groq failure: ${e.message}`);
     }
@@ -308,8 +313,9 @@ function createLLMAdapter({ errorHandler, tokenManager, configurator }) {
     try {
       if (tokenManager.getToken({ provider: 'groq', accountId: payload.accountId })) {
         const groqTest = chatGroq({ prompt: "hi", accountId: payload.accountId });
-        results.groq = { success: !!groqTest.response, message: "OK" };
-        if (results.groq.success) overallSuccess = true;
+        const isOk = !!(groqTest && (groqTest.response || groqTest.content));
+        results.groq = { success: isOk, message: isOk ? "OK" : "Empty response" };
+        if (isOk) overallSuccess = true;
       }
     } catch (e) {
       if (!e.message.includes('not configured')) {
@@ -329,21 +335,11 @@ function createLLMAdapter({ errorHandler, tokenManager, configurator }) {
   // RETORNO DE INTERFAZ
   // ============================================================
   
-  // ============================================================
-  // CANON SOBERANO V8.0 (Poly-Archetype Identity)
-  // ============================================================
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
   const CANON = {
-    LABEL: "Cognitive Engine",
-    // AXIOMA: Identidad Compuesta Tripartita
-    // 1. ADAPTER: Panel de Control (Tokens, Estado).
-    // 2. SERVICE: API pura para otros módulos.
-    // 3. COMPUTE: Interfaz de Chat/Prompt (REPL Cognitivo).
     ARCHETYPES: ["ADAPTER", "SERVICE", "COMPUTE"],
-    ARCHETYPE: "SERVICE", // Fallback Legacy
-    
+    ARCHETYPE: "SERVICE", 
     DOMAIN: "INTELLIGENCE",
-    SEMANTIC_INTENT: "ORACLE",
-    
     CAPABILITIES: {
         "chat": {
             "io": "PROBE", 
@@ -366,17 +362,6 @@ function createLLMAdapter({ errorHandler, tokenManager, configurator }) {
         "verifyConnection": {
             "io": "PROBE", "desc": "Health check protocol"
         }
-    },
-    
-    VITAL_SIGNS: {
-        "PROVIDER_GEMINI": { "criticality": "NOMINAL", "value": "ACTIVE", "trend": "stable" },
-        "PROVIDER_GROQ": { "criticality": "NOMINAL", "value": "STANDBY", "trend": "flat" },
-        "LATENCY_AVG": { "criticality": "WARNING", "value": "~800ms", "trend": "rising" }
-    },
-
-    UI_LAYOUT: {
-        "SIDE_PANEL": "ENABLED",
-        "TERMINAL_STREAM": "ENABLED"
     }
   };
 
@@ -409,4 +394,9 @@ function createLLMAdapter({ errorHandler, tokenManager, configurator }) {
     semantic_intent: CANON.SEMANTIC_INTENT
   };
 }
+
+
+
+
+
 

@@ -10,3 +10,6 @@ echo.
 echo ========================================
 echo Sincronizacion Completa.
 pause
+
+
+

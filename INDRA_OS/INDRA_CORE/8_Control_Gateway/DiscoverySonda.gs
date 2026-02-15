@@ -15,7 +15,7 @@ function createDiscoverySonda({ driveAdapter, configurator, monitoringService })
 
   function scanHorizon(args) {
     const { folderId } = args || {};
-    const targetFolderId = folderId || configurator.retrieveParameter({ key: 'ORBITAL_FOLDER_FLOWS_ID' });
+    const targetFolderId = folderId || configurator.retrieveParameter({ key: 'INDRA_FOLDER_FLOWS_ID' });
     if (!targetFolderId) return { artifacts: [] };
 
     try {
@@ -77,3 +77,8 @@ function createDiscoverySonda({ driveAdapter, configurator, monitoringService })
     scanHorizon
   });
 }
+
+
+
+
+

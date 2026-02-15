@@ -7,9 +7,10 @@
 
 import { useAxiomaticStore } from '../../../state/AxiomaticStore';
 
+import { StateBridge } from '../../../core/state/StateBridge';
+
 export const runGhostProbe = () => {
-    // Hack de acceso global al Store (posible race condition pero útil para sondas)
-    const store = window.AxiomaticStore;
+    const store = StateBridge.getState();
 
     if (!store) {
         console.error("❌ PROBE ABORTED: AxiomaticStore not exposed globally.");
@@ -62,3 +63,6 @@ export const runGhostProbe = () => {
         console.groupEnd();
     }, 500);
 };
+
+
+

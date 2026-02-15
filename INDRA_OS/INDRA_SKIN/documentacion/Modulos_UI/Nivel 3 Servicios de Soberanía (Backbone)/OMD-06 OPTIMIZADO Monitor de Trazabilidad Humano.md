@@ -61,9 +61,9 @@ El monitor es la ventana a la salud metabólica del sistema.
 
 | Dimensión | Artefacto de Referencia |
 | :--- | :--- |
-| **Artefacto Lógico (Logic)** | [JobQueueService.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/2_Services/JobQueueService.gs) |
-| **Monitoreo** | [MonitoringService.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/2_Services/MonitoringService.gs) |
-| **Fuentes de Ley (Laws)** | [System_Constitution.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/0_Laws/System_Constitution.gs) |
+| **Artefacto Lógico (Logic)** | [JobQueueService.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/2_Services/JobQueueService.gs) |
+| **Monitoreo** | [MonitoringService.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/2_Services/MonitoringService.gs) |
+| **Fuentes de Ley (Laws)** | [System_Constitution.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/0_Laws/System_Constitution.gs) |
 
 ### Métodos Expuestos (Public API)
 - `listJobs()`: Trazabilidad completa de ejecuciones en curso y pasadas.
@@ -72,3 +72,8 @@ El monitor es la ventana a la salud metabólica del sistema.
 
 ---
 **Veredicto Final del Arquitecto**: Con esta versión, el Monitor deja de ser un log pasivo para convertirse en una **Consola de Comando Metabólica**, permitiendo al usuario humano intervenir en la realidad de la automatización con precisión quirúrgica.
+
+
+
+
+

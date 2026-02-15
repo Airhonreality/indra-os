@@ -3,16 +3,16 @@ import ReactDOM from 'react-dom/client';
 import { AxiomaticProvider, useAxiomaticStore } from './core/state/AxiomaticStore';
 import assembler from './core/System_Assembler';
 import DevLab from './modules/DevLab';
-import PortalDeAcceso from './1_Bootstrap/PortalDeAcceso';
+import CoreSelector from './1_Bootstrap/CoreSelector';
 import LayerOrchestrator from './0_Orchestration/LayerOrchestrator';
 import './index.css';
 
 /**
- * StarkBootloader
+ * AxiomBootloader
  * DHARMA: Secuencia de arranque del Frontend.
  * Responsabilidad: Orquestar la ignición del SystemAssembler y decidir qué interfaz mostrar.
  */
-const StarkBootloader = () => {
+const AxiomBootloader = () => {
     const { dispatch } = useAxiomaticStore();
     const [bootStatus, setBootStatus] = useState('BOOTING'); // BOOTING | ACTIVE | LOCKED
     const [assemblyData, setAssemblyData] = useState(null);
@@ -56,14 +56,17 @@ const StarkBootloader = () => {
         return <LayerOrchestrator initialAssembly={assemblyData} />;
     }
 
-    // Fallback: Portal de Acceso (Login)
-    return <PortalDeAcceso />;
+    // Fallback: Core Selector (Navegador de Realidades)
+    return <CoreSelector />;
 };
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <AxiomaticProvider>
-            <StarkBootloader />
+            <AxiomBootloader />
         </AxiomaticProvider>
     </React.StrictMode>,
 );
+
+
+

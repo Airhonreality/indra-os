@@ -61,7 +61,7 @@ export const ContextInspector = () => {
             </div>
 
             {/* --- DYNAMIC CONTENT BASED ON PIVOT --- */}
-            <div className="uci-content-scroll scroll-stark">
+            <div className="uci-content-scroll scroll-Axiom">
                 {activePivot === 'GEOMETRY' && (
                     <div className="pivot-section">
                         <Section title="TRANSFORM">
@@ -93,14 +93,14 @@ export const ContextInspector = () => {
                 {activePivot === 'ASSETS' && (
                     <div className="pivot-section">
                         <Section title="IMAGE MASTER">
-                            <button className="stark-btn-secondary">CARGAR RECURSO</button>
+                            <button className="axiom-btn-secondary">CARGAR RECURSO</button>
                         </Section>
                     </div>
                 )}
             </div>
 
             <div className="uci-footer">
-                <button className="stark-btn-commit">MANIFESTAR CAMBIOS</button>
+                <button className="axiom-btn-commit">MANIFESTAR CAMBIOS</button>
             </div>
         </div>
     );
@@ -119,7 +119,7 @@ const Field = ({ label, value, type = 'text' }) => (
         <label>{label}</label>
         <input
             type={type}
-            className="stark-input-compact"
+            className="axiom-input-compact"
             defaultValue={value}
             step={type === 'range' ? 0.1 : 1}
             min={0} max={1}
@@ -128,3 +128,6 @@ const Field = ({ label, value, type = 'text' }) => (
 );
 
 export default ContextInspector;
+
+
+

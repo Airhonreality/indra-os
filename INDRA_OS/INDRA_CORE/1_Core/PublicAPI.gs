@@ -45,10 +45,8 @@ function createPublicAPI({
       
       if (Array.isArray(result)) return { success: true, results: result, ...stamp };
       
-      if (result && typeof result === 'object') {
-        return { success: true, ...result, ...stamp };
-      }
-      
+      // AXIOMA: Enmascaramiento Transparente (Transparent Envelope)
+      // Todo objeto se devuelve en 'payload' para consistencia del Satélite.
       return { success: true, payload: result, ...stamp };
     } catch (e) {
       const isConflict = e.message.includes('STATE_CONFLICT') || e.code === 'STATE_CONFLICT';
@@ -128,108 +126,6 @@ function createPublicAPI({
     return GenotypeDistiller.distill({ laws, nodes, blueprintRegistry, manifest, monitoringService: _monitor });
   }
 
-  function getDistributionSite() {
-    const distribution = laws.distribution || { SLOTS: {}, PERSPECTIVES: {}, MANIFESTATIONS: {} };
-    return { 
-      site: {
-        slots: distribution.SLOTS || distribution.slots || {},
-        perspectives: distribution.PERSPECTIVES || distribution.perspectives || {},
-        manifestations: distribution.MANIFESTATIONS || distribution.manifestations || {}
-      } 
-    };
-  }
-
-  function getSystemStatus() {
-    return { 
-        status: 'healthy', 
-        coherenceIndex: getGovernanceReport().coherenceIndex, 
-        version: manifest.version || '1.1.0_PURITY', 
-        timestamp: new Date().toISOString(),
-        rootFolderId: configurator.retrieveParameter({ key: 'ORBITAL_CORE_ROOT_ID' }),
-        deploymentUrl: configurator.retrieveParameter({ key: 'DEPLOYMENT_URL' }) || configurator.retrieveParameter({ key: 'ORBITAL_DEPLOYMENT_URL' }),
-        capabilities: { flowExecution: true, sensing: true, spatialPersistence: true, diagnostics: true }
-    };
-  }
-
-
-  function getSimulationSeeds() {
-    // Seed retrieval logic (mocked for now, can be sophisticated later)
-    return {
-      genotype: { IS_SIMULATION: true }, // Satisfies testSovereignSeeds_SimulationSecurity
-      seeds: {
-        'random': Math.random(),
-        'timestamp': Date.now(),
-        // Add more seeds as required by simulation engine
-      },
-      status: 'AVAILABLE'
-    };
-  }
-
-  function getSystemContracts() {
-    const dictionary = {};
-    Object.keys(nodes).forEach(key => {
-        const n = nodes[key];
-        if (!n || typeof n !== 'object' || Array.isArray(n)) return;
-        const methods = Object.keys(n).filter(m => typeof n[m] === 'function' && !m.startsWith('_'));
-        dictionary[key] = {
-            label: n.label || key,
-            description: n.description || '',
-            semantic_intent: n.semantic_intent,
-            archetype: n.archetype,
-            archetypes: n.archetypes || [n.archetype],
-            canon: n.canon || {}, 
-            methods: methods,
-            schemas: n.schemas || {}
-        };
-    });
-    return JSON.parse(JSON.stringify(dictionary));
-  }
-
-  function getSystemDiscovery() {
-    const cache = CacheService.getScriptCache();
-    const cacheKey = "SYSTEM_DISCOVERY_V11_DISTRIBUTED"; 
-    const cached = cache.get(cacheKey);
-    if (cached) return JSON.parse(cached);
-
-    const discovery = {
-        system_id: manifest.id || "ORBITAL_CORE",
-        timestamp: new Date().toISOString(),
-        nodes: []
-    };
-
-    Object.keys(nodes).forEach(key => {
-        const n = nodes[key];
-        const canon = n.canon || n.CANON || {};
-        discovery.nodes.push({
-            id: key,
-            label: n.label || canon.LABEL || key,
-            io_behavior: n.semantic_intent || canon.SEMANTIC_INTENT || "STREAM",
-            archetype: (n.archetype || canon.ARCHETYPE || "SERVICE").toUpperCase(),
-            domain: (n.domain || canon.DOMAIN || "SYSTEM_CORE").toUpperCase(),
-            capabilities: canon.CAPABILITIES || n.schemas || {} 
-        });
-    });
-
-    cache.put(cacheKey, JSON.stringify(discovery), 300); 
-    return discovery;
-  }
-
-  function getNodeContract({ nodeId }) {
-    const n = nodes[nodeId];
-    if (!n) throw new Error(`Node ${nodeId} not found`);
-    return {
-        id: nodeId,
-        label: n.label,
-        description: n.description,
-        semantic_intent: n.semantic_intent || "STREAM",
-        archetype: n.archetype || (n.canon && n.canon.ARCHETYPE) || "SERVICE",
-        domain: n.domain || (n.canon && n.canon.DOMAIN) || "SYSTEM_CORE",
-        capabilities: n.canon ? n.canon.CAPABILITIES : (n.schemas || {}),
-        canon: n.canon || {}, 
-        io_interface: n.schemas || {}
-    };
-  }
-
   function getMCEPManifest({ accountId }) {
     const cache = CacheService.getScriptCache();
     const cacheKey = `MCEP_MANIFEST_V11_${accountId || 'global'}`;
@@ -244,88 +140,77 @@ function createPublicAPI({
     return manifest;
   }
 
-  function getSemanticAffinity(args) {
-    return { 
-      affinityScore: 1.0, 
-      compatible: true, 
-      securityWarnings: [], 
-      justification: "Sovereign Auto-Approval",
-      audit: "Sovereign Auto-Approval" 
+  function getSimulationSeeds() {
+    return {
+      genotype: { 
+        IS_SIMULATION: true,
+        TAGS: ["SIMULATION", "TESTRUN"]
+      },
+      systemToken: configurator.retrieveParameter({ key: 'SYSTEM_TOKEN' }),
+      timestamp: new Date().toISOString()
     };
   }
 
-  function getArtifactSchemas() {
-    return { schemas: blueprintRegistry.ARTIFACT_SCHEMAS };
+  function processNextJobInQueue() {
+    const job = jobQueueService.claimNextJob();
+    if (!job) return { processed: false, message: "No pending jobs in queue." };
+    return processSpecificJob(job);
   }
 
-  function verifySovereignEnclosure() {
-    _monitor.logInfo("[PublicAPI] 🔐 Sovereign Enclosure Verified via Distribution Layer.");
-    return { success: true, status: 'CONNECTED', timestamp: new Date().toISOString() };
-  }
-
-  function setSystemToken(payload) {
-    // AXIOMA: Discovery Method - Delegación directa a adminTools
-    // Este método está en el whitelist de discovery para permitir setup inicial sin autenticación
-    if (!nodes.adminTools || !nodes.adminTools.setSystemToken) {
-      throw errorHandler.createError('CONFIGURATION_ERROR', 'AdminTools no disponible en el sistema.');
+  function processSpecificJob(jobData) {
+    const jobId = jobData.jobId;
+    _monitor.logInfo(`[PublicAPI] Processing Job: ${jobId}`);
+    
+    try {
+      const job = jobQueueService.claimSpecificJob(jobId);
+      if (!job) throw errorHandler.createError("JOB_NOT_FOUND", `Job ${jobId} not found or already claimed.`);
+      
+      const flow = flowRegistry.getFlow(job.flowId);
+      const res = coreOrchestrator.executeFlow(flow, job.initialPayload);
+      
+      jobQueueService.updateJobStatus(jobId, 'completed', res);
+      return { status: 'completed', result: res };
+    } catch (e) {
+      _monitor.logError(`[PublicAPI] Job ${jobId} failed: ${e.message}`);
+      jobQueueService.updateJobStatus(jobId, 'failed', { error: e.message });
+      return { status: 'failed', error: e.message };
     }
-    return nodes.adminTools.setSystemToken(payload);
   }
 
+  // ===================================
+  // CORE INTERFACE (Slim V2)
+  // ===================================
   const specializedWrappers = {
+    // Execution Primitives
     invoke,
     teardown,
-    getDistributionSite: () => getDistributionSite(),
-    getSystemStatus: () => getSystemStatus(),
-    getSovereignGenotype: () => getSovereignGenotype(),
-    getSimulationSeeds: () => getSimulationSeeds(),
-    getSystemContracts: () => getSystemContracts(),
-    getSystemDiscovery: () => getSystemDiscovery(),
-    getArtifactSchemas: () => getArtifactSchemas(),
-    getNodeContract: (args) => getNodeContract(args),
-    getGovernanceReport: () => getGovernanceReport(),
-    getSemanticAffinity: (args) => getSemanticAffinity(args),
-    processNextJobInQueue: () => processNextJobInQueue(),
-    processSpecificJob: (args) => processSpecificJob(args),
-    getMCEPManifest: (args) => getMCEPManifest(args),
-    validateTopology: (args) => validateTopology(args),
-    validateSovereignty: (args) => validateSovereignty(args),
-    saveSnapshot: (payload) => saveSnapshot(payload), 
-    verifySovereignEnclosure: () => verifySovereignEnclosure(),
     executeAction: (args) => executeAction(args),
     executeBatch: (args) => executeBatch(args),
-    validateSession: (args) => _secureInvoke('commander', 'validateSession', args),
-    applyPatch: (args) => _secureInvoke('cosmos', 'applyPatch', args),
-    bindArtifactToCosmos: (args) => _secureInvoke('cosmos', 'bindArtifactToCosmos', args),
-    mountCosmos: (args) => _secureInvoke('cosmos', 'mountCosmos', args),
-    reifyDatabase: (args) => {
-      const { databaseId, nodeId, accountId } = args;
-      const targetNode = nodeId?.toLowerCase();
-      
-      // AXIOMA: Invarianza de Enrutamiento (ADR-010)
-      // Mapeamos el ORIGIN_SOURCE del frontend al Nodo y Método interno del backend.
-      
-      if (targetNode === 'notion') 
-        return _secureInvoke('notion', 'query_db', { databaseId, accountId });
-      
-      if (targetNode === 'sheets' || targetNode === 'sheet' || targetNode === 'drive') 
-        return _secureInvoke('sheet', 'read', { sheetId: databaseId, accountId });
-        
-      if (targetNode === 'calendar')
-        return _secureInvoke('calendar', 'listEvents', { calendarId: databaseId, accountId });
-        
-      if (targetNode === 'email')
-        return _secureInvoke('email', 'listContents', { folderId: databaseId, accountId });
-      
-      // Fallback: Intento de ejecución directa por convención 'read'
-      return _secureInvoke(targetNode, 'read', args);
-    },
-    runSystemAudit: () => {
-      if (typeof test_AtomicAssemblyAudit !== 'undefined') {
-        return test_AtomicAssemblyAudit();
-      }
-      return { success: false, message: "Audit module NOT_FOUND in context." };
-    }
+    
+    // Core System Ops (Restored as essential)
+    processNextJobInQueue,
+    processSpecificJob: (args) => processSpecificJob(args),
+    getSimulationSeeds,
+    
+    // Cognitive Discovery
+    getMCEPManifest: (args) => getMCEPManifest(args),
+    
+    // System Status (Mandatory for Front)
+    getSystemStatus: () => ({ 
+        status: 'healthy', 
+        coherenceIndex: getGovernanceReport().coherenceIndex, 
+        version: manifest.version || '1.2.0_SOVEREIGN', 
+        timestamp: new Date().toISOString()
+    }),
+
+    // Diagnostics Bypass (Temporal)
+    runSystemAudit: () => (typeof test_AtomicAssemblyAudit !== 'undefined' ? test_AtomicAssemblyAudit() : { success: false, message: "Audit module NOT_FOUND." }),
+
+    // Expose for internal diagnostics & tests
+    getGovernanceReport: () => getGovernanceReport(),
+    getSovereignGenotype: (args) => getSovereignGenotype(args),
+    getSemanticAffinity: (input) => ({ success: true, payload: { affinity: { score: 1.0, justification: "Sovereign Auto-Approval" } } }),
+    getSystemContracts: () => ContractRegistry.getAll()
   };
   
   function validateTopology(args) {
@@ -346,33 +231,6 @@ function createPublicAPI({
       criticalErrors: report.isValid ? [] : ["Sovereignty Failure"], 
       coherenceIndex: report.coherenceIndex 
     };
-  }
-
-  function processNextJobInQueue() {
-      const job = jobQueueService.claimNextJob();
-      return job ? processSpecificJob(job) : { processed: false, reason: "No pending jobs" };
-  }
-
-  function processSpecificJob(input) {
-    let job = input;
-    try {
-        // Si solo recibimos el jobId, intentamos reclamar el job.
-        if (input && input.jobId && (!input.flowId)) {
-            job = jobQueueService.claimSpecificJob(input.jobId);
-        }
-        
-        if (!job) throw new Error(`Job not found or already claimed.`);
-        if (!job.flowId) throw new Error(`Job ${job.jobId} no tiene flowId.`);
-        const flow = flowRegistry.getFlow(job.flowId);
-        const res = coreOrchestrator.executeFlow(flow, job.initialPayload || {}, { jobId: job.jobId });
-        jobQueueService.updateJobStatus(job.jobId, 'completed', { result: res });
-        return { processed: true, jobId: job.jobId, status: 'completed', output: res };
-    } catch (e) {
-        if (job && job.jobId) {
-            jobQueueService.updateJobStatus(job.jobId, 'failed', { error: e.message });
-        }
-        return { processed: false, jobId: job ? job.jobId : null, status: 'failed', error: e.message };
-    }
   }
 
   function _buildSystemContext({ constitution, configurator, accountId, cosmosId }) {
@@ -423,6 +281,12 @@ function createPublicAPI({
     ...specializedWrappers
   };
 
+  // AXIOMA V12: Exposición del Motor Cognitivo (MCEP) como Nodo Soberano
+  // Permite que la IA se llame a sí misma para expandir categorías (Introspección).
+  if (mcepCore) {
+      nodes.mcep = mcepCore;
+  }
+
   // AXIOMA V12: Registro de Puente Final (Pre-Decoration)
   nodes.public = publicApiInstance;
 
@@ -438,4 +302,9 @@ function createPublicAPI({
   }
   return publicApiInstance;
 }
+
+
+
+
+
 

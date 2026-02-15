@@ -85,7 +85,7 @@ function testEmailAdapter_Send_debePasarLasOpcionesAvanzadasCorrectamente() {
         cc: 'cc@example.com',
         bcc: 'bcc@example.com',
         attachments: [mockAttachment], // Pasarlo como un array
-        name: 'Sistema Orbital Core',
+        name: 'Sistema Indra Core',
         replyTo: 'noreply@example.com'
       }
     };
@@ -104,7 +104,7 @@ function testEmailAdapter_Send_debePasarLasOpcionesAvanzadasCorrectamente() {
     // --- FIN DE LA CORRECCIÓN ---
     assert.arrayLength(optionsPassed.attachments, 1);
     assert.areEqual(mockAttachment, optionsPassed.attachments[0]);
-    assert.areEqual('Sistema Orbital Core', optionsPassed.name);
+    assert.areEqual('Sistema Indra Core', optionsPassed.name);
     assert.areEqual('noreply@example.com', optionsPassed.replyTo);
 
     return true;
@@ -173,3 +173,8 @@ function testEmailAdapter_ManejoDeErrores_debeCapturarYRelanzarErroresDeGmailApp
     _teardownEmailAdapterTests(setup.originals);
   }
 }
+
+
+
+
+

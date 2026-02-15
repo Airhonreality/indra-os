@@ -61,7 +61,7 @@ export const createDeterminismEngine = (dispatch, execute, state) => {
                     id: sheetArtifactId,
                     LABEL: 'DETERMINISTIC_SHEET',
                     type: 'DATABASE_NODE',
-                    ORIGIN_SOURCE: 'sheets',
+                    ORIGIN_SOURCE: 'sheet',
                     ACCOUNT_ID: 'system'
                 },
                 position: { x: 100, y: 100 }
@@ -80,8 +80,8 @@ export const createDeterminismEngine = (dispatch, execute, state) => {
             await execute('LOG_ENTRY', {
                 time: new Date().toLocaleTimeString(),
                 msg: routingOk
-                    ? '✅ STAGE 2: Enrutamiento determinista validado (sheets -> reifyDatabase).'
-                    : '❌ STAGE 2: Fallo en el enrutamiento del pasaporte.',
+                    ? '✅ STAGE 2: Enrutamiento determinista validado (sheet -> adapter.sheet).'
+                    : '❌ STAGE 2: Fallo en el enrutamiento del pasaporte (sheet ID).',
                 type: routingOk ? 'SUCCESS' : 'ERROR'
             });
 
@@ -239,3 +239,6 @@ export const createDeterminismEngine = (dispatch, execute, state) => {
 
     return { probeDeterminismIntegrity };
 };
+
+
+

@@ -1,6 +1,6 @@
 /**
  * c:\Users\javir\Documents\DEVs\INDRA FRONT END\INDRA_OS\INDRA_SKIN\src\core\Indra_Canon_Registry.js
- * 📜 REGISTRO DE CÁNONES (Indra OS Stark v8.0)
+ * 📜 REGISTRO DE CÁNONES (Indra OS Axiom v8.0)
  * DHARMA: Mapeo directo entre Ontología L0 y Manifestación React.
  */
 
@@ -46,9 +46,9 @@ export const ATTENTION_PROFILES = {
 export const SYSTEM_MODULES = {
     PORTAL: {
         id: 'PORTAL',
-        label: 'Portal de Soberanía',
+        label: 'Selector de Realidades (Core)',
         profile: 'AMBIENT',
-        component: 'PortalDeAcceso'
+        component: 'CoreSelector'
     },
     SELECTOR: {
         id: 'SELECTOR',
@@ -76,3 +76,6 @@ export const SYSTEM_MODULES = {
 export function resolveCanonComponent(canonId) {
     return INDRA_CANON_REGISTRY[canonId] || INDRA_CANON_REGISTRY.DEFAULT;
 }
+
+
+

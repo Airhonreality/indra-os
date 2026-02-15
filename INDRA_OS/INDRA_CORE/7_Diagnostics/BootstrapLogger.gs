@@ -13,12 +13,12 @@ const BootstrapLogger = {
     try {
       // Intenta obtener el ID de la hoja de logs de forma manual y primitiva
       const properties = PropertiesService.getScriptProperties();
-      const logSheetId = properties.getProperty('ORBITAL_CORE_AUDIT_LOG_SHEET_ID');
+      const logSheetId = properties.getProperty('INDRA_CORE_AUDIT_LOG_SHEET_ID');
       
       if (!logSheetId) {
         // Si no se puede encontrar el ID, es imposible loguear en el Sheet.
         // Se recurre al log estándar de GAS como último recurso.
-        console.error("BootstrapLogger CRITICAL: La propiedad 'ORBITAL_CORE_AUDIT_LOG_SHEET_ID' no está configurada. No se puede escribir en el Audit Log Sheet.");
+        console.error("BootstrapLogger CRITICAL: La propiedad 'INDRA_CORE_AUDIT_LOG_SHEET_ID' no está configurada. No se puede escribir en el Audit Log Sheet.");
         console.log(`BootstrapLogger Payload: ${message}`);
         return;
       }
@@ -48,11 +48,11 @@ const BootstrapLogger = {
     const testMessage = `SMOKE TEST: Si ves esta línea en el Audit Log Sheet, el BootstrapLogger funciona correctamente. Timestamp de prueba: ${new Date().toISOString()}`;
     this.log(testMessage);
     const properties = PropertiesService.getScriptProperties();
-    const logSheetId = properties.getProperty('ORBITAL_CORE_AUDIT_LOG_SHEET_ID');
+    const logSheetId = properties.getProperty('INDRA_CORE_AUDIT_LOG_SHEET_ID');
     if (logSheetId) {
         console.log(`Prueba completada. Por favor, verifica la hoja de cálculo 'Audit Log' para confirmar la escritura. ID de la hoja: ${logSheetId}`);
     } else {
-        console.error("La prueba no pudo escribir en el Sheet porque la propiedad 'ORBITAL_CORE_AUDIT_LOG_SHEET_ID' no está configurada.");
+        console.error("La prueba no pudo escribir en el Sheet porque la propiedad 'INDRA_CORE_AUDIT_LOG_SHEET_ID' no está configurada.");
     }
   }
 };
@@ -63,3 +63,8 @@ const BootstrapLogger = {
 function runBootstrapLoggerSmokeTest() {
   BootstrapLogger.test();
 }
+
+
+
+
+

@@ -8,7 +8,7 @@
         "id": "view_test_probe",
         "clase_ui": "DIAGNOSTIC_WIDGET",
         "layer": "NIVEL_3",
-        "functional_name": "Sonda de Diagnóstico Stark",
+        "functional_name": "Sonda de Diagnóstico AXIOM",
         "slot": "overlay-corner-br",
         "component": "TestProbe",
         "config": {
@@ -23,3 +23,5 @@
         ]
     }
 }
+
+

@@ -39,3 +39,6 @@ export const TypoCore = {
     getFontFamily: (index = 0) => standards.standards.typography.families[index],
     getWeight: (index = 1) => standards.standards.typography.weights[index]
 };
+
+
+

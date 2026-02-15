@@ -86,8 +86,10 @@ function createConnectionTester({ errorHandler }) {
    * @returns {{isValid: boolean, reason?: string}}
    */
   function test(connectionType, credentials) {
+    console.log(`[ConnectionTester] Probing connection: ${connectionType}`);
     try {
-      switch (connectionType) {
+      const normalizedType = (connectionType || '').toUpperCase();
+      switch (normalizedType) {
         case 'NOTION_API_KEY':
           return _testNotion(credentials);
 
@@ -95,10 +97,10 @@ function createConnectionTester({ errorHandler }) {
         case 'DEPLOYMENT_URL':
           return _testUrl(credentials);
 
-        // Claves que no requieren validación de API
         case 'ADMIN_EMAIL':
-        case 'ORBITAL_CORE_SATELLITE_API_KEY':
+        case 'CORE_SATELLITE_API_KEY':
         default:
+          console.log(`[ConnectionTester] No active probe needed for ${normalizedType}. Returning valid.`);
           return { isValid: true, reason: 'No se requiere validación para este tipo.' };
       }
     } catch (error) {
@@ -137,3 +139,8 @@ function createConnectionTester({ errorHandler }) {
     test
   });
 }
+
+
+
+
+

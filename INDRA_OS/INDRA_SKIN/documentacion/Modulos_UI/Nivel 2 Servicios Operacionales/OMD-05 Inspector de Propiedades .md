@@ -74,8 +74,8 @@ El inspector es el validador de contratos dinámicos del sistema.
 
 | Dimensión | Artefacto de Referencia |
 | :--- | :--- |
-| **Artefacto Lógico (Logic)** | [SchemaRegistry.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/1_Core/SchemaRegistry.gs) |
-| **Fuentes de Ley (Laws)** | [Contract_Blueprints.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/0_Laws/Contract_Blueprints.gs) |
+| **Artefacto Lógico (Logic)** | [SchemaRegistry.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/1_Core/SchemaRegistry.gs) |
+| **Fuentes de Ley (Laws)** | [Contract_Blueprints.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/0_Laws/Contract_Blueprints.gs) |
 | **Transmutador** | [MateriaTransmuter.jsx](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_V2/src/core/ui/transmuters/MateriaTransmuter.jsx) |
 
 ### Métodos Expuestos (Public API)
@@ -85,3 +85,7 @@ El inspector es el validador de contratos dinámicos del sistema.
 
 ---
 **Veredicto Final del Arquitecto**: El nuevo Inspector no es solo un formulario; es un **Auditor de Realidad** en tiempo real, garantizando que ninguna materia impura entre en el flujo de automatización. Con la integración directa del OMD-02 (Identity Vault), hemos logrado un flujo de configuración de "Gravedad Cero", eliminando la fricción y garantizando la coherencia estructural.
+
+
+
+

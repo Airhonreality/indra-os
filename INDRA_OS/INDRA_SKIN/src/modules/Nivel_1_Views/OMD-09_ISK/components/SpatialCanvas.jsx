@@ -2,7 +2,7 @@
  * 🎨 SPATIAL CANVAS (Zone B) - Versión 2.1 "Axiomatic Engine"
  * 
  * SOBERANÍA: Implementación Canonizada según ISK_Structural_Law.
- * Utiliza tokens CSS maestros de stark_theme.css.
+ * Utiliza tokens CSS maestros de Axiom_theme.css.
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -108,3 +108,6 @@ export const SpatialCanvas = () => {
 };
 
 export default SpatialCanvas;
+
+
+

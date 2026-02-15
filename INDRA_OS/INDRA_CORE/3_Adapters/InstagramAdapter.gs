@@ -484,9 +484,16 @@ function createInstagramAdapter({ errorHandler, tokenManager }) {
     }
   };
 
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+  const CANON = {
+      ARCHETYPE: "ADAPTER",
+      DOMAIN: "SOCIAL_MEDIA",
+      CAPABILITIES: schemas
+  };
+
   return {
     description: "Industrial engine for Instagram Graph API integration, social interaction management, and performance telemetry.",
-    semantic_intent: "BRIDGE",
+    CANON: CANON,
     schemas: schemas,
     // Protocol mapping (MESSENGER_V1)
     send: sendDirectMessage,
@@ -503,4 +510,9 @@ function createInstagramAdapter({ errorHandler, tokenManager }) {
     sendDirectMessage
   };
 }
+
+
+
+
+
 

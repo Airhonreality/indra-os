@@ -6,7 +6,7 @@
     padding: 12px;
     background: var(--bg-primary);
     border: 1px solid var(--border-highlight);
-    border-radius: var(--stark-border-radius);
+    border-radius: var(--axiom-border-radius);
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -69,7 +69,7 @@
     font-weight: bold;
 }
 
-.stark-btn-action {
+.axiom-btn-action {
     background: var(--accent-primary);
     border: none;
     color: white;
@@ -80,3 +80,6 @@
     cursor: pointer;
     text-transform: uppercase;
 }
+
+
+

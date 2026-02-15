@@ -225,3 +225,8 @@ function executeBurst({ adapter, method, payload, burstConfig, maxTime = 50000 }
 - [ADR-003: Error Handling](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRA_OS/documentacion/0_Laws_Contracts/ADR/ADR-003_Error_Handling_Retry_Logic.md)
 - [NotionAdapter.gs](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRA_OS/INDRA_CORE/3_Adapters/NotionAdapter.gs)
 - [TokenManager.gs](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRA_OS/INDRA_CORE/1_Core/TokenManager.gs)
+
+
+
+
+

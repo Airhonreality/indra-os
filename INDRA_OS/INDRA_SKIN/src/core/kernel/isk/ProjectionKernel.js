@@ -1,4 +1,5 @@
 import { JITCompiler } from './JITCompiler';
+import { StateBridge } from '../../state/StateBridge';
 import { ObjectPool } from './ObjectPool';
 import { SpatialRenderer } from './SpatialRenderer';
 import { InstancedShaderFactory } from './InstancedShaderFactory';
@@ -171,7 +172,7 @@ export class ProjectionKernel {
             this.dataBuffer.set(results);
 
             // AXIOMA V12: Histéresis Visual basada en Soberanía Local (_isDirty)
-            const axStore = window.AxiomaticStore?.getState?.();
+            const axStore = StateBridge.getState();
             const artifacts = axStore?.phenotype?.artifacts || [];
             const pendingIds = new Set(artifacts.filter(a => a._isDirty).map(a => a.id));
             const now = Date.now();
@@ -300,3 +301,6 @@ export class ProjectionKernel {
         }
     }
 }
+
+
+

@@ -3,7 +3,7 @@
 *   **Status:** ACEPTADO
 *   **Date:** 2026-02-04
 *   **Deciders:** INDRA Architecture Team
-*   **Context:** v8.0 Stark Refactor
+*   **Context:** v8.0 AXIOM Refactor
 
 ## Contexto y Problema
 El componente `ComponentProjector.jsx` estaba evolucionando hacia un "Objeto Divino" (God Object).
@@ -36,3 +36,8 @@ Desintegrar el `ComponentProjector` utilizando el **Patrón de Registro (Registr
 *   [x] Documentado en Andamiaje Canónico.
 *   [ ] Implementación de `Archetype_Registry.js`.
 *   [ ] Refactor de `ComponentProjector` a `ProjectionMatrix`.
+
+
+
+
+

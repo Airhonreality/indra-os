@@ -122,3 +122,8 @@ Para evitar nombres técnicos (`INPUT_PORT_01`), el `NodeEngine` ahora busca act
 1.  Crear `OracleEngine.jsx` para dar cara a la investigación.
 2.  Crear `MediaEngine.jsx` simple para unificar Audio/Video.
 3.  Implementar `human_label` en los Adapter.gs del Core (Backend).
+
+
+
+
+

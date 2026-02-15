@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useAxiomaticStore } from '../../core/state/AxiomaticStore';
 import adapter from '../../core/Sovereign_Adapter';
-import ComponentProjector from '../../core/kernel/ComponentProjector';
+import ProjectionMatrix from '../../core/kernel/ProjectionMatrix';
 import AdapterSelector from '../../3_Widgets/AdapterSelector';
 import { Icons } from '../../4_Atoms/IndraIcons';
 import useAxiomaticState from '../../core/state/AxiomaticState';
@@ -177,3 +177,6 @@ const DevLab = () => {
 };
 
 export default DevLab;
+
+
+

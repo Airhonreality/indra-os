@@ -53,7 +53,7 @@ npm run dev
 ### Consola del Navegador (F12)
 Deberías ver:
 ```
-🚀 Iniciando Indra Front-end v2 (The Stark Architect)
+🚀 Iniciando Indra Front-end v2 (The Axiom Architect)
 ✅ ISK Designer montado en m09-designer
 ✅ Andamiaje Hidratado. Sistema listo para proyección de datos.
 ```
@@ -85,8 +85,11 @@ server: { port: 3001 }
 
 - **Primera ejecución**: Puede tardar ~30s mientras npm instala dependencias
 - **Hot Reload**: Los cambios en archivos `.jsx` se reflejan automáticamente
-- **Backend**: Asegúrate de que OrbitalCore esté desplegado para endpoints MCP
+- **Backend**: Asegúrate de que INDRACore esté desplegado para endpoints MCP
 
 ---
 
 **Estado**: LISTO PARA LANZAMIENTO 🚀
+
+
+

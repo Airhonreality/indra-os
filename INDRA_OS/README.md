@@ -27,3 +27,6 @@ Para evitar la desorganización sistémica y las "fugas de coherencia" durante l
 
 > [!IMPORTANT]
 > Antes de crear nuevos archivos o modificar rutas estructurales, verifica la coherencia con el `Schema_Root.json`.
+
+
+

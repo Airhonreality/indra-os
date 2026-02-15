@@ -80,3 +80,8 @@ function validateLink(parentType, childType) {
 if (typeof module !== 'undefined') {
   module.exports = { SYSTEM_HIERARCHY, CONTAINMENT_RULES, classifyEntity, validateLink };
 }
+
+
+
+
+

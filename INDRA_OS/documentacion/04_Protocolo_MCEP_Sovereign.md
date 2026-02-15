@@ -52,3 +52,8 @@ Para que un nuevo componente sea "MCEP-Ready", debe cumplir con:
 
 > [!TIP]
 > El MCEP Sovereign es la clave para la **IA Auto-Gobernada**. Al darle acceso a las leyes, el sistema deja de "suponer" y empieza a "verificar" su propia lógica.
+
+
+
+
+

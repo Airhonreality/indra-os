@@ -65,7 +65,7 @@ export const ContextExplorer = () => {
                 ))}
             </div>
 
-            <div className="source-inventory scroll-stark">
+            <div className="source-inventory scroll-Axiom">
                 {loading ? (
                     <div className="source-ghost-loader">HYDRATING...</div>
                 ) : stream.filter(v => activeFilter === 'ALL' || v.source === activeFilter).map(v => (
@@ -97,3 +97,6 @@ export const ContextExplorer = () => {
 };
 
 export default ContextExplorer;
+
+
+

@@ -162,17 +162,44 @@ function createYouTubeAdapter({ errorHandler, tokenManager, sensingService }) {
     };
   }
 
-  function verifyConnection() {
-    return { success: true, status: "ACTIVE", info: "YouTube Public/Authenticated Bridge Ready" };
+  /**
+   * @description Verifica la conectividad y validez de la API Key para una cuenta específica.
+   * @param {object} payload - { accountId? }
+   * @returns {object} { status: "ACTIVE" | "BROKEN", success: boolean, error? }
+   */
+  function verifyConnection(payload = {}) {
+    const { accountId = 'system_default' } = payload;
+    const apiKey = _getApiKey(accountId);
+    
+    if (!apiKey) {
+      return { status: "BROKEN", success: false, error: "YouTube API Key no configurada para esta cuenta." };
+    }
+
+    try {
+      // Test con una llamada mínima (Listar el canal oficial de Google como sonda)
+      const testUrl = `https://www.googleapis.com/youtube/v3/channels?part=id&id=UCK8sQmJBp8GCxrOtXWBpyEA&key=${apiKey}`;
+      const response = UrlFetchApp.fetch(testUrl, { muteHttpExceptions: true });
+      
+      if (response.getResponseCode() === 200) {
+        return { status: "ACTIVE", success: true };
+      } else {
+        const errorData = JSON.parse(response.getContentText());
+        return { 
+          status: "BROKEN", 
+          success: false, 
+          error: errorData.error?.message || `Error API (${response.getResponseCode()})` 
+        };
+      }
+    } catch (e) {
+      return { status: "BROKEN", success: false, error: e.message };
+    }
   }
 
-  // --- SOVEREIGN CANON V8.0 (Media Standard) ---
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
   const CANON = {
     id: "youtube",
-    LABEL: "YouTube Adapter",
     ARCHETYPE: "ADAPTER",
     DOMAIN: "SOCIAL_MEDIA",
-    SEMANTIC_INTENT: "BRIDGE",
     CAPABILITIES: {
       "search": { 
         "io": "READ", 
@@ -184,10 +211,6 @@ function createYouTubeAdapter({ errorHandler, tokenManager, sensingService }) {
         "desc": "Cognitive transcript extraction",
         "inputs": schemas.extractTranscript.io_interface.inputs
       }
-    },
-    VITAL_SIGNS: {
-      "QUOTA_REMAINING": { "criticality": "NOMINAL", "value": "85%", "trend": "stable" },
-      "TRANSCRIPT_CACHE": { "criticality": "NOMINAL", "value": "ACTIVE", "trend": "flat" }
     }
   };
 
@@ -226,4 +249,9 @@ function createYouTubeAdapter({ errorHandler, tokenManager, sensingService }) {
     extractTranscript
   };
 }
+
+
+
+
+
 

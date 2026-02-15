@@ -124,7 +124,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   PARTÍCULAS ORBITALES (Efecto Molecular)
+   PARTÍCULAS INDRAES (Efecto Molecular)
    Pequeñas partículas que orbitan el núcleo, simulando campo magnético
    ═══════════════════════════════════════════════════════════ */
 
@@ -279,3 +279,6 @@
         height: 40px;
     }
 }
+
+
+

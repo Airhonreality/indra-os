@@ -83,3 +83,8 @@ El usuario debe sentir que está cambiando de **Lente**, no de Aplicación.
 
 ---
 **Autoridad:** INDRA Semiotics Division.
+
+
+
+
+

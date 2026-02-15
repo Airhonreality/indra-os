@@ -1,10 +1,10 @@
 import React from 'react';
 
 /**
- * ATOM: StarkBadge
+ * ATOM: AxiomBadge
  * DHARMA: Unidad de señalización axiomática.
  */
-const StarkBadge = ({ label, color = 'var(--text-dim)', pulse = false, style = {} }) => {
+const AxiomBadge = ({ label, color = 'var(--text-dim)', pulse = false, style = {} }) => {
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', ...style }}>
             <div style={{
@@ -14,7 +14,7 @@ const StarkBadge = ({ label, color = 'var(--text-dim)', pulse = false, style = {
             }} className={pulse ? 'animate-pulse' : ''}></div>
             <span style={{
                 fontSize: '7px',
-                fontFamily: 'var(--stark-mono)',
+                fontFamily: 'var(--axiom-mono)',
                 color: 'var(--text-dim)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.1em'
@@ -25,4 +25,7 @@ const StarkBadge = ({ label, color = 'var(--text-dim)', pulse = false, style = {
     );
 };
 
-export default StarkBadge;
+export default AxiomBadge;
+
+
+

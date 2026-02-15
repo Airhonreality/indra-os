@@ -7,20 +7,27 @@
  * ======================================================================
  */
 
-function createCalendarAdapter({ errorHandler }) {
+function createCalendarAdapter({ errorHandler, tokenManager }) {
   if (!errorHandler || typeof errorHandler.createError !== 'function') {
     throw new TypeError('CalendarAdapter requiere un errorHandler válido.');
   }
 
-  // Verifica disponibilidad del Servicio Avanzado (Axioma de Entorno)
-  if (typeof Calendar === 'undefined') {
-    const errorMsg = 'El Servicio Avanzado "Google Calendar API" no está habilitado en este proyecto de Apps Script.';
-    console.error(`[CalendarAdapter] ${errorMsg}`);
-  }
 
-  function _checkService() {
-    if (typeof Calendar === 'undefined') {
-      throw errorHandler.createError('ENVIRONMENT_LOCK', 'Servicio Avanzado de Calendar no disponible. Activa "Google Calendar API" en Servicios.');
+
+
+  /**
+   * @description Obtiene el token para una cuenta de Google.
+   * @param {string|null} accountId 
+   * @returns {string|null} Access token o null si debe usar la sesión de CalendarApp
+   */
+  function _getAccessToken(accountId) {
+    if (!tokenManager) return null;
+    try {
+      const tokenData = tokenManager.getToken({ provider: 'google', accountId });
+      return tokenData ? (tokenData.accessToken || tokenData.apiKey) : null;
+    } catch (e) {
+      console.warn(`CalendarAdapter: No se pudo obtener token para cuenta ${accountId}, usando sesión default.`);
+      return null;
     }
   }
 
@@ -48,7 +55,9 @@ function createCalendarAdapter({ errorHandler }) {
   }
 
   function listEvents(payload) {
-    _checkService();
+    if (typeof Calendar === 'undefined') {
+      throw errorHandler.createError('ADAPTER_ERROR', 'Google Calendar API Advanced Service is not enabled.');
+    }
     const { 
       calendarId = 'primary', 
       syncToken, 
@@ -123,7 +132,9 @@ function createCalendarAdapter({ errorHandler }) {
    * @returns {Object} El evento creado
    */
   function createEvent(payload) {
-    _checkService();
+    if (typeof Calendar === 'undefined') {
+      throw errorHandler.createError('ADAPTER_ERROR', 'Google Calendar API Advanced Service is not enabled.');
+    }
     const { calendarId = 'primary', eventPayload } = payload;
     
     try {
@@ -149,7 +160,9 @@ function createCalendarAdapter({ errorHandler }) {
    * @returns {Object} El evento actualizado
    */
   function updateEvent(payload) {
-    _checkService();
+    if (typeof Calendar === 'undefined') {
+      throw errorHandler.createError('ADAPTER_ERROR', 'Google Calendar API Advanced Service is not enabled.');
+    }
     const { calendarId = 'primary', eventId, eventPayload } = payload;
 
     try {
@@ -174,7 +187,9 @@ function createCalendarAdapter({ errorHandler }) {
    * @param {string} payload.eventId
    */
   function deleteEvent(payload) {
-    _checkService();
+    if (typeof Calendar === 'undefined') {
+      throw errorHandler.createError('ADAPTER_ERROR', 'Google Calendar API Advanced Service is not enabled.');
+    }
     const { calendarId = 'primary', eventId } = payload;
     
     try {
@@ -195,7 +210,9 @@ function createCalendarAdapter({ errorHandler }) {
    * @returns {Array} Lista de calendarios
    */
   function listCalendars() {
-    _checkService();
+    if (typeof Calendar === 'undefined') {
+      throw errorHandler.createError('ADAPTER_ERROR', 'Google Calendar API Advanced Service is not enabled.');
+    }
     try {
       const calendarList = Calendar.CalendarList.list();
       const items = calendarList.items || [];
@@ -232,22 +249,40 @@ function createCalendarAdapter({ errorHandler }) {
     return { durationMinutes: Math.floor(diff / 60000) };
   }
 
-  function verifyConnection() {
+  function verifyConnection(payload = {}) {
+    const accountId = payload.accountId || null;
+    const accessToken = _getAccessToken(accountId);
+    
     try {
-      _checkService();
-      Calendar.CalendarList.list({ maxResults: 1 });
-      return { status: "ACTIVE" };
+        if (accessToken) {
+            // Verificación vía REST API
+            const response = UrlFetchApp.fetch("https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=1", {
+               method: "get",
+               headers: { "Authorization": "Bearer " + accessToken },
+               muteHttpExceptions: true
+            });
+            if (response.getResponseCode() === 200) {
+                return { status: "ACTIVE", success: true };
+            } else {
+                return { status: "BROKEN", success: false, error: `Calendar API Error: ${response.getContentText()}` };
+            }
+        } else {
+            if (typeof Calendar === 'undefined') {
+      throw errorHandler.createError('ADAPTER_ERROR', 'Google Calendar API Advanced Service is not enabled.');
+    }
+            Calendar.CalendarList.list({ maxResults: 1 });
+            return { status: "ACTIVE", success: true };
+        }
     } catch (e) {
-      return { status: "BROKEN", error: e.message };
+      return { status: "BROKEN", success: false, error: e.message };
     }
   }
 
   // --- SOVEREIGN CANON V8.0 ---
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
   const CANON = {
-    LABEL: "Calendar Interface",
     ARCHETYPE: "ADAPTER",
     DOMAIN: "TEMPORAL",
-    SEMANTIC_INTENT: "BRIDGE",
     CAPABILITIES: {
       "listCalendars": {
         "io": "READ",
@@ -310,14 +345,6 @@ function createCalendarAdapter({ errorHandler }) {
           "success": { "type": "boolean", "desc": "Inhibition status confirmation." }
         }
       }
-    },
-    VITAL_SIGNS: {
-      "API_QUOTA": { "criticality": "NOMINAL", "value": "UNKNOWN", "trend": "flat" },
-      "SYNC_STATUS": { "criticality": "NOMINAL", "value": "ACTIVE", "trend": "stable" }
-    },
-    UI_LAYOUT: {
-      "SIDE_PANEL": "ENABLED",
-      "TERMINAL_STREAM": "ENABLED"
     }
   };
 
@@ -339,10 +366,12 @@ function createCalendarAdapter({ errorHandler }) {
     },
     // Protocol mapping (TEMPORAL_V1)
     getEvents: listEvents,
+    listContents: listEvents, // AXIOMA: Señal Universal (V9.0)
     createEvent,
     deleteEvent,
     calculateDuration,
     verifyConnection,
+    setTokenManager: (tm) => { tokenManager = tm; },
     // Original methods
     listCalendars,
     listEvents,
@@ -350,4 +379,9 @@ function createCalendarAdapter({ errorHandler }) {
     CANON: CANON
   };
 }
+
+
+
+
+
 

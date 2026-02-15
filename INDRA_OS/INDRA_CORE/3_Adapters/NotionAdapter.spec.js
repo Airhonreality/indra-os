@@ -356,7 +356,17 @@ function testNotionAdapter_QueryDatabaseAplanificaPropiedades() {
       ]
     };
 
+    const dbUrl = 'https://api.notion.com/v1/databases/' + dbId;
+    const mockDbResponse = {
+      id: dbId,
+      properties: {
+        'Name': { type: 'title', title: {} },
+        'Status': { type: 'select', select: {} }
+      }
+    };
+
     setup.mockUrlFetch.setMockResponse(queryUrl, mockResponse, 200);
+    setup.mockUrlFetch.setMockResponse(dbUrl, mockDbResponse, 200);
 
     const result = setup.adapter.queryDatabase({ databaseId: dbId });
 
@@ -997,3 +1007,8 @@ function testNotionAdapter_MultiAccountSupport() {
     _teardownNotionAdapterTests(setup);
   }
 }
+
+
+
+
+

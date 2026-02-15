@@ -60,7 +60,7 @@ const SyncStatusCore = ({ syncStatus = 'SYNCED', isOpen }) => {
             {/* El Núcleo Sólido (Ojo de Indra) */}
             <div className="sphere-nucleus" />
 
-            {/* Partículas Orbitales (Efecto molecular) */}
+            {/* Partículas INDRAes (Efecto molecular) */}
             {[...Array(6)].map((_, i) => (
                 <div
                     key={i}
@@ -456,3 +456,6 @@ const SovereignSphere = ({ manualLayer, setManualLayer }) => {
 };
 
 export default SovereignSphere;
+
+
+

@@ -98,10 +98,13 @@ const RealityEngine = ({ data }) => {
 
             {/* Overlay de Ayuda */}
             <div className="absolute bottom-4 right-4 text-[9px] font-mono text-white/20 italic">
-                ISK_PILOT_V1_STARK // WebGL Rendering Active
+                ISK_PILOT_V1_Axiom // WebGL Rendering Active
             </div>
         </div>
     );
 };
 
 export default RealityEngine;
+
+
+

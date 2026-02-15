@@ -181,3 +181,8 @@ graph TD
 3. **Validar retorno de piggybacking** - InterdictionUnit debe confirmar `success: true` del snapshot antes de limpiar buffer.
 4. **Test de stress**: Enviar 1000 mutaciones en 1 segundo para validar que el batching no pierda comandos.
 
+
+
+
+
+

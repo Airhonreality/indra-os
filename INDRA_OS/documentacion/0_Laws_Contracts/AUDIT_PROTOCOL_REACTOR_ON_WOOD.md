@@ -89,3 +89,8 @@ Se detendrá la implementación si se detecta cualquiera de los siguientes fallo
 
 ---
 *Este documento sirve como Contrato de Calidad para la implementación del modelo "Reactor sobre Madera".*
+
+
+
+
+

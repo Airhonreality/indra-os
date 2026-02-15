@@ -152,12 +152,35 @@ function createEmailAdapter({ errorHandler, tokenManager }) {
     }
 
 
-    function verifyConnection() {
+    /**
+     * @description Verifica la conectividad y validez del token para una cuenta específica.
+     * @param {object} payload - { accountId? }
+     * @returns {object} { status: "ACTIVE" | "BROKEN", success: boolean, error? }
+     */
+    function verifyConnection(payload = {}) {
+        const accountId = payload.accountId || null;
+        const accessToken = _getAccessToken(accountId);
+        
         try {
-            GmailApp.getAliases();
-            return { status: "ACTIVE" };
+            if (accessToken) {
+                // Validación vía REST API de Google
+                const response = UrlFetchApp.fetch("https://gmail.googleapis.com/gmail/v1/users/me/profile", {
+                   headers: { "Authorization": "Bearer " + accessToken },
+                   muteHttpExceptions: true
+                });
+                
+                if (response.getResponseCode() === 200) {
+                    return { status: "ACTIVE", success: true };
+                } else {
+                    return { status: "BROKEN", success: false, error: `REST API Error: ${response.getContentText()}` };
+                }
+            } else {
+                 // Fallback: Sesión por defecto del script
+                 GmailApp.getAliases();
+                 return { status: "ACTIVE", success: true };
+            }
         } catch (e) {
-            return { status: "BROKEN", error: e.message };
+            return { status: "BROKEN", success: false, error: e.message };
         }
     }
 
@@ -167,13 +190,11 @@ function createEmailAdapter({ errorHandler, tokenManager }) {
 
     // --- SOVEREIGN CANON V8.0 ---
 
-    // --- SOVEREIGN CANON V8.0 (Excellence Standard) ---
+    // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
     const CANON = {
         id: "email",
-        LABEL: "Email Interface",
         ARCHETYPE: "ADAPTER",
         DOMAIN: "COMMUNICATION",
-        SEMANTIC_INTENT: "BRIDGE",
         CAPABILITIES: {
             "send": { 
                 "io": "WRITE", 
@@ -198,14 +219,6 @@ function createEmailAdapter({ errorHandler, tokenManager }) {
                     "items": { type: "array", desc: "Collection of Email nodes." }
                 }
             }
-        },
-        VITAL_SIGNS: {
-            "SMTP_RELAY": { "criticality": "NOMINAL", "value": "ACTIVE", "trend": "stable" },
-            "QUOTA_USED": { "criticality": "NOMINAL", "value": "12%", "trend": "flat" }
-        },
-        UI_LAYOUT: {
-            "SIDE_PANEL": "ENABLED",
-            "TERMINAL_STREAM": "ENABLED"
         }
     };
 
@@ -290,3 +303,8 @@ function createEmailAdapter({ errorHandler, tokenManager }) {
         }
     };
 }
+
+
+
+
+

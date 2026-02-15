@@ -96,3 +96,7 @@ Reducción de Carga Cognitiva: Utiliza una Jerarquía de Profundidad. No muestra
 Reproceso de "Archivo Perdido": Si un artefacto no cumple con su Contract_Blueprint, el Archivista lo marca con un icono de "Materia Impura" y ofrece una herramienta de reparación automática.
 Veredicto del Arquitecto
 El OMD-07 Maestro es el Centro de Control de Realidades. Su diseño es robusto, coherente y esencial para la navegación y gestión de proyectos en INDRA.
+
+
+
+

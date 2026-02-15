@@ -118,7 +118,7 @@ function testCalendarAdapter_createEvent_shouldCreateWithMetadata() {
                 start: { dateTime: '2026-01-05T10:00:00Z' },
                 end: { dateTime: '2026-01-05T11:00:00Z' },
                 extendedProperties: {
-                    private: { orbitalId: 'task-123' }
+                    private: { IndraId: 'task-123' }
                 }
             }
         };
@@ -127,7 +127,7 @@ function testCalendarAdapter_createEvent_shouldCreateWithMetadata() {
 
         assert.isNotNull(result.id, "Debe tener un ID generado.");
         assert.strictEqual(result.summary, 'Test Event');
-        assert.strictEqual(result.extendedProperties.private.orbitalId, 'task-123', "Debe persistir metadatos orbitales.");
+        assert.strictEqual(result.extendedProperties.private.IndraId, 'task-123', "Debe persistir metadatos Indraes.");
 
         return true;
     } finally {
@@ -205,3 +205,8 @@ function testCalendarAdapter_deleteEvent_shouldRemove() {
         _teardownCalendarAdapterTests(setup.originals);
     }
 }
+
+
+
+
+

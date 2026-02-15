@@ -266,7 +266,7 @@ function testConfigurator_BackwardCompatibility_debeRedirigirATokenManager() {
       configurator.storeParameter({ key: 'NOTION_API_KEY', value: 'direct-ps-value' });
     } catch (e) {
       // Fallback for direct storage if legacy logic prevents storing legacy keys via public API
-      setup.mocks._state.storage['ORBITAL_NOTION_API_KEY'] = 'direct-ps-value';
+      setup.mocks._state.storage['INDRA_NOTION_API_KEY'] = 'direct-ps-value';
     }
     const valueDirect = configurator.retrieveParameter({ key: 'NOTION_API_KEY' });
 
@@ -283,3 +283,8 @@ function testConfigurator_BackwardCompatibility_debeRedirigirATokenManager() {
     _teardownConfiguratorTests(setup.originals);
   }
 }
+
+
+
+
+

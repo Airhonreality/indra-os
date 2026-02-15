@@ -30,7 +30,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: var(--stark-font);
+    font-family: var(--axiom-font);
     font-weight: bold;
     user-select: none;
 }
@@ -121,3 +121,6 @@
     letter-spacing: 1px;
     opacity: 0.6;
 }
+
+
+

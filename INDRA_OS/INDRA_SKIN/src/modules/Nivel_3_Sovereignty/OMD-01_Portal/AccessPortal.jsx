@@ -6,6 +6,7 @@ import React, { useState } from 'react';
  */
 import { CONFIG } from '../../../core/Config';
 import connector from '../../../core/Core_Connector';
+import { StateBridge } from '../../../core/state/StateBridge';
 
 const AccessPortal = ({ law }) => {
     const [apiKey, setApiKey] = useState('');
@@ -41,7 +42,7 @@ const AccessPortal = ({ law }) => {
     };
 
     const handleConnect = async () => {
-        if (window.INDRA_DEBUG) window.INDRA_DEBUG.logs.push({ msg: "Intentando conectar vector...", level: 'info', time: new Date().toLocaleTimeString(), node: 'PORTAL' });
+        StateBridge.addLog("Intentando conectar vector...", 'info', 'PORTAL');
 
         // 1. Guardar URL inmediatamente si ha cambiado (Prioridad Máxima)
         const finalUrl = coreUrl || CONFIG.CORE_URL;
@@ -53,7 +54,7 @@ const AccessPortal = ({ law }) => {
         if (!isValidFormat(apiKey)) {
             setErrorMessage("FORMATO INVÁLIDO: La llave no puede estar vacía.");
             setStatus('ERROR');
-            if (window.INDRA_DEBUG) window.INDRA_DEBUG.logs.push({ msg: "Fallo de validación local.", level: 'error', time: new Date().toLocaleTimeString(), node: 'PORTAL' });
+            StateBridge.addLog("Fallo de validación local.", 'error', 'PORTAL');
             return;
         }
 
@@ -66,10 +67,8 @@ const AccessPortal = ({ law }) => {
         // Sincronizar el singleton del conector inmediatamente
         connector.init(finalUrl, apiKey);
 
-        if (window.INDRA_DEBUG) {
-            window.INDRA_DEBUG.logs.push({ msg: "Token guardado. Propagando al Conector...", level: 'info', time: new Date().toLocaleTimeString(), node: 'PORTAL' });
-            window.INDRA_DEBUG.logs.push({ msg: "Reiniciando el sistema para ignición limpia...", level: 'warn', time: new Date().toLocaleTimeString(), node: 'PORTAL' });
-        }
+        StateBridge.addLog("Token guardado. Propagando al Conector...", 'info', 'PORTAL');
+        StateBridge.addLog("Reiniciando el sistema para ignición limpia...", 'warn', 'PORTAL');
 
         setTimeout(() => {
             setStatus('SUCCESS');
@@ -82,19 +81,19 @@ const AccessPortal = ({ law }) => {
     return (
         <div className="w-full h-full flex items-center justify-center bg-black/80 backdrop-blur-3xl pointer-events-auto">
             {/* Scaffolding Frame */}
-            <div className={`relative w-[400px] stark-ui-group flex flex-col items-center gap-8 border-t-2 transition-all duration-500 ${status === 'ERROR' ? 'border-status-error animate-shake' : 'border-accent-primary'}`}
+            <div className={`relative w-[400px] axiom-ui-group flex flex-col items-center gap-8 border-t-2 transition-all duration-500 ${status === 'ERROR' ? 'border-status-error animate-shake' : 'border-accent-primary'}`}
                 style={{ borderColor: status === 'IDLE' ? visual.color : undefined }}>
 
                 {/* Header Section */}
                 <div className="flex flex-col items-center text-center gap-2">
                     <div className="w-10 h-10 flex items-center justify-center border border-white/10 rotate-45 mb-4">
-                        <span className="text-accent-primary -rotate-45 font-bold">ST</span>
+                        <span className="text-accent-primary -rotate-45 font-bold">AX</span>
                     </div>
                     <h1 className="text-xs font-black tracking-[0.8em] uppercase text-white/90">
-                        {law.sub_artefactos?.find(a => a.id === 'gate_header')?.contenido?.titulo || 'ORBITAL CORE'}
+                        {law.sub_artefactos?.find(a => a.id === 'gate_header')?.contenido?.titulo || 'INDRA OS'}
                     </h1>
                     <p className="text-[7px] font-mono text-white/20 uppercase tracking-[0.4em]">
-                        {law.sub_artefactos?.find(a => a.id === 'gate_header')?.contenido?.subtitulo || 'Reality Orchestration System'}
+                        {law.sub_artefactos?.find(a => a.id === 'gate_header')?.contenido?.subtitulo || 'Sovereign Orchestration System'}
                     </p>
                 </div>
 
@@ -110,7 +109,7 @@ const AccessPortal = ({ law }) => {
                                 if (status === 'ERROR') setStatus('IDLE');
                             }}
                             placeholder="Introduce tu llave maestra..."
-                            className="stark-atom-input text-center tracking-[0.2em]"
+                            className="axiom-atom-input text-center tracking-[0.2em]"
                             autoFocus
                         />
                     </div>
@@ -135,7 +134,7 @@ const AccessPortal = ({ law }) => {
                                     value={coreUrl}
                                     onChange={(e) => setCoreUrl(e.target.value)}
                                     placeholder="https://..."
-                                    className="stark-atom-input text-[8px] text-white/50 tracking-wide font-mono flex-1"
+                                    className="axiom-atom-input text-[8px] text-white/50 tracking-wide font-mono flex-1"
                                 />
                                 <button
                                     onClick={handlePing}
@@ -155,7 +154,7 @@ const AccessPortal = ({ law }) => {
                     <button
                         onClick={handleConnect}
                         disabled={status === 'VALIDATING'}
-                        className={`stark-atom-btn stark-atom-btn-primary ${status === 'VALIDATING' ? 'opacity-50 cursor-wait' : ''}`}
+                        className={`axiom-atom-btn axiom-atom-btn-primary ${status === 'VALIDATING' ? 'opacity-50 cursor-wait' : ''}`}
                     >
                         {status === 'VALIDATING' ? 'Sincronizando...' : 'Conectar'}
                     </button>
@@ -165,7 +164,7 @@ const AccessPortal = ({ law }) => {
                 <div className="flex items-center gap-4 py-2">
                     <div className={`w-1 h-1 rounded-full ${status === 'VALIDATING' ? 'bg-accent-primary animate-pulse' : 'bg-white/10'}`}></div>
                     <span className="text-[6px] font-mono text-white/10 uppercase tracking-widest italic">
-                        Securing session via Stark_Protocol_v7
+                        Securing session via Sovereign_Protocol_v12
                     </span>
                     <div className={`w-1 h-1 rounded-full ${status === 'VALIDATING' ? 'bg-accent-primary animate-pulse' : 'bg-white/10'}`}></div>
                 </div>
@@ -184,3 +183,6 @@ const AccessPortal = ({ law }) => {
 };
 
 export default AccessPortal;
+
+
+

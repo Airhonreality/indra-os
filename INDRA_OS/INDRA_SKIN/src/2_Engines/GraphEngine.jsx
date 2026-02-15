@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import ComponentProjector from '../core/kernel/ComponentProjector';
+import ProjectionMatrix from '../core/kernel/ProjectionMatrix';
 import { useAxiomaticStore } from '../core/state/AxiomaticStore';
 import { SPATIAL_PHYSICS } from '../core/laws/Spatial_Physics';
 import compiler from '../core/laws/Law_Compiler';
@@ -344,7 +344,7 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
                                 top: isNew ? `${y}px` : 'auto'
                             }}
                         >
-                            <ComponentProjector
+                            <ProjectionMatrix
                                 componentId={node.id}
                                 data={{ ...node, x, y }}
                                 perspective="NODE"
@@ -384,3 +384,6 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
 };
 
 export default GraphEngine;
+
+
+

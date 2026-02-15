@@ -1,6 +1,6 @@
 /**
- * c:\Users\javir\Documents\DEVs\INDRA FRONT END\INDRA_OS\INDRA_SKIN\src\core\StarkProjector.jsx
- * ⚡ STARK PROJECTOR (Indra OS Stark v8.0)
+ * c:\Users\javir\Documents\DEVs\INDRA FRONT END\INDRA_OS\INDRA_SKIN\src\core\AxiomProjector.jsx
+ * ⚡ AXIOM PROJECTOR (INDRA OS Sovereign v14.5)
  * DHARMA: Renderizado ultra-directo de realidades canonizadas.
  */
 
@@ -8,10 +8,10 @@ import React, { Suspense } from 'react';
 import { resolveCanonComponent } from './Indra_Canon_Registry';
 
 /**
- * El StarkProjector es el único punto de entrada visual para los datos del Core.
+ * El AxiomProjector es el único punto de entrada visual para los datos del Core.
  * No pregunta "quién" envió el dato, sino "qué canon" habla.
  */
-const StarkProjector = ({ data, slot }) => {
+const AxiomProjector = ({ data, slot }) => {
     if (!data) return null;
 
     // Detectar el canon (prioridad absoluta a la soberanía semántica)
@@ -20,12 +20,15 @@ const StarkProjector = ({ data, slot }) => {
     const Component = resolveCanonComponent(canonId);
 
     return (
-        <div className={`stark-projection-wrapper slot-${slot}`}>
-            <Suspense fallback={<div className="stark-loading">Igniting Projection...</div>}>
+        <div className={`axiom-projection-wrapper slot-${slot}`}>
+            <Suspense fallback={<div className="axiom-loading">Igniting Projection...</div>}>
                 <Component data={data} slot={slot} />
             </Suspense>
         </div>
     );
 };
 
-export default StarkProjector;
+export default AxiomProjector;
+
+
+

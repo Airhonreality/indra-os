@@ -97,3 +97,8 @@ El usuario puede hacer click derecho en la "Vista 2" dentro del Slot -> "Generar
 2.  **Engine Dual:** Crear `SlotEngine.jsx`.
     - Detectar si está en modo "Nodo" (pequeño) o "Proyección" (FullScreen).
 3.  **Gestor de Vistas:** Implementar la lógica de tabs/pestañas dentro del objeto de datos del nodo.
+
+
+
+
+

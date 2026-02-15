@@ -157,10 +157,10 @@ function createMonitoringService({ manifest, configurator, errorHandler, sheetAd
       return { sent: false, reason: 'La variable ADMIN_EMAIL no está configurada.' };
     }
     
-    const subject = `[Orbital Core] Alerta Crítica - ${error.code || 'SIN_CODIGO'}`;
+    const subject = `[Indra Core] Alerta Crítica - ${error.code || 'SIN_CODIGO'}`;
     
     const body = `
-      Se ha producido un error crítico en el sistema Orbital Core.
+      Se ha producido un error crítico en el sistema Indra Core.
 
       --------------------------------------------------
       DETALLES DEL ERROR
@@ -268,9 +268,16 @@ function createMonitoringService({ manifest, configurator, errorHandler, sheetAd
     return { status: "ACTIVE", loggingLevel: Object.keys(LOG_LEVEL_MAP)[systemLogLevel] || "INFO" };
   }
 
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+  const CANON = {
+      ARCHETYPE: "SERVICE",
+      DOMAIN: "OBSERVABILITY",
+      CAPABILITIES: schemas
+  };
+
   return {
     description: "Industrial monitoring engine for active event logging and critical fault orchestration.",
-    semantic_intent: "OBSERVER",
+    CANON: CANON,
     schemas: schemas,
     // Capability Discovery
     verifyConnection,
@@ -285,3 +292,8 @@ function createMonitoringService({ manifest, configurator, errorHandler, sheetAd
     flushFrontendLogs
   };
 }
+
+
+
+
+

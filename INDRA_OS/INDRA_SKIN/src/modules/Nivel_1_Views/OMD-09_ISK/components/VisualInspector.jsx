@@ -33,7 +33,7 @@ export const VisualInspector = () => {
                             <input
                                 type="number"
                                 defaultValue={value}
-                                className="stark-input"
+                                className="axiom-input"
                             />
                             {/* Simulamos un slider para valores numéricos comunes */}
                             <div className="mini-slider" style={{ width: `${Math.min(value, 100)}%` }}></div>
@@ -48,7 +48,7 @@ export const VisualInspector = () => {
                             <input
                                 type="color"
                                 defaultValue={value}
-                                className="stark-color-picker"
+                                className="axiom-color-picker"
                             />
                             <span className="color-hex">{value}</span>
                         </div>
@@ -61,7 +61,7 @@ export const VisualInspector = () => {
                         <input
                             type="text"
                             defaultValue={value}
-                            className="stark-input"
+                            className="axiom-input"
                         />
                     </div>
                 );
@@ -95,11 +95,11 @@ export const VisualInspector = () => {
                         <h5 className="section-title">Identity</h5>
                         <div className="inspector-field readonly">
                             <label>UUID</label>
-                            <input type="text" value={selection.id} readOnly className="stark-input ghost" />
+                            <input type="text" value={selection.id} readOnly className="axiom-input ghost" />
                         </div>
                         <div className="inspector-field readonly">
                             <label>ARCHETYPE</label>
-                            <input type="text" value={selection.schema.type} readOnly className="stark-input ghost active-type" />
+                            <input type="text" value={selection.schema.type} readOnly className="axiom-input ghost active-type" />
                         </div>
                     </div>
 
@@ -116,7 +116,7 @@ export const VisualInspector = () => {
     );
 };
 
-// Metadata for OrbitalCore alignment
+// Metadata for INDRACore alignment
 VisualInspector.metadata = {
     id: "visual_inspector_isk",
     archetype: "TRANSFORM",
@@ -125,3 +125,6 @@ VisualInspector.metadata = {
 };
 
 export default VisualInspector;
+
+
+

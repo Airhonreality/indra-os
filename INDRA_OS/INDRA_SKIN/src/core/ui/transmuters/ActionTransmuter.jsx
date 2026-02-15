@@ -5,11 +5,11 @@ import bridge from '../../kernel/SovereignBridge';
  * Dharma: Manifestar la voluntad del usuario (Ignición y Control).
  */
 export const ActionTransmuter = ({ atom }) => {
-    // Mapeo de Roles a Clases Stark
+    // Mapeo de Roles a Clases Axiom
     const classes = {
-        ACTION_PRIMARY: "stark-atom-btn stark-atom-btn-primary",
-        ACTION_SECONDARY: "stark-atom-btn stark-atom-btn-secondary",
-        ACTION_DANGER: "stark-atom-btn stark-atom-btn-danger"
+        ACTION_PRIMARY: "axiom-atom-btn axiom-atom-btn-primary",
+        ACTION_SECONDARY: "axiom-atom-btn axiom-atom-btn-secondary",
+        ACTION_DANGER: "axiom-atom-btn axiom-atom-btn-danger"
     };
 
     const handleClick = () => {
@@ -25,10 +25,13 @@ export const ActionTransmuter = ({ atom }) => {
     return (
         <button
             id={atom.id}
-            className={classes[atom.role] || "stark-atom-btn"}
+            className={classes[atom.role] || "axiom-atom-btn"}
             onClick={handleClick}
         >
             {atom.label}
         </button>
     );
 };
+
+
+

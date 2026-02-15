@@ -51,7 +51,7 @@ function doPost(e) {
       const probeStack = _assembleExecutionStack();
       const { configurator } = probeStack;
       
-      const expectedToken = configurator.retrieveParameter({ key: 'ORBITAL_CORE_SATELLITE_API_KEY' }) || 
+      const expectedToken = configurator.retrieveParameter({ key: 'INDRA_CORE_SATELLITE_API_KEY' }) || 
                             configurator.retrieveParameter({ key: 'SYSTEM_TOKEN' });
 
       return _respondJson(200, { 
@@ -84,7 +84,7 @@ function doPost(e) {
     const { configurator, errorHandler } = executionStack;
 
     const systemToken = preparsedBody.Axiom || preparsedBody.systemToken || _extractBearerToken(e.headers);
-    const isAuthorized = SovereignGuard.authorize(systemToken, configurator);
+    const isSovereignIdentity = SovereignGuard.verifySovereignIdentity(systemToken, configurator);
 
     if (isWebhookMode) {
       const result = _handleWebhookRequest(e, executionStack, preparsedBody);
@@ -94,7 +94,7 @@ function doPost(e) {
       return _respondJson(result.statusCode, result.body);
     } else {
       // Default: Satellite API Mode
-      const result = _handleSatelliteApiRequest(e, executionStack, preparsedBody, isAuthorized);
+      const result = _handleSatelliteApiRequest(e, executionStack, preparsedBody, isSovereignIdentity);
       return _respondJson(result.statusCode, result.body);
     }
   } catch (error) {
@@ -161,7 +161,7 @@ function _handleWebhookRequest(event, dependencies, preparsedBody) {
   // GRITO #5: ¿El job se encoló con éxito? (Solo en DEBUG)
   _logToWebhookSite('handle_webhook_enqueue_ok', { jobId });
 
-  const workerUrl = configurator.retrieveParameter({ key: 'ORBITAL_WORKER_URL' });
+  const workerUrl = configurator.retrieveParameter({ key: 'INDRA_WORKER_URL' });
   
   if (workerUrl) {
     try {
@@ -194,14 +194,11 @@ function _handleWebhookRequest(event, dependencies, preparsedBody) {
 /**
  * Maneja una petición de la API de Satélite (síncrono, genérico).
  */
-function _handleSatelliteApiRequest(event, executionStack, preparsedBody, isAuthorized) {
+function _handleSatelliteApiRequest(event, executionStack, preparsedBody, isSovereignIdentity) {
   const { errorHandler, configurator } = executionStack;
+  // AXIOMA: Safe Harbor for Discovery (Delegated to Projection Kernel)
   const body = preparsedBody || _parseJsonBody(event);
   const providedToken = body.Axiom || body.systemToken || _extractBearerToken(event?.headers);
-
-  // AXIOMA: Safe Harbor para Discovery (La Puerta del Templo siempre está abierta para los peregrinos)
-  const discoveryMethods = ['getSystemStatus', 'getSystemContext', 'getSovereignLaws', 'getSystemContracts', 'getDistributionSite', 'getSovereignGenotype', 'getSimulationSeeds', 'setSystemToken'];
-  const rawContents = (event && event.postData && event.postData.contents) || "";
 
   // Normalización de ejecutor y método
   // AXIOMA: Si action es "methodName", se asume "public:methodName"
@@ -210,19 +207,18 @@ function _handleSatelliteApiRequest(event, executionStack, preparsedBody, isAuth
   let method = body.method || (actionParts.length > 1 ? actionParts[1] : (actionParts.length === 1 ? actionParts[0] : undefined));
   let payload = body.payload;
 
-  let isDiscoveryCall = (executor === 'public' || executor === 'system' || !executor) && (
-                          discoveryMethods.includes(method) || 
-                          discoveryMethods.some(m => rawContents.includes(`"${m}"`))
-                        );
+  const { projectionKernel } = executionStack;
 
-  if (!isAuthorized && !isDiscoveryCall) {
+  // AXIOMA V12: Autodiscubrimiento Soberano.
+  // Si el método tiene exposición 'public' en el contrato, permitimos el Safe Harbor.
+  const isDiscoveryCall = projectionKernel.isMethodPublic(executionStack, executor, method);
+
+  if (!isSovereignIdentity && !isDiscoveryCall) {
      const maskedProvided = (providedToken || "").toString().substring(0, 3) + "...";
      throw errorHandler.createError('UNAUTHORIZED', `System token missing or invalid (Body-Key Axiom). Received: ${maskedProvided}`);
   }
 
-  // Normalización de ejecutor
-  if (executor === 'system' || executor === 'cosmos') executor = 'public'; // Robustez: System/Cosmos = Public
-  const { projectionKernel } = executionStack;
+  // AXIOMA: Fin de la Mentira de los Alias. Cada ejecutor mantiene su identidad propia.  const { projectionKernel } = executionStack;
 
   // Modificar el mensaje de error para mayor claridad.
   if (!executor || !method) {
@@ -362,3 +358,8 @@ function _isNotionButtonWebhook(body) {
   // Heurística conservadora: requerimos pageId y flowId.
   return (body.pageId && body.flowId) ? true : false;
 }
+
+
+
+
+

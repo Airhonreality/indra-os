@@ -107,3 +107,8 @@ Una Matriz de Arquitectura solo se aprueba si cumple tres condiciones de verdad:
 3.  **Soberanía:** Aislamiento efectivo de la variabilidad externa en las capas periféricas, protegiendo el núcleo lógico.
 
 > *"Una arquitectura válida es la demostración matemática de que el sistema es construible, mantenible y capaz de evolucionar sin colapsar bajo su propio peso informático."*
+
+
+
+
+

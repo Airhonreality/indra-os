@@ -1,6 +1,6 @@
-# Inventario de Archivos OrbitalCore Codex v1
+# Inventario de Archivos INDRACore Codex v1
 
-Este documento lista la estructura completa de archivos del sistema OrbitalCore, organizados por su capa y espacio de nombres.
+Este documento lista la estructura completa de archivos del sistema INDRACore, organizados por su capa y espacio de nombres.
 
 | Capa / Namespace | Archivo | Tipo |
 | :--- | :--- | :--- |
@@ -135,3 +135,8 @@ Este documento lista la estructura completa de archivos del sistema OrbitalCore,
 | **7_Diagnostics** | test_contract_discovery.gs | Test |
 | **Root** | debug_gravity.js | Utils |
 | **Root** | _Preload.gs | Utils |
+
+
+
+
+

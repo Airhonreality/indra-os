@@ -1,7 +1,7 @@
 // ======================================================================
 // ARTEFACTO: 0_Laws/System_Constitution.spec.js
 // PROPÓSITO: Suite de tests unitarios COMPLETA y NATIVA para System_Constitution.gs.
-// ESTRATEGIA: Verificación directa de la estructura STARK (UPPER_CASE).
+// ESTRATEGIA: Verificación directa de la estructura Axiom (UPPER_CASE).
 // ======================================================================
 
 function testSystemConstitution_Estructura_debeExistirYSerInmutable() {
@@ -15,18 +15,17 @@ function testSystemConstitution_Estructura_debeExistirYSerInmutable() {
   return true;
 }
 
-function testSystemConstitution_Estructura_debeContenerTodasLasClavesSTARK() {
+function testSystemConstitution_Estructura_debeContenerTodasLasClavesAxiom() {
   assert.hasProperty(SYSTEM_CONSTITUTION, 'VERSION');
   assert.hasProperty(SYSTEM_CONSTITUTION, 'ANCHOR_PROPERTY');
   assert.hasProperty(SYSTEM_CONSTITUTION, 'DRIVE_SCHEMA');
   assert.hasProperty(SYSTEM_CONSTITUTION, 'SHEETS_SCHEMA');
-  assert.hasProperty(SYSTEM_CONSTITUTION, 'COMPONENT_REGISTRY');
   assert.hasProperty(SYSTEM_CONSTITUTION, 'CONNECTIONS');
   assert.hasProperty(SYSTEM_CONSTITUTION, 'LIMITS');
   return true;
 }
 
-function testSystemConstitution_DriveSchema_debeTenerEstructuraSTARK() {
+function testSystemConstitution_DriveSchema_debeTenerEstructuraAxiom() {
   const schema = SYSTEM_CONSTITUTION.DRIVE_SCHEMA;
   assert.isNotNull(schema.ROOT, "Debe tener ROOT.");
   assert.isType(schema.ROOT.NAME, 'string');
@@ -47,11 +46,9 @@ function testSystemConstitution_SheetsSchema_debeTenerHeadersValidos() {
   return true;
 }
 
-function testSystemConstitution_ComponentRegistry_debeTenerComponentesCriticos() {
-  const registry = SYSTEM_CONSTITUTION.COMPONENT_REGISTRY;
-  // AXIOMA v8.0: Componentes Soberanos (Ya no están centralizados en el manifiesto)
-  // Verificamos solo los componentes abstractos/UI
-  assert.isNotNull(registry.CORE_PORTAL, "CORE_PORTAL debe estar registrado.");
-  assert.areEqual(registry.CORE_PORTAL.ARCHETYPE, 'BRIDGE');
-  return true;
-}
+
+
+
+
+
+

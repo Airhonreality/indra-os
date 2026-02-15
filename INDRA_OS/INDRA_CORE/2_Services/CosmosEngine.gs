@@ -83,10 +83,10 @@ function createCosmosEngine({ driveAdapter, configurator, monitoringService, err
    */
   function listAvailableCosmos(args) {
     const { includeAll } = args || {};
-    const flowsFolderId = configurator.retrieveParameter({ key: 'ORBITAL_FOLDER_FLOWS_ID' });
+    const flowsFolderId = configurator.retrieveParameter({ key: 'INDRA_FOLDER_FLOWS_ID' });
     
     if (!flowsFolderId) {
-        throw errorHandler.createError('CONFIGURATION_ERROR', 'ORBITAL_FOLDER_FLOWS_ID no está configurado.');
+        throw errorHandler.createError('CONFIGURATION_ERROR', 'INDRA_FOLDER_FLOWS_ID no está configurado.');
     }
 
     try {
@@ -201,7 +201,7 @@ function createCosmosEngine({ driveAdapter, configurator, monitoringService, err
 
     const idStr = String(cosmosId);
     const isNew = idStr.startsWith('temp_') || idStr.startsWith('cosmos_') || idStr.length < 10;
-    const flowsFolderId = configurator.retrieveParameter({ key: 'ORBITAL_FOLDER_FLOWS_ID' });
+    const flowsFolderId = configurator.retrieveParameter({ key: 'INDRA_FOLDER_FLOWS_ID' });
 
     // 1. Delegación de Integridad Atómica (PHYSICAL TRUTH) via L8 Validator
     if (!isNew && revisionHash && revisionHash !== 'force') {
@@ -488,13 +488,22 @@ function createCosmosEngine({ driveAdapter, configurator, monitoringService, err
   }
 
 
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+  const CANON = {
+    ARCHETYPE: "ENGINE",
+    DOMAIN: "APPLICATION",
+    CAPABILITIES: {
+      "mountCosmos": { "io": "READ", "desc": "Hydrate a reality circuit" },
+      "saveCosmos": { "io": "WRITE", "desc": "Persist a reality state" },
+      "listAvailableCosmos": { "io": "READ", "desc": "Discover reachable realities" },
+      "applyPatch": { "io": "WRITE", "desc": "Modify reality state atomically" }
+    }
+  };
+
   // Retorno del Nodo Soberano
   return Object.freeze({
     id: "cosmos", // Identidad del Trabajador
-    label: "Indra Reality Engine",
-    archetype: "ENGINE", // Nuevo Arquetipo para Motores de Lógica
-    domain: "APPLICATION", // Dominio Específico de App (No SYSTEM_CORE)
-    semantic_intent: "SERVICE",
+    CANON: CANON,
     schemas,
     // Métodos expuestos
     mountCosmos,
@@ -505,3 +514,8 @@ function createCosmosEngine({ driveAdapter, configurator, monitoringService, err
     bindArtifactToCosmos
   });
 }
+
+
+
+
+

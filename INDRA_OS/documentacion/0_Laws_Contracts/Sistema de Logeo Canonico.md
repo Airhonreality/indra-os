@@ -100,3 +100,8 @@ El sistema incluye un `DebugAdapter` (System Utility) que expone capacidades par
 *   **clearLogBuffer:** Limpia la memoria de logs acumulados.
 
 Este adapter se renderiza automáticamente en el frontend como un panel de control gracias a su definición en `UI_LAYOUT`.
+
+
+
+
+

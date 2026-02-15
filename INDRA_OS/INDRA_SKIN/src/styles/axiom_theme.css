@@ -1,5 +1,5 @@
 /* ============================================================ */
-/* STARK THEME SYSTEM v8.7 (Industrial Robustness)              */
+/* axiom THEME SYSTEM v8.7 (Industrial Robustness)              */
 /* DHARMA: La estabilidad es la base de la soberanía.           */
 /* ============================================================ */
 
@@ -12,11 +12,11 @@
 
 :root {
     /* Base Typography */
-    --stark-font: 'Outfit', sans-serif;
-    --stark-mono: 'JetBrains Mono', monospace;
-    --stark-border-radius: 12px;
-    --stark-transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-    --stark-glass-blur: 20px;
+    --axiom-font: 'Outfit', sans-serif;
+    --axiom-mono: 'JetBrains Mono', monospace;
+    --axiom-border-radius: 12px;
+    --axiom-transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    --axiom-glass-blur: 20px;
 
     /* Semantic Pallette: DARK AURA (Aesthetic: Neon Pastel Industrial) */
     --bg-deep: #020617;
@@ -50,7 +50,7 @@
 
 /* SOLAR FLUX: LIGHT MODE (Aesthetic: Technical Blueprint) */
 [data-theme='light'],
-.stark-theme-light {
+.axiom-theme-light {
     --bg-deep: #f8fafc;
     --bg-primary: #ffffff;
     --bg-secondary: #f1f5f9;
@@ -80,13 +80,13 @@
 }
 
 /* Atom overrides for Solar Flux */
-.stark-theme-light .stark-atom-input {
+.axiom-theme-light .axiom-atom-input {
     background: rgba(0, 0, 0, 0.04);
     color: var(--text-primary);
     border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.stark-theme-light .stark-atom-btn-primary {
+.axiom-theme-light .axiom-atom-btn-primary {
     background: rgba(var(--accent-rgb), 0.1);
     border: 1px solid rgba(var(--accent-rgb), 0.3);
     color: rgb(var(--accent-rgb));
@@ -102,12 +102,12 @@ body,
     overflow: hidden;
     background: var(--bg-deep);
     color: var(--text-primary);
-    font-family: var(--stark-font);
+    font-family: var(--axiom-font);
     -webkit-font-smoothing: antialiased;
 }
 
 /* --- THE MASTER SHELL --- */
-.stark-shell {
+.axiom-shell {
     display: flex;
     flex-direction: column;
     width: 100vw;
@@ -117,7 +117,7 @@ body,
     overflow: hidden;
 }
 
-.stark-main-grid {
+.axiom-main-grid {
     display: flex;
     flex: 1;
     width: 100%;
@@ -125,7 +125,7 @@ body,
     background: var(--border-color);
 }
 
-.stark-slot {
+.axiom-slot {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -136,7 +136,7 @@ body,
 }
 
 /* Identificación Visual de Niveles (Blueprint Mode) */
-aside .stark-slot {
+aside .axiom-slot {
     background: #050508;
     border-right: 1px solid var(--border-color);
     box-shadow: inset 0 0 100px rgba(0, 255, 170, 0.02);
@@ -144,20 +144,20 @@ aside .stark-slot {
 }
 
 /* Nivel 3: Soberanía (Cian) */
-header .stark-slot,
-footer .stark-slot {
+header .axiom-slot,
+footer .axiom-slot {
     background: #08080a;
     border-bottom: 1px solid rgba(0, 210, 255, 0.1);
 }
 
 /* Nivel 1: Vistas (Fondo Profundo) */
-section .stark-slot {
+section .axiom-slot {
     background: #020205;
     box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.5);
 }
 
 /* --- BLUEPRINT UTILITIES --- */
-.stark-slot::before {
+.axiom-slot::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -184,61 +184,61 @@ section .stark-slot {
 }
 
 /* --- INDUSTRIAL COMPONENTS --- */
-.stark-ui-group {
+.axiom-ui-group {
     background: rgba(255, 255, 255, 0.003);
     border: 1px solid var(--border-color);
     padding: 24px;
     border-radius: 4px;
-    transition: var(--stark-transition);
+    transition: var(--axiom-transition);
 }
 
-.stark-ui-group:hover {
+.axiom-ui-group:hover {
     border-color: rgba(0, 210, 255, 0.1);
     background: rgba(255, 255, 255, 0.006);
 }
 
 /* DROPDOWN FIX */
-.stark-atom-select {
+.axiom-atom-select {
     width: 100%;
     background: #0a0a0e !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     color: #e0e0ff !important;
     padding: 10px 12px;
-    font-family: var(--stark-mono);
+    font-family: var(--axiom-mono);
     font-size: 11px;
     border-radius: 2px;
     outline: none;
     cursor: pointer;
 }
 
-.stark-atom-select option {
+.axiom-atom-select option {
     background: #0a0a0f !important;
     color: #fff !important;
     padding: 10px;
 }
 
-.stark-atom-input {
+.axiom-atom-input {
     width: 100%;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.05);
     color: var(--text-primary);
     padding: 10px 12px;
-    font-family: var(--stark-mono);
+    font-family: var(--axiom-mono);
     font-size: 11px;
     border-radius: 2px;
     outline: none;
     transition: border-color 0.3s;
 }
 
-.stark-atom-input:focus {
+.axiom-atom-input:focus {
     border-color: var(--accent-primary);
 }
 
 /* BUTTONS VS INDICATORS */
-.stark-atom-btn {
+.axiom-atom-btn {
     border: none;
     padding: 12px;
-    font-family: var(--stark-mono);
+    font-family: var(--axiom-mono);
     font-size: 10px;
     font-weight: 800;
     text-transform: uppercase;
@@ -248,12 +248,12 @@ section .stark-slot {
     border-radius: 2px;
 }
 
-.stark-atom-btn-primary {
+.axiom-atom-btn-primary {
     background: var(--accent-primary);
     color: #000;
 }
 
-.stark-atom-btn-primary:hover {
+.axiom-atom-btn-primary:hover {
     filter: brightness(1.2);
     transform: translateY(-1px);
     box-shadow: 0 4px 20px rgba(0, 210, 255, 0.2);
@@ -261,7 +261,7 @@ section .stark-slot {
 
 .indicator-label {
     text-transform: uppercase;
-    font-family: var(--stark-mono);
+    font-family: var(--axiom-mono);
     font-size: 9px;
     color: var(--text-dim);
     letter-spacing: 0.1em;
@@ -344,25 +344,25 @@ body::before {
     }
 }
 
-.stark-shimmer {
+.axiom-shimmer {
     background: linear-gradient(90deg, transparent 25%, rgba(255, 255, 255, 0.03) 50%, transparent 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite linear;
 }
 
 .glass {
-    backdrop-filter: blur(var(--stark-glass-blur));
+    backdrop-filter: blur(var(--axiom-glass-blur));
     background: var(--bg-glass);
     border: 1px solid rgba(255, 255, 255, 0.03);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
-.stark-aura {
+.axiom-aura {
     position: relative;
     overflow: hidden;
 }
 
-.stark-aura::after {
+.axiom-aura::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -371,7 +371,7 @@ body::before {
     z-index: -1;
 }
 
-@keyframes stark-pulse {
+@keyframes axiom-pulse {
     0% {
         box-shadow: 0 0 5px rgba(var(--accent-rgb), 0.2);
     }
@@ -385,8 +385,8 @@ body::before {
     }
 }
 
-.animate-stark-pulse {
-    animation: stark-pulse 3s infinite ease-in-out;
+.animate-axiom-pulse {
+    animation: axiom-pulse 3s infinite ease-in-out;
 }
 
 /* ============================================================ */
@@ -394,7 +394,7 @@ body::before {
 /* DHARMA: Pureza estructural para auditoría técnica.            */
 /* ============================================================ */
 [data-theme='schematic'],
-.stark-theme-schematic {
+.axiom-theme-schematic {
     --bg-deep: #000000;
     --bg-primary: #000000;
     --bg-secondary: #000000;
@@ -407,28 +407,31 @@ body::before {
     --accent-primary: #ffffff;
     --status-success: #ffffff;
     --status-error: #ffffff;
-    --stark-glass-blur: 0px;
+    --axiom-glass-blur: 0px;
 }
 
-.stark-theme-schematic .glass {
+.axiom-theme-schematic .glass {
     backdrop-filter: none !important;
     background: #000 !important;
     border: 1px solid #333 !important;
 }
 
-.stark-theme-schematic .stark-ui-group {
+.axiom-theme-schematic .axiom-ui-group {
     border: 1px solid #333 !important;
     background: transparent !important;
     border-radius: 0 !important;
 }
 
-.stark-theme-schematic .stark-atom-btn-primary {
+.axiom-theme-schematic .axiom-atom-btn-primary {
     background: #fff !important;
     color: #000 !important;
     border-radius: 0 !important;
 }
 
-.stark-theme-schematic * {
+.axiom-theme-schematic * {
     text-shadow: none !important;
     box-shadow: none !important;
 }
+
+
+

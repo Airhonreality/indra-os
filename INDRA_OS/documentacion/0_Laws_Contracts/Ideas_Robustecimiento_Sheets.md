@@ -336,3 +336,8 @@ Dos usuarios editan el mismo Cosmos simultáneamente → Conflictos.
 ---
 
 **Fin del Documento**
+
+
+
+
+

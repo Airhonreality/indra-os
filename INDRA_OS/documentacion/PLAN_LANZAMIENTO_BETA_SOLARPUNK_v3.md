@@ -116,7 +116,7 @@ indra-os/
 ├─ .github/workflows/
 │  └─ deploy-ui.yml          ← Deploy automático a GitHub Pages
 │
-├─ OrbitalCore_Codex_v1/     ← Backend GAS
+├─ INDRACore_Codex_v1/     ← Backend GAS
 │  ├─ .clasp.json            (generado por setup)
 │  └─ appsscript.json        ✅ Listo
 │
@@ -212,7 +212,7 @@ Desde la elegante interfaz de Indra (Frontend), el usuario ve un mapa estelar de
 6. Si pide autorización → **Allow**
 7. **Copiar** la Web App URL (https://script.google.com/macros/s/.../exec)
 8. **Pegar** en el script de PowerShell
-217. ⚠️ **IMPORTANTE:** El script te pedirá explícitamente la `ORBITAL_WORKER_URL`. Esta es la MISMA URL que la `Web App URL` que acabas de copiar. Debes pegarla de nuevo. (Esto es una medida de seguridad para garantizar que el Worker y el Deployment estén alineados).
+217. ⚠️ **IMPORTANTE:** El script te pedirá explícitamente la `INDRA_WORKER_URL`. Esta es la MISMA URL que la `Web App URL` que acabas de copiar. Debes pegarla de nuevo. (Esto es una medida de seguridad para garantizar que el Worker y el Deployment estén alineados).
 
 ### ⚠️ 2. Obtener Satellite API Key (Automático con Fallback Manual)
 
@@ -227,8 +227,8 @@ Desde la elegante interfaz de Indra (Frontend), el usuario ve un mapa estelar de
 
 **Fallback Manual (si clasp run falla):**
 1. Ir al Google Sheet que se abrió
-2. Menú: **🚀 Orbital Core → 🔑 Gestionar Conexiones**
-3. Buscar: **ORBITAL_CORE_SATELLITE_API_KEY**
+2. Menú: **🚀 INDRA Core → 🔑 Gestionar Conexiones**
+3. Buscar: **INDRA_CORE_SATELLITE_API_KEY**
 4. **Copiar** el UUID (550e8400-e29b-41d4-...)
 5. **Pegar** en el script de PowerShell cuando lo solicite
 
@@ -256,7 +256,7 @@ Repositorio:
   Deploy: Automático vía GitHub Actions
 
 Datos:
-  Google Drive: Carpeta INDRA_ORBITAL_CORE
+  Google Drive: Carpeta INDRA_INDRA_CORE
   Google Sheets: JobQueue, AuditLog
   Soberanía: 100% del usuario
 ```
@@ -457,3 +457,8 @@ Has creado el **sistema de instalación más automático posible** para una app 
 **Licencia:** MIT  
 
 ⚡🌞 **¡Que la soberanía digital esté contigo!** 🌞⚡
+
+
+
+
+

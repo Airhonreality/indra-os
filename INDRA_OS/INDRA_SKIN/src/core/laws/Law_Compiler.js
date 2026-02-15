@@ -1,5 +1,5 @@
 import { SEMANTIC_MANIFEST } from './Semantic_Manifest';
-import { inferSlot } from './SkinConstitution';
+
 
 /**
  * Law_Compiler.js
@@ -114,11 +114,22 @@ class LawCompiler {
                 cleanConfig.icon = null;
             }
 
+            // AXIOMA V12 (ADR-016): Inferencia de Slot (Phenotypic Mobility)
+            // Solo asignamos un slot por defecto (GLOBAL_REGISTRY) a componentes con "Cuerpo" (UI).
+            // Los adaptadores y servicios son "Espíritus" (Back-end) y no tienen espacio físico.
+            let inferredSlot = baseMerge.slot || baseMerge.SLOT || semanticRef.slot;
+
+            const hasUI = ['UTILITY', 'SLOT', 'WIDGET', 'REALITY', 'GATE', 'ORCHESTRATOR'].includes(baseMerge.ARCHETYPE || semanticRef.ARCHETYPE);
+
+            if (!inferredSlot && hasUI) {
+                inferredSlot = 'GLOBAL_REGISTRY';
+            }
+
             const compiled = {
                 ...baseMerge,
                 id: id,
                 omd: baseMerge.omd || baseMerge.OMD || id || semanticRef.technical_id || 'UNKNOWN_OMD',
-                slot: baseMerge.slot || baseMerge.SLOT || semanticRef.slot || inferSlot(baseMerge),
+                slot: inferredSlot,
 
                 // AXIOMA: Mapeo de Identidad Virtual (Frontend Priority)
                 LABEL: baseMerge.LABEL || baseMerge.label || semanticRef.LABEL || semanticRef.functional_name || 'UNIT_SKELETON',
@@ -130,6 +141,11 @@ class LawCompiler {
                 CAPABILITIES: this._normalizeCapabilities(baseMerge.CAPABILITIES || baseMerge.capabilities || baseMerge.methods || {}),
                 ui_layout_hint: baseMerge.ui_layout_hint || semanticRef.ui_layout_hint || 'LAYOUT_SMART_FORM'
             };
+
+            // PUENTE V12: Generación de Artefactos (Phenotype Bridge)
+            // El System_Assembler espera 'artefacts' como array de IDs para validar actividad
+            compiled.artefacts = Object.keys(compiled.CAPABILITIES);
+            compiled.methods = compiled.artefacts; // Alias for robustness
 
             // SERIALIZATION GUARD: Eliminar cualquier propiedad que sea función o símbolo
             Object.keys(compiled).forEach(key => {
@@ -255,6 +271,38 @@ class LawCompiler {
     }
 
     /**
+     * AXIOMA V8.6: Compilación Atómica de Slots (Interstellar Hydration)
+     * Procesa una definición de slot individual realizando el Deep Merge con 
+     * el manifiesto semántico local.
+     */
+    compileSlot(baseDef, context = {}) {
+        const id = baseDef.id || baseDef.technical_id || baseDef.ID;
+
+        // 1. Localizar la Verdad Virtual (Frontend)
+        let semanticRef = SEMANTIC_MANIFEST[id];
+        if (!semanticRef) {
+            semanticRef = Object.values(SEMANTIC_MANIFEST).find(m => m.technical_id === id) || {};
+        }
+
+        // 2. Fusionar Genotipo (Backend) con Verdad Virtual (Frontend)
+        const finalDef = this._deepMerge(semanticRef, baseDef);
+
+        // 3. Normalizar Capacidades del Slot
+        if (finalDef.CAPABILITIES || finalDef.methods) {
+            finalDef.CAPABILITIES = this._normalizeCapabilities(finalDef.CAPABILITIES || finalDef.methods);
+        }
+
+        // 4. Asegurar Identidad Fenotípica
+        return {
+            ...finalDef,
+            id: id,
+            LABEL: finalDef.LABEL || finalDef.label || semanticRef.LABEL || 'VIRTUAL_SLOT',
+            ARCHETYPE: (finalDef.ARCHETYPE || semanticRef.ARCHETYPE || 'SLOT').toUpperCase(),
+            isVirtual: finalDef.isVirtual || semanticRef.isVirtual || false
+        };
+    }
+
+    /**
      * Retorna módulos por nivel jerárquico.
      */
     getModulesByLevel(level) {
@@ -265,3 +313,6 @@ class LawCompiler {
 // Singleton Instance
 const compiler = new LawCompiler();
 export default compiler;
+
+
+

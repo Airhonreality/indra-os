@@ -41,7 +41,7 @@ const GenotypeDistiller = {
         liveRegistry[key.toUpperCase()] = {
             id: key,
             OMD: key.toUpperCase(),
-            SLOT: n.slot || canon?.SLOT || "CANVAS_MAIN",
+            SLOT: n.slot || canon?.SLOT || null,
             LABEL: n.label || canon?.LABEL || key,
             ARCHETYPE: n.archetype || canon?.ARCHETYPE || "ADAPTER",
             DOMAIN: n.domain || canon?.DOMAIN || "SYSTEM_INFRA",
@@ -55,18 +55,19 @@ const GenotypeDistiller = {
     // Devolvemos la constitución fusionada con la realidad viva
     return JSON.parse(JSON.stringify({ 
       ...constitution,
-      COMPONENT_REGISTRY: { 
-        ...(constitution.COMPONENT_REGISTRY || {}), 
-        ...liveRegistry 
-      },
+      COMPONENT_REGISTRY: liveRegistry, // AXIOMA: Soberanía Total (Verdad Viva)
       CORE_LOGIC: logic.CORE_LOGIC || logic,
       VISUAL_GRAMMAR: visual, 
       SPATIAL_ENGINE: spatial,
       TOPOLOGY: topology,
       BLUEPRINTS: blueprints,
       ARTIFACT_SCHEMAS: (blueprintRegistry && blueprintRegistry.ARTIFACT_SCHEMAS) || {},
-      UI_LAYOUT: uiLayout,
-      UI_DISTRIBUTION: distribution
+      UI_LAYOUT: uiLayout
     }));
   }
 };
+
+
+
+
+

@@ -170,3 +170,8 @@ function testConnectionTester_ManejoDeErrores_nuncaDebeLanzarUnaExcepcion() {
     _teardownConnectionTesterTests(setup.originals);
   }
 }
+
+
+
+
+

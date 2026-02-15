@@ -15,7 +15,7 @@ Al hacer clic en el vínculo, la fila de la propiedad se expande hacia abajo o a
 Buscador de Origen (Quick Pick): Un input que invoca al OMD-10 (The Source). Escribes "Ventas" y seleccionas el campo.
 Calibrador de Rango (The Tuner): Aparecen dos campos pequeños: Input Range (lo que viene) y Output Range (lo que quieres).
 Visualizador de Flujo: Una pequeña línea de luz que se mueve entre el valor de entrada y el de salida para confirmar que el "puente" está pasando datos.
-3. Ciclo de Uso Intuitivo (The Stark Path)
+3. Ciclo de Uso Intuitivo (The AXIOM Path)
 Creación: Dibujas un círculo en el ISK.
 Selección: Lo tocas. El OMD-05 muestra: Radio: 50px.
 Intención: Quieres que el radio dependa del stock. Haces clic en el icono de vínculo al lado de 50px.
@@ -44,3 +44,7 @@ JSON
     ]
   }
 }
+
+
+
+

@@ -107,3 +107,8 @@ function testCoreOrchestrator_PortAwareness_shouldExtractDeepProperty() {
     assert.isDefined(res.nodes.s2.input.items, "Target should have received the extracted 'results' items in the 'input' port.");
     console.log("✅ Deep Port-Awareness Test Passed.");
 }
+
+
+
+
+

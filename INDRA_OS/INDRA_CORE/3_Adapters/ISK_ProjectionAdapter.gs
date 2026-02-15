@@ -465,3 +465,8 @@ function createSpatialProjectionAdapter({ errorHandler, renderEngine, sensingAda
   };
 }
 
+
+
+
+
+

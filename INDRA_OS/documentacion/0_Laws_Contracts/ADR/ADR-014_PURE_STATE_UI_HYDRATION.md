@@ -117,3 +117,8 @@ const CapabilityButton = ({ config }) => {
 3.  **Hot-Swapping Visual:** Cambiar el tema de iconos cambia toda la app instantáneamente sin migrar datos.
 4.  **Auditabilidad:** El estado es 100% legible por humanos en los logs.
 ---
+
+
+
+
+

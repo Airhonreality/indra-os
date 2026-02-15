@@ -82,8 +82,8 @@ function testProjectionKernel_Immutability() {
     if (!originalStack.adapter.schemas) throw new Error('La pila original fue dañada');
 }
 
-function testProjectionKernel_StarkReadyAutodescription() {
-    console.log('Test: Verifica que el Kernel proyecta roles y metadatos Stark.');
+function testProjectionKernel_AxiomReadyAutodescription() {
+    console.log('Test: Verifica que el Kernel proyecta roles y metadatos Axiom.');
 
     const mockStack = {
         dra: {
@@ -144,7 +144,7 @@ function testProjectionKernel_isMethodExposed() {
     // Casos Negativos
     assert.isFalse(kernel.isMethodExposed(mockStack, 'adapterA', 'internalMethod'), 'internalMethod NO debería estar expuesto');
     assert.isFalse(kernel.isMethodExposed(mockStack, 'adapterA', '_privateMethod'), 'Método iniciado con _ NO debería estar expuesto');
-    assert.isFalse(kernel.isMethodExposed(mockStack, 'adapterA', 'ghostMethod'), 'Método sin esquema NO debería estar expuesto');
+    assert.isTrue(kernel.isMethodExposed(mockStack, 'adapterA', 'ghostMethod'), 'Método sin esquema DEBERÍA estar expuesto bajo la Open Policy V12');
     assert.isFalse(kernel.isMethodExposed(mockStack, 'invalid', 'publicMethod'), 'Ejecutor inexistente debería retornar false');
 }
 
@@ -196,3 +196,8 @@ function testProjectionKernel_SystemHierarchyProjection() {
 
     console.log('  ✅ PASSED: testProjectionKernel_SystemHierarchyProjection');
 }
+
+
+
+
+

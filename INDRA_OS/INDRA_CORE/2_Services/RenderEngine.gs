@@ -3,7 +3,7 @@
  * RenderEngine.gs - Intérprete Universal de Placeholders
  * ============================================================
  * Dharma: Ser el Intérprete Universal de Placeholders para el
- * Orbital Core, siguiendo un conjunto de axiomas estrictos.
+ * Indra Core, siguiendo un conjunto de axiomas estrictos.
  *
  * Responsabilidades Clave:
  * 1. Reemplazar placeholders `{{key}}` en strings, objetos y arrays.
@@ -466,4 +466,9 @@ function testRenderEngineAxioms() {
   
   return results;
 }
+
+
+
+
+
 

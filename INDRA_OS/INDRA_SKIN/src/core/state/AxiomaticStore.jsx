@@ -93,9 +93,21 @@ const axiomaticReducer = (state, action) => {
 // 4. EL TEMPLO (Provider)
 // ==========================================
 
+import { StateBridge } from './StateBridge';
+
 export const AxiomaticProvider = ({ children }) => {
     const [state, dispatch] = useReducer(axiomaticReducer, INITIAL_STATE);
     const kernelRef = React.useRef(new ProjectionKernel());
+    const stateRef = React.useRef(state);
+    const lastStructCountRef = React.useRef(0);
+
+    // [AXIOMA] Registro de Puente (Sustituye a window.XXX)
+    useEffect(() => {
+        stateRef.current = state;
+        StateBridge.setState(state);
+        StateBridge.setKernel(kernelRef.current);
+        StateBridge.setOrchestrator(useSyncOrchestrator);
+    }, [state]);
 
 
 
@@ -108,7 +120,7 @@ export const AxiomaticProvider = ({ children }) => {
         Validator_IO_node_Data.setDispatcher(dispatch);
         synapticDispatcher.setDispatcher(dispatch);
 
-        window.ISK_KERNEL = kernelRef.current;
+        // window.ISK_KERNEL = kernelRef.current; // UNCOMMENT FOR CORE DEBUGGING ONLY
 
         const unsubscribeSovereignty = useAxiomaticState.subscribe((sovereignState) => {
             if (sovereignState.session.status === 'TERMINATED') {
@@ -128,8 +140,8 @@ export const AxiomaticProvider = ({ children }) => {
                     // Para el servidor, usamos un truco: si hay cambios significativos, mostramos el prompt 
                     // para dar tiempo a que termine el sync en vuelo.
 
-                    // Usamos window.AxiomaticStore para evitar el stale closure del primer render
-                    const currentState = window.AxiomaticStore?.getState?.();
+                    // Usamos stateRef para evitar la dependencia global window.AxiomaticStore
+                    const currentState = stateRef.current;
                     const artifacts = currentState?.phenotype?.artifacts || [];
 
                     const isDirty = artifacts.some(a => a._isDirty);
@@ -149,15 +161,8 @@ export const AxiomaticProvider = ({ children }) => {
         };
     }, []); // SOLO UNA VEZ AL MONTAR
 
-    // AXIOMA: Actualización de Exposición Global
     useEffect(() => {
-        window.AxiomaticStore = {
-            getState: () => state,
-            dispatch,
-            kernel: kernelRef.current
-        };
-        // AXIOMA V12: Registro de Orquestador para Interadicción (ADR 003)
-        window.useSyncOrchestrator = useSyncOrchestrator;
+        // AXIOMA V12: El estado ahora vive en el StateBridge (Encapsulado)
     }, [state]);
 
     /**
@@ -377,6 +382,30 @@ export const AxiomaticProvider = ({ children }) => {
             return;
         }
 
+        if (actionType === 'FETCH_COMMUNICATION_CONTENT') {
+            const { nodeId, accountId, query, refresh } = payload;
+            const targetNodeId = (nodeId || 'email').toLowerCase();
+
+            useAxiomaticState.getState().setLoading(true);
+            try {
+                // AXIOMA: Reutilizamos el PersistenceManager para coherencia de silos
+                const result = await persistenceManager.fetchContent(targetNodeId, { query, accountId, forceRefresh: refresh }, adapter);
+
+                dispatch({
+                    type: 'VAULT_LOAD_SUCCESS',
+                    payload: {
+                        nodeId: targetNodeId,
+                        data: result
+                    }
+                });
+                useAxiomaticState.getState().setLoading(false);
+            } catch (err) {
+                useAxiomaticState.getState().setLoading(false);
+                dispatch({ type: 'LOG_ENTRY', payload: { msg: `[Comm:${targetNodeId}] Error: ${err.message}`, type: 'ERROR' } });
+            }
+            return;
+        }
+
         if (actionType === 'START_DISCOVERY') {
             dispatch({ type: 'SET_DISCOVERY_STATUS', payload: 'SCANNING' });
             try {
@@ -425,9 +454,18 @@ export const AxiomaticProvider = ({ children }) => {
 
             useAxiomaticState.getState().setLoading(true);
             try {
-                // AXIOMA: Reificación Polimórfica (Delegación al Backend)
-                // Usamos el nuevo método 'reifyDatabase' del PublicAPI que sabe rutear.
-                const result = await adapter.executeAction('system:reifyDatabase', { databaseId, nodeId: targetNodeId, accountId });
+                // AXIOMA: Despacho Agnóstico (Soberanía de Nodo)
+                // Invocamos directamente al nodo responsable usando su señal de lectura.
+                let result;
+                if (targetNodeId === 'notion') {
+                    result = await adapter.notion('queryDatabase', { databaseId, accountId });
+                } else if (targetNodeId === 'drive' || targetNodeId === 'sheet') {
+                    // Si el origen es Drive, usamos el adaptador de Sheets para "reificar" la tabla
+                    result = await adapter.sheet('read', { sheetId: databaseId, accountId });
+                } else {
+                    // Fallback universal: listContents
+                    result = await adapter.executeAction(`${targetNodeId}:listContents`, { databaseId, accountId });
+                }
 
                 const rows = Array.isArray(result) ? result : (result?.results || result?.items || result?.results || []);
                 const schema = result?.SCHEMA || null;
@@ -470,9 +508,16 @@ export const AxiomaticProvider = ({ children }) => {
             useAxiomaticState.getState().setLoading(true);
 
             try {
-                tracer('ADAPTER_CALL_BEGIN', { action: 'system:reifyDatabase', id: databaseId });
+                const targetNode = nodeId?.toLowerCase();
+                let result;
 
-                const result = await adapter.executeAction('system:reifyDatabase', { databaseId, nodeId });
+                if (targetNode === 'notion') {
+                    result = await adapter.notion('queryDatabase', { databaseId });
+                } else if (targetNode === 'drive' || targetNode === 'sheet') {
+                    result = await adapter.sheet('read', { sheetId: databaseId });
+                } else {
+                    result = await adapter.executeAction(`${targetNode}:listContents`, { databaseId });
+                }
 
                 tracer('ADAPTER_CALL_SUCCESS', {
                     resultType: typeof result,
@@ -696,8 +741,8 @@ export const AxiomaticProvider = ({ children }) => {
         dispatch({ type: actionType, payload });
 
         setTimeout(() => {
-            if (window.ISK_KERNEL) {
-                window.ISK_KERNEL.update({ ...state, _lastAction: { type: actionType, payload } });
+            if (kernelRef.current) {
+                kernelRef.current.update({ ...state, _lastAction: { type: actionType, payload } });
             }
         }, 0);
     };
@@ -734,7 +779,7 @@ export const AxiomaticProvider = ({ children }) => {
         if (!currentCosmosId) return;
 
         const currentCount = (state.phenotype.artifacts?.length || 0) + (state.phenotype.relationships?.length || 0);
-        const lastCount = window._INDRA_LAST_STRUCT_COUNT || 0;
+        const lastCount = lastStructCountRef.current;
 
         // Solo persistimos si el cosmos está activo y no estamos en un estado de error crítico
         if (state.session?.status !== 'HALTED') {
@@ -754,7 +799,7 @@ export const AxiomaticProvider = ({ children }) => {
             AxiomaticDB.setItem(`COSMOS_STATE_${cosmosId}`, cosmosSnapshot);
 
             if (currentCount !== lastCount) {
-                window._INDRA_LAST_STRUCT_COUNT = currentCount;
+                lastStructCountRef.current = currentCount;
                 console.info(`%c 🏛️ [Axiom:L2] Reality reified in local storage.`, "color: #38bdf8;");
             }
         }
@@ -793,3 +838,6 @@ export const useAxiomaticStore = () => {
     return context;
 
 };
+
+
+

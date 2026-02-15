@@ -42,3 +42,8 @@ id: `node_${crypto.randomUUID().split('-')[0]}_${Date.now().toString(36)}`
 *   **Negativas**: El usuario percibe una pequeña latencia (spinner) SÓLO al crear un Cosmos nuevo, compensada por la estabilidad total posterior.
 
 ---
+
+
+
+
+

@@ -7,7 +7,7 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { ISK_MODULE_REGISTRY } from './ISK_Module_Registry';
-import StarkProjector from '../../../core/StarkProjector';
+import AxiomProjector from '../../../core/AxiomProjector';
 import './ISKShellProjector.css';
 
 export function ISKShellProjector({ law }) {
@@ -42,11 +42,11 @@ export function ISKShellProjector({ law }) {
             );
         }
 
-        // Proyección Stark de Artefactos Normalizados
+        // Proyección Axiom de Artefactos Normalizados
         return (
-            <div className="stark-artefact-stream flex flex-col gap-2">
+            <div className="axiom-artefact-stream flex flex-col gap-2">
                 {artefacts.map(art => (
-                    <StarkProjector
+                    <AxiomProjector
                         key={art.id}
                         data={art}
                         slot={entity.slot || entity.id}
@@ -90,3 +90,6 @@ export function ISKShellProjector({ law }) {
         </div>
     );
 }
+
+
+

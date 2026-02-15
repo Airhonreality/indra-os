@@ -10,9 +10,9 @@ El copiloto es la manifestación de la inteligencia orquestada del sistema.
 
 | Dimensión | Artefacto de Referencia |
 | :--- | :--- |
-| **Artefacto Lógico (Logic)** | [IntelligenceOrchestrator.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/1_Core/IntelligenceOrchestrator.gs) |
-| **Fuentes de Ley (Laws)** | [Logic_Axioms.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/0_Laws/Logic_Axioms.gs) |
-| **Adaptores Cognitivos** | [CognitiveSensingAdapter.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/3_Adapters/CognitiveSensingAdapter.gs) |
+| **Artefacto Lógico (Logic)** | [IntelligenceOrchestrator.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/1_Core/IntelligenceOrchestrator.gs) |
+| **Fuentes de Ley (Laws)** | [Logic_Axioms.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/0_Laws/Logic_Axioms.gs) |
+| **Adaptores Cognitivos** | [CognitiveSensingAdapter.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/3_Adapters/CognitiveSensingAdapter.gs) |
 
 ### Métodos Expuestos (Public API)
 - `ask(query)`: Interfaz natural de razonamiento ante el sistema.
@@ -117,3 +117,7 @@ Notas de Auditoría para el Desarrollador:
 Persistencia: Implementar un debounce de 2 segundos para guardar el historial del chat en localStorage y una sincronización con el Core cada vez que se pulse "Aplicar".
 Mirroring: El editor JSON debe resaltar en color var(--accent-success) las líneas nuevas propuestas por la IA para que el usuario las identifique visualmente en milisegundos.
 Protocolo MCP: El desarrollador debe asegurar que la IA tenga acceso a la primitiva getAllNodes para que sepa qué herramientas tiene disponibles en la biblioteca antes de proponer un nodo.
+
+
+
+

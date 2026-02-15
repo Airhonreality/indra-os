@@ -239,7 +239,10 @@ const useAxiomaticState = create(subscribeWithSelector((set, get) => ({
     }
 })));
 
-// Exposición Global para Subsistemas no-React (Legacy Adapters)
-window.INDRA_AXIOMATIC_STATE = useAxiomaticState;
+// AXIOMA: Soberanía de Identidad (Encapsulado en ESM)
+// No exposición global window.INDRA_AXIOMATIC_STATE
 
 export default useAxiomaticState;
+
+
+

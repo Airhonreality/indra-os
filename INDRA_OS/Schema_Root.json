@@ -2441,9 +2441,9 @@
                                     "lastModified": "2026-02-06T01:39:37.618Z",
                                     "integrity_hash": "3a39331cc87c2764969c25db61ee405caf5eddcdc8cb01109c2687a826b36f8c"
                                 },
-                                "StarkProjector.jsx": {
+                                "AXIOMProjector.jsx": {
                                     "type": "file",
-                                    "path": "INDRA_SKIN/src/core/StarkProjector.jsx",
+                                    "path": "INDRA_SKIN/src/core/AXIOMProjector.jsx",
                                     "size": 1123,
                                     "lastModified": "2026-02-03T13:52:05.158Z",
                                     "integrity_hash": "456ee0eeb9fb7fa78bfe28501882e587def83329168fc375467c9d49f0013a49"
@@ -2519,23 +2519,23 @@
                                                 "anomalies": 0
                                             },
                                             "content": {
-                                                "StarkBadge.jsx": {
+                                                "AXIOMBadge.jsx": {
                                                     "type": "file",
-                                                    "path": "INDRA_SKIN/src/core/ui/atoms/StarkBadge.jsx",
+                                                    "path": "INDRA_SKIN/src/core/ui/atoms/AXIOMBadge.jsx",
                                                     "size": 929,
                                                     "lastModified": "2026-02-03T12:01:53.271Z",
                                                     "integrity_hash": "45f54c98c271bef69649d9b96f7caa07ad5d832a49edbd999c77fe4570692534"
                                                 },
-                                                "StarkButton.jsx": {
+                                                "AXIOMButton.jsx": {
                                                     "type": "file",
-                                                    "path": "INDRA_SKIN/src/core/ui/atoms/StarkButton.jsx",
+                                                    "path": "INDRA_SKIN/src/core/ui/atoms/AXIOMButton.jsx",
                                                     "size": 1086,
                                                     "lastModified": "2026-02-03T12:01:44.730Z",
                                                     "integrity_hash": "c24c5e9ec5beff8b44d0e93ddefd4e916e730e749ed11d0dd5d15d8d6b792d32"
                                                 },
-                                                "StarkInput.jsx": {
+                                                "AXIOMInput.jsx": {
                                                     "type": "file",
-                                                    "path": "INDRA_SKIN/src/core/ui/atoms/StarkInput.jsx",
+                                                    "path": "INDRA_SKIN/src/core/ui/atoms/AXIOMInput.jsx",
                                                     "size": 1196,
                                                     "lastModified": "2026-02-03T12:01:37.993Z",
                                                     "integrity_hash": "e20fc6a56eb92fa5b0198fe73f17dd55f50188c964922aaef396cd02103d96ca"
@@ -3198,9 +3198,9 @@
                                 "anomalies": 0
                             },
                             "content": {
-                                "stark_theme.css": {
+                                "axiom_theme.css": {
                                     "type": "file",
-                                    "path": "INDRA_SKIN/src/styles/stark_theme.css",
+                                    "path": "INDRA_SKIN/src/styles/axiom_theme.css",
                                     "size": 9981,
                                     "lastModified": "2026-02-03T23:57:22.041Z",
                                     "integrity_hash": "175ab5e6ff643ceff7e0a5327607e187d28a75955c730fa2a8873e9f19bb6804"
@@ -3255,3 +3255,5 @@
         }
     }
 }
+
+

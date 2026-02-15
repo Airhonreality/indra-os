@@ -50,7 +50,7 @@ var LOGIC_AXIOMS = Object.freeze({
     // SECTION 2: REGLAS DE PUREZA (Agnosticismo)
     // ============================================================
     "PURITY_RULES": {
-        "FORBIDDEN_TERMS": ['indra', 'mentem', 'orbital', 'stark'],
+        "FORBIDDEN_TERMS": ['indra', 'mentem', 'Indra', 'Axiom'],
         "INSTITUTIONAL_KEYS": ['indra', 'intelligence'],
         "RESERVED_KEYS": ['schemas', 'label', 'description', 'semantic_intent', 'archetype', 'id', 'teardown', 'isBroken', 'error', 'getAllNodes'],
         "EXEMPT_ARCHETYPES": ['ADAPTER', 'BRIDGE', 'ORCHESTRATOR', 'SERVICE']
@@ -59,22 +59,17 @@ var LOGIC_AXIOMS = Object.freeze({
     "SENSITIVE_TERMS": ['KEY', 'SECRET', 'TOKEN', 'PASSWORD', 'CREDENTIAL', 'AUTH', 'SIGNATURE'],
 
     /**
-     * COGNITIVE_FRONTIER: Único motor de pensamiento pragmático.
+     * COGNITIVE_FRONTIER: Definición de Autonomía Cognitiva.
+     * AXIOMA: Las fronteras son sugerencias; la soberanía reside en el Proveedor de Inteligencia.
      */
-    "COGNITIVE_FRONTIER": [
-        'llama-3.3-70b-versatile'
-    ],
-    
-    "CRITICAL_SYSTEMS": [
-        "public", "sensing", "metabolism", "tokenManager", "drive", "monitoring", "config", "commander"
-    ],
-
-    "SECURITY_WHITELIST": [
-        'public_verifySovereignEnclosure',
-        'public_getArtifactSchemas',
-        'public_executeAction',
-        'public_reifyDatabase',
-        'sensing_scanArtifacts',
-        'adminTools_setSystemToken'
-    ]
+    "COGNITIVE_FRONTIER": {
+        "preferred_model": "llama-3.3-70b-versatile",
+        "fallback_model": "gpt-4o",
+        "semantic_mode": "DETERMINISTIC"
+    }
 });
+
+
+
+
+

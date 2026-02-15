@@ -1,4 +1,4 @@
-# Matriz de Arquitectura OrbitalCore Codex v1
+# Matriz de Arquitectura INDRACore Codex v1
 
 Este documento define la matriz estructural del sistema, detallando el propósito, axiomas y dependencias de los artefactos críticos, comenzando por las capas fundacionales (0 y 1).
 
@@ -20,7 +20,7 @@ La capa de "Laws" define la verdad inmutable del sistema. Configuración, consta
 
 | Archivo | Rol | Objetivo (El "Por qué") | Axiomas (Reglas de Diseño) | Dependencias Clave | Estado |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **System_Constitution.gs** | 📜 Ley Suprema | Definir la topología física (Drive, Sheets), el registro de componentes (Identidad) y los límites operativos del sistema. | **Verdad Única:** No existen "números mágicos" fuera de este archivo. **Identidad Soberana:** Define roles y dominios. | *Ninguna* (Es la raíz de verdad) | 🟢 Estable (V5.5-STARK) |
+| **System_Constitution.gs** | 📜 Ley Suprema | Definir la topología física (Drive, Sheets), el registro de componentes (Identidad) y los límites operativos del sistema. | **Verdad Única:** No existen "números mágicos" fuera de este archivo. **Identidad Soberana:** Define roles y dominios. | *Ninguna* (Es la raíz de verdad) | 🟢 Estable (V5.5-AXIOM) |
 | **Contracts_Registry.gs** | 📑 Contratos | Definir las interfaces (inputs/outputs) esperadas para cada capacidad del sistema. | **Contrato Explícito:** Todo método público debe tener firma. | *Ninguna* | 🟢 Estable |
 | **Logic_Axioms.gs** | 🧠 Lógica | Definir reglas de negocio de alto nivel y constantes lógicas (ej. umbrales de afinidad, prioridades). | **Declarativo:** Reglas separadas de la implementación. | *Ninguna* | 🟢 Estable |
 | **System_Hierarchy.gs** | 🌳 Topología | Definir la estructura jerárquica de subsistemas y relaciones de parentesco. | **Orden:** Define quién reporta a quién. | *Ninguna* | 🟢 Estable |
@@ -55,7 +55,7 @@ Esta capa contiene servicios especializados que implementan lógica de negocio r
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **FlowRegistry.gs** | 📚 Librería | Gestionar el ciclo de vida de los flujos (Flows) JSON: lectura, escritura, cacheo y listado. | **Lazy Loading:** No conecta con Drive hasta que es estrictamente necesario. **Soberanía de Cache:** Usa `CacheService` para minimizar I/O lento. | `DriveAdapter`, `Configurator`, `CacheService` | 🟢 Estable (V5.5) |
 | **JobQueueService.gs** | ⏳ Cola | Gestionar la ejecución asíncrona robusta. Encolamiento, reclamo atómico y reintento de tareas. | **Resiliencia (Boomerang):** Garantizar que ningún trabajo se pierda. **Atomicidad:** Uso de `LockService` para evitar condiciones de carrera. **No-Database:** Usa Sheets como persistencia transitoria. | `SheetAdapter`, `MonitoringService`, `LockService` | 🟢 Estable (Boomerang) |
-| **ProjectionKernel.gs** | 📽️ Proyector | Destilar la complejidad del sistema para el Frontend (Satélite). Genera el "mapa" de qué puede hacer el sistema. | **Seguridad por Diseño:** Enmascara secretos automáticamente. **Proyección Explícita:** Solo expone lo que tiene contrato y no es interno. | `Configurator`, `Laws` | 🟢 Estable (Stark L2048) |
+| **ProjectionKernel.gs** | 📽️ Proyector | Destilar la complejidad del sistema para el Frontend (Satélite). Genera el "mapa" de qué puede hacer el sistema. | **Seguridad por Diseño:** Enmascara secretos automáticamente. **Proyección Explícita:** Solo expone lo que tiene contrato y no es interno. | `Configurator`, `Laws` | 🟢 Estable (AXIOM L2048) |
 | **RenderEngine.gs** | 🎨 Render | Motor de sustitución de variables (Placeholders `{{...}}`) en textos y objetos. | **Pureza Funcional:** Sin efectos secundarios, solo input -> output. **Recursividad:** Resuelve anidamientos profundos. | *Ninguna* (Pura Lógica) | 🟢 Estable |
 | **MonitoringService.gs** | 👁️ Vigía | Centralizar logs, alertas y métricas de salud del sistema. | **Fail-Fast:** Si no puede loguear, no detiene el sistema principal (salvo errores críticos). | `SheetAdapter`, `EmailAdapter` | 🟢 Estable |
 | **MetabolicService.gs** | 🧹 Janitor | Mantenimiento automático: limpieza de jobs zombie, compactación de logs. | **Silencio:** Opera en segundo plano sin interrumpir flujos. | `JobQueueService`, `SheetAdapter` | 🟢 Estable |
@@ -100,7 +100,7 @@ Componentes de bajo nivel que soportan la seguridad, configuración, manejo de e
 
 | Archivo | Rol | Objetivo (El "Por qué") | Axiomas (Reglas de Diseño) | Dependencias Clave | Estado |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Configurator.gs** | ⚙️ Config | Gestión centralizada de configuración (Key-Value). Maneja migraciones de claves legacy y secrets. | **Atomicidad:** Usa `LockService` para escrituras seguras. **Namespace:** Prefijos obligatorios (`ORBITAL_`) para evitar colisiones. | `PropertiesService`, `LockService` | 🟢 Estable |
+| **Configurator.gs** | ⚙️ Config | Gestión centralizada de configuración (Key-Value). Maneja migraciones de claves legacy y secrets. | **Atomicidad:** Usa `LockService` para escrituras seguras. **Namespace:** Prefijos obligatorios (`INDRA_`) para evitar colisiones. | `PropertiesService`, `LockService` | 🟢 Estable |
 | **ErrorHandler.gs** | 🛡️ Error | Fábrica universal de errores. Clasifica por severidad (`CRITICAL`, `WARNING`) y recuperabilidad. | **Circularidad Segura:** Sanitiza objetos circulares en los detalles del error. **Estandarización:** Todos los errores del sistema nacen aquí. | *Ninguna* | 🟢 Estable |
 | **CipherAdapter.gs** | 🔐 Crypto | Proveer encriptación simétrica AES-256-CBC compatible con estándares web. | **Independencia:** Implementación pura de JS (con polyfill AES) para no depender de librerías externas inestables. | `Utilities`, `AES` (Polyfill) | 🟢 Estable |
 | **KeyGenerator.gs** | 🆔 ID | Generación de identificadores únicos (UUID v4) y tokens aleatorios. | **Entropía:** Usa `Utilities.getUuid()` o generadores criptográficos. | `Utilities` | 🟢 Estable |
@@ -152,3 +152,8 @@ Herramientas operativas para debugging, reparación y auditoría en caliente.
 | :--- | :--- | :--- |
 | **_Preload.gs** | ⚡ Boot | Carga inicial de polifills o configuraciones globales críticas. |
 | **debug_gravity.js** | 🧪 Debug | Script de utilidad para debugging gravitacional (metafórico del sistema). |
+
+
+
+
+

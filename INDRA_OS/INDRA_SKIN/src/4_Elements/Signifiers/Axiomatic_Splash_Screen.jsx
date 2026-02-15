@@ -75,7 +75,7 @@ const AxiomaticSplashScreen = ({ onComplete }) => {
                     </div>
                     <div className="flex justify-between mt-2 font-mono text-[9px] text-[var(--text-dim)] opacity-50">
                         <span>{progress}%</span>
-                        <span>v5.5.0-STARK</span>
+                        <span>v5.5.0-Axiom</span>
                     </div>
                 </div>
             </div>
@@ -84,3 +84,6 @@ const AxiomaticSplashScreen = ({ onComplete }) => {
 };
 
 export default AxiomaticSplashScreen;
+
+
+

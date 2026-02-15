@@ -29,3 +29,6 @@ const FocusMode = ({ focusMode, onToggle, logs }) => {
 };
 
 export default FocusMode;
+
+
+

@@ -72,9 +72,9 @@ Para garantizar la soberanía de los datos, este módulo debe estar vinculado es
 
 | Dimensión | Artefacto de Referencia |
 | :--- | :--- |
-| **Artefacto Lógico (Logic)** | [TokenManager.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/1_Core/TokenManager.gs) |
-| **Fuentes de Ley (Laws)** | [System_Constitution.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/0_Laws/System_Constitution.gs) |
-| **Contrato Visual** | [Visual_Grammar.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/0_Laws/Visual_Grammar.gs) |
+| **Artefacto Lógico (Logic)** | [TokenManager.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/1_Core/TokenManager.gs) |
+| **Fuentes de Ley (Laws)** | [System_Constitution.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/0_Laws/System_Constitution.gs) |
+| **Contrato Visual** | [Visual_Grammar.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/0_Laws/Visual_Grammar.gs) |
 
 ### Métodos Expuestos (Public API)
 El Front-end debe consumir exclusivamente estos métodos para evitar fugas de integridad:
@@ -90,3 +90,7 @@ El Front-end debe consumir exclusivamente estos métodos para evitar fugas de in
 
 ---
 **Veredicto Final del Arquitecto**: Este rediseño canoniza al OMD-02 como un componente de infraestructura invisible pero omnipresente, eliminando la "poesía" visual innecesaria en favor de una robustez industrial.
+
+
+
+

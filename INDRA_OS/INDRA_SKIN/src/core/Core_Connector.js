@@ -187,3 +187,6 @@ class CoreConnector {
 // Exportamos una instancia única (Singleton)
 const connector = new CoreConnector();
 export default connector;
+
+
+

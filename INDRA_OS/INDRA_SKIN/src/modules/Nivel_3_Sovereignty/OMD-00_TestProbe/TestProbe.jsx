@@ -20,7 +20,7 @@ const TestProbe = ({ compiledLaw }) => {
     };
 
     return (
-        <div style={style} className="stark-component">
+        <div style={style} className="axiom-component">
             <header className="flex items-center gap-2 mb-2">
                 <span className="text-gold">[{compiledLaw.id}]</span>
                 <h4 className="font-bold">{functional_name}</h4>
@@ -42,3 +42,6 @@ const TestProbe = ({ compiledLaw }) => {
 };
 
 export default TestProbe;
+
+
+

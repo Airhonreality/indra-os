@@ -134,3 +134,8 @@ function testLowFiPdfAdapter_Generate_debeManejarErrorDeLaApiNativa() {
     _teardownLowFiPdfAdapterTests(setup.originals);
   }
 }
+
+
+
+
+

@@ -138,3 +138,6 @@ const LogViewer = ({ logs, onFocusFunction }) => {
 };
 
 export default LogViewer;
+
+
+

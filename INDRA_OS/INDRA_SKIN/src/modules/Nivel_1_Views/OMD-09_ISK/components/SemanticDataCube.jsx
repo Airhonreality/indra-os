@@ -130,9 +130,12 @@ export function SemanticDataCube() {
     );
 }
 
-// Metadata para OrbitalCore alignment
+// Metadata para INDRACore alignment
 SemanticDataCube.metadata = {
     archetype: 'SENSOR',
     semantic_intent: 'PROBE',
     description: 'Semantic Data Cube with drag & drop for variable bindings'
 };
+
+
+

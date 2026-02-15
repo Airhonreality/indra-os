@@ -353,15 +353,12 @@ function createGoogleDriveRestAdapter({ errorHandler, tokenManager }) {
     }
   }
 
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
   const CANON = {
-    "LABEL": "Drive REST API",
-    "ARCHETYPE": "VAULT",
-    "DOMAIN": "SYSTEM_INFRA",
-    "SEMANTIC_INTENT": "BRIDGE",
-    "CAPABILITIES": {
-      "FIND": { "human_label": "Escanear REST", "ui_hint": "COMMAND_BAR" },
-      "STORE": { "human_label": "Persistir REST", "ui_hint": "INJECTOR" }
-    }
+    LABEL: "Google Drive (REST)",
+    ARCHETYPE: "VAULT",
+    DOMAIN: "SYSTEM_INFRA",
+    CAPABILITIES: schemas
   };
 
   return {
@@ -379,4 +376,9 @@ function createGoogleDriveRestAdapter({ errorHandler, tokenManager }) {
     schemas: schemas
   };
 }
+
+
+
+
+
 

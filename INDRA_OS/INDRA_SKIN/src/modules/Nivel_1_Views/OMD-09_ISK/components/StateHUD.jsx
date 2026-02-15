@@ -62,7 +62,7 @@ export const StateHUD = () => {
     );
 };
 
-// Metadata for OrbitalCore alignment
+// Metadata for INDRACore alignment
 StateHUD.metadata = {
     id: "state_hud_isk",
     archetype: "SENSOR",
@@ -71,3 +71,6 @@ StateHUD.metadata = {
 };
 
 export default StateHUD;
+
+
+

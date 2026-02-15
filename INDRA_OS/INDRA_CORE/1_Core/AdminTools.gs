@@ -172,8 +172,8 @@ function createAdminTools({ configurator, manifest, jobQueueService, sheetAdapte
     }
     
     // Guardamos en ambos nombres canónicos por redundancia histórica
-    configurator.storeParameter({ key: 'ORBITAL_CORE_SATELLITE_API_KEY', value: newToken });
-    configurator.storeParameter({ key: 'ORBITAL_SYSTEM_TOKEN', value: newToken });
+    configurator.storeParameter({ key: 'INDRA_CORE_SATELLITE_API_KEY', value: newToken });
+    configurator.storeParameter({ key: 'INDRA_SYSTEM_TOKEN', value: newToken });
     
     return { success: true, message: 'System Token actualizado correctamente.' };
   }
@@ -354,4 +354,9 @@ function adminClearAllFlowsCache() {
     Logger.log(`❌ Error: ${error.message}`);
   }
 }
+
+
+
+
+
 

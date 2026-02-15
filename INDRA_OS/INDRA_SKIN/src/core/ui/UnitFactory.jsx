@@ -1,7 +1,7 @@
 import React from 'react';
-import StarkInput from './atoms/StarkInput';
-import StarkButton from './atoms/StarkButton';
-import StarkBadge from './atoms/StarkBadge';
+import AxiomInput from './atoms/AxiomInput';
+import AxiomButton from './atoms/AxiomButton';
+import AxiomBadge from './atoms/AxiomBadge';
 
 /**
  * FACTORY: UnitFactory
@@ -36,7 +36,7 @@ const UnitFactory = {
 
         if (artefacts.length === 0) {
             return (
-                <div className="stark-empty-host stack-v center" style={{ opacity: 0.3, padding: '40px 0' }}>
+                <div className="axiom-empty-host stack-v center" style={{ opacity: 0.3, padding: '40px 0' }}>
                     <span className="text-dim">Esperando herencia del Core...</span>
                 </div>
             );
@@ -73,7 +73,7 @@ const UnitFactory = {
             });
 
             return (
-                <div key={artefact.id} className="stark-artefact-block stack-v" style={{
+                <div key={artefact.id} className="axiom-artefact-block stack-v" style={{
                     marginBottom: index === artefacts.length - 1 ? 0 : '24px',
                     borderLeft: `2px solid var(--omd-accent)`,
                     paddingLeft: '16px',
@@ -92,14 +92,14 @@ const UnitFactory = {
                             </span>
                             <span style={{ fontSize: '7px', opacity: 0.3, fontBold: 'mono' }}>{artefact.role} // {artefact.domain}</span>
                         </div>
-                        <StarkBadge label={artefact.intent} status="COMPLETE" />
+                        <AxiomBadge label={artefact.intent} status="COMPLETE" />
                     </div>
 
                     {/* Proyección de Fields (Schemas) */}
                     {fields.length > 0 && (
                         <div className="stack-v" style={{ gap: '10px', width: '100%', marginBottom: '16px' }}>
                             {fields.map(field => (
-                                <StarkInput
+                                <AxiomInput
                                     key={field.id}
                                     label={`${BEHAVIOR_ICONS[field.behavior] || ''} ${field.label}`}
                                     value={field.value}
@@ -113,7 +113,7 @@ const UnitFactory = {
                     {actions.length > 0 && (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', width: '100%' }}>
                             {actions.map(action => (
-                                <StarkButton
+                                <AxiomButton
                                     key={action.id}
                                     label={`${BEHAVIOR_ICONS[action.intent] || ''} ${action.label}`}
                                     isIgnited={isIgnited}
@@ -130,3 +130,6 @@ const UnitFactory = {
 };
 
 export default UnitFactory;
+
+
+

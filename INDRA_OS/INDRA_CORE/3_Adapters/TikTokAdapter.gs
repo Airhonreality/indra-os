@@ -353,9 +353,16 @@ function createTikTokAdapter({ errorHandler, tokenManager }) {
     return { success: false, info: "Direct Messaging not supported by current TikTok Business API scope." };
   }
 
+  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+  const CANON = {
+      ARCHETYPE: "ADAPTER",
+      DOMAIN: "SOCIAL_MEDIA",
+      CAPABILITIES: schemas
+  };
+
   return {
     description: "Industrial bridge for TikTok Business API integration, video content management, and performance telemetry.",
-    semantic_intent: "BRIDGE",
+    CANON: CANON,
     schemas: schemas,
     // Protocol mapping (MESSENGER_V1)
     send,
@@ -370,4 +377,9 @@ function createTikTokAdapter({ errorHandler, tokenManager }) {
     getAnalytics
   };
 }
+
+
+
+
+
 

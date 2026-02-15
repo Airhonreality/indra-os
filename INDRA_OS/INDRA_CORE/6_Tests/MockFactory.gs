@@ -206,18 +206,18 @@ function assembleGenericTestStack(overrides = {}) {
       },
       constitution: {
         LIMITS: { MAX_EXECUTION_TIME: 300, MAX_FLOW_DEPTH: 10 },
-        ANCHOR_PROPERTY: 'ORBITAL_CORE_ROOT_ID',
+        ANCHOR_PROPERTY: 'INDRA_CORE_ROOT',
         SHEETS_SCHEMA: {
-          JOB_QUEUE: { headers: ['jobId', 'status'], PROPERTY: 'ORBITAL_JOB_QUEUE_ID', HEADER: ['jobId', 'status'] },
-          AUDIT_LOG: { headers: ['timestamp', 'level'], PROPERTY: 'ORBITAL_AUDIT_LOG_ID', HEADER: ['timestamp', 'level', 'event'] }
+          JOB_QUEUE: { headers: ['jobId', 'status'], PROPERTY: 'INDRA_JOB_QUEUE_ID', HEADER: ['jobId', 'status'] },
+          AUDIT_LOG: { headers: ['timestamp', 'level'], PROPERTY: 'INDRA_AUDIT_LOG_ID', HEADER: ['timestamp', 'level', 'event'] }
         },
         DRIVE_SCHEMA: {
-          ROOT: { name: 'ORBITAL_CORE_ROOT', id: 'mock-root-id' },
+          ROOT: { name: 'INDRA_CORE_ROOT', id: 'mock-root-id' },
           FLOWS: { PATH: 'mock-flows-path', NAME: 'FLOWS' },
           JSON_FLOWS_FOLDER: { PATH: 'mock-flows-path', NAME: 'FLOWS' } // Alias for compatibility
         },
         COMPONENT_REGISTRY: {
-            FRAMEWORK: { LABEL: "Orbital Framework", ROLE: "FRAMEWORK", DOMAIN: "CORE" },
+            FRAMEWORK: { LABEL: "Indra Framework", ROLE: "FRAMEWORK", DOMAIN: "CORE" },
             DRIVE: { LABEL: "Storage Engine (SIM)", ROLE: "VAULT", DOMAIN: "SYSTEM_INFRA" },
             SHEET: { LABEL: "Data Ledger (SIM)", ROLE: "ADAPTER", DOMAIN: "SYSTEM_INFRA" },
             CONFIG: { LABEL: "System Parameters (SIM)", ROLE: "SERVICE", DOMAIN: "SYSTEM_INFRA" },
@@ -332,3 +332,8 @@ function assembleGenericTestStack(overrides = {}) {
   console.log("[MOCK-FACTORY] finalOverrides keys: " + Object.keys(finalOverrides).join(', '));
   return _assembleExecutionStack(finalOverrides);
 }
+
+
+
+
+

@@ -7,9 +7,9 @@ function _setupSystemInitializerTests() {
 
   const mocks = {
     mockManifest: {
-      ANCHOR_PROPERTY: 'ORBITAL_CORE_ROOT_ID',
+      ANCHOR_PROPERTY: 'INDRA_CORE_ROOT_ID',
       DRIVE_SCHEMA: {
-        ROOT: { NAME: 'OrbitalCore' },
+        ROOT: { NAME: 'IndraCore' },
         JSON_FLOWS_FOLDER: { PATH: 'Flows' },
       },
       SHEETS_SCHEMA: {
@@ -120,12 +120,12 @@ function testSystemInitializer_Verificacion_noDebeHacerNadaSiTodoEstaConfigurado
   const setup = _setupSystemInitializerTests();
   try {
     // Pre-configurar el estado para simular un sistema ya instalado
-    setup.mocks._state.storedProperties['ORBITAL_CORE_ROOT_ID'] = 'root-id';
+    setup.mocks._state.storedProperties['INDRA_CORE_ROOT_ID'] = 'root-id';
     setup.mocks._state.storedProperties['JOB_QUEUE_ID'] = 'sheet-id';
     setup.mocks._state.storedProperties['MASTER_ENCRYPTION_KEY'] = 'mock-master-key';
     setup.mocks._state.storedProperties['TOKENS_FILE_ID'] = 'mock-tokens-file-id';
-    setup.mocks._state.storedProperties['ORBITAL_CORE_SATELLITE_API_KEY'] = 'mock-satellite-key';
-    setup.mocks._state.storedProperties['ORBITAL_FOLDER_JSON_FLOWS_FOLDER_ID'] = 'folder-id';
+    setup.mocks._state.storedProperties['INDRA_CORE_SATELLITE_API_KEY'] = 'mock-satellite-key';
+    setup.mocks._state.storedProperties['INDRA_FOLDER_JSON_FLOWS_FOLDER_ID'] = 'folder-id';
     // Simular que las carpetas ya existen y no necesitan ser creadas
     setup.mocks.mockDriveAdapter.resolvePath = () => ({ created: false, folderId: 'folder-id' });
 
@@ -157,7 +157,7 @@ function testSystemInitializer_Verificacion_noDebeHacerNadaSiTodoEstaConfigurado
 function testSystemInitializer_ConfiguracionParcial_debeCrearSoloLaEstructuraFaltante() {
   const setup = _setupSystemInitializerTests();
   try {
-    setup.mocks._state.storedProperties['ORBITAL_CORE_ROOT_ID'] = 'root-id';
+    setup.mocks._state.storedProperties['INDRA_CORE_ROOT_ID'] = 'root-id';
 
     const initializer = createSystemInitializer({
       manifest: setup.mocks.mockManifest,
@@ -191,7 +191,7 @@ function testSystemInitializer_TokenSystem_debeInicializarTokensYMigrarLegados()
   const setup = _setupSystemInitializerTests();
   try {
     // Escenario: Sistema ya instalado pero sin tokens, y con una NOTION_API_KEY antigua
-    setup.mocks._state.storedProperties['ORBITAL_CORE_ROOT_ID'] = 'root-id';
+    setup.mocks._state.storedProperties['INDRA_CORE_ROOT_ID'] = 'root-id';
     setup.mocks._state.storedProperties['JOB_QUEUE_ID'] = 'sheet-id';
     setup.mocks._state.storedProperties['NOTION_API_KEY'] = 'legacy-notion-token-123';
 
@@ -238,3 +238,8 @@ function testSystemInitializer_TokenSystem_debeInicializarTokensYMigrarLegados()
     _teardownSystemInitializerTests(setup.originals);
   }
 }
+
+
+
+
+

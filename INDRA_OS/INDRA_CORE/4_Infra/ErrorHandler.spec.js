@@ -230,3 +230,8 @@ function testErrorHandler_RequiresImmediateAttention_debeRetornarFalseParaEntrad
     _teardownErrorHandlerTests(setup.originals);
   }
 }
+
+
+
+
+

@@ -30,3 +30,8 @@ Se implementa el modelo de **Hidratación Imperativa (Imperative Hydration)**:
 
 ## Ley de Impedancia Relacionada
 "La realidad no se adivina, se convoca. Un motor sin pasaporte es un ciego en el vacío."
+
+
+
+
+

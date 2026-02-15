@@ -36,7 +36,7 @@ function _createValidSystemManifest() {
       EXECUTION_TIMEOUT_MS: 300000
     },
 
-    ANCHOR_PROPERTY: 'ORBITAL_CORE_ROOT_ID',
+    ANCHOR_PROPERTY: 'INDRA_CORE_ROOT_ID',
 
     // Secciones requeridas
     drive: {
@@ -1031,3 +1031,8 @@ function testCoreOrchestrator() {
     throw error;
   }
 }
+
+
+
+
+

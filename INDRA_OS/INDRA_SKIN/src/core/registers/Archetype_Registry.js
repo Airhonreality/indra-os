@@ -11,6 +11,8 @@ import RealityEngine from '../kernel/projections/engines/RealityEngine';
 import ServiceEngine from '../kernel/projections/engines/ServiceEngine';
 import SlotEngine from '../kernel/projections/engines/SlotEngine';
 import DatabaseEngine from '../kernel/projections/engines/DatabaseEngine';
+import IdentityEngine from '../kernel/projections/engines/IdentityEngine';
+
 
 // Mapa de Arquetipos a Motores
 const ARCHETYPE_REGISTRY = {
@@ -50,6 +52,9 @@ const ARCHETYPE_REGISTRY = {
 
     // 6. ADAPTADORES (Legacy/External)
     'ADAPTER': NodeEngine,      // Conectores externos
+    'IDENTITY': IdentityEngine, // Nuevo: Motor de Identidad y Credenciales
+    'CONFIG': IdentityEngine,   // Alias para configuración de sistema
+
 
     // FALLBACK
     'DEFAULT': NodeEngine
@@ -72,3 +77,6 @@ export const resolveEngine = (archetype) => {
 };
 
 export default ARCHETYPE_REGISTRY;
+
+
+

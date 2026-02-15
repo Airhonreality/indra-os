@@ -7,14 +7,14 @@ function _setupAssemblerTest() {
   const originalPropertiesService = globalThis.PropertiesService;
 
   const mockStorage = {
-    'ORBITAL_CORE_ROOT_ID': 'mock-root-folder-id',
-    'ORBITAL_CORE_JOB_QUEUE_SHEET_ID': 'mock-job-queue-sheet-id',
-    'ORBITAL_CORE_AUDIT_LOG_SHEET_ID': 'mock-audit-log-sheet-id',
+    'INDRA_CORE_ROOT_ID': 'mock-root-folder-id',
+    'INDRA_CORE_JOB_QUEUE_SHEET_ID': 'mock-job-queue-sheet-id',
+    'INDRA_CORE_AUDIT_LOG_SHEET_ID': 'mock-audit-log-sheet-id',
     'ADMIN_EMAIL': 'admin@example.com',
     'PDF_GENERATOR_FUNCTION_URL': 'https://mock-pdf-generator.url/api/generate',
     'NOTION_API_KEY': 'secret_mock-notion-api-key',
     'DEPLOYMENT_URL': 'https://script.google.com/macros/s/mock-deployment-id/exec',
-    'ORBITAL_CORE_SATELLITE_API_KEY': 'mock-satellite-api-key-uuid'
+    'INDRA_CORE_SATELLITE_API_KEY': 'mock-satellite-api-key-uuid'
   };
 
   const mockProperties = {
@@ -75,3 +75,8 @@ function testAssembler_assembleExecutionStack_debeConstruirLaPilaCompletaCorrect
     globalThis.createRenderEngine = originalCreateRenderEngine;
   }
 }
+
+
+
+
+

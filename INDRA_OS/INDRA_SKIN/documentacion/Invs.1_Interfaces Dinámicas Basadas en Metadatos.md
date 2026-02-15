@@ -157,3 +157,8 @@ La construcción de una consola industrial basada en metadatos en React es una t
 
 Para lograr el sistema más robusto posible, se recomienda priorizar la hidratación centralizada de datos mediante JSON Pointers para maximizar la consistencia, y emplear un sistema de maquetación basado en CSS Grid enriquecido con ResizeObserver para manejar la variabilidad del contenido dinámico. Finalmente, la alineación con estándares como ISA-95 no solo facilita la integración técnica, sino que asegura que la interfaz de usuario cumpla con su propósito fundamental: ser el nexo de control seguro y eficiente entre la inteligencia de negocio y la realidad física de la planta industrial.   
 
+
+
+
+
+

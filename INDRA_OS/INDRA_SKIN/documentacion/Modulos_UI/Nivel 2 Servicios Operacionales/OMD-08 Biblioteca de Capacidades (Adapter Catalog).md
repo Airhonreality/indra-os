@@ -67,3 +67,8 @@ JSON
 Reconocimiento sobre Recuerdo: El usuario no necesita saber nombres técnicos; busca por "lo que quiere lograr" (Intents).
 Reducción de la Carga de Error: Al previsualizar el contrato (IO Preview), el usuario evita instanciar nodos que no encajan en su lógica.
 Fluidez de Contexto: El paso del Catálogo (Elegir) al Inspector (Configurar) es automático. El sistema "guía la mano" del usuario desde la intención hasta la ejecución.
+
+
+
+
+

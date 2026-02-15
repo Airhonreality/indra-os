@@ -61,3 +61,6 @@ const SignifierBar = ({ nodeId, showLabel = true, compact = false }) => {
 };
 
 export default SignifierBar;
+
+
+

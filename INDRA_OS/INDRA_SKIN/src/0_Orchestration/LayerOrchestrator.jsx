@@ -10,7 +10,7 @@ import { useAxiomaticStore } from '../core/state/AxiomaticStore';
 import useAxiomaticState from '../core/state/AxiomaticState';
 
 // LAYERS
-import PortalDeAcceso from '../1_Bootstrap/PortalDeAcceso';
+import CoreSelector from '../1_Bootstrap/CoreSelector';
 import CosmosSelector from '../1_Bootstrap/CosmosSelector';
 import DevLab from '../modules/DevLab';
 import DynamicLayoutEngine from '../2_Engines/DynamicLayoutEngine';
@@ -109,10 +109,10 @@ const LayerOrchestrator = ({ initialAssembly }) => {
                 )}
 
                 {/* E1: AMBIENTE (z-10) - Widgets Flotantes */}
-                <div className="absolute inset-0 z-[10] pointer-events-none">
+                <div className="absolute inset-0 z-[10] pointer-events-none flex items-center justify-center">
                     {showE1 && (
-                        <div className="absolute top-24 right-8 w-96 glass p-6 rounded-[2rem] border border-[var(--indra-glass-border)] shadow-2xl animate-fade-in pointer-events-auto">
-                            <PortalDeAcceso asOverlay={true} onClose={() => setManualLayer(null)} />
+                        <div className="w-full max-w-xl glass p-8 rounded-[2.5rem] border border-[var(--indra-glass-border)] shadow-2xl animate-fade-in pointer-events-auto">
+                            <CoreSelector asOverlay={true} onClose={() => setManualLayer(null)} />
                         </div>
                     )}
                 </div>
@@ -141,8 +141,8 @@ const LayerOrchestrator = ({ initialAssembly }) => {
                 {
                     showE3 && (
                         <div className="absolute inset-0 flex items-center justify-center z-[100] animate-fade-in bg-black/60 backdrop-blur-md">
-                            <div className="w-full max-w-xl glass p-10 rounded-[2.5rem] border border-[var(--indra-glass-border)] shadow-2xl pointer-events-auto">
-                                <PortalDeAcceso asOverlay={false} />
+                            <div className="w-full max-w-xl glass p-10 rounded-[2.5rem] border border-[var(--indra-glass-border)] shadow-2xl pointer-events-auto text-center">
+                                <CoreSelector asOverlay={false} />
                             </div>
                         </div>
                     )
@@ -214,3 +214,6 @@ const LayerOrchestrator = ({ initialAssembly }) => {
 };
 
 export default LayerOrchestrator;
+
+
+

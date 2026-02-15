@@ -4,6 +4,7 @@
  * 
  * Almacena los esquemas técnicos (contratos IO) de las herramientas públicas.
  * Separa la definición de la interfaz de la lógica de ejecución.
+ * Version: 14.5_STABILIZED
  */
 
 const ContractRegistry = {
@@ -11,6 +12,7 @@ const ContractRegistry = {
     invoke: {
       description: "Synchronously activates a high-integrity industrial workflow, coordinating technical node triggers and state orchestration.",
       semantic_intent: "TRIGGER",
+      exposure: "public",
       io_interface: { 
         inputs: { 
           flowId: { type: "string", io_behavior: "SCHEMA", description: "Target technical workflow identifier (blueprint key)." }, 
@@ -62,6 +64,7 @@ const ContractRegistry = {
     processNextJobInQueue: {
       description: "Claims and activates the oldest pending technical task from the industrial queue circuit.",
       semantic_intent: "TRIGGER",
+      exposure: "public",
       io_interface: { 
         inputs: {
           accountId: { type: "string", io_behavior: "GATE", description: "Account selector for queue processing." }
@@ -72,6 +75,7 @@ const ContractRegistry = {
     processSpecificJob: {
       description: "Directly activates a targeted technical task by its unique industrial identifier.",
       semantic_intent: "TRIGGER",
+      exposure: "public",
       io_interface: { 
         inputs: { 
           jobId: { type: "string", io_behavior: "GATE", description: "Target task industrial identifier." },
@@ -83,6 +87,7 @@ const ContractRegistry = {
     getGovernanceReport: {
       description: "Generates a detailed forensic health report and structural coherence audit.",
       semantic_intent: "SENSOR",
+      exposure: "public",
       io_interface: { 
         inputs: {
           accountId: { type: "string", io_behavior: "GATE", description: "Account selector for report generation." }
@@ -93,6 +98,7 @@ const ContractRegistry = {
     getSemanticAffinity: {
       description: "Benchmarks external linguistic streams against institutional semantic laws to identify affinity metrics.",
       semantic_intent: "PROBE",
+      exposure: "public",
       io_interface: { 
         inputs: { 
           phrase: { type: "string", io_behavior: "STREAM", description: "Linguistic input stream to evaluate." },
@@ -138,6 +144,7 @@ const ContractRegistry = {
     getSimulationSeeds: {
       description: "Extracts truth seeds from the Core Mock Factory for frontend laboratory synchronization.",
       semantic_intent: "SCHEMA",
+      exposure: "public",
       io_interface: {
         inputs: {},
         outputs: { genotype: { type: "object", description: "Mocked system genotype." } }
@@ -155,6 +162,7 @@ const ContractRegistry = {
     validateTopology: {
       description: "Performs a deep structural dry-run of a flow topology, verifying morphisms (L5+) and topological sanity.",
       semantic_intent: "PROBE",
+      exposure: "public",
       io_interface: {
         inputs: {
           flow: { type: "object", io_behavior: "SCHEMA", description: "Flow topology candidate (nodes/connections)." }
@@ -169,6 +177,7 @@ const ContractRegistry = {
     validateSovereignty: {
       description: "Performs a deep architectural audit of the system sovereignty, ensuring all artifacts comply with L0 laws.",
       semantic_intent: "PROBE",
+      exposure: "public",
       io_interface: {
         inputs: {
           target: { type: "string", io_behavior: "GATE", description: "Audit target identifier." }
@@ -209,87 +218,13 @@ const ContractRegistry = {
         outputs: { result: { type: "any" } }
       }
     },
-    reifyDatabase: {
-      description: "Forces the reification of a database artifact into a hydrated silo using deterministic identity resolution.",
-      semantic_intent: "TRIGGER",
-      exposure: "public",
-      io_interface: {
-        inputs: {
-          databaseId: { type: "string", description: "The technical ID of the database." },
-          nodeId: { type: "string", description: "The deterministic origin source (sheets, notion, calendar, email)." },
-          accountId: { type: "string", optional: true, description: "Account context for the request." }
-        },
-        outputs: {
-          success: { type: "boolean" },
-          results: { type: "array" },
-          ORIGIN_SOURCE: { type: "string" }
-        }
-      }
-    },
-    // --- L8 GATEWAY SCHEMAS ---
-    validateSession: {
-      description: "Validates an existing session anchor via the Session Commander.",
-      semantic_intent: "PROBE",
-      exposure: "public",
-      io_interface: { 
-        inputs: { cosmosId: { type: "string" } }, 
-        outputs: { success: { type: "boolean" }, _SIGNAL: { type: "string", optional: true } } 
-      }
-    },
-    applyPatch: {
-      description: "Applies a technical state patch to an active reality circuit.",
-      semantic_intent: "TRIGGER",
-      exposure: "public",
-      io_interface: {
-        inputs: { cosmosId: { type: "string" }, patch: { type: "object" } },
-        outputs: { success: { type: "boolean" } }
-      }
-    },
-    executeBatch: {
-      description: "Aggregates multiple technical commands into a single atomic request window.",
-      semantic_intent: "GATE",
-      exposure: "public",
-      io_interface: {
-        inputs: {
-          commands: { type: "array", description: "Array of {service, method, payload} objects." }
-        },
-        outputs: { responses: { type: "array" } }
-      }
-    },
-    // --- BLUEPRINT REGISTRY SCHEMAS ---
-    validatePayload: {
-      description: "Benchmarks an input data stream against a technical IO interface definition.",
-      semantic_intent: "PROBE",
-      io_interface: { 
-        inputs: {
-          payload: { type: "object", io_behavior: "STREAM", description: "The data stream to be validated." },
-          inputsSchema: { type: "object", io_behavior: "SCHEMA", description: "The technical IO interface schema." }
-        }, 
-        outputs: {
-          isValid: { type: "boolean", io_behavior: "PROBE", description: "Structural validation status." },
-          errors: { type: "array", io_behavior: "STREAM", description: "Collection of structural failure messages." }
-        } 
-      }
-    },
-    canonize: {
-      description: "Canonizes an industrial artifact (Cosmos, Layout, Flow) based on its structural blueprint.",
-      semantic_intent: "PROBE",
-      io_interface: {
-        inputs: {
-          artifact: { type: "object", description: "The artifact content to canonize." }
-        },
-        outputs: {
-          isValid: { type: "boolean" },
-          type: { type: "string" },
-          schemaVersion: { type: "string" },
-          errors: { type: "array" }
-        }
-      }
-    },
+
     // --- SENSING ADAPTER SCHEMAS ---
     scanArtifacts: {
       description: "Performs technical introspection of a target industrial container to identify assets via canonical industrial taxonomy.",
       semantic_intent: "SENSOR",
+      exposure: "public",
+      risk: 1,
       io_interface: { 
         inputs: {
           folderId: { type: "string", io_behavior: "GATE", description: "Target container industrial identifier for sensing." },
@@ -304,6 +239,8 @@ const ContractRegistry = {
     saveSnapshot: {
       description: "Executes robust institutional content persistence with technical shadow versioning and structural validation.",
       semantic_intent: "STREAM",
+      exposure: "public",
+      risk: 2,
       io_interface: { 
         inputs: {
           content: { type: "object", io_behavior: "STREAM", description: "Industrial asset payload to be persisted." },
@@ -320,6 +257,8 @@ const ContractRegistry = {
     quickDiagnostic: {
       description: "Triggers an active axiomatic audit to verify system-wide industrial contract compliance.",
       semantic_intent: "ANALYZE",
+      exposure: "public",
+      risk: 1,
       io_interface: {
         inputs: {
           targetAdapter: { type: "string", io_behavior: "GATE", description: "Optional specific circuit focus for the industrial audit." },
@@ -334,6 +273,8 @@ const ContractRegistry = {
     discoverSeed: {
       description: "Benchmarks existing industrial storage to locate the system's root sovereignty folder circuit.",
       semantic_intent: "PROBE",
+      exposure: "public",
+      risk: 1,
       io_interface: { 
         inputs: {
           rootName: { type: "string", io_behavior: "STREAM", description: "Expected industrial root folder identifier." },
@@ -347,6 +288,8 @@ const ContractRegistry = {
     initializeSeed: {
       description: "Establishes the industrial root sovereignty folder if not present.",
       semantic_intent: "TRIGGER",
+      exposure: "public",
+      risk: 2,
       io_interface: {
         inputs: {
           rootName: { type: "string", io_behavior: "STREAM", description: "Root folder name to initialize." },
@@ -358,9 +301,13 @@ const ContractRegistry = {
         }
       }
     },
+
+    // --- DRIVE ADAPTER SCHEMAS ---
     find: {
       description: "Executes a technical query against the industrial storage layer.",
       semantic_intent: "PROBE",
+      exposure: "public",
+      risk: 1,
       io_interface: {
         inputs: {
           query: { type: "string", io_behavior: "STREAM", description: "Drive API query string." },
@@ -374,6 +321,8 @@ const ContractRegistry = {
     compareSnapshots: {
       description: "Performs differential analysis between two industrial snapshots.",
       semantic_intent: "ANALYZE",
+      exposure: "public",
+      risk: 1,
       io_interface: {
         inputs: {
           id1: { type: "string", role: "resource", description: "Identifier of the baseline snapshot." },
@@ -388,6 +337,8 @@ const ContractRegistry = {
     reconcileSpatialState: {
       description: "Synchronizes spatial positioning data to persistent storage.",
       semantic_intent: "TRIGGER",
+      exposure: "public",
+      risk: 2,
       io_interface: {
         inputs: {
           positions: { type: "object", io_behavior: "STREAM", description: "Node position map to persist." },
@@ -401,6 +352,8 @@ const ContractRegistry = {
     getSpatialState: {
       description: "Retrieves persisted spatial positioning data.",
       semantic_intent: "STREAM",
+      exposure: "public",
+      risk: 1,
       io_interface: {
         inputs: {
           accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
@@ -413,6 +366,8 @@ const ContractRegistry = {
     getSnapshot: {
       description: "Retrieves a specific industrial snapshot by identifier.",
       semantic_intent: "STREAM",
+      exposure: "public",
+      risk: 1,
       io_interface: {
         inputs: {
           fileId: { type: "string", io_behavior: "GATE", description: "Snapshot file identifier." },
@@ -426,6 +381,8 @@ const ContractRegistry = {
     deleteArtifact: {
       description: "Permanently removes an industrial artifact from storage.",
       semantic_intent: "INHIBIT",
+      exposure: "public",
+      risk: 3,
       io_interface: {
         inputs: {
           fileId: { type: "string", io_behavior: "GATE", description: "Artifact identifier to remove." },
@@ -436,53 +393,87 @@ const ContractRegistry = {
         }
       }
     },
-    listResources: {
-        description: "Discovers available industrial resources via indra:// URI paths.",
-        semantic_intent: "SENSOR",
-        io_interface: {
-            inputs: {
-                path: { type: "string", description: "The indra:// path or root / to explore." },
-                category: { type: "string", description: "Optional filter category." }
-            },
-            outputs: {
-                resources: { type: "array", description: "List of discovered URIs and metadata." }
-            }
-        }
-    },
-    stabilizeAxiomaticReality: {
-      description: "Receives a complete reality snapshot from the Front and persists it to Drive as a single atomic operation (ADR 003).",
-      semantic_intent: "STREAM",
+    deleteItem: {
+      description: "Permanently removes an item from a technical provider (Notion, Drive, etc.).",
+      semantic_intent: "INHIBIT",
       exposure: "public",
+      risk: 3,
       io_interface: {
         inputs: {
-          snapshot: { 
-            type: "object", 
-            io_behavior: "STREAM", 
-            description: "Complete cosmos snapshot including artifacts, relationships, and metadata.",
-            required: true
-          },
-          _carriedReality: { type: "boolean", description: "Flag indicating piggybacking transport." },
-          _triggerAction: { type: "string", description: "The action that triggered this snapshot sync." }
+          id: { type: "string", io_behavior: "GATE", description: "Item identifier to remove." },
+          confirmHighRisk: { type: "boolean", description: "Explicit confirmation for high risk action." }
         },
         outputs: {
-          success: { type: "boolean", io_behavior: "PROBE", description: "Stabilization status." },
-          fileId: { type: "string", io_behavior: "PROBE", description: "Drive file identifier of persisted snapshot." },
-          cosmosId: { type: "string", description: "Cosmos identifier confirmed." },
-          _revisionHash: { type: "string", description: "Client revision hash preserved." },
-          nodeCount: { type: "number", description: "Number of nodes persisted." },
-          relationshipCount: { type: "number", description: "Number of relationships persisted." }
+          success: { type: "boolean", io_behavior: "PROBE" }
         }
       }
     },
-    runSystemAudit: {
-      description: "Triggers a full industrial-grade diagnostic audit of the system assembly and hydration layers.",
+    listResources: {
+      description: "Lists all industrial resources in a target container.",
       semantic_intent: "PROBE",
+      exposure: "public",
+      risk: 1,
       io_interface: {
         inputs: {
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for audit scope." }
+          folderId: { type: "string", io_behavior: "GATE" },
+          accountId: { type: "string", io_behavior: "GATE" }
         },
         outputs: {
-          report: { type: "object", io_behavior: "PROBE", description: "Comprehensive audit results and coherence metrics." }
+          resources: { type: "array" }
+        }
+      }
+    },
+
+    // --- NOTION ADAPTER SCHEMAS ---
+    retrieveDatabase: {
+      description: "Retrieve data from a database.",
+      archetype: "ADAPTER",
+      semantic_intent: "QUERY",
+      exposure: "public",
+      risk: 1,
+      io_interface: { 
+        inputs: {
+          databaseId: { type: "string", description: "Target database identifier." }
+        },
+        outputs: { 
+          results: { type: "array", description: "Flattened record collection." } 
+        } 
+      }
+    },
+
+    // --- ORCHESTRATOR SCHEMAS ---
+    executeFlow: {
+      description: "Executes a technical workflow snapshot.",
+      archetype: "ORCHESTRATOR",
+      semantic_intent: "TRIGGER",
+      exposure: "public",
+      risk: 2,
+      io_interface: {
+        inputs: {
+          flow: { type: "object", io_behavior: "SCHEMA", description: "Canonical workflow definition (steps, topology)." },
+          initialContext: { type: "object", io_behavior: "STREAM", description: "Bootstrap data stream for execution." },
+          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for isolation." }
+        },
+        outputs: {
+          success: { type: "boolean" }
+        }
+      }
+    },
+    stabilizeAxiomaticReality: {
+      description: "Receives a complete reality snapshot from the Front and persists it to Drive.",
+      semantic_intent: "STREAM",
+      exposure: "public",
+      risk: 2,
+      io_interface: {
+        inputs: {
+          snapshot: { type: "object", required: true },
+          _carriedReality: { type: "boolean" },
+          _triggerAction: { type: "string" }
+        },
+        outputs: {
+          success: { type: "boolean" },
+          fileId: { type: "string" },
+          cosmosId: { type: "string" }
         }
       }
     }
@@ -497,9 +488,13 @@ const ContractRegistry = {
 
   /**
    * Obtiene todos los esquemas.
-   * AXIOMA: Retorna una sombra (clon), nunca la referencia directa.
    */
   getAll: function() {
     return JSON.parse(JSON.stringify(this.schemas));
   }
 };
+
+
+
+
+

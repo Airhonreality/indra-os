@@ -9,7 +9,7 @@ function testIntelligenceOrchestrator_Creation() {
         monitoringService: null
     });
 
-    if (!orchestrator || orchestrator.label !== "Orbital Architect") {
+    if (!orchestrator || orchestrator.label !== "Indra Architect") {
         throw new Error("IntelligenceOrchestrator failed basic creation/identity check.");
     }
 }
@@ -22,7 +22,7 @@ function testIntelligenceOrchestrator_DigestGeneration() {
 
     const mockNodes = {
         drive: { label: "Drive", archetype: "ADAPTER", schemas: { listFiles: { intent: "READ", description: "List files" } } },
-        sheet: { label: "Sheets", archetype: "ADAPTER", schemas: { addRow: { intent: "WRITE", description: "Add row" } } }
+        sheet: { label: "Sheet", archetype: "ADAPTER", schemas: { addRow: { intent: "WRITE", description: "Add row" } } }
     };
 
     // Accedemos a la lógica privada mediante askArchitect con un prompt dummy
@@ -54,3 +54,8 @@ function testIntelligenceOrchestrator_SemanticIntegration() {
         throw new Error("askArchitect schema not found in PublicAPI registry.");
     }
 }
+
+
+
+
+

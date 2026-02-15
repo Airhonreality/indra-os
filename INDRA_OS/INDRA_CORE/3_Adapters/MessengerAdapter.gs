@@ -168,9 +168,16 @@ function createMessengerAdapter({ errorHandler, adapters }) {
         };
     }
 
+    // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+    const CANON = {
+        ARCHETYPE: "ADAPTER",
+        DOMAIN: "COMMUNICATION_HUB",
+        CAPABILITIES: schemas
+    };
+
     return {
         description: "Industrial bridge for multi-platform communication, collective message broadcasting, and data normalization.",
-        semantic_intent: "BRIDGE",
+        CANON: CANON,
         schemas: schemas,
         send,
         broadcast,
@@ -179,4 +186,9 @@ function createMessengerAdapter({ errorHandler, adapters }) {
         registerProvider
     };
 }
+
+
+
+
+
 

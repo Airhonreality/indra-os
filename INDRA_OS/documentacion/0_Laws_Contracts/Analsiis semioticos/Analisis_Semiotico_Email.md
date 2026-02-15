@@ -107,3 +107,8 @@ Es una **terminal de telecomunicaciones** soberana. No imita a Gmail; reinventa 
 4.  Cambia a vista de Grafo, viendo el **NODE**, y conecta la salida `onReceive` a un nodo LLM.
 
 **Axioma:** La funcionalidad es la misma (el Canon), pero la proyección (Semiótica) se adapta a la intención del usuario.
+
+
+
+
+

@@ -13,6 +13,13 @@ const DatabaseEngine = ({ data, perspective = 'STANDARD' }) => {
     const { state, execute } = useAxiomaticStore();
     const focusStack = state.phenotype.focusStack || [];
     const isFocused = focusStack.length > 1;
+    const { adapter } = state.sovereignty;
+
+    // ESTADO DE IDENTIDAD DINÁMICA
+    const [accounts, setAccounts] = useState([]);
+    const [activeAccount, setActiveAccount] = useState(data.ACCOUNT_ID || data.data?.ACCOUNT_ID);
+    const [loadingAccounts, setLoadingAccounts] = useState(false);
+
 
     // AXIOMA: Resolución de Identidad y Origen (Deep Introspection)
     const artifactId = data.id || data.data?.id || data.ID;
@@ -29,6 +36,39 @@ const DatabaseEngine = ({ data, perspective = 'STANDARD' }) => {
 
         return null;
     }, [data, artifactId, state.phenotype.siloMetadata]);
+
+    // AXIOMA: Descubrimiento de Identidades (Deep Binding)
+    useEffect(() => {
+        const discover = async () => {
+            if (!originSource) return;
+            setLoadingAccounts(true);
+            try {
+                const result = await adapter.executeAction('tokenManager:listTokenAccounts', { provider: originSource });
+                if (Array.isArray(result)) {
+                    setAccounts(result);
+                    // Si no hay cuenta activa aún, o la que tenemos no está en la lista, usamos la default
+                    if (!activeAccount && result.length > 0) {
+                        const def = result.find(a => a.isDefault) || result[0];
+                        setActiveAccount(def.id);
+                    }
+                }
+            } catch (e) {
+                console.warn(`[DatabaseEngine] Discovery failed for ${originSource}:`, e);
+            } finally {
+                setLoadingAccounts(false);
+            }
+        };
+        discover();
+    }, [originSource]);
+
+    // AXIOMA: Reificación ante cambio de Identidad
+    useEffect(() => {
+        if (activeAccount && originSource && artifactId) {
+            // Solo si es distinto al que ya tenemos en el silo o si queremos forzar
+            execute('FETCH_DATABASE_CONTENT', { databaseId: artifactId, nodeId: originSource, accountId: activeAccount });
+        }
+    }, [activeAccount]);
+
 
     // AXIOMA: Recuperación y Aplanamiento de la Data Cruda (Semantic Bridge)
     const rawData = useMemo(() => {
@@ -145,8 +185,32 @@ const DatabaseEngine = ({ data, perspective = 'STANDARD' }) => {
                                 <span className={`text-[8px] font-black px-1.5 py-0.5 rounded leading-none ${originSource ? 'bg-[var(--accent)]/20 text-[var(--accent)]' : 'bg-red-500/20 text-red-400'}`}>
                                     {originSource || 'IDENTITY_VOID'}
                                 </span>
+                                {accounts.length > 0 && (
+                                    <div className="flex items-center gap-2 px-2 border-l border-white/10 ml-2">
+                                        <span className="text-[7px] font-bold text-white/30 uppercase">Identity:</span>
+                                        <select
+                                            className="bg-black/40 border border-white/10 rounded px-1 py-0 text-[8px] font-mono text-[var(--accent)] outline-none cursor-pointer"
+                                            value={activeAccount || ''}
+                                            onChange={(e) => setActiveAccount(e.target.value)}
+                                        >
+                                            {accounts.map(acc => (
+                                                <option key={acc.id} value={acc.id}>
+                                                    {acc.label} {acc.isDefault ? '(★)' : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            onClick={() => execute('SELECT_ARTIFACT', { id: 'IDENTITY_MANAGER', ARCHETYPE: 'IDENTITY', LABEL: 'Identity Manager', provider: originSource })}
+                                            className="p-1 rounded-lg hover:bg-white/5 text-white/30 hover:text-[var(--accent)] transition-all"
+                                            title="Gestionar Cuentas"
+                                        >
+                                            <Icons.Settings size={10} />
+                                        </button>
+                                    </div>
+                                )}
                                 <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest">{artifactId}</span>
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -303,3 +367,6 @@ const renderCellValue = (value, type) => {
 };
 
 export default DatabaseEngine;
+
+
+

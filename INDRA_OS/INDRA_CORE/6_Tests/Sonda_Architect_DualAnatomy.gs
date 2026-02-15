@@ -87,3 +87,8 @@ function testSonda_Architect_DualAnatomy_Compliance() {
     
     console.log("✅ Sonda de Anatomía Dual: EXITOSA.");
 }
+
+
+
+
+

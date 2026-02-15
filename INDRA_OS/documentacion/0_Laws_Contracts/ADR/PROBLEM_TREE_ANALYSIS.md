@@ -381,3 +381,8 @@ RUN_FULL_Architecture_Audit()
 - [ADR-007: Burst Mode Protocol](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRA_OS/documentacion/0_Laws_Contracts/ADR/ADR-007_Burst_Mode_Protocol.md)
 - [BURST_MODE_AUDIT.gs](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRA_OS/INDRA_CORE/7_Diagnostics/BURST_MODE_AUDIT.gs)
 - [ARCHITECTURE_TRUTH_TEST.gs](file:///c:/Users/javir/Documents/DEVs/INDRA%20FRONT%20END/INDRA_OS/INDRA_CORE/7_Diagnostics/ARCHITECTURE_TRUTH_TEST.gs)
+
+
+
+
+

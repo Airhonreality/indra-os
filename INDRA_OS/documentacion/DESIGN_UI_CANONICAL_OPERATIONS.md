@@ -1,7 +1,7 @@
 # 🛰️ BLUEPRINT: CANONICAL UI FOR CORE OPERATIONS (v1.0)
 
 ## 1. FILOSOFÍA: LA INTERFAZ COMO CAPA DE INSTRUMENTACIÓN
-En el ecosistema **OrbitalCore/INDRA**, la interfaz de usuario no es una aplicación de consumo, sino una **Capa de Instrumentación de Realidad**. Su propósito es reducir el "Gap Cognitivo" entre las complejas Leyes Axiomáticas del Core y la intención operativa del usuario.
+En el ecosistema **INDRACore/INDRA**, la interfaz de usuario no es una aplicación de consumo, sino una **Capa de Instrumentación de Realidad**. Su propósito es reducir el "Gap Cognitivo" entre las complejas Leyes Axiomáticas del Core y la intención operativa del usuario.
 
 ### Axiomas de Diseño UI:
 1.  **Agnosticismo de Datos**: La UI debe ser capaz de renderizar controles basados exclusivamente en el `schema` del nodo (descubrimiento dinámico).
@@ -202,4 +202,9 @@ Este apartado define el comportamiento exacto de cada pieza de la interfaz, cont
 
 ## 9. CONCLUSIÓN: EL "SKELETON CONSOLE"
 El objetivo final es que esta documentación sirva de base para el desarrollo del **Skeleton Console**, elevando la experiencia de una simple consola de logs a un auténtico **Sistema Operativo de Nodos** intuitivo, seguro y potente, donde el usuario orquesta la realidad mediante lenguaje natural y cables inteligentes, bajo una supervisión constante de salud y contratos.
+
+
+
+
+
 

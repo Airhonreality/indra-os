@@ -33,3 +33,8 @@
 ## 5. Validación
 - [ ] Verificar en **Dev Lab** con un mock de artefacto que tenga `ARCHETYPE: "MAIL"` y otro `"MESSAGING"`.
 - [ ] Confirmar etiquetas humanas en los puertos del nodo.
+
+
+
+
+

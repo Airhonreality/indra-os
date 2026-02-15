@@ -303,3 +303,8 @@ function testJobQueueService_ClaimSpecificJob_debeRetornarNullSiElJobNoExiste() 
     _teardownJobQueueServiceTests(setup.originals);
   }
 }
+
+
+
+
+

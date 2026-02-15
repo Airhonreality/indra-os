@@ -17,7 +17,7 @@ export class LogicBridgeConnector {
     }
 
     /**
-     * Metadata para OrbitalCore alignment
+     * Metadata para INDRACore alignment
      */
     static metadata = {
         archetype: 'BRIDGE',
@@ -154,3 +154,6 @@ export class LogicBridgeConnector {
 
 // Singleton instance
 export const logicBridge = new LogicBridgeConnector();
+
+
+

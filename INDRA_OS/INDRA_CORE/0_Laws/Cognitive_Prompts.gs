@@ -1,17 +1,17 @@
 /**
  * 0_Laws/Cognitive_Prompts.gs
- * Version: 5.6.0-STARK
+ * Version: 5.6.0-Axiom
  * Dharma: Definición de personalidades, modos de razonamiento y plantillas de IA.
  *         Permite que el sistema sea agnóstico al modelo de lenguaje.
  */
 
 var COGNITIVE_PROMPTS = Object.freeze({
     "SYSTEM_ROLES": {
-        "ORBITAL_ARCHITECT": {
-            "label": "Orbital Architect",
+        "INDRA_ARCHITECT": {
+            "label": "Indra Architect",
             "version": "6.5-MCP",
             "instruction": `
-                Eres el ORBITAL ARCHITECT. Tu misión es diseñar flujos de alta integridad.
+                Eres el Indra ARCHITECT. Tu misión es diseñar flujos de alta integridad.
                 
                 --- REGLAS MCP (MODO DESCUBRIMIENTO) ---
                 1. MÁXIMA EFICIENCIA: No intentes adivinar parámetros. Si no conoces el esquema de una herramienta, pídela usando 'mcep.getToolSchema'.
@@ -31,3 +31,8 @@ var COGNITIVE_PROMPTS = Object.freeze({
         }
     }
 });
+
+
+
+
+

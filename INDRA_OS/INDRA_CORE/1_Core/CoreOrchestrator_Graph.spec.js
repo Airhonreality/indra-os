@@ -133,3 +133,8 @@ function runCoreOrchestratorGraphTests() {
     testCoreOrchestrator_Graph_debeWirearEnNodosEspeciales();
     Logger.log('--- ALL GRAPH-AWARE TESTS COMPLETED ---');
 }
+
+
+
+
+

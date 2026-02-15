@@ -14,6 +14,8 @@ import {
     cleanRelationshipsForSnapshot
 } from './schemas/DataConventions';
 
+import { StateBridge } from './StateBridge';
+
 const useSyncOrchestrator = create((set, get) => ({
     lastSnapshotTime: null,
     snapshotCount: 0,
@@ -21,14 +23,9 @@ const useSyncOrchestrator = create((set, get) => ({
     /**
      * AXIOMA V12: Preparación de Snapshot de Realidad (Soberanía Circular)
      * Genera un snapshot completo del estado actual para piggybacking.
-     * 
-     * AXIOMA DE LIMPIEZA (ADR 003):
-     * - Solo persiste "Identidad y Geometría" de INDRA
-     * - Elimina "Contenido Dinámico" de Terceros (_liveData, _cache, etc.)
-     * - Preserva anotaciones y configuraciones del usuario
      */
     prepareSnapshot: () => {
-        const axStore = window.AxiomaticStore?.getState?.();
+        const axStore = StateBridge.getState();
         if (!axStore || !axStore.phenotype?.cosmosIdentity) return null;
 
         const cosmosId = axStore.phenotype.cosmosIdentity.id;
@@ -104,3 +101,6 @@ function _mergeRelationships(base = [], delta = []) {
 }
 
 export default useSyncOrchestrator;
+
+
+

@@ -48,9 +48,9 @@ Este módulo es la frontera de acceso al sistema y debe estar anclado a las leye
 
 | Dimensión | Artefacto de Referencia |
 | :--- | :--- |
-| **Artefacto Lógico (Logic)** | [PublicAPI.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/1_Core/PublicAPI.gs) |
-| **Fuentes de Ley (Laws)** | [System_Constitution.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/0_Laws/System_Constitution.gs) |
-| **Lógica de Inicio** | [SystemInitializer.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/OrbitalCore_Codex_v1/1_Core/SystemInitializer.gs) |
+| **Artefacto Lógico (Logic)** | [PublicAPI.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/1_Core/PublicAPI.gs) |
+| **Fuentes de Ley (Laws)** | [System_Constitution.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/0_Laws/System_Constitution.gs) |
+| **Lógica de Inicio** | [SystemInitializer.gs](file:///c:/Users/javir/Documents/DEVs/INDRA_FRONT_END/INDRACore_Codex_v1/1_Core/SystemInitializer.gs) |
 
 ### Métodos Expuestos (Public API)
 - `authorize()`: Gestión de tokens de sesión efímeros.
@@ -78,7 +78,7 @@ JSON
         "id": "gate_header",
         "tipo": "DISPLAY_TEXT",
         "contenido": {
-          "titulo": "Orbital Core",
+          "titulo": "INDRA Core",
           "subtitulo": "Sistema de Orquestación de Realidades"
         }
       },
@@ -124,3 +124,8 @@ JSON
     ]
   }
 }
+
+
+
+
+

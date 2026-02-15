@@ -55,3 +55,8 @@ El motor debe saber enrutar cada uno:
 - **Positivo:** Permite construir interfaces complejas (ej: Un Visor 3D con un ColorRamp incrustado) simplemente conectando dos nodos.
 - **Positivo:** Limpia el menú de creación separando Apps de Herramientas.
 - **Negativo:** Requiere que el `SlotEngine` sepa renderizar `WIDGETS` conectados en su panel lateral.
+
+
+
+
+

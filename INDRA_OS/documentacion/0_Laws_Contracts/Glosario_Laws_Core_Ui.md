@@ -86,3 +86,8 @@ graph LR
 **Decisión Arquitectónica (V8.3):**
 Los componentes (Signifiers) **no deben** aplicar su propia lógica de significación. Deben suscribirse a la **Ley de Transducción** del Store. Si el Store dice que el estado es `SCANNING`, todos los elementos visuales (barra de tareas, panel lateral, terminal) deben emitir la misma señal visual de "Resonancia Profunda", garantizando que el usuario nunca pierda el hilo de la realidad técnica del sistema, incluso ante 1000 bases de datos.
 
+
+
+
+
+

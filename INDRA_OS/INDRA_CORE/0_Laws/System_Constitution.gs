@@ -1,13 +1,13 @@
 /**
  * 0_Laws/System_Constitution.gs
- * Version: 5.5.0-STARK
+ * Version: 14.5.0-SOVEREIGN
  * Dharma: Registro de topografía física, anclajes de Drive, conexiones core 
  *         e Identidad Ontológica de Componentes.
  */
 
 var SYSTEM_CONSTITUTION = Object.freeze({
-    "VERSION": "5.6.0-STARK",
-    "ANCHOR_PROPERTY": "ORBITAL_CORE_ROOT_ID",
+    "VERSION": "14.5.1-SOVEREIGN",
+    "ANCHOR_PROPERTY": "CORE_ROOT",
     "STATE": "DEVELOPMENT",
 
     // ============================================================
@@ -24,7 +24,7 @@ var SYSTEM_CONSTITUTION = Object.freeze({
     // SECTION 1: TOPOGRAFÍA DE DRIVE (Anclaje Físico)
     // ============================================================
     "DRIVE_SCHEMA": {
-        "ROOT": { "NAME": "OrbitalCore", "PATH": "root" },
+        "ROOT": { "NAME": "System_Root", "PATH": "root" },
         "FLOWS": { "NAME": "Flows", "PATH": "Flows" },
         "VAULTS": { "NAME": "Vaults", "PATH": "Vaults" },
         "SCHEMAS": { "NAME": "Schemas", "PATH": "Schemas" },
@@ -40,29 +40,17 @@ var SYSTEM_CONSTITUTION = Object.freeze({
     // ============================================================
     "SHEETS_SCHEMA": {
         "JOB_QUEUE": {
-            "PROPERTY": "ORBITAL_JOB_QUEUE_ID",
-            "NAME": "Orbital_JobQueue",
+            "PROPERTY": "CORE_JOB_QUEUE_ID",
+            "NAME": "SYS_JobQueue",
             "HEADER": ["jobId", "status", "flowId", "initialPayload", "triggerSource", "createdAt", "updatedAt", "scheduledAt", "result", "error"]
         },
         "AUDIT_LOG": {
-            "PROPERTY": "ORBITAL_AUDIT_LOG_ID",
-            "NAME": "Orbital_AuditLog",
+            "PROPERTY": "CORE_AUDIT_LOG_ID",
+            "NAME": "SYS_AuditLog",
             "HEADER": ["timestamp", "eventType", "severity", "message", "context"]
         }
     },
   
-    // ============================================================
-    // SECTION 3: REGISTRO DE IDENTIDAD (Ontología de Componentes)
-    // Axioma v8.0: Los componentes son SOBERANOS. Este registro es solo para 
-    // OVERRIDES de sistema o componentes sin código (Abstractos).
-    // ============================================================
-    "COMPONENT_REGISTRY": {
-        // Los componentes reales (Adapters/Services) se auto-identifican vía CANON.
-        // Solo definimos aquí componentes abstractos o nodos de UI puros.
-        "CORE_PORTAL": { "LABEL": "Portal de Acceso", "ARCHETYPE": "BRIDGE", "DOMAIN": "UI_PROJECTION" },
-        "WORKSPACE_CANVAS": { "LABEL": "Canvas Flow", "ARCHETYPE": "ORCHESTRATOR", "DOMAIN": "UI_PROJECTION" }
-    },
-
     "ORCHESTRATOR_METADATA": {
         "specialNodes": {
             "TEXT": ["buildText"],
@@ -77,7 +65,7 @@ var SYSTEM_CONSTITUTION = Object.freeze({
         "NOTION_API_KEY": { "TYPE": "SECRET", "VALIDATION": "NON_EMPTY", "legacyKey": "NOTION_API_KEY" },
         "TOKENS_FILE_ID": { "TYPE": "SYSTEM", "VALIDATION": "NON_EMPTY" },
         "MASTER_ENCRYPTION_KEY": { "TYPE": "SECRET", "VALIDATION": "NON_EMPTY" },
-        "ORBITAL_CORE_SATELLITE_API_KEY": { "TYPE": "SYSTEM_GENERATED", "VALIDATION": "NON_EMPTY" }
+        "CORE_SATELLITE_API_KEY": { "TYPE": "SYSTEM_GENERATED", "VALIDATION": "NON_EMPTY" }
     },
   
     // ============================================================
@@ -89,5 +77,10 @@ var SYSTEM_CONSTITUTION = Object.freeze({
         "LOCK_TIMEOUT_MS": 300000
     }
 });
+
+
+
+
+
 
 

@@ -73,40 +73,129 @@ function createMCEP_Core({ laws, nodesRegistry, errorHandler, monitoringService 
 
   /**
    * High-fidelity mapping of capabilities to AI-Ready Tool Format.
-   * Now supports light discovery to avoid token bloat.
+   * V2: Supports HIERARCHICAL discovery for cognitive economy.
    */
   function getModelTooling(systemContext = {}, options = {}) {
     const { capabilities } = resolveCapabilities(systemContext);
-    const { mode = 'FULL_SCHEMA' } = options;
-    const toolList = [];
-
-    for (const nodeKey in capabilities) {
-      const node = capabilities[nodeKey];
-      for (const method in node.tools) {
-        const schema = node.tools[method];
-        
-        if (mode === 'DISCOVERY') {
-          // Versión ultra-ligera para el prompt inicial
-          toolList.push(`${nodeKey}.${method}: ${(schema.description || 'No description').slice(0, 100)}...`);
-        } else {
-          // Versión completa para cuando la IA ya sabe que quiere usar esta herramienta
-          toolList.push({
-            node: nodeKey,
-            method: method,
-            description: schema.description,
-            role: schema.semantic_intent || node.semantic_intent,
-            parameters: schema.io_interface ? schema.io_interface.inputs : {},
-            returns: schema.io_interface ? schema.io_interface.outputs : {}
-          });
-        }
-      }
+    const { mode = 'HIERARCHICAL' } = options; // Default to Smart Tree
+    
+    // Si el modo es plano (Legacy o Explicit), devolvemos todo
+    if (mode === 'FLAT' || mode === 'FULL_SCHEMA') {
+      return _generateFlatTooling(capabilities);
     }
+
+    // Modo Discovery: Índice de nombres para economía de tokens
+    if (mode === 'DISCOVERY') {
+       const flatList = [];
+       Object.keys(capabilities).forEach(nodeKey => {
+         const node = capabilities[nodeKey];
+         if (node.tools) {
+           Object.keys(node.tools).forEach(m => {
+              flatList.push(`${nodeKey}:${m} [${node.label || nodeKey}]`);
+           });
+         }
+       });
+       return { tools: flatList };
+    }
+
+    // Modo Jerárquico (V2): Árbol de Capacidades
+    const tree = _categorizeTools(capabilities);
+    
+    // Tools Base: Siempre disponibles (Core + Navigation)
+    const baseTools = [
+      {
+        node: "mcep",
+        method: "expandCategory",
+        description: "Expands a specific tool category to reveal its detailed functions.",
+        role: "SYSTEM_NAVIGATION",
+        parameters: { category: { type: "string", description: "The category to expand (e.g., 'DRIVE', 'COMMUNICATION')" } },
+        returns: { tools: { type: "array" } }
+      }
+    ];
+
+    // Añadir herramientas críticas (Tier 1) directamente para evitar latencia
+    // Ej: Memory, Search, etc.
+    const criticalTools = _generateFlatTooling(capabilities, ['mcep', 'public', 'sensing']); 
 
     return {
       mode,
-      // AXIOMA: Expansión de Capacidad (Ajustado para mega-sistemas)
-      tools: toolList.slice(0, 100) 
+      taxonomy: Object.keys(tree).map(domain => ({
+        category: domain,
+        description: `Access to ${domain} related capabilities. Contains ${tree[domain].length} tools.`,
+        tools_count: tree[domain].length
+      })),
+      tools: [...baseTools, ...criticalTools]
     };
+  }
+
+  /**
+   * Expands a category to reveal its full toolset.
+   * Used by the AI to drill-down into specific domains.
+   */
+  function expandCategory(categoryName, systemContext = {}) {
+    const { capabilities } = resolveCapabilities(systemContext);
+    const tree = _categorizeTools(capabilities);
+    const domain = categoryName.toUpperCase();
+    
+    if (!tree[domain]) {
+        return { error: `Category '${domain}' not found. Available: ${Object.keys(tree).join(', ')}` };
+    }
+
+    return {
+        category: domain,
+        tools: _generateFlatHelper(tree[domain], capabilities)
+    };
+  }
+
+  // --- INTERNAL HELPERS ---
+
+  function _categorizeTools(capabilities) {
+    const tree = {};
+    for (const nodeKey in capabilities) {
+        const node = capabilities[nodeKey];
+        const domain = (node.semantic_intent || 'GENERAL').toUpperCase(); // SYSTEM, DRIVE, SOCIAL
+        
+        if (!tree[domain]) tree[domain] = [];
+        // Guardamos solo la referencia, no el esquema completo aún
+        tree[domain].push(nodeKey);
+    }
+    return tree;
+  }
+
+  function _generateFlatTooling(capabilities, filterNodes = null) {
+      const toolList = [];
+      for (const nodeKey in capabilities) {
+          if (filterNodes && !filterNodes.includes(nodeKey)) continue;
+          
+          const node = capabilities[nodeKey];
+          toolList.push(..._generateFlatHelper([nodeKey], capabilities));
+      }
+      return toolList;
+  }
+
+  function _generateFlatHelper(nodeKeys, capabilities) {
+      const list = [];
+      nodeKeys.forEach(nodeKey => {
+          const node = capabilities[nodeKey];
+          if (!node) return;
+
+          for (const method in node.tools) {
+            const schema = node.tools[method];
+            if (!schema) continue; // GUARD: Resiliencia ante contratos inexistentes
+
+            list.push({
+                node: nodeKey,
+                method: method,
+                // AXIOMA V2: Risk Tagging Exposure
+                risk: schema.risk || 'UNKNOWN', 
+                description: schema.description,
+                role: schema.semantic_intent || node.semantic_intent,
+                parameters: schema.io_interface ? schema.io_interface.inputs : {},
+                returns: schema.io_interface ? schema.io_interface.outputs : {}
+            });
+          }
+      });
+      return list;
   }
 
   /**
@@ -156,6 +245,13 @@ function createMCEP_Core({ laws, nodesRegistry, errorHandler, monitoringService 
                 schema: { type: "object" }
             }
         }
+    },
+    expandCategory: {
+        description: "Expands a high-level tool category (domain) to reveal its specific tools.",
+        io_interface: {
+            inputs: { categoryName: { type: "string" } },
+            outputs: { tools: { type: "array" } }
+        }
     }
   };
 
@@ -168,6 +264,12 @@ function createMCEP_Core({ laws, nodesRegistry, errorHandler, monitoringService 
     digestLaws,
     resolveCapabilities,
     getModelTooling,
-    getToolSchema
+    getToolSchema,
+    expandCategory // <--- NEW V2 TOOL
   });
 }
+
+
+
+
+

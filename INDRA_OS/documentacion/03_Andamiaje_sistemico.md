@@ -1,4 +1,4 @@
-# 🏛️ Guía de Andamiaje Soberano (Protocolo Stark v5.5)
+# 🏛️ Guía de Andamiaje Soberano (Protocolo AXIOM v5.5)
 
 Esta guía define los principios técnicos, estructurales y filosóficos que permiten que Indra OS funcione como un **Sistema Soberano Polimórfico**.
 
@@ -22,7 +22,7 @@ El andamiaje no es estático; se despliega en fases críticas:
 
 ### Fase 1: Ignición (Bootstrapping)
 - **Actor:** `SystemInitializer.gs`.
-- **Propósito:** Localización de la "Semilla" física (`ORBITAL_ROOT`) y configuración de infraestructura.
+- **Propósito:** Localización de la "Semilla" física (`INDRA_ROOT`) y configuración de infraestructura.
 - **Axioma:** El sistema es **Idempotente**. Si el entorno físico desaparece, el Initializer reconstruye la jerarquía basándose en el `DRIVE_SCHEMA` de L0.
 
 ### Fase 2: Hidratación y Decoración Ontológica
@@ -32,7 +32,7 @@ El andamiaje no es estático; se despliega en fases críticas:
 
 ### Fase 3: Certificación (Audit)
 - **Actor:** `ContractGatekeeper.gs`.
-- **Propósito:** Verificación de Pureza Axiomática y cumplimiento de contratos STARK.
+- **Propósito:** Verificación de Pureza Axiomática y cumplimiento de contratos AXIOM.
 - **Axioma:** Ningún componente entra en el espacio de ejecución si viola los contratos definidos en `0_Laws` o si sus llaves no cumplen el estándar `UPPER_CASE`.
 
 ### Fase 4: Ejecución y Homeostasis (Gestión)
@@ -57,11 +57,11 @@ El punto más avanzado del andamiaje es su capacidad de ser **Polimórfico**:
 
 ## 4. La Revolución Ontológica (Soberanía Lexical)
 
-A partir de la v5.5-STARK, el sistema impone la **Soberanía Lexical**:
+A partir de la v5.5-AXIOM, el sistema impone la **Soberanía Lexical**:
 
 1.  **L0 como Diccionario**: El Front-End ya no define qué es un "Notion Adapter". Lo descubre consultando el `COMPONENT_REGISTRY` en el Core. 
 2.  **Traducción Translúcida**: El Core provee la identidad canónica (Inglés Técnico). El Front-End es meramente una capa de visualización que aplica diccionarios locales si existen, pero la "verdad" de la identidad reside en L0.
-3.  **STARK Keys**: Todos los parámetros de configuración y secretos se rigen por llaves en `UPPER_CASE` para evitar colisiones y garantizar legibilidad industrial.
+3.  **AXIOM Keys**: Todos los parámetros de configuración y secretos se rigen por llaves en `UPPER_CASE` para evitar colisiones y garantizar legibilidad industrial.
 
 ---
 
@@ -73,3 +73,7 @@ A partir de la v5.5-STARK, el sistema impone la **Soberanía Lexical**:
 
 > [!IMPORTANT]
 > Indra OS no es una aplicación; es un **Sistema Operativo Lógico** que se proyecta sobre infraestructuras físicas.
+
+
+
+

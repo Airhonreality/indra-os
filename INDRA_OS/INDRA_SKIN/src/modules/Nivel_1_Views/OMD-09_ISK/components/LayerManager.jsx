@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import './LayerManager.css';
+import { StateBridge } from '../../../../../core/state/StateBridge';
 
 export const LayerManager = () => {
     const [mcepManifest, setMcepManifest] = useState(null);
@@ -40,11 +41,9 @@ export const LayerManager = () => {
     }
 
     function handleBindVariable(toolId) {
-        // Activate binding mode in SpatialBridge (future integration)
+        // Activate binding mode in StateBridge
         console.log('[LayerManager] Binding variable:', toolId);
-        if (window.SpatialBridge) {
-            window.SpatialBridge.activateBinding(toolId);
-        }
+        StateBridge.activateBinding(toolId);
     }
 
     if (loading) {
@@ -82,7 +81,7 @@ export const LayerManager = () => {
     );
 };
 
-// Metadata for OrbitalCore alignment
+// Metadata for INDRACore alignment
 LayerManager.metadata = {
     id: "layer_manager_isk",
     label: "Layer Manager",
@@ -92,3 +91,6 @@ LayerManager.metadata = {
 };
 
 export default LayerManager;
+
+
+

@@ -1,17 +1,17 @@
 import React from 'react';
 
 /**
- * ATOM: StarkInput
+ * ATOM: AxiomInput
  * DHARMA: Unidad de entrada de datos axiomática.
  */
-const StarkInput = ({ label, value, onChange, placeholder, style = {} }) => {
+const AxiomInput = ({ label, value, onChange, placeholder, style = {} }) => {
     return (
         <div className="stack-v" style={{ gap: '4px', width: '100%', ...style }}>
             {label && (
                 <label style={{
                     fontSize: '7px',
                     color: 'var(--text-secondary)',
-                    fontFamily: 'var(--stark-mono)',
+                    fontFamily: 'var(--axiom-mono)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em'
                 }}>
@@ -20,7 +20,7 @@ const StarkInput = ({ label, value, onChange, placeholder, style = {} }) => {
             )}
             <input
                 type="text"
-                className="stark-atom-input"
+                className="axiom-atom-input"
                 placeholder={placeholder}
                 value={value}
                 defaultValue={!onChange ? value : undefined}
@@ -35,4 +35,7 @@ const StarkInput = ({ label, value, onChange, placeholder, style = {} }) => {
     );
 };
 
-export default StarkInput;
+export default AxiomInput;
+
+
+

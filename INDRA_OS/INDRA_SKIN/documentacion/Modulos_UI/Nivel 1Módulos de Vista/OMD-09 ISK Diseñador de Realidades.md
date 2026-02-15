@@ -1,4 +1,4 @@
-💎 Blueprint OMD-09: Diseñador de Realidades (Stark Designer & Layout Engine)
+💎 Blueprint OMD-09: Diseñador de Realidades (AXIOM Designer & Layout Engine)
 1. Identificación y Alcance (ID & Context)
 ID Técnico: view_ui_designer_ide
 Nombre Funcional: Diseñador de Realidades (The Designer).
@@ -46,7 +46,7 @@ JSON
 {
   "modulo_09": {
     "id": "view_ui_designer_ide",
-    "clase_ui": "STARK_DESIGN_IDE",
+    "clase_ui": "AXIOM_DESIGN_IDE",
     "engine": "VECTOR_2D_CANVAS",
     "distribucion_espacial": {
       "panel_izquierdo": {
@@ -87,3 +87,7 @@ Reducción de la Fragmentación: Al integrar el diseño y la lógica en una sola
 Agnosticismo Estructural: El sistema no depende de la fuente del dato. Una vez que el dato está en el Cubo de Datos, se trata como una entidad pura, facilitando la creación de plantillas reutilizables.
 Prevención de Errores: El Inspector de Lógica valida las operaciones en tiempo real. Si el usuario intenta sumar un "Texto" con un "Número", el sistema bloquea la operación y sugiere una función de conversión.
 Visibilidad del Estado: El Live Preview constante asegura que el usuario siempre tenga una "Consciencia Situacional" total del resultado final.
+
+
+
+

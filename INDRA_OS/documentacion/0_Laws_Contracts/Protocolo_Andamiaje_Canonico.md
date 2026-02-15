@@ -1,4 +1,4 @@
-# 📜 Protocolo de Andamiaje Canónico (Indra OS Stark)
+# 📜 Protocolo de Andamiaje Canónico (Indra OS AXIOM)
 
 > **Mantra:** "Un módulo no ocupa espacio, habita un estado de atención."
 
@@ -72,3 +72,8 @@ La hidratación crítica (descubrimiento de Cosmos, perfiles, etc.) no depende d
 
 ---
 *Este protocolo es auditado periódicamente. Cualquier desviación se considera una ruptura de la Soberanía Cognitiva de Indra OS.*
+
+
+
+
+

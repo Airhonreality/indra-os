@@ -429,10 +429,10 @@ function testSheetAdapter_getRows_happyPath() {
     const result = sheetAdapter.getRows({ sheetId });
 
     // Assert: Debe retornar objetos (sin header) + SCHEMA
-    assert.areEqual(3, result.items.length, "Debe retornar 3 objetos (3 filas de datos)");
-    assert.areEqual('001', result.items[0].fields.ID, "Primera fila: ID correcto");
-    assert.areEqual('Proyecto Alpha', result.items[0].fields.Nombre, "Primera fila: Nombre correcto");
-    assert.areEqual('Activo', result.items[0].fields.Estado, "Primera fila: Estado correcto");
+    assert.areEqual(3, result.results.length, "Debe retornar 3 objetos (3 filas de datos)");
+    assert.areEqual('001', result.results[0].fields.ID, "Primera fila: ID correcto");
+    assert.areEqual('Proyecto Alpha', result.results[0].fields.Nombre, "Primera fila: Nombre correcto");
+    assert.areEqual('Activo', result.results[0].fields.Estado, "Primera fila: Estado correcto");
 
     // Verificar Schema Injection
     assert.isNotNull(result.SCHEMA, "Debe incluir el esquema inferido");
@@ -488,8 +488,8 @@ function testSheetAdapter_getRows_conSheetName() {
     const result = sheetAdapter.getRows({ sheetId, sheetName: 'Sheet1' });
 
     // Assert
-    assert.areEqual(1, result.items.length, "Debe leer correctamente con sheetName");
-    assert.areEqual('001', result.items[0].fields.ID, "Datos correctos");
+    assert.areEqual(1, result.results.length, "Debe leer correctamente con sheetName");
+    assert.areEqual('001', result.results[0].fields.ID, "Datos correctos");
     assert.isNotNull(result.SCHEMA, "Debe retornar un esquema");
 
     return true;
@@ -687,3 +687,8 @@ function testSheetAdapter_insertRowsBatch_performance100Rows() {
     _teardownSheetAdapterTests(setup.originals);
   }
 }
+
+
+
+
+

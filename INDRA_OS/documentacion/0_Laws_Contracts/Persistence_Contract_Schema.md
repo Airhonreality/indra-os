@@ -142,3 +142,8 @@ Ver:
 - `PersistenceManager.jsx` (Frontend)
 - `SchemaRegistry.gs` (Backend - validación)
 - `AxiomaticStore.jsx` (Integración)
+
+
+
+
+

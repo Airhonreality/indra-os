@@ -58,7 +58,7 @@ export const AxiomaticGroup = ({ subModule }) => {
     const atoms = dynamicAtoms || subModule.atoms || [];
 
     return (
-        <div className="stark-ui-group">
+        <div className="axiom-ui-group">
             <header className="flex items-center justify-between border-b border-white/[0.04] pb-3 mb-5">
                 <div className="flex items-center gap-3">
                     <div className="w-1 h-3 bg-accent-primary opacity-60"></div>
@@ -72,7 +72,7 @@ export const AxiomaticGroup = ({ subModule }) => {
                 {/* Arquetipo oculto para limpieza visual por canon v2.1 */}
             </header>
 
-            <div className={`stark-group-atoms-container ${subModule.layout_mode === 'FLOW_H' ? 'flow-h' : ''} flex flex-col gap-4`}>
+            <div className={`axiom-group-atoms-container ${subModule.layout_mode === 'FLOW_H' ? 'flow-h' : ''} flex flex-col gap-4`}>
                 {atoms.map(atom => (
                     <AxiomaticAtom
                         key={atom.id}
@@ -92,3 +92,6 @@ export const AxiomaticGroup = ({ subModule }) => {
         </div>
     );
 };
+
+
+

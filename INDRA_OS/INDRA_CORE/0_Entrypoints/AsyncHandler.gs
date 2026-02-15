@@ -192,3 +192,8 @@ function installHeartbeatTrigger() {
     
   console.log(`✅ Trigger '${triggerName}' instalado.`);
 }
+
+
+
+
+

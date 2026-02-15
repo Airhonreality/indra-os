@@ -12,6 +12,7 @@
 import useAxiomaticState from './AxiomaticState';
 import SignalTransmuter from './SignalTransmuter';
 import connector from '../Core_Connector';
+import { StateBridge } from './StateBridge';
 
 class InterdictionUnit {
     constructor() {
@@ -88,8 +89,7 @@ class InterdictionUnit {
             }));
 
             // AXIOMA V12: Piggybacking de Realidad (ADR 003)
-            // Cada vez que contactamos el backend, todos los comandos del lote llevan la "Mochila"
-            const syncStore = window.useSyncOrchestrator?.getState?.();
+            const syncStore = StateBridge.getOrchestrator()?.getState?.();
             if (syncStore && typeof syncStore.prepareSnapshot === 'function') {
                 const snapshot = syncStore.prepareSnapshot();
 
@@ -177,7 +177,7 @@ class InterdictionUnit {
                     setTimeout(async () => {
                         try {
                             // Reintentar solo el snapshot, no los comandos funcionales
-                            const syncStore = window.useSyncOrchestrator?.getState?.();
+                            const syncStore = StateBridge.getOrchestrator()?.getState?.();
                             if (syncStore && typeof syncStore.prepareSnapshot === 'function') {
                                 const snapshot = syncStore.prepareSnapshot();
 
@@ -246,3 +246,6 @@ class InterdictionUnit {
 
 const instance = new InterdictionUnit();
 export default instance;
+
+
+

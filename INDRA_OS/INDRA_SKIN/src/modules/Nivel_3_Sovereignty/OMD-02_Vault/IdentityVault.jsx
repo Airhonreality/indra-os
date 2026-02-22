@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import compiler from '../../../core/laws/Law_Compiler';
-import diagnostic from '../../../core/diagnostics/IntegrityMatrix';
-import { AxiomaticGroup } from '../../../core/ui/AxiomaticTransmuter';
+﻿import React, { useState } from 'react';
+import compiler from '../../../core/2_Semantic_Transformation/Law_Compiler.js';
+import diagnostic from '../../../core/diagnostics/IntegrityMatrix.js';
+import { AxiomaticGroup } from '../../../core/ui/AxiomaticTransmuter.jsx';
 
 /**
  * IDENTITY VAULT (OMD-02)
@@ -64,6 +64,7 @@ const IdentityVault = () => {
 };
 
 export default IdentityVault;
+
 
 
 

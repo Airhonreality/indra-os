@@ -13,7 +13,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import useAxiomaticState from '../core/state/AxiomaticState';
+import useAxiomaticState from '../core/1_Axiomatic_Store/AxiomaticState.js';
 import './SovereignSphere.css';
 
 const SovereignSphere = ({ syncStatus = 'SYNCED', onClick }) => {
@@ -133,6 +133,7 @@ const SovereignSphere = ({ syncStatus = 'SYNCED', onClick }) => {
 };
 
 export default SovereignSphere;
+
 
 
 

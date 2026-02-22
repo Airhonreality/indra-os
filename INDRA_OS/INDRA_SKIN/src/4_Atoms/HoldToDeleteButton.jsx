@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Icons } from './IndraIcons';
+﻿import React, { useState, useRef, useEffect } from 'react';
+import { Icons } from './AxiomIcons.jsx';
 
 /**
  * ATOM: HoldToDeleteButton
@@ -104,6 +104,7 @@ const HoldToDeleteButton = ({ onComplete, size = 24, iconSize = 14, color = "red
 };
 
 export default HoldToDeleteButton;
+
 
 
 

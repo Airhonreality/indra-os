@@ -1,16 +1,16 @@
-/**
+﻿/**
  * DevConsole.jsx
  * DHARMA: Consola de debugging profesional para desarrollo
  * AXIOMA: "El debugging es una experiencia visual y atómica"
  */
 
 import React, { useState, useEffect } from 'react';
-import LogViewer from './LogViewer';
-import LogFilter from './LogFilter';
-import LogExporter from './LogExporter';
-import FocusMode from './FocusMode';
-import TimelineView from './TimelineView';
-import { Icons } from '../../4_Atoms/IndraIcons';
+import LogViewer from './LogViewer.jsx';
+import LogFilter from './LogFilter.jsx';
+import LogExporter from './LogExporter.jsx';
+import FocusMode from './FocusMode.jsx';
+import TimelineView from './TimelineView.jsx';
+import { Icons } from '../../4_Atoms/AxiomIcons.jsx';
 
 const DevConsole = () => {
     const [logs, setLogs] = useState([]);
@@ -239,6 +239,7 @@ const DevConsole = () => {
 };
 
 export default DevConsole;
+
 
 
 

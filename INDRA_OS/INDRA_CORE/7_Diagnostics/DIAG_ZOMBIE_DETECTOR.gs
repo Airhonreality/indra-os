@@ -39,11 +39,11 @@ function diag_Zombie_Logic_Forensics() {
     console.log('   ⚠️ [WARNING] SchemaRegistry global detectado.');
   }
 
-  // 3. Verificar Contrato Canónico (ContractRegistry)
-  const legacyInRegistry = ContractRegistry.get('reifyDatabase');
+  // 3. Verificar Contrato Canónico (Public API Catalog)
+  const legacyInRegistry = publicApi.getSystemContracts()['reifyDatabase'];
   if (legacyInRegistry) {
     results.patterns.push('REGISTRY_ZOMBIE_CONTRACT');
-    console.log('   ❌ [CRÍTICO] El contrato "reifyDatabase" persiste en el Registry.');
+    console.log('   ❌ [CRÍTICO] El contrato "reifyDatabase" persiste en el catálogo del sistema.');
   }
 
   results.zombieCount = results.patterns.length;
@@ -56,6 +56,7 @@ function diag_Zombie_Logic_Forensics() {
 
   return results;
 }
+
 
 
 

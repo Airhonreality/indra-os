@@ -14,7 +14,7 @@ const SovereignGuard = {
   verifySovereignIdentity: function(providedToken, configurator) {
     if (!configurator) return false;
     
-    const expectedToken = configurator.retrieveParameter({ key: 'INDRA_CORE_SATELLITE_API_KEY' }) || 
+    const expectedToken = configurator.retrieveParameter({ key: 'AXIOM_CORE_SATELLITE_API_KEY' }) || 
                           configurator.retrieveParameter({ key: 'SYSTEM_TOKEN' });
                           
     const provided = (providedToken || "").toString().trim();
@@ -37,8 +37,8 @@ const SovereignGuard = {
     
     // Verificación de Existencia Física
     const method = node[methodName];
-    const schema = (node.schemas && node.schemas[methodName]) || 
-                   (typeof ContractRegistry !== 'undefined' && ContractRegistry.get(methodName));
+    // AXIOMA: Soberanía Absoluta (ADR-022) - El esquema es propiedad del nodo
+    const schema = (node.schemas && node.schemas[methodName]) || (node.CANON && node.CANON.CAPABILITIES && node.CANON.CAPABILITIES[methodName]);
                    
     // Si existe la función y (opcionalmente) su esquema, es válido.
     // Nota: A veces permitimos métodos sin esquema si son internos, pero lo ideal es tener esquema.
@@ -69,7 +69,8 @@ const SovereignGuard = {
     }
 
     // AXIOMA: Soberanía de Contratos (El QUÉ)
-    const schema = ContractRegistry.get(methodName) || (node.schemas && node.schemas[methodName]);
+    // El esquema emana del CANON (Prioritario) o del fallback temporal schemas
+    const schema = (node.CANON && node.CANON.CAPABILITIES && node.CANON.CAPABILITIES[methodName]) || (node.schemas && node.schemas[methodName]);
     
     const _monitor = monitoringService || { logInfo: () => {}, logWarn: () => {}, logError: () => {} };
 
@@ -200,25 +201,28 @@ const SovereignGuard = {
       if (nodeKey === targetId) return;
 
       const node = nodes[nodeKey];
-      if (node && node.schemas && !node.isBroken) {
-        
-        for (const methodName in node.schemas) {
-          const schema = node.schemas[methodName];
+      // AXIOMA: Soberanía de Fuente (ADR-022)
+      // Buscamos CAPABILITIES directamente en el nodo (inyectadas por Assembler) o en su CANON.
+      const capabilities = (node.CANON && node.CANON.CAPABILITIES) || node.CAPABILITIES || node.schemas;
+      
+      if (node && capabilities && !node.isBroken) {
+        for (const methodName in capabilities) {
+          const cap = capabilities[methodName];
           
-          // 1. Exposición de Esquemas (Metadata)
-          targetInstance.schemas[`${nodeKey}:${methodName}`] = schema;
+          // 1. Exposición de Esquemas (Metadata) — Mapeamos a io_interface para el Front
+          targetInstance.schemas[`${nodeKey}:${methodName}`] = {
+            description: cap.desc || cap.description,
+            io_interface: { inputs: cap.inputs || {}, outputs: cap.outputs || {} }
+          };
+          
           if (!targetInstance.schemas[methodName]) {
-            targetInstance.schemas[methodName] = schema;
+            targetInstance.schemas[methodName] = targetInstance.schemas[`${nodeKey}:${methodName}`];
           }
 
           // 2. Exposición de Métodos (Funciones)
           if (!targetInstance[methodName]) {
             targetInstance[methodName] = (input) => {
-              const { accountId, cosmosId } = input || {};
-              const ctx = (input && input.systemContext) || 
-                          (typeof _buildSystemContext === 'function' ? _buildSystemContext({ constitution: manifest, configurator, accountId, cosmosId }) : {});
-              
-              return _secureInvoke(nodeKey, methodName, { ...input, systemContext: ctx });
+              return _secureInvoke(nodeKey, methodName, input);
             };
           }
         }
@@ -226,6 +230,8 @@ const SovereignGuard = {
     });
   }
 };
+
+
 
 
 

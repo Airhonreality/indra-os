@@ -1,0 +1,151 @@
+/**
+ * AxiomaticSpinner.css
+ * DHARMA: Animaciones fluidas para la resonancia del sistema.
+ */
+
+.axiomatic-spinner-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner-wrapper {
+    position: relative;
+    width: var(--spinner-size);
+    height: var(--spinner-size);
+}
+
+.spinner-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+}
+
+.ring-outer {
+    border-top: 2px solid var(--accent);
+    border-bottom: 2px solid var(--accent);
+    animation: axiom-spin 1s linear infinite;
+}
+
+.ring-inner {
+    inset: 15%;
+    border-left: 2px solid rgba(0, 210, 255, 0.3);
+    border-right: 2px solid rgba(0, 210, 255, 0.3);
+    animation: axiom-spin-reverse 1.5s linear infinite;
+}
+
+.spinner-core {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 15%;
+    height: 15%;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 20px var(--accent);
+    animation: axiom-pulse 2s ease-in-out infinite;
+}
+
+.spinner-footer {
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.spinner-label-text {
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.5em;
+    color: var(--accent);
+    animation: indra-text-pulse 2s ease-in-out infinite;
+}
+
+.spinner-progress-tracks {
+    display: flex;
+    gap: 0.25rem;
+    height: 4px;
+}
+
+.progress-track {
+    width: 32px;
+    height: 100%;
+    background: rgba(0, 210, 255, 0.1);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    width: 100%;
+    height: 100%;
+    background: var(--accent);
+    animation: indra-loading-glide 1.5s infinite;
+}
+
+/* KEYFRAMES */
+
+@keyframes axiom-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes axiom-spin-reverse {
+    from {
+        transform: rotate(360deg);
+    }
+
+    to {
+        transform: rotate(0deg);
+    }
+}
+
+@keyframes axiom-pulse {
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 0.7;
+    }
+}
+
+@keyframes indra-text-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(0.98);
+    }
+}
+
+@keyframes indra-loading-glide {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    50% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}

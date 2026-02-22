@@ -68,7 +68,7 @@ function createGoogleDriveRestAdapter({ errorHandler, tokenManager }) {
     return content;
   }
 
-  // --- INDRA CANON: Normalización Semántica ---
+  // --- AXIOM CANON: Normalización Semántica ---
 
   function _mapFileNode(f) {
     return {
@@ -281,68 +281,6 @@ function createGoogleDriveRestAdapter({ errorHandler, tokenManager }) {
     return { folderId: currentFolderId };
   }
 
-  const schemas = {
-    find: {
-      description: "Executes technical scanning for resources within an external registry using advanced V3 query syntax.",
-      semantic_intent: "PROBE",
-      io_interface: {
-        inputs: { 
-          query: { type: "string", io_behavior: "STREAM", description: "V3 standard search query (e.g., 'root' in parents)." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for target repository." }
-        },
-        outputs: { 
-          foundItems: { type: "array", io_behavior: "STREAM", description: "Collection of Indra FileNode: { id, name, type, mimeType, parentId, lastUpdated, raw }" } 
-        }
-      }
-    },
-    retrieve: {
-      description: "Extracts technical payloads or metadata from a specific external resource identifier.",
-      semantic_intent: "STREAM",
-      io_interface: {
-        inputs: { 
-          fileId: { type: "string", io_behavior: "GATE", description: "Unique external resource identifier." },
-          mode: { type: "string", io_behavior: "GATE", description: "Extraction mode (content or metadata)." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
-        },
-        outputs: { 
-          content: { type: "object", io_behavior: "STREAM", description: "Primary resource payload stream." },
-          blob: { type: "object", io_behavior: "BRIDGE", description: "Binary data bridge for large payloads." }
-        }
-      }
-    },
-    store: {
-      description: "Persists technical payloads and metadata to the target external registry.",
-      semantic_intent: "TRIGGER",
-      io_interface: {
-        inputs: { 
-          content: { type: "string", io_behavior: "STREAM", description: "Data stream to be persisted." }, 
-          fileName: { type: "string", io_behavior: "STREAM", description: "Identifier string for the resource." },
-          folderId: { type: "string", io_behavior: "GATE", description: "Target container identifier." },
-          fileId: { type: "string", io_behavior: "GATE", description: "Optional resource identifier for atomic updates." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
-        },
-        outputs: { 
-          fileId: { type: "string", io_behavior: "PROBE", description: "Assigned resource identifier confirmation." } 
-        }
-      }
-    },
-    createFolder: {
-      description: "Initializes a technical container within the target external registry.",
-      semantic_intent: "TRIGGER",
-      io_interface: {
-        inputs: { 
-          folderName: { type: "string", io_behavior: "STREAM", description: "Display identifier for the container." }, 
-          parentFolderId: { type: "string", io_behavior: "GATE", description: "Target container root." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
-        },
-        outputs: { 
-          folderId: { type: "string", io_behavior: "PROBE", description: "Unique container identifier." } 
-        }
-      }
-    }
-  };
-
-
   function verifyConnection(payload = {}) {
     try {
       // Light probe: check root access
@@ -353,16 +291,63 @@ function createGoogleDriveRestAdapter({ errorHandler, tokenManager }) {
     }
   }
 
-  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+  // --- SOVEREIGN CANON V14.0 (ADR-022 Compliant — Pure Source) ---
   const CANON = {
-    LABEL: "Google Drive (REST)",
-    ARCHETYPE: "VAULT",
-    DOMAIN: "SYSTEM_INFRA",
-    CAPABILITIES: schemas
+    id: "drive_rest",
+    label: "Drive REST Engine",
+    archetype: "adapter",
+    domain: "storage",
+    REIFICATION_HINTS: {
+        id: "id || fileId",
+        label: "name || fileName || id",
+        items: "files || foundItems || items"
+    },
+    CAPABILITIES: {
+      "find": {
+        "id": "LIST_FILES",
+        "io": "READ",
+        "desc": "Executes technical scanning for resources.",
+        "traits": ["EXPLORE", "VAULT", "BROWSE"],
+        "inputs": {
+            "query": { "type": "string", "desc": "Filter criteria." },
+            "accountId": { "type": "string", "desc": "Isolation key." }
+        }
+      },
+      "retrieve": {
+        "id": "READ_DATA",
+        "io": "READ",
+        "desc": "Extracts technical payloads or metadata.",
+        "traits": ["VAULT", "BINARY", "KNOWLEDGE"],
+        "inputs": {
+            "fileId": { "type": "string", "desc": "Target asset identifier." },
+            "mode": { "type": "string", "desc": "Expected content format." }
+        }
+      },
+      "store": {
+        "id": "WRITE_DATA",
+        "io": "WRITE",
+        "desc": "Persists technical payloads and metadata.",
+        "traits": ["PERSISTENCE", "UPDATE", "STRUCTURE"],
+        "inputs": {
+            "content": { "type": "any", "desc": "Data stream to persist." },
+            "fileName": { "type": "string", "desc": "Target filename." },
+            "folderId": { "type": "string", "desc": "Destination container ID." }
+        }
+      },
+      "createFolder": {
+        "id": "WRITE_DATA",
+        "io": "WRITE",
+        "desc": "Initializes a technical container.",
+        "traits": ["STRUCTURE", "HIERARCHY"]
+      }
+    }
   };
 
   return {
-    id: "googleDriveRest",
+    id: "drive_rest",
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
     CANON: CANON,
     
     // Métodos Operativos
@@ -372,10 +357,12 @@ function createGoogleDriveRestAdapter({ errorHandler, tokenManager }) {
     store,
     createFolder,
     deleteFile,
-    resolvePath,
-    schemas: schemas
+    resolvePath
   };
 }
+
+
+
 
 
 

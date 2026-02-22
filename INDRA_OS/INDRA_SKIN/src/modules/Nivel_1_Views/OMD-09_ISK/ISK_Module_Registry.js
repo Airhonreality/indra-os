@@ -1,14 +1,14 @@
-/**
+﻿/**
  * modules/isk/ISK_Module_Registry.js
  * 
- * MAPEO DE COMPONENTES DEL ISK (Indra Spatial Kernel)
+ * MAPEO DE COMPONENTES DEL ISK (Axiom Spatial Kernel)
  * 
  * SOBERANÍA: El ISK ahora consume servicios globales de Indra (OMD-10, OMD-05).
  */
 
 // Módulos Internos (Específicos del ISK)
-import { SpatialCanvas } from './components/SpatialCanvas';
-import { StateHUD } from './components/StateHUD';
+import { SpatialCanvas } from './components/SpatialCanvas.jsx';
+import { StateHUD } from './components/StateHUD.jsx';
 
 // Servicios Globales (Elevados a Indra Shared)
 import { ContextExplorer } from '../../Nivel_2_Services/OMD-10_ContextExplorer/ContextExplorer';
@@ -30,6 +30,7 @@ export const ISK_MODULE_REGISTRY = {
 };
 
 export default ISK_MODULE_REGISTRY;
+
 
 
 

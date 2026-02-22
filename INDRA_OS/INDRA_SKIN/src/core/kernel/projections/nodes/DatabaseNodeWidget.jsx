@@ -1,6 +1,8 @@
-import React, { useMemo } from 'react';
-import { useAxiomaticStore } from '../../../state/AxiomaticStore';
-import Icons from '../../../../4_Atoms/IndraIcons';
+﻿import React, { useMemo } from 'react';
+import { useAxiomaticStore } from '../../../1_Axiomatic_Store/AxiomaticStore.jsx';
+import { useAxiomaticHydration } from '../../hooks/useAxiomaticHydration.js';
+import Icons from '../../../../4_Atoms/AxiomIcons.jsx';
+import AxiomaticSpinner from '../../../../4_Atoms/AxiomaticSpinner.jsx';
 
 /**
  * DatabaseNodeWidget
@@ -10,24 +12,30 @@ import Icons from '../../../../4_Atoms/IndraIcons';
 const DatabaseNodeWidget = ({ data, execute }) => {
     const { state } = useAxiomaticStore();
 
-    // AXIOMA: Resolución de Identidad y Origen (Deep Introspection)
+    // ADR-022: 'origin' es el campo canónico; ORIGIN_SOURCE es alias legacy
     const artifactId = data.id || data.data?.id || data.ID;
-    const originSource = (data.ORIGIN_SOURCE || data.data?.ORIGIN_SOURCE)?.toLowerCase();
+    const originSource = (data.origin || data.ORIGIN_SOURCE || data.data?.origin || data.data?.ORIGIN_SOURCE)?.toLowerCase();
     const accountId = data.ACCOUNT_ID || data.data?.ACCOUNT_ID;
+
+    // AXIOMA: Hidratación Axiomática (Fat Client)
+    const { siloData: rawSiloData, isScanning } = useAxiomaticHydration(artifactId, {
+        activeAccount: accountId,
+        bypassCondition: !accountId || !originSource || !artifactId,
+        fetchAction: 'FETCH_VAULT_CONTENT',
+        fetchPayload: { folderId: artifactId, nodeId: originSource },
+        cacheKey: `database_widget_${artifactId}`
+    });
 
     // AXIOMA: Recuperación y Fragmentación de Data con Normalización de Puente (ADR-008)
     const rawData = useMemo(() => {
-        let items = data.data?.items || data.items || data.results || data.rows || data.data?.results || [];
+        let items = data.data?.items || data.items || data.results || data.rows || data.payload?.items || data.payload?.results || data.data?.results || [];
 
-        // Si no hay items en data, intentar del silo
+        // Si no hay items en props, usamos los del Silo (hidratado por el hook)
         if (items.length === 0) {
-            const silo = state.phenotype.silos?.[artifactId];
-            if (silo) {
-                items = Array.isArray(silo) ? silo : (silo.results || silo.items || silo.rows || []);
-            }
+            items = Array.isArray(rawSiloData) ? rawSiloData : (rawSiloData.results || rawSiloData.items || rawSiloData.payload?.results || rawSiloData.payload?.items || rawSiloData.rows || []);
         }
 
-        // AXIOMA: Normalización Proyectiva (Quitar el layer 'fields' o 'properties' si existe)
+        // AXIOMA: Normalización Proyectiva
         return items.map(item => {
             if (!item) return null;
             if (typeof item === 'object') {
@@ -36,7 +44,7 @@ const DatabaseNodeWidget = ({ data, execute }) => {
             }
             return item;
         }).filter(Boolean).slice(0, 5); // Solo las primeras 5 para la vista de nodo
-    }, [data.data, data.items, state.phenotype.silos?.[artifactId], artifactId]);
+    }, [data.data, data.items, rawSiloData]);
 
     const columns = useMemo(() => {
         // Prioridad 1: Esquema Explícito
@@ -62,13 +70,13 @@ const DatabaseNodeWidget = ({ data, execute }) => {
             DOMAIN: 'FRAGMENT',
             data: row
         };
-        e.dataTransfer.setData('indra/artifact', JSON.stringify(artifactFragment));
+        e.dataTransfer.setData('axiom/artifact', JSON.stringify(artifactFragment));
         e.dataTransfer.effectAllowed = 'copy';
     };
 
     const handleReify = () => {
         execute('FETCH_VAULT_CONTENT', {
-            nodeId: originSource || 'NOTION', // Fallback inteligente
+            nodeId: originSource || 'NOTION',
             folderId: artifactId,
             accountId: accountId,
             refresh: true
@@ -150,17 +158,26 @@ const DatabaseNodeWidget = ({ data, execute }) => {
                         ) : (
                             <tr>
                                 <td colSpan={columns.length || 1} className="py-8 text-center">
-                                    <div className="flex flex-col items-center gap-3 opacity-30 group-hover/db:opacity-100 transition-opacity">
-                                        <div className="w-10 h-10 rounded-full border border-dashed border-white/20 flex items-center justify-center animate-pulse">
-                                            <Icons.Inbox size={16} />
-                                        </div>
-                                        <span className="text-[8px] font-mono uppercase">Empty_Refraction</span>
-                                        <button
-                                            onClick={handleReify}
-                                            className="px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[7px] font-black text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-all uppercase tracking-widest"
-                                        >
-                                            REIFY_DATA
-                                        </button>
+                                    <div className="flex flex-col items-center gap-3">
+                                        {isScanning ? (
+                                            <div className="flex flex-col items-center gap-2">
+                                                <AxiomaticSpinner size={24} />
+                                                <span className="text-[6px] font-black uppercase tracking-[0.3em] text-[var(--accent)] animate-pulse">Sintonizando...</span>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="w-10 h-10 rounded-full border border-dashed border-white/20 flex items-center justify-center opacity-30">
+                                                    <Icons.Inbox size={16} />
+                                                </div>
+                                                <span className="text-[8px] font-mono uppercase opacity-30">Empty_Refraction</span>
+                                                <button
+                                                    onClick={handleReify}
+                                                    className="px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[7px] font-black text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-all uppercase tracking-widest"
+                                                >
+                                                    REIFY_DATA
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </td>
                             </tr>
@@ -173,6 +190,7 @@ const DatabaseNodeWidget = ({ data, execute }) => {
 };
 
 export default DatabaseNodeWidget;
+
 
 
 

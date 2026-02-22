@@ -4,14 +4,14 @@
  * Este archivo gestiona la comunicación con el backend en Google Apps Script (GAS).
  */
 
-import { CONFIG } from './Config';
+import { CONFIG } from './Config.js';
 
 class CoreConnector {
     constructor() {
         this.config = {
             url: CONFIG.CORE_URL,
             // AXIOMA: Lectura dinámica para evitar tokens obsoletos en singletons
-            getApiKey: () => localStorage.getItem('INDRA_SESSION_TOKEN') || CONFIG.SYSTEM_TOKEN || "",
+            getApiKey: () => localStorage.getItem('AXIOM_SESSION_TOKEN') || CONFIG.SYSTEM_TOKEN || "",
             clientName: CONFIG.CLIENT_NAME,
             version: CONFIG.VERSION
         };
@@ -116,7 +116,12 @@ class CoreConnector {
                 throw error;
             }
 
-            return data.result;
+            // AXIOMA: Desempaquetado Agnóstico (ADR-022)
+            // Soporta tanto el envoltorio legacy (data.result) como el nuevo contracte directo (success + payload/results).
+            if (data.result !== undefined) return data.result;
+            if (data.payload !== undefined || data.results !== undefined) return data;
+
+            return data;
         } catch (error) {
             // AXIOMA: Diagnóstico Forense de Red (V9.5)
             if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
@@ -187,6 +192,7 @@ class CoreConnector {
 // Exportamos una instancia única (Singleton)
 const connector = new CoreConnector();
 export default connector;
+
 
 
 

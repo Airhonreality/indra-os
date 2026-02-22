@@ -1,7 +1,7 @@
-import React from 'react';
-import AxiomInput from './atoms/AxiomInput';
-import AxiomButton from './atoms/AxiomButton';
-import AxiomBadge from './atoms/AxiomBadge';
+﻿import React from 'react';
+import AxiomInput from './atoms/AxiomInput.jsx';
+import AxiomButton from './atoms/AxiomButton.jsx';
+import AxiomBadge from './atoms/AxiomBadge.jsx';
 
 /**
  * FACTORY: UnitFactory
@@ -130,6 +130,7 @@ const UnitFactory = {
 };
 
 export default UnitFactory;
+
 
 
 

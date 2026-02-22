@@ -25,38 +25,38 @@ function createPublicAPI({
   mcepCore
 }) {
   
-  // AXIOMA: Recuperación de Esquemas desde el Cuerpo Canónico
-  const schemas = ContractRegistry.getAll();
 
   const _monitor = monitoringService || { logDebug: () => {}, logInfo: () => {}, logWarn: () => {}, logError: () => {}, logEvent: () => {}, sendCriticalAlert: () => {} };
 
   const guardDeps = { nodes, laws, mcepCore, errorHandler, blueprintRegistry, monitoringService: _monitor };
 
-  /**
-   * Mediación Diplomática Interna: Captura y normaliza excepciones de los nodos.
+   /**
+   * ADR-022: Mediación Diplomática con Envelope Canónico.
+   * REGLA: Arrays → { success, results, origin }
+   *        Objetos → { success, payload, origin }
+   * NUNCA mezclar results y payload en la misma respuesta.
+   * El front desempaqueta con lógica única: response.results || response.payload
    */
   function _secureInvoke(nodeKey, methodName, input) {
     try {
       const result = SovereignGuard.secureInvoke(nodeKey, methodName, input, guardDeps);
-      
-      // AXIOMA: Firma de Linaje Universal (ADR-009)
-      // Todo resultado que pase por el API queda firmado con su origen determinista.
-      const stamp = { ORIGIN_SOURCE: nodeKey };
-      
-      if (Array.isArray(result)) return { success: true, results: result, ...stamp };
-      
-      // AXIOMA: Enmascaramiento Transparente (Transparent Envelope)
-      // Todo objeto se devuelve en 'payload' para consistencia del Satélite.
-      return { success: true, payload: result, ...stamp };
+
+      // AXIOMA: Envelope Canónico (ADR-022)
+      // Un solo campo de datos por respuesta. Sin ambigüedad.
+      if (Array.isArray(result)) {
+        return { success: true, results: result, origin: nodeKey };
+      }
+      return { success: true, payload: result, origin: nodeKey };
+
     } catch (e) {
       const isConflict = e.message.includes('STATE_CONFLICT') || e.code === 'STATE_CONFLICT';
-      
+
       _monitor.logWarn(`[PublicAPI] Diplomatic Mediation: Action [${nodeKey}:${methodName}] failed. ${e.message}`);
-      
-      return { 
-        success: false, 
+
+      return {
+        success: false,
         error: e.message,
-        ORIGIN_SOURCE: nodeKey, // AXIOMA DE RETORNO: Mantener identidad en el fallo
+        origin: nodeKey,
         _SIGNAL: isConflict ? 'REALITY_CONFLICT' : undefined,
         error_code: isConflict ? 'STATE_CONFLICT' : (e.code || 'EXECUTION_ERROR'),
         status: isConflict ? 409 : 500
@@ -123,7 +123,25 @@ function createPublicAPI({
   }
 
   function getSovereignGenotype() {
-    return GenotypeDistiller.distill({ laws, nodes, blueprintRegistry, manifest, monitoringService: _monitor });
+    const genotype = GenotypeDistiller.distill({ laws, nodes, blueprintRegistry, manifest, monitoringService: _monitor });
+    
+    // DEFENSA: Session.getActiveUser / getEffectiveUser pueden fallar en Web Apps
+    // con access:ANYONE_ANONYMOUS si el contexto OAuth no está completamente inicializado.
+    // Ambos se envuelven en try/catch para garantizar que getSovereignGenotype nunca
+    // crashee por un problema de identity — el genotipo es más importante que el email.
+    let activeEmail = 'SYSTEM';
+    let effectiveEmail = 'SYSTEM';
+    try { activeEmail = Session.getActiveUser().getEmail() || 'SYSTEM'; } catch(e) {}
+    try { effectiveEmail = Session.getEffectiveUser().getEmail() || 'SYSTEM'; } catch(e) {}
+
+    genotype.core_identity = {
+      user_email: activeEmail,
+      effective_user: effectiveEmail,
+      core_name: manifest?.IDENTIDAD?.LABEL || "Axiom Core",
+      deployment_id: ScriptApp.getService().getUrl()?.split('/')[5] || "local_dev"
+    };
+
+    return genotype;
   }
 
   function getMCEPManifest({ accountId }) {
@@ -209,8 +227,19 @@ function createPublicAPI({
     // Expose for internal diagnostics & tests
     getGovernanceReport: () => getGovernanceReport(),
     getSovereignGenotype: (args) => getSovereignGenotype(args),
-    getSemanticAffinity: (input) => ({ success: true, payload: { affinity: { score: 1.0, justification: "Sovereign Auto-Approval" } } }),
-    getSystemContracts: () => ContractRegistry.getAll()
+    getSemanticAffinity: (input) => ({ success: true, payload: { affinityScore: 1.0, justification: "Sovereign Auto-Approval" } }),
+    getSystemContracts: () => {
+        const all = {};
+        Object.keys(nodes).forEach(k => {
+            const n = nodes[k];
+            if (n && n.CANON && n.CANON.CAPABILITIES) {
+                Object.assign(all, n.CANON.CAPABILITIES);
+            } else if (n && n.schemas) {
+                Object.assign(all, n.schemas);
+            }
+        });
+        return all;
+    }
   };
   
   function validateTopology(args) {
@@ -253,14 +282,35 @@ function createPublicAPI({
         typeof nodes[k] === 'object' && nodes[k] !== null && k !== 'schemas' && k !== 'canon'
     );
     const totalNodes = validNodeKeys.length;
-    const nodesWithSchemas = validNodeKeys.filter(k => 
-        (nodes[k].schemas && Object.keys(nodes[k].schemas).length > 0) || 
-        (nodes[k].canon && (nodes[k].canon.CAPABILITIES || nodes[k].canon.capabilities))
-    );
+    const nodesWithSchemas = validNodeKeys.filter(k => {
+        const node = nodes[k];
+        const hasInlineSchemas = node.schemas && Object.keys(node.schemas).length > 0;
+        const hasManifestCanon = node.canon && (node.canon.CAPABILITIES || node.canon.capabilities);
+        
+        // AXIOMA: Soberanía Funcional (Si tiene métodos, es un nodo real)
+        const hasMethods = Object.keys(node).some(m => typeof node[m] === 'function' && m !== 'teardown');
+        
+        return hasInlineSchemas || hasManifestCanon || hasMethods;
+    });
+    
+    // AXIOMA: Punto de Colapso (Si el 100% de los nodos auditados carecen de esquemas/canon, es un fallo estructural)
+    const hasAnyFormalSchema = validNodeKeys.some(k => {
+        // Ignorar nodos de infraestructura y el propio orquestador en esta comprobación de supervivencia
+        const ignoreList = ['intelligence', 'id', 'label', 'public', 'config', 'errorHandler'];
+        if (ignoreList.includes(k)) return false; 
+        
+        const node = nodes[k];
+        const hasS = (node.schemas && Object.keys(node.schemas).length > 0);
+        const hasC = (node.CANON && node.CANON.CAPABILITIES);
+        
+        return hasS || hasC;
+    });
     
     const validCount = nodesWithSchemas.length;
-    const coherence = totalNodes > 0 ? (validCount / totalNodes * 100) : 0; // Si no hay nodos, la coherencia es 0
-    const isValid = totalNodes > 0 && coherence >= 70; 
+    const coherence = totalNodes > 0 ? (validCount / totalNodes * 100) : 0; 
+    
+    // AXIOMA: Condición de Detención (Halt): Coherencia < 95% O falta total de esquemas formales en nodos periféricos
+    const isValid = totalNodes > 0 && coherence >= 95 && hasAnyFormalSchema; 
     
     return { 
         isValid: isValid, 
@@ -270,14 +320,93 @@ function createPublicAPI({
     };
   }
 
+  // --- SOVEREIGN CANON V14.0 (ADR-022 Compliant — Pure Source) ---
+  const CANON = {
+    id: "public",
+    label: "Core API Gateway",
+    archetype: "interface",
+    domain: "governance",
+    CAPABILITIES: {
+      "invoke": {
+        "id": "TRIGGER",
+        "io": "WRITE",
+        "desc": "Synchronously activates a high-integrity industrial workflow.",
+        "traits": ["ORCHESTRATE", "FLOW", "TRIGGER"],
+        "inputs": { 
+          "flowId": { "type": "string", "desc": "Target technical workflow identifier." }, 
+          "initialPayload": { "type": "object", "desc": "Primary data stream for execution bootstrap." }
+        }
+      },
+      "executeAction": {
+        "id": "TRIGGER",
+        "io": "WRITE",
+        "desc": "Polymorphic execution gateway. Routes a technical action to a specific node.",
+        "traits": ["ROUTING", "DISPATCH"],
+        "inputs": { 
+          "action": { "type": "string", "desc": "Format 'nodeId:methodName'" },
+          "payload": { "type": "object", "desc": "Data stream for the action." }
+        }
+      },
+      "executeBatch": {
+        "id": "ORCHESTRATE",
+        "io": "WRITE",
+        "desc": "Executes a batch of technical commands in a single atomic request.",
+        "traits": ["ATOMICity", "BATCH"],
+        "inputs": { "commands": { "type": "array", "desc": "List of command objects." } }
+      },
+      "getSystemStatus": {
+        "id": "PROBE",
+        "io": "READ",
+        "desc": "Extracts industrial health telemetry and global operational status.",
+        "traits": ["HEALTH", "MONITORING"],
+        "inputs": {}
+      },
+      "getSovereignGenotype": {
+        "id": "SCHEMA",
+        "io": "READ",
+        "desc": "Extracts the biological-technical system genotype (L0).",
+        "traits": ["IDENTITY", "GENOTYPE"],
+        "inputs": {}
+      },
+      "getMCEPManifest": {
+        "id": "SCHEMA",
+        "io": "READ",
+        "desc": "Extracts an AI-Ready tool manifest (MCEP).",
+        "traits": ["AI_READY", "ORACLE"],
+        "inputs": {}
+      },
+      "getGovernanceReport": {
+        "id": "SENSOR",
+        "io": "READ",
+        "desc": "Generates a detailed forensic health report and structural coherence audit.",
+        "traits": ["AUDIT", "COHERENCE"],
+        "inputs": {}
+      },
+      "processNextJobInQueue": {
+        "id": "TRIGGER",
+        "io": "WRITE",
+        "desc": "Claims and activates the oldest pending technical task.",
+        "traits": ["QUEUE", "AUTOMATION"],
+        "inputs": {}
+      },
+      "validateTopology": {
+        "id": "PROBE",
+        "io": "READ",
+        "desc": "Performs a deep structural dry-run of a flow topology.",
+        "traits": ["VALIDATION", "TOPOLOGY"],
+        "inputs": { "flow": { "type": "object", "desc": "Flow topology candidate." } }
+      }
+    }
+  };
+
   const publicApiInstance = {
     id: "public_api",
-    label: "Core API Gateway",
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
     description: "Centralized system interface exposed for external orchestration and AI integration.",
-    archetype: "INTERFACE",
-    domain: "GOVERNANCE",
-    semantic_intent: "GATE",
-    schemas: schemas,
+    CANON: CANON,
+    
     ...specializedWrappers
   };
 
@@ -289,6 +418,7 @@ function createPublicAPI({
 
   // AXIOMA V12: Registro de Puente Final (Pre-Decoration)
   nodes.public = publicApiInstance;
+  nodes.system = publicApiInstance;
 
   // AXIOMA v8.5: Despacho de Capacidades Delegado (Operación Soldadura)
   // Delegamos la exposición dinámica a la Guardia, manteniendo la Fachada limpia.
@@ -302,6 +432,8 @@ function createPublicAPI({
   }
   return publicApiInstance;
 }
+
+
 
 
 

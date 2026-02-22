@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StateBridge } from '../../../core/state/StateBridge';
+import { StateBridge } from '../../../core/1_Axiomatic_Store/StateBridge.js';
 
 const TraceabilityMonitor = ({ law }) => {
     const [events, setEvents] = useState([]);
@@ -70,6 +70,7 @@ const TraceabilityMonitor = ({ law }) => {
 };
 
 export default TraceabilityMonitor;
+
 
 
 

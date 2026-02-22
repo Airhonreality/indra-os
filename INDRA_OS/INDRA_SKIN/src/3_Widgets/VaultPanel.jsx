@@ -1,7 +1,7 @@
-import React from 'react';
-import { useAxiomaticStore } from '../core/state/AxiomaticStore';
-import VaultEngine from '../core/kernel/projections/engines/VaultEngine';
-import { Icons } from '../4_Atoms/IndraIcons';
+﻿import React from 'react';
+import { useAxiomaticStore } from '../core/1_Axiomatic_Store/AxiomaticStore.jsx';
+import VaultEngine from '../core/kernel/projections/engines/VaultEngine.jsx';
+import { Icons } from '../4_Atoms/AxiomIcons.jsx';
 
 /**
  * VaultPanel.jsx
@@ -66,6 +66,7 @@ const VaultPanel = () => {
 };
 
 export default VaultPanel;
+
 
 
 

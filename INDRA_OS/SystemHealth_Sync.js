@@ -117,7 +117,7 @@ function sync() {
         const healthScore = calculateHealthScore(result.stats);
 
         const auditMPC = {
-            system: "INDRA_OS",
+            system: "AXIOM_OS",
             timestamp: new Date().toISOString(),
             version: "1.1.0",
             health_score: `${healthScore}%`,

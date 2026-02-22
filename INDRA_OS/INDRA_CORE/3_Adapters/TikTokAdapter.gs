@@ -67,7 +67,7 @@ function createTikTokAdapter({ errorHandler, tokenManager }) {
     }
   }
 
-  // --- INDRA CANON: Normalización Semántica ---
+  // --- AXIOM CANON: Normalización Semántica ---
 
   function _mapProfile(raw) {
     const data = raw.data || {};
@@ -238,7 +238,7 @@ function createTikTokAdapter({ errorHandler, tokenManager }) {
     const { webhookEvent } = payload;
     if (!webhookEvent) throw errorHandler.createError('INVALID_INPUT', '[TikTokAdapter.receive] webhookEvent es obligatorio');
 
-    // Canon de Eventos Indra
+    // Canon de Eventos Axiom
     return {
       source: 'social_tiktok',
       type: webhookEvent.event === 'video.publish' ? 'social_media_published' : (webhookEvent.event || 'unknown'),
@@ -252,92 +252,69 @@ function createTikTokAdapter({ errorHandler, tokenManager }) {
   // RETORNO DE INTERFAZ
   // ============================================================
   
-  const schemas = {
-    getUserProfile: {
-      description: "Extracts institucional profile data from the TikTok Business circuit.",
-      semantic_intent: "PROBE",
-      io_interface: {
-        inputs: {
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." }
-        },
-        outputs: {
-          profile: { type: "object", io_behavior: "STREAM", description: "Indra SocialProfile: { id, handle, displayName, bio, avatarUrl, stats, raw }" }
-        }
+  // --- SOVEREIGN CANON V14.0 (ADR-022 Compliant — Pure Source) ---
+  const CANON = {
+      id: "tiktok",
+      label: "TikTok Engine",
+      archetype: "adapter",
+      domain: "social_media",
+      REIFICATION_HINTS: {
+          id: "id",
+          label: "display_name || username || video_description || id",
+          items: "results || items"
+      },
+      CAPABILITIES: {
+          "getVideos": {
+              "id": "DATA_STREAM",
+              "io": "READ",
+              "desc": "Extracts an industrial list of video entries.",
+              "traits": ["EXPLORE", "SOCIAL_MEDIA", "DATA_STREAM"],
+              "inputs": {
+                "accountId": { "type": "string", "desc": "Account selector." },
+                "limit": { "type": "number", "desc": "Maximum quantity." },
+                "cursor": { "type": "string", "desc": "Technical cursor." }
+              }
+          },
+          "getUserProfile": {
+              "id": "READ_DATA",
+              "io": "READ",
+              "desc": "Extracts institucional profile data.",
+              "traits": ["IDENTITY", "SOCIAL_PROFILE"],
+              "inputs": {
+                "accountId": { "type": "string", "desc": "Account selector." }
+              }
+          },
+          "replyComment": {
+              "id": "SEND_REPLY",
+              "io": "WRITE",
+              "desc": "Dispatches a linguistic response to an existing comment.",
+              "traits": ["COMMUNICATE", "REPLY"],
+              "inputs": {
+                "commentId": { "type": "string", "desc": "Target comment identifier." },
+                "message": { "type": "string", "desc": "Linguistic response content." }
+              }
+          },
+          "publishVideo": {
+              "id": "PROCESS_SIGNAL",
+              "io": "WRITE",
+              "desc": "Orchestrates institucional video publication via URL.",
+              "traits": ["PUBLISHING", "AUTOMATION"],
+              "inputs": {
+                "videoUrl": { "type": "string", "desc": "Source video URL." },
+                "description": { "type": "string", "desc": "Linguistic descriptor." }
+              }
+          },
+          "getAnalytics": {
+              "id": "READ_DATA",
+              "io": "READ",
+              "desc": "Extracts high-integrity performance metrics.",
+              "traits": ["METRICS", "TELEMETRY"],
+              "inputs": {
+                "targetId": { "type": "string", "desc": "Resource identifier focus." },
+                "metrics": { "type": "array", "desc": "Requested technical metrics." }
+              }
+          }
       }
-    },
-    getVideos: {
-      description: "Extracts an industrial list of video entries from the target TikTok repository.",
-      semantic_intent: "SENSOR",
-      io_interface: {
-        inputs: {
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." },
-          limit: { type: "number", io_behavior: "SCHEMA", description: "Maximum quantity of video descriptors to return." },
-          cursor: { type: "string", io_behavior: "SCHEMA", description: "Technical cursor for stream pagination." }
-        },
-        outputs: {
-          videos: { type: "array", io_behavior: "STREAM", description: "Collection of Indra SocialMedia: { id, type, url, caption, permalink, timestamp, author, stats, raw }" }
-        }
-      }
-    },
-    getVideoComments: {
-      description: "Extracts comment threads from a specific TikTok video resource.",
-      semantic_intent: "SENSOR",
-      io_interface: {
-        inputs: {
-          videoId: { type: "string", io_behavior: "GATE", description: "Target video resource identifier." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." },
-          limit: { type: "number", io_behavior: "SCHEMA", description: "Technical pagination limit." }
-        },
-        outputs: {
-          comments: { type: "array", io_behavior: "STREAM", description: "Collection of Indra SocialComment: { id, author, text, timestamp, stats, hidden, raw }" }
-        }
-      }
-    },
-    replyComment: {
-      description: "Dispatches a linguistic response to an existing TikTok comment resource.",
-      semantic_intent: "TRIGGER",
-      io_interface: {
-        inputs: {
-          commentId: { type: "string", io_behavior: "GATE", description: "Target comment identifier." },
-          message: { type: "string", io_behavior: "STREAM", description: "Linguistic response content." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." }
-        },
-        outputs: {
-          result: { type: "object", io_behavior: "PROBE", description: "Dispatch confirmation status." }
-        }
-      }
-    },
-    publishVideo: {
-      description: "Orchestrates institucional video publication via external resource URL (pull-mode).",
-      semantic_intent: "TRIGGER",
-      io_interface: {
-        inputs: {
-          videoUrl: { type: "string", io_behavior: "STREAM", description: "Source video resource URL." },
-          description: { type: "string", io_behavior: "STREAM", description: "Institutional video descriptor text." },
-          privacyLevel: { type: "string", io_behavior: "SCHEMA", description: "Visibility status configuration." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
-        },
-        outputs: {
-          result: { type: "object", io_behavior: "PROBE", description: "Publication status confirmation." }
-        }
-      }
-    },
-    getAnalytics: {
-      description: "Extracts high-integrity performance metrics from the TikTok Business circuit.",
-      semantic_intent: "SENSOR",
-      io_interface: {
-        inputs: {
-          targetId: { type: "string", io_behavior: "GATE", description: "Optional specific resource identifier focus." },
-          metrics: { type: "array", io_behavior: "SCHEMA", description: "Collection of requested technical metrics." },
-          startDate: { type: "string", io_behavior: "SCHEMA", description: "Institutional start temporal marker." },
-          endDate: { type: "string", io_behavior: "SCHEMA", description: "Institutional end temporal marker." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
-        },
-        outputs: {
-          metricsData: { type: "object", io_behavior: "STREAM", description: "Resulting industrial metrics data stream." }
-        }
-      }
-    }
   };
 
   function verifyConnection(payload = {}) {
@@ -353,21 +330,19 @@ function createTikTokAdapter({ errorHandler, tokenManager }) {
     return { success: false, info: "Direct Messaging not supported by current TikTok Business API scope." };
   }
 
-  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
-  const CANON = {
-      ARCHETYPE: "ADAPTER",
-      DOMAIN: "SOCIAL_MEDIA",
-      CAPABILITIES: schemas
-  };
-
   return {
+    id: "tiktok",
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
     description: "Industrial bridge for TikTok Business API integration, video content management, and performance telemetry.",
     CANON: CANON,
-    schemas: schemas,
+    
     // Protocol mapping (MESSENGER_V1)
     send,
     receive,
     verifyConnection,
+    
     // Original methods
     getUserProfile,
     getVideos,
@@ -377,6 +352,9 @@ function createTikTokAdapter({ errorHandler, tokenManager }) {
     getAnalytics
   };
 }
+
+
+
 
 
 

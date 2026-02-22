@@ -7,9 +7,13 @@
  * Factory para crear una instancia del ConnectionTester.
  * @param {object} dependencies - Dependencias inyectadas
  * @param {object} dependencies.errorHandler - Manejador de errores del sistema
+ * @param {object} [dependencies.urlFetchApp] - Servicio de red (opcional, para inyección en tests)
  * @returns {object} Instancia congelada del ConnectionTester
  */
-function createConnectionTester({ errorHandler }) {
+function createConnectionTester({ errorHandler, urlFetchApp }) {
+  // AXIOMA: Soberanía de Dependencias
+  const fetcher = urlFetchApp || (typeof UrlFetchApp !== 'undefined' ? UrlFetchApp : null);
+
   if (!errorHandler || typeof errorHandler.createError !== 'function') {
     throw new TypeError('createConnectionTester: errorHandler contract not fulfilled');
   }
@@ -26,6 +30,8 @@ function createConnectionTester({ errorHandler }) {
       return { isValid: false, reason: 'El token de API no fue proporcionado.' };
     }
 
+    if (!fetcher) return { isValid: false, reason: 'Network service (UrlFetchApp) not available.' };
+
     const options = {
       method: 'get',
       headers: {
@@ -35,7 +41,7 @@ function createConnectionTester({ errorHandler }) {
       muteHttpExceptions: true
     };
 
-    const response = UrlFetchApp.fetch('https://api.notion.com/v1/users/me', options);
+    const response = fetcher.fetch('https://api.notion.com/v1/users/me', options);
     const responseCode = response.getResponseCode();
 
     if (responseCode === 200) {
@@ -66,7 +72,9 @@ function createConnectionTester({ errorHandler }) {
     };
     // --- FIN DE INTERVENCIÓN ---
     
-    const response = UrlFetchApp.fetch(url, options);
+    if (!fetcher) return { isValid: false, reason: 'Network service (UrlFetchApp) not available.' };
+
+    const response = fetcher.fetch(url, options);
     const responseCode = response.getResponseCode();
 
     // Cualquier respuesta por debajo de 500 indica que la URL es accesible, incluso si es un error del cliente (4xx)
@@ -139,6 +147,7 @@ function createConnectionTester({ errorHandler }) {
     test
   });
 }
+
 
 
 

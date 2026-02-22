@@ -1,4 +1,4 @@
-import bridge from '../../kernel/SovereignBridge';
+import bridge from '../../kernel/SovereignBridge.js';
 
 /**
  * ACTION TRANSMUTER
@@ -32,6 +32,7 @@ export const ActionTransmuter = ({ atom }) => {
         </button>
     );
 };
+
 
 
 

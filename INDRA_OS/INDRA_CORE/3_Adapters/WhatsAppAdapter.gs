@@ -42,7 +42,7 @@ function createWhatsAppAdapter({ errorHandler, tokenManager }) {
     }
   }
 
-  // --- INDRA CANON: Normalización Semántica ---
+  // --- AXIOM CANON: Normalización Semántica ---
 
   function _mapIncomingMessage(raw) {
     // Normalización de mensaje entrante de WhatsApp (Webhook)
@@ -184,58 +184,11 @@ function createWhatsAppAdapter({ errorHandler, tokenManager }) {
   // RETORNO DE INTERFAZ
   // ============================================================
   
-  const schemas = {
-    sendMessage: {
-      description: "Dispatches a high-integrity industrial instant message or template through the technical Meta Graph API circuit.",
-      semantic_intent: "TRIGGER",
-      io_interface: { 
-        inputs: {
-          to: { type: "string", io_behavior: "GATE", description: "Target recipient phone number with canonical country prefix." },
-          message: { type: "string", io_behavior: "STREAM", description: "Primary linguistic text payload stream." },
-          template: { type: "object", io_behavior: "SCHEMA", description: "Standardized industrial message template definition." },
-          phoneNumberId: { type: "string", io_behavior: "GATE", description: "Meta-assigned industrial identifier for the sender circuit." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." }
-        }, 
-        outputs: {
-          result: { type: "object", io_behavior: "PROBE", description: "Interaction dispatch status confirmation." }
-        } 
-      }
-    },
-    verifyConnection: {
-      description: "Executes a high-integrity health check of the WhatsApp Business connectivity and token validity.",
-      semantic_intent: "PROBE",
-      io_interface: {
-        inputs: {
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for the health check." }
-        },
-        outputs: {
-          success: { type: "boolean", io_behavior: "PROBE", description: "True if connectivity is established and token is valid." },
-          message: { type: "string", io_behavior: "PROBE", description: "Status message or error detail." }
-        }
-      }
-    },
-    configureIdentity: {
-      description: "Registers or updates the secure credentials for the WhatsApp Business technical circuit within the system vault.",
-      semantic_intent: "TRIGGER",
-      io_interface: {
-        inputs: {
-          accountId: { type: "string", io_behavior: "GATE", description: "Unique identifier for this industrial account linkage." },
-          apiKey: { type: "string", io_behavior: "STREAM", description: "Access token provided by the Meta Developers portal." },
-          phoneNumberId: { type: "string", io_behavior: "GATE", description: "Industrial identifier for the WhatsApp Phone circuit." },
-          isDefault: { type: "boolean", io_behavior: "SCHEMA", description: "Elevates this credential to the primary dispatch circuit." }
-        },
-        outputs: {
-          success: { type: "boolean", io_behavior: "PROBE", description: "Credential persistence confirmation status." }
-        }
-      }
-    }
-  };
-  
   function receive(payload) {
     const { webhookEvent } = payload;
     if (!webhookEvent) throw errorHandler.createError('INVALID_INPUT', '[WhatsAppAdapter.receive] webhookEvent es obligatorio');
 
-    // Canon de Eventos Indra
+    // Canon de Eventos Axiom
     const normalized = {
       source: 'social_whatsapp',
       type: 'unknown',
@@ -261,27 +214,75 @@ function createWhatsAppAdapter({ errorHandler, tokenManager }) {
     return normalized;
   }
 
-  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+  // --- SOVEREIGN CANON V14.0 (ADR-022 Compliant — Pure Source) ---
   const CANON = {
-    ARCHETYPE: "ADAPTER",
-    DOMAIN: "COMMUNICATION",
-    CAPABILITIES: schemas
+    id: "whatsapp",
+    label: "Axiom WhatsApp",
+    archetype: "adapter",
+    domain: "communication",
+    REIFICATION_HINTS: {
+        id: "id",
+        label: "from || name || id",
+        items: "messages || items"
+    },
+    CAPABILITIES: {
+        "sendMessage": {
+            "id": "SEND_MESSAGE",
+            "io": "WRITE",
+            "desc": "Dispatches a high-integrity industrial instant message or template.",
+            "traits": ["COMMUNICATE", "MESSAGING"],
+            "inputs": {
+                "to": { "type": "string", "desc": "Target recipient phone number." },
+                "message": { "type": "string", "desc": "Primary linguistic text payload stream." },
+                "template": { "type": "object", "desc": "Standardized industrial message template definition." },
+                "phoneNumberId": { "type": "string", "desc": "Meta-assigned industrial identifier." },
+                "accountId": { "type": "string", "desc": "Account selector." }
+            }
+        },
+        "verifyConnection": {
+            "id": "HEALTH_CHECK",
+            "io": "READ",
+            "desc": "Executes a high-integrity health check of the WhatsApp Business connectivity.",
+            "traits": ["DIAGNOSTICS"],
+            "inputs": {
+                "accountId": { "type": "string", "desc": "Account selector." }
+            }
+        },
+        "configureIdentity": {
+            "id": "WRITE_DATA",
+            "io": "WRITE",
+            "desc": "Registers or updates the secure credentials for the WhatsApp Business technical circuit.",
+            "traits": ["STRUCTURE", "IDENTITY"],
+            "inputs": {
+                "accountId": { "type": "string", "desc": "Unique identifier for this account linkage." },
+                "apiKey": { "type": "string", "desc": "Access token." },
+                "phoneNumberId": { "type": "string", "desc": "Industrial identifier for the WhatsApp Phone." },
+                "isDefault": { "type": "boolean", "desc": "Elevates this credential to the primary circuit." }
+            }
+        }
+    }
   };
 
   return {
+    id: "whatsapp",
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
     description: "Industrial messaging bridge for high-reliability instant communication, template management, and identity-aware dispatch via Meta Graph API.",
-    semantic_intent: "BRIDGE",
-    CANON: CANON, // Added for Protocol V8.1
-    schemas: schemas,
+    CANON: CANON,
+    
     // Protocol mapping (MESSENGER_V1)
     send: sendMessage,
     receive,
     verifyConnection,
+    
     // Original methods
     sendMessage,
     configureIdentity
   };
 }
+
+
 
 
 

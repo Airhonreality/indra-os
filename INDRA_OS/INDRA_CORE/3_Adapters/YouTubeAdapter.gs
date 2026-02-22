@@ -23,7 +23,7 @@ function createYouTubeAdapter({ errorHandler, tokenManager, sensingService }) {
           accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." }
         },
         outputs: {
-          videos: { type: "array", io_behavior: "STREAM", description: "Collection of Indra SocialMedia: { id, type, url, caption, permalink, timestamp, author, stats, raw }" }
+          videos: { type: "array", io_behavior: "STREAM", description: "Collection of Axiom SocialMedia: { id, type, url, caption, permalink, timestamp, author, stats, raw }" }
         }
       }
     },
@@ -56,7 +56,7 @@ function createYouTubeAdapter({ errorHandler, tokenManager, sensingService }) {
   /**
    * Lista videos usando el patrón Uploads Playlist ID.
    */
-  // --- INDRA CANON: Normalización Semántica ---
+  // --- AXIOM CANON: Normalización Semántica ---
 
   function _mapMedia(raw) {
     return {
@@ -195,21 +195,39 @@ function createYouTubeAdapter({ errorHandler, tokenManager, sensingService }) {
     }
   }
 
-  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+  // --- SOVEREIGN CANON V14.0 (ADR-022 Compliant — Pure Source) ---
   const CANON = {
     id: "youtube",
-    ARCHETYPE: "ADAPTER",
-    DOMAIN: "SOCIAL_MEDIA",
+    label: "Axiom YouTube",
+    archetype: "adapter",
+    domain: "social_media",
+    REIFICATION_HINTS: {
+        id: "id",
+        label: "snippet.title || title || id",
+        items: "items"
+    },
     CAPABILITIES: {
-      "search": { 
+      "listChannelVideos": { 
+        "id": "DATA_STREAM",
         "io": "READ", 
-        "desc": "Index channel video descriptors",
-        "inputs": schemas.listChannelVideos.io_interface.inputs
+        "desc": "Extracts an industrial list of video descriptors from a target YouTube channel.",
+        "traits": ["EXPLORE", "SOCIAL_MEDIA", "MEDIA_LIST"],
+        "inputs": {
+          "channelId": { "type": "string", "desc": "Target channel resource identifier." },
+          "maxResults": { "type": "number", "desc": "Maximum quantity of video descriptors." },
+          "accountId": { "type": "string", "desc": "Account selector." }
+        }
       },
-      "extract": { 
+      "extractTranscript": { 
+        "id": "CONTENT_EXTRACTION",
         "io": "COMPUTE", 
-        "desc": "Cognitive transcript extraction",
-        "inputs": schemas.extractTranscript.io_interface.inputs
+        "desc": "Transforms a target YouTube video resource into a linguistic text stream.",
+        "traits": ["READ_DATA", "TRANSFORM"],
+        "inputs": {
+          "videoId": { "type": "string", "desc": "Target video resource identifier." },
+          "language": { "type": "string", "desc": "Target linguistic model identifier." },
+          "accountId": { "type": "string", "desc": "Account selector." }
+        }
       }
     }
   };
@@ -217,20 +235,13 @@ function createYouTubeAdapter({ errorHandler, tokenManager, sensingService }) {
   return {
     CANON: CANON,
     id: "youtube",
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
     description: "Industrial engine for video content discovery, transcript extraction, and investigation scouting within the YouTube ecosystem.",
-    semantic_intent: "BRIDGE",
     
     // Legacy Bridge
-    get schemas() {
-        const s = {};
-        for (const [key, cap] of Object.entries(CANON.CAPABILITIES)) {
-            s[key] = {
-                description: cap.desc,
-                io_interface: { inputs: cap.inputs || {}, outputs: {} }
-            };
-        }
-        return s;
-    },
+    // Removed get schemas() getter as per instruction.
 
     search: listChannelVideos,
     extract: extractTranscript,
@@ -249,6 +260,9 @@ function createYouTubeAdapter({ errorHandler, tokenManager, sensingService }) {
     extractTranscript
   };
 }
+
+
+
 
 
 

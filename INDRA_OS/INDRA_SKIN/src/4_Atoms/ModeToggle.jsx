@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { useAxiomaticStore } from '../core/state/AxiomaticStore';
+import { useAxiomaticStore } from '../core/1_Axiomatic_Store/AxiomaticStore.jsx';
 
 const ModeToggle = () => {
     const { state, execute } = useAxiomaticStore();
@@ -15,7 +15,7 @@ const ModeToggle = () => {
         const newMode = currentMode === 'LAB' ? 'LIVE' : 'LAB';
 
         // Persistir en localStorage
-        localStorage.setItem('INDRA_MODE', newMode);
+        localStorage.setItem('AXIOM_MODE', newMode);
 
         // Actualizar el Store (el LayerOrchestrator se re-renderizará automáticamente)
         execute('SET_MODE', { mode: newMode });
@@ -47,6 +47,7 @@ const ModeToggle = () => {
 };
 
 export default ModeToggle;
+
 
 
 

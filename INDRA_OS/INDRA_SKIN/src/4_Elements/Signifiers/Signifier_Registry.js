@@ -1,7 +1,7 @@
 /**
  * Signifier_Registry.js
  * 
- * DHARMA: El Diccionario Semiótico de INDRA.
+ * DHARMA: El Diccionario Semiótico de AXIOM.
  * Define las "Leyes Visuales" para los estados del sistema.
  */
 
@@ -46,6 +46,7 @@ export const SIGNIFIER_LAWS = {
 };
 
 export default SIGNIFIER_LAWS;
+
 
 
 

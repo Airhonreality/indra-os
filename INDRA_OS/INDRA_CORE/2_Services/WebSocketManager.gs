@@ -1,5 +1,5 @@
 /**
- * INDRA_CORE/2_Services/WebSocketManager.gs
+ * AXIOM_CORE/2_Services/WebSocketManager.gs
  * DHARMA: Gestor de WebSocket para notificaciones en tiempo real.
  * AXIOMA: "La información debe fluir como el agua, sin fricción."
  * 
@@ -180,6 +180,7 @@ function createWebSocketManager({ errorHandler, configurator }) {
         cleanupDeadConnections
     });
 }
+
 
 
 

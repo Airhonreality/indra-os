@@ -11,7 +11,16 @@ function createCosmosEngine({ driveAdapter, configurator, monitoringService, err
   
   const _monitor = monitoringService || { logDebug: () => {}, logInfo: () => {}, logWarn: () => {}, logError: () => {} };
 
-  // AXIOMA: Definición de Esquemas Soberanos (Lógica de App)
+  // AXIOMA V15: Identidad Soberana Unificada (Genotipo del Motor)
+  const identity = {
+    LABEL: "Motor de Cosmología",
+    DESCRIPTION: "Motor de Gestión de Realidades, Persistencia y Sincronización Axiomática.",
+    ARCHETYPE: "ENGINE",
+    DOMAIN: "APPLICATION",
+    SEMANTIC_INTENT: "ORCHESTRATOR"
+  };
+
+  // AXIOMA: Definición de Esquemas Soberanos (Capacidades Técnicas)
   const schemas = {
     mountCosmos: {
       description: "Hidrata una realidad completa (Cosmos) desde el almacenamiento persistente.",
@@ -83,10 +92,10 @@ function createCosmosEngine({ driveAdapter, configurator, monitoringService, err
    */
   function listAvailableCosmos(args) {
     const { includeAll } = args || {};
-    const flowsFolderId = configurator.retrieveParameter({ key: 'INDRA_FOLDER_FLOWS_ID' });
+    const flowsFolderId = configurator.retrieveParameter({ key: 'CORE_FLOWS_ID' });
     
     if (!flowsFolderId) {
-        throw errorHandler.createError('CONFIGURATION_ERROR', 'INDRA_FOLDER_FLOWS_ID no está configurado.');
+        throw errorHandler.createError('CONFIGURATION_ERROR', 'CORE_FLOWS_ID (Flows folder) no está configurado.');
     }
 
     try {
@@ -166,12 +175,14 @@ function createCosmosEngine({ driveAdapter, configurator, monitoringService, err
             throw errorHandler.createError('RESOURCE_NOT_FOUND', `No se encontró el Cosmos: ${cosmosId}`);
         }
 
-        // Delegación de Protocolo al Validador (L8)
+        _monitor.logInfo(`[CosmosEngine] 🛰️ Normalizing Reality for: ${cosmosId}`);
         const { payload, envelope } = validator.normalize(fileContent.content);
         
         const contentString = JSON.stringify(payload);
         const integrityHash = (envelope && envelope.revision_hash) ? envelope.revision_hash : _generateHash(contentString);
         
+        _monitor.logInfo(`[CosmosEngine] ✅ Integrity Hash: ${integrityHash} | Payload size: ${contentString.length}`);
+
         if (payload && typeof payload === 'object' && !payload.id) {
             payload.id = cosmosId;
         }
@@ -201,7 +212,7 @@ function createCosmosEngine({ driveAdapter, configurator, monitoringService, err
 
     const idStr = String(cosmosId);
     const isNew = idStr.startsWith('temp_') || idStr.startsWith('cosmos_') || idStr.length < 10;
-    const flowsFolderId = configurator.retrieveParameter({ key: 'INDRA_FOLDER_FLOWS_ID' });
+    const flowsFolderId = configurator.retrieveParameter({ key: 'CORE_FLOWS_ID' });
 
     // 1. Delegación de Integridad Atómica (PHYSICAL TRUTH) via L8 Validator
     if (!isNew && revisionHash && revisionHash !== 'force') {
@@ -488,32 +499,21 @@ function createCosmosEngine({ driveAdapter, configurator, monitoringService, err
   }
 
 
-  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
-  const CANON = {
-    ARCHETYPE: "ENGINE",
-    DOMAIN: "APPLICATION",
-    CAPABILITIES: {
-      "mountCosmos": { "io": "READ", "desc": "Hydrate a reality circuit" },
-      "saveCosmos": { "io": "WRITE", "desc": "Persist a reality state" },
-      "listAvailableCosmos": { "io": "READ", "desc": "Discover reachable realities" },
-      "applyPatch": { "io": "WRITE", "desc": "Modify reality state atomically" }
-    }
-  };
-
-  // Retorno del Nodo Soberano
-  return Object.freeze({
-    id: "cosmos", // Identidad del Trabajador
-    CANON: CANON,
+  // Retorno del Nodo Soberano (ADR-006: Polimorfismo Total)
+  return {
+    id: "cosmos", 
+    identity,
     schemas,
-    // Métodos expuestos
+    // Métodos expuestos (Mano de Madera)
     mountCosmos,
     saveCosmos,
     deleteCosmos,
     listAvailableCosmos,
     applyPatch,
     bindArtifactToCosmos
-  });
+  };
 }
+
 
 
 

@@ -5,7 +5,7 @@
  * Axioma: "Lo que el sistema sabe, el usuario lo ve en tiempo real."
  */
 
-import bridge from '../../../core/kernel/SovereignBridge';
+import bridge from '../../../core/kernel/SovereignBridge.js';
 import './ContextExplorer.css';
 
 export const ContextExplorer = () => {
@@ -36,7 +36,7 @@ export const ContextExplorer = () => {
     }, []);
 
     const handleDragStart = (e, variable) => {
-        e.dataTransfer.setData('indra/variable', JSON.stringify(variable));
+        e.dataTransfer.setData('axiom/variable', JSON.stringify(variable));
         e.dataTransfer.effectAllowed = 'copy';
 
         // Efecto visual de "Iniciación de Vínculo"
@@ -97,6 +97,7 @@ export const ContextExplorer = () => {
 };
 
 export default ContextExplorer;
+
 
 
 

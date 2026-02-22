@@ -11,6 +11,15 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
   if (!errorHandler) throw new Error('CognitiveSensingAdapter: errorHandler dependency is required');
   if (!configurator) throw new Error('CognitiveSensingAdapter: configurator dependency is required');
 
+  // AXIOMA V15: Identidad Soberana Unificada (Genotipo del Adaptador)
+  const identity = {
+    LABEL: "Adaptador de Sensórica Cognitiva",
+    DESCRIPTION: "Lente Industrial para Introspección de Sistemas, Sensado Multifacético y Diagnóstico Determinista.",
+    ARCHETYPE: "ADAPTER",
+    DOMAIN: "SENSING",
+    SEMANTIC_INTENT: "ORACLE"
+  };
+
   // AXIOMA: Resiliencia de Infraestructura (H7-RESILIENCE)
   const _monitor = monitoringService || { 
     logDebug: () => {}, logInfo: () => {}, logWarn: () => {}, logError: () => {}, 
@@ -25,7 +34,7 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
   }
 
   function discoverSeed(input) {
-    const { rootName = 'INDRA_ROOT' } = input || {};
+    const { rootName = 'AXIOM_ROOT' } = input || {};
     try {
       const results = driveAdapter.find({ query: `name = '${rootName}' and mimeType = 'application/vnd.google-apps.folder'` });
       if (results.foundItems && results.foundItems.length > 0) {
@@ -38,7 +47,7 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
   }
 
   function initializeSeed(input) {
-    const { rootName = 'INDRA_ROOT' } = input || {};
+    const { rootName = 'AXIOM_ROOT' } = input || {};
     try {
       const result = driveAdapter.resolvePath({ 
         rootFolderId: 'root', 
@@ -233,7 +242,7 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
 
   /**
    * [MCP-EXCLUSIVE]: List resources based on a path or category.
-   * Translates drive structure into indra:// protocol URIs.
+   * Translates drive structure into axiom:// protocol URIs.
    */
   function listResources(payload = {}) {
     const { path = '/', category = 'all' } = payload;
@@ -244,10 +253,10 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
         // o mapeamos categorías específicas.
         let targetFolderId;
         if (path === '/') {
-            targetFolderId = configurator.retrieveParameter({ key: 'INDRA_CORE_ROOT_ID' });
+            targetFolderId = configurator.retrieveParameter({ key: 'AXIOM_CORE_ROOT_ID' });
         } else {
-            // Lógica de resolución de path (ej: indra://proyectos -> ID de carpetaproyectos)
-            const resolved = driveAdapter.resolvePath({ path: path.replace('indra://', '') });
+            // Lógica de resolución de path (ej: axiom://proyectos -> ID de carpetaproyectos)
+            const resolved = driveAdapter.resolvePath({ path: path.replace('axiom://', '').replace('axiom://', '') });
             targetFolderId = resolved.folderId;
         }
 
@@ -255,7 +264,7 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
         return {
             path,
             resources: items.map(item => ({
-                uri: `indra://${path.replace(/^\/+/, '')}/${item.name}`,
+                uri: `axiom://${path.replace(/^\/+/, '')}/${item.name}`,
                 name: item.name,
                 type: item.canonicalType,
                 lastUpdated: item.lastUpdated,
@@ -337,7 +346,7 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
       };
 
       // 2. Persistencia Atómica con Anclaje Físico (REPARADO V12.1)
-      const flowsFolderId = configurator.retrieveParameter({ key: 'INDRA_FOLDER_FLOWS_ID' });
+      const flowsFolderId = configurator.retrieveParameter({ key: 'AXIOM_FOLDER_FLOWS_ID' });
       const isNew = cosmosId.toString().startsWith('temp_');
 
       const storePayload = {
@@ -497,20 +506,85 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
     return { added, removed, changed };
   }
 
-  const schemas = {
-    scanArtifacts: ContractRegistry.get('scanArtifacts'),
-    saveSnapshot: ContractRegistry.get('saveSnapshot'),
-    quickDiagnostic: ContractRegistry.get('quickDiagnostic'),
-    discoverSeed: ContractRegistry.get('discoverSeed'),
-    initializeSeed: ContractRegistry.get('initializeSeed'),
-    find: ContractRegistry.get('find'),
-    compareSnapshots: ContractRegistry.get('compareSnapshots'),
-    reconcileSpatialState: ContractRegistry.get('reconcileSpatialState'),
-    getSpatialState: ContractRegistry.get('getSpatialState'),
-    getSnapshot: ContractRegistry.get('getSnapshot'),
-    deleteArtifact: ContractRegistry.get('deleteArtifact'),
-    listResources: ContractRegistry.get('listResources'),
-    stabilizeAxiomaticReality: ContractRegistry.get('stabilizeAxiomaticReality')
+  // --- SOVEREIGN CANON V14.0 (ADR-022 Compliant — Pure Source) ---
+  const CANON = {
+      id: "sensing",
+      label: "Axiom Sensing Oracle",
+      archetype: "adapter",
+      domain: "sensing",
+      REIFICATION_HINTS: {
+          id: "id",
+          label: "name || label || id",
+          items: "artifacts || resources || items"
+      },
+      CAPABILITIES: {
+          "scanArtifacts": {
+              "id": "LIST_FILES",
+              "io": "READ",
+              "desc": "Industrial introspection of artifact containers.",
+              "traits": ["EXPLORE", "SENSING", "BROWSE"],
+              "inputs": {
+                  "folderId": { "type": "string", "desc": "Target folder identifier." },
+                  "deepSearch": { "type": "boolean", "desc": "Recursive analysis." }
+              }
+          },
+          "saveSnapshot": {
+              "id": "WRITE_DATA",
+              "io": "WRITE",
+              "risk": 2,
+              "desc": "Atomic snapshot persistence with shadow backup.",
+              "traits": ["PERSISTENCE", "BACKUP"],
+              "inputs": {
+                  "content": { "type": "object", "desc": "Payload to save." },
+                  "fileName": { "type": "string", "desc": "Target filename." },
+                  "type": { "type": "string", "desc": "Blueprint identifier." }
+              }
+          },
+          "quickDiagnostic": {
+              "id": "HEALTH_CHECK",
+              "io": "PROBE",
+              "desc": "Axiomatic conformance audit of the system.",
+              "traits": ["DIAGNOSTICS", "AUDIT"],
+              "inputs": {
+                  "targetAdapter": { "type": "string", "desc": "Focus adapter for diagnostic." }
+              }
+          },
+          "discoverSeed": {
+              "id": "SEARCH_QUERY",
+              "io": "READ",
+              "desc": "Locates the system's root sovereignty folder.",
+              "traits": ["PROBE", "DISCOVERY"]
+          },
+          "initializeSeed": {
+              "id": "WRITE_DATA",
+              "io": "WRITE",
+              "risk": 2,
+              "desc": "Establishes the root sovereignty folder circuit.",
+              "traits": ["TRIGGER", "INIT"]
+          },
+          "find": {
+              "id": "SEARCH_QUERY",
+              "io": "READ",
+              "traits": ["SENSE", "DISCOVERY"]
+          },
+          "compareSnapshots": {
+              "id": "DATA_STREAM",
+              "io": "READ",
+              "desc": "Differential analysis between industrial snapshots.",
+              "traits": ["ANALYZE", "DIFF"]
+          },
+          "stabilizeAxiomaticReality": {
+              "id": "WRITE_DATA",
+              "io": "WRITE",
+              "risk": 2,
+              "traits": ["PERSISTENCE", "STABILIZATION"]
+          },
+          "listResources": {
+              "id": "READ_DATA",
+              "io": "READ",
+              "traits": ["EXPLORE", "BROWSE"]
+          }
+      }
   };
 
   function verifyConnection() {
@@ -522,23 +596,19 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
     }
   }
 
-  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
-  const CANON = {
-      ARCHETYPE: "ADAPTER",
-      DOMAIN: "SENSING",
-      CAPABILITIES: schemas
-  };
-
-  return {
+  return Object.freeze({
+    id: "sensing",
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
+    identity: identity,
     CANON: CANON,
-    description: "Industrial engine for system-wide introspection, multi-layered sensing, and deterministic diagnostic circuits.",
-    schemas: schemas,
-    // Protocol mapping (ORACLE_V1)
+    // Mapeo de Protocolo (ORACLE_V1)
     search: find,
     extract: scanArtifacts,
     deepResearch: quickDiagnostic,
     verifyConnection,
-    // Original methods
+    // Métodos funcionales
     scanArtifacts,
     saveSnapshot,
     find,
@@ -553,8 +623,10 @@ function createCognitiveSensingAdapter({ driveAdapter, configurator, errorHandle
     listResources,
     stabilizeAxiomaticReality,
     validateArtifact: (artifact, type) => blueprintRegistry.validatePayload(artifact, blueprintRegistry.ARTIFACT_SCHEMAS[type])
-  };
+  });
 }
+
+
 
 
 

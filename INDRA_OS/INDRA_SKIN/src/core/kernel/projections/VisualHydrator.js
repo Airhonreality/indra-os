@@ -1,14 +1,14 @@
-/**
+﻿/**
  * VisualHydrator.js
  * DHARMA: Membrana de Hidratación Fenotípica (L3).
  * AXIOMA: "El dato es un símbolo, la UI es su significado."
  */
 
 import React from 'react';
-import { Icons } from '../../../4_Atoms/IndraIcons';
+import { Icons } from '../../../4_Atoms/AxiomIcons.jsx';
 
 const ICON_MAP = {
-    // Arquitecturas
+    // Arquitecturas Estructurales
     'VAULT': Icons.Vault,
     'DATABASE': Icons.Database,
     'SLOT': Icons.Transform,
@@ -17,11 +17,7 @@ const ICON_MAP = {
     'SERVICE': Icons.Activity,
     'NODE': Icons.System,
     'TERMINAL': Icons.Terminal,
-    'COMMUNICATION': Icons.Inbox,
-    'EMAIL': Icons.Inbox,
-    'CHAT': Icons.Inbox,
-    'LLM': Icons.Settings,
-    'INTELLIGENCE': Icons.Settings,
+    'ORCHESTRATOR': Icons.Activity,
 
     // Semántica de Capacidades (Orquestación)
     'TV_SCREEN': Icons.TV_SCREEN,
@@ -47,22 +43,38 @@ const ICON_MAP = {
     'DEFAULT': Icons.Help
 };
 
-/**
- * Resuelve un icono desde un string o emoji.
- */
-export const resolveIcon = (key) => {
-    if (!key) return Icons.Help;
+export const resolveIcon = (key, nodeData = null) => {
+    if (!key && !nodeData) return Icons.Help;
 
-    // 1. Emoji Directo
+    // 1. Emoji Directo (Soberanía Visual)
     if (typeof key === 'string' && key.match(/(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/)) {
         return (props) => React.createElement('span', {
             style: { fontSize: props.size || '16px' }
         }, key);
     }
 
-    // 2. Mapeo de Registro
-    const upperKey = typeof key === 'string' ? key.toUpperCase() : '';
-    return ICON_MAP[key] || ICON_MAP[upperKey] || Icons[upperKey] || Icons.Help;
+    // 2. AXIOMA: Sniffing de Capacidades y Rasgos (Prioridad sobre Nombre)
+    const data = nodeData || {};
+    const caps = (data.CAPABILITIES || data.capabilities || {});
+    const traits = (data.traits || data.TRAITS || []).map(t => String(t).toUpperCase());
+    const arch = String(data.ARCHETYPE || data.archetype || key || '').toUpperCase();
+
+    const capIds = Object.values(caps).map(c => typeof c === 'object' ? c.id : c);
+
+    if (capIds.includes('RECEIVE') || capIds.includes('PROJECTION') || traits.includes('SLOT') || traits.includes('TRANSFORM') || arch === 'SLOT') return Icons.Transform;
+    if (capIds.includes('DATA_STREAM') || capIds.includes('QUERY_FILTER') || traits.includes('DATABASE') || traits.includes('GRID') || arch === 'DATABASE') return Icons.Database;
+    if (capIds.includes('SEND_REPLY') || capIds.includes('SEND_MESSAGE') || traits.includes('COMMUNICATION') || traits.includes('MAIL')) return Icons.Inbox;
+    if (capIds.includes('LIST_FILES') || capIds.includes('BROWSE') || traits.includes('VAULT') || traits.includes('STORAGE') || arch === 'VAULT') return Icons.Vault;
+    if (capIds.includes('READ_PAGE') || capIds.includes('PDF') || traits.includes('DOC')) return Icons.PDF;
+    if (capIds.includes('EXECUTE_CODE') || capIds.includes('COMPUTE') || traits.includes('AGENT') || traits.includes('ENGINE') || arch === 'AGENT') return Icons.Cpu;
+    if (traits.includes('REALITY') || arch === 'REALITY') return Icons.Cosmos;
+
+    // 3. Fallback a Mapeo de Registro Directo
+    const upperKey = typeof key === 'string' ? key.toUpperCase() : arch;
+    if (ICON_MAP[upperKey]) return ICON_MAP[upperKey];
+    if (Icons[upperKey]) return Icons[upperKey];
+
+    return ICON_MAP.DEFAULT;
 };
 
 /**
@@ -70,7 +82,11 @@ export const resolveIcon = (key) => {
  */
 export const resolveArtifactLabel = (id, artifacts = []) => {
     if (!id) return 'UNKNOWN';
-    const artifact = artifacts.find(a => a.id === id);
+    // Soportar tanto Mapa (v14.0) como Array (fallback/legacy)
+    const artifact = Array.isArray(artifacts)
+        ? artifacts.find(a => a.id === id)
+        : artifacts[id];
+
     return artifact?.LABEL || artifact?.label || id.toUpperCase();
 };
 
@@ -78,6 +94,7 @@ export default {
     resolveIcon,
     resolveArtifactLabel
 };
+
 
 
 

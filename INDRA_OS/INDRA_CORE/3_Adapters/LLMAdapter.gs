@@ -18,7 +18,7 @@ function createLLMAdapter({ errorHandler, tokenManager, configurator }) {
     throw errorHandler.createError('CONFIGURATION_ERROR', '[LLMAdapter] tokenManager es obligatorio');
   }
 
-  // --- INDRA CANON: Normalización Semántica ---
+  // --- AXIOM CANON: Normalización Semántica ---
 
   function _mapDocumentRecord(text, metadata) {
     return {
@@ -337,63 +337,52 @@ function createLLMAdapter({ errorHandler, tokenManager, configurator }) {
   
   // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
   const CANON = {
-    ARCHETYPES: ["ADAPTER", "SERVICE", "COMPUTE"],
-    ARCHETYPE: "SERVICE", 
-    DOMAIN: "INTELLIGENCE",
+    id: "llm",
+    archetype: "service",
+    domain: "intelligence",
+    REIFICATION_HINTS: {
+        id: "id",
+        label: "name || model || id",
+        items: "results || items"
+    },
     CAPABILITIES: {
         "chat": {
+            "id": "CHAT_SENSE",
             "io": "PROBE", 
             "desc": "High-integrity cognitive reasoning session (Auto-Routing)",
+            "traits": ["PROCESS_SIGNAL", "INTELLIGENCE", "COMPUTE"],
             "inputs": {
                 "prompt": { "type": "string", "desc": "Natural language query." },
                 "messages": { "type": "array", "desc": "Context history." },
                 "model": { "type": "string", "desc": "Target model ID." }
             }
         },
-        "chatGemini": {
-            "io": "PROBE", "desc": "Direct Gemini inference circuit"
-        },
-        "chatGroq": {
-            "io": "PROBE", "desc": "Direct Groq inference circuit"
-        },
-        "getAvailableModels": {
-            "io": "SENSOR", "desc": "List active cognitive circuits"
-        },
         "verifyConnection": {
-            "io": "PROBE", "desc": "Health check protocol"
+            "id": "HEALTH_CHECK",
+            "io": "READ",
+            "traits": ["DIAGNOSTICS"]
         }
     }
   };
 
   return {
-    CANON, // <--- EXPOSICIÓN CRÍTICA V8.0
+    CANON: CANON,
     id: "llm",
+    label: "Intelligence Engine (LLM)",
+    archetype: CANON.archetype,
+    domain: CANON.domain,
     
     // Métodos Operativos
-    chat,
-    chatGemini,
-    chatGroq,
-    getAvailableModels,
-    verifyConnection,
-    
-    // Legacy Bridges (Para compatibilidad con sistemas v7)
-    get schemas() {
-        const s = {};
-        for (const [key, cap] of Object.entries(CANON.CAPABILITIES)) {
-            s[key] = {
-                description: cap.desc,
-                io_interface: { inputs: cap.inputs || {}, outputs: {} }
-            };
-        }
-        return s;
-    },
-    // Propiedades Legacy (serán sobreescritas por el Assembler usando CANON)
-    label: CANON.LABEL,
-    archetype: CANON.ARCHETYPE,
-    domain: CANON.DOMAIN,
-    semantic_intent: CANON.SEMANTIC_INTENT
+    chat: chat,
+    chatGemini: chatGemini,
+    chatGroq: chatGroq,
+    getAvailableModels: getAvailableModels,
+    verifyConnection: verifyConnection
   };
 }
+
+
+
 
 
 

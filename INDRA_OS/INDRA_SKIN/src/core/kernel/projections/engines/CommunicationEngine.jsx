@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CAPA 2: ENGINES
  * CommunicationEngine.jsx
  * DHARMA: Arquetipo Soberano de Comunicación Unificada (Mail + Chat).
@@ -6,44 +6,66 @@
  * 
  * PROPÓSITO: Proyectar interfaces de diálogo (Sincrónico/Asincrónico) yuxtapuestas.
  */
-import React, { useState, useEffect } from 'react';
-import { useAxiomaticStore } from '../../../state/AxiomaticStore';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useAxiomaticStore } from '../../../1_Axiomatic_Store/AxiomaticStore.jsx';
+import { useAxiomaticHydration } from '../../hooks/useAxiomaticHydration.js';
+import { Icons } from '../../../../4_Atoms/AxiomIcons.jsx';
 
-import { injectAxiomaticMock } from '../../../state/Infrastructure/AxiomaticMocks';
+import AxiomaticSpinner from '../../../../4_Atoms/AxiomaticSpinner.jsx';
+import ProjectionMatrix from '../../ProjectionMatrix.jsx';
 
 const CommunicationEngine = ({ data }) => {
     const { state, execute } = useAxiomaticStore();
-    const { LABEL, ARCHETYPE: initialArchetype, DOMAIN, id: nodeId } = data;
+    const label = data.label || data.LABEL;
+    const archetype = data.archetype || data.ARCHETYPE || 'COMMUNICATION';
+    const domain = data.domain || data.DOMAIN;
+    const nodeId = data.id;
     const { adapter } = state.sovereignty;
 
-    // AXIOMA: Soberanía de Origen (Descubrimiento Dinámico de Canales)
-    const COMM_SOURCES = React.useMemo(() => {
-        const registry = state.genotype?.COMPONENT_REGISTRY || {};
+    // AXIOMA: Soberanía de Origen (Descubrimiento Dinámico de Canales por Capacidades)
+    const COMM_SOURCES = useMemo(() => {
+        const registry = state.genotype?.COMPONENT_REGISTRY || state.genotype?.component_registry || {};
         return Object.values(registry)
-            .filter(node =>
-                node.ARCHETYPE === 'COMMUNICATION' ||
-                node.ARCHETYPE === 'MAIL' ||
-                node.ARCHETYPE === 'MESSAGING' ||
-                node.DOMAIN === 'COMMUNICATION'
-            )
-            .map(node => ({
-                id: node.id,
-                label: node.LABEL || node.id,
-                icon: node.ARCHETYPE === 'MAIL' ? 'Inbox' : 'MessageCircle', // Usamos nombres de iconos aproximados
-                archetype: node.ARCHETYPE
-            }));
+            .filter(node => {
+                const caps = node.capabilities || node.CAPABILITIES || {};
+                const traits = (node.traits || node.TRAITS || []).map(t => String(t).toUpperCase());
+                const capIds = Object.values(caps).map(c => typeof c === 'object' ? c.id : c);
+
+                return (
+                    capIds.includes('SEND_REPLY') ||
+                    capIds.includes('SEND_MESSAGE') ||
+                    capIds.includes('ARCHIVE_MESSAGE') ||
+                    traits.includes('COMMUNICATION') ||
+                    traits.includes('MAIL') ||
+                    traits.includes('CHAT')
+                );
+            })
+            .map(node => {
+                const nodeCaps = node.capabilities || node.CAPABILITIES || {};
+                const nodeTraits = (node.traits || node.TRAITS || []).map(t => t.toUpperCase());
+                const capIds = Object.values(nodeCaps).map(c => typeof c === 'object' ? c.id : c);
+                const isMail = capIds.includes('SEND_REPLY') || nodeTraits.includes('MAIL') || nodeTraits.includes('EMAIL');
+
+                return {
+                    id: node.id,
+                    label: node.label || node.LABEL || node.id,
+                    icon: isMail ? 'Inbox' : 'MessageCircle',
+                    archetype: node.archetype || node.ARCHETYPE,
+                    isMail
+                };
+            });
     }, [state.genotype?.COMPONENT_REGISTRY]);
 
     // ESTADO DE IDENTIDAD Y SELECCIÓN
-    const [activeSource, setActiveSource] = useState(nodeId || (COMM_SOURCES[0]?.id || 'gmail'));
-    const [accounts, setAccounts] = useState([]);
+    const [activeSource, setActiveSource] = useState(nodeId || COMM_SOURCES[0]?.id || '');
     const [activeAccount, setActiveAccount] = useState(null);
     const [loading, setLoading] = useState(false);
 
 
-    // ESTADO POLIMÓRFICO: Modo de Vista (Mail vs Chat)
-    // Por defecto: Si es MAIL, usa 'INBOX'. Si es MESSAGING, usa 'CHAT'. Unificado usa 'SPLIT'.
-    const defaultMode = (ARCHETYPE === 'MAIL') ? 'INBOX' : (ARCHETYPE === 'MESSAGING') ? 'CHAT' : 'SPLIT';
+    // ESTADO POLIMÓRFICO: Modo de Vista (Mail vs Chat) basado en Capacidades
+    const caps = data.CAPABILITIES || data.capabilities || {};
+    const capIds = Object.values(caps).map(c => typeof c === 'object' ? c.id : c);
+    const defaultMode = (capIds.includes('SEND_REPLY') || capIds.includes('DATA_STREAM')) ? 'INBOX' : (capIds.includes('SEND_MESSAGE')) ? 'CHAT' : 'SPLIT';
     const [viewMode, setViewMode] = useState(defaultMode);
 
     // ESTADO DE CONTENIDO (Honest Empty State)
@@ -51,37 +73,24 @@ const CommunicationEngine = ({ data }) => {
     const [activeThread, setActiveThread] = useState(null);
     const [inputBuffer, setInputBuffer] = useState('');
 
-    // AXIOMA: Descubrimiento de Identidades por Canal
+    // [TASK: Source Sync]
     useEffect(() => {
-        const discoverAccounts = async () => {
-            if (!activeSource) return;
-            try {
-                const result = await adapter.executeAction('tokenManager:listTokenAccounts', { provider: activeSource });
-                if (Array.isArray(result)) {
-                    setAccounts(result);
-                    const defaultAcc = result.find(a => a.isDefault) || result[0];
-                    if (defaultAcc) setActiveAccount(defaultAcc.id);
-                }
-            } catch (e) {
-                console.warn(`[CommunicationEngine] Discovery failed for ${activeSource}:`, e);
-                setAccounts([]);
-            }
-        };
-        discoverAccounts();
-    }, [activeSource]);
+        if (nodeId && nodeId !== activeSource) setActiveSource(nodeId);
+    }, [nodeId]);
 
-    // AXIOMA: Reificación de Hilos (Threads)
-    useEffect(() => {
-        if (activeAccount && activeSource) {
-            execute('FETCH_COMMUNICATION_CONTENT', { nodeId: activeSource, accountId: activeAccount });
-        }
-    }, [activeAccount, activeSource]);
+    // AXIOMA: Hidratación Axiomática (Fat Client)
+    const { isScanning } = useAxiomaticHydration(activeSource, {
+        activeAccount,
+        bypassCondition: !activeAccount || !activeSource,
+        fetchAction: 'FETCH_COMMUNICATION_CONTENT',
+        cacheKey: `comm_threads_${activeSource}`
+    });
 
     // AXIOMA: Consumo de Silo (Caché L1)
     useEffect(() => {
         const siloData = state.phenotype.silos?.[activeSource];
         if (siloData) {
-            const items = Array.isArray(siloData) ? siloData : (siloData.items || siloData.results || []);
+            const items = siloData.items || (Array.isArray(siloData) ? siloData : []);
             setThreads(items.map(item => ({
                 id: item.id,
                 sender: item.raw?.from || 'Unknown',
@@ -89,7 +98,7 @@ const CommunicationEngine = ({ data }) => {
                 preview: item.raw?.snippet || '',
                 time: item.lastUpdated ? new Date(item.lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '---',
                 unread: item.raw?.isUnread || false,
-                type: (initialArchetype === 'MAIL' || item.mimeType === 'message/rfc822') ? 'MAIL' : 'CHAT'
+                type: (capIds.includes('SEND_REPLY') || capIds.includes('DATA_STREAM') || item.mimeType === 'message/rfc822' || (item.traits && item.traits.includes('MAIL'))) ? 'MAIL' : 'CHAT'
             })));
         }
     }, [state.phenotype.silos, activeSource]);
@@ -112,23 +121,18 @@ const CommunicationEngine = ({ data }) => {
                 ))}
             </div>
 
-            {/* SELECTOR DE IDENTIDAD */}
-            {accounts.length > 0 && (
-                <div className="p-2 bg-[var(--bg-primary)]/40 border-b border-[var(--border-subtle)] flex items-center gap-2">
-                    <span className="text-[7px] font-bold text-[var(--text-dim)] uppercase">Account:</span>
-                    <select
-                        className="flex-1 bg-transparent border-none text-[9px] font-mono text-[var(--accent)] outline-none cursor-pointer"
-                        value={activeAccount || ''}
-                        onChange={(e) => setActiveAccount(e.target.value)}
-                    >
-                        {accounts.map(acc => (
-                            <option key={acc.id} value={acc.id} className="bg-[var(--bg-deep)]">
-                                {acc.label}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            )}
+            {/* SELECTOR DE IDENTIDAD SOBERANO */}
+            <div className="p-2 bg-[var(--bg-primary)]/40 border-b border-[var(--border-subtle)] flex justify-center">
+                <ProjectionMatrix
+                    archetype="IDENTITY"
+                    perspective="WIDGET"
+                    data={{
+                        provider: activeSource,
+                        accountId: activeAccount,
+                        onAccountChange: (accId) => setActiveAccount(accId)
+                    }}
+                />
+            </div>
 
             <div className="p-4 border-b border-[var(--border-subtle)] flex justify-between items-center">
                 <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)]">
@@ -140,29 +144,41 @@ const CommunicationEngine = ({ data }) => {
                 </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
-                {threads.map(thread => (
-                    <button
-                        key={thread.id}
-                        onClick={() => setActiveThread(thread)}
-                        className={`w-full text-left p-3 border-b border-[var(--border-subtle)]/50 hover:bg-[var(--bg-secondary)] transition-colors flex gap-3 ${activeThread?.id === thread.id ? 'bg-[var(--accent)]/10 border-l-2 border-l-[var(--accent)]' : ''}`}
-                    >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${thread.type === 'MAIL' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'}`}>
-                            {thread.sender[0]}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-baseline mb-0.5">
-                                <span className={`text-[11px] font-bold truncate ${thread.unread ? 'text-[var(--text-vibrant)]' : 'text-[var(--text-soft)]'}`}>
-                                    {thread.sender}
-                                </span>
-                                <span className="text-[9px] font-mono text-[var(--text-dim)] shrink-0">{thread.time}</span>
+            <div className="flex-1 overflow-y-auto relative">
+                {isScanning && threads.length === 0 ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-black/5">
+                        <AxiomaticSpinner size={32} label="Escaneando_Frecuencias" />
+                        <span className="text-[8px] font-mono mt-4 opacity-40 uppercase tracking-widest">Sintonizando hilos de red...</span>
+                    </div>
+                ) : threads.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center p-12 opacity-20 text-center">
+                        <Icons.Inbox size={32} className="mb-4" />
+                        <span className="text-[9px] font-mono uppercase tracking-tighter">Zero_Transmissions_Detected</span>
+                    </div>
+                ) : (
+                    threads.map(thread => (
+                        <button
+                            key={thread.id}
+                            onClick={() => setActiveThread(thread)}
+                            className={`w-full text-left p-3 border-b border-[var(--border-subtle)]/50 hover:bg-[var(--bg-secondary)] transition-colors flex gap-3 ${activeThread?.id === thread.id ? 'bg-[var(--accent)]/10 border-l-2 border-l-[var(--accent)]' : ''}`}
+                        >
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${thread.type === 'MAIL' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'}`}>
+                                {thread.sender[0]}
                             </div>
-                            <div className="text-[10px] text-[var(--text-dim)] truncate">
-                                {thread.subject}
+                            <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-baseline mb-0.5">
+                                    <span className={`text-[11px] font-bold truncate ${thread.unread ? 'text-[var(--text-vibrant)]' : 'text-[var(--text-soft)]'}`}>
+                                        {thread.sender}
+                                    </span>
+                                    <span className="text-[9px] font-mono text-[var(--text-dim)] shrink-0">{thread.time}</span>
+                                </div>
+                                <div className="text-[10px] text-[var(--text-dim)] truncate">
+                                    {thread.subject}
+                                </div>
                             </div>
-                        </div>
-                    </button>
-                ))}
+                        </button>
+                    ))
+                )}
             </div>
         </div>
     );
@@ -238,7 +254,7 @@ const CommunicationEngine = ({ data }) => {
     };
 
     return (
-        <div className="flex h-full w-full bg-[var(--indra-glass-bg)] backdrop-blur-md rounded-2xl overflow-hidden shadow-2xl border border-[var(--indra-glass-border)] animate-in fade-in zoom-in-95 duration-300">
+        <div className="flex h-full w-full bg-[var(--axiom-glass-bg)] backdrop-blur-md rounded-2xl overflow-hidden shadow-2xl border border-[var(--axiom-glass-border)] animate-in fade-in zoom-in-95 duration-300">
             <Sidebar />
             <MainViewer />
         </div>
@@ -246,6 +262,7 @@ const CommunicationEngine = ({ data }) => {
 };
 
 export default CommunicationEngine;
+
 
 
 

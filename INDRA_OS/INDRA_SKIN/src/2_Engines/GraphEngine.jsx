@@ -6,10 +6,11 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import ProjectionMatrix from '../core/kernel/ProjectionMatrix';
-import { useAxiomaticStore } from '../core/state/AxiomaticStore';
-import { SPATIAL_PHYSICS } from '../core/laws/Spatial_Physics';
-import compiler from '../core/laws/Law_Compiler';
+import ProjectionMatrix from '../core/kernel/ProjectionMatrix.jsx';
+import { useAxiomaticStore } from '../core/1_Axiomatic_Store/AxiomaticStore.jsx';
+import compiler from '../core/2_Semantic_Transformation/Law_Compiler.js';
+
+const NODE_WIDTH = 200; // Ancho estándar para cálculos de anclaje
 
 const GraphEngine = ({ nodes = [], edges = [] }) => {
     const { state, execute } = useAxiomaticStore();
@@ -19,8 +20,22 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
     const containerRef = useRef(null);
     const newNodesRef = useRef(new Set());
     const [, forceUpdate] = useState(0);
+    const [draggedNodeId, setDraggedNodeId] = useState(null);
+    const dragOffset = useRef({ x: 0, y: 0 });
+
+    // AXIOMA: Posicionamiento Efímero (Local State for 60FPS Dragging)
+    const [localPositions, setLocalPositions] = useState({});
+    const [localPendingEnd, setLocalPendingEnd] = useState(null);
 
     // AXIOMA: Sincronización de Manifestación (Nuevos Nodos)
+    useEffect(() => {
+        newNodesRef.current.clear();
+        setDraggedNodeId(null);
+        setLocalPositions({});
+        setLocalPendingEnd(null);
+        forceUpdate(v => v + 1);
+    }, [state.phenotype.cosmosIdentity?.id]);
+
     useEffect(() => {
         const hasNewNodes = nodes.some(n => !newNodesRef.current.has(n.id));
         if (hasNewNodes) {
@@ -29,21 +44,21 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
         }
     }, [nodes]);
 
-    // MANEJO DE PAN & ZOOM (Soberanía Espacial)
-    const handleWheel = (e) => {
-        if (e.ctrlKey || e.metaKey) {
-            e.preventDefault();
-            const zoomSensitivity = 0.001;
-            const newZoom = Math.min(Math.max(viewState.zoom - e.deltaY * zoomSensitivity, 0.1), 5);
+    // AXIOMA: Soberanía de Navegación (Wheel Listener No-Pasivo)
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const manualWheel = (e) => {
+            e.preventDefault(); // Ahora permitido porque el listener no es pasivo
+            const direction = e.deltaY > 0 ? -1 : 1;
+            const newZoom = Math.min(Math.max(viewState.zoom + (direction * viewState.zoom * 0.1), 0.1), 5);
             setViewState(prev => ({ ...prev, zoom: newZoom }));
-        } else {
-            setViewState(prev => ({
-                ...prev,
-                x: prev.x - e.deltaX,
-                y: prev.y - e.deltaY
-            }));
-        }
-    };
+        };
+
+        container.addEventListener('wheel', manualWheel, { passive: false });
+        return () => container.removeEventListener('wheel', manualWheel);
+    }, [viewState.zoom]);
 
     const handleMouseDown = (e) => {
         if (e.target === containerRef.current) {
@@ -53,140 +68,125 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
     };
 
     const handleMouseMove = (e) => {
-        if (isDragging) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const canvasX = (e.clientX - rect.left - viewState.x - (rect.width / 2)) / viewState.zoom;
+        const canvasY = (e.clientY - rect.top - viewState.y - (rect.height / 2)) / viewState.zoom;
+
+        if (draggedNodeId) {
+            // AXIOMA: Movimiento Local Inmediato (Cero Latencia en Store)
+            const newX = canvasX - dragOffset.current.x;
+            const newY = canvasY - dragOffset.current.y;
+
+            setLocalPositions(prev => ({
+                ...prev,
+                [draggedNodeId]: { x: newX, y: newY }
+            }));
+
+        } else if (isDragging) {
             const dx = e.clientX - dragStart.x;
             const dy = e.clientY - dragStart.y;
             setViewState(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
             setDragStart({ x: e.clientX, y: e.clientY });
         } else if (state.phenotype.ui.pendingConnection) {
-            // Actualizar el terminal del cable fantasma
-            const rect = containerRef.current.getBoundingClientRect();
-            const x = (e.clientX - rect.left - viewState.x - (rect.width / 2)) / viewState.zoom;
-            const y = (e.clientY - rect.top - viewState.y - (rect.height / 2)) / viewState.zoom;
-
-            execute('SET_PENDING_CONNECTION', {
-                ...state.phenotype.ui.pendingConnection,
-                currentX: x,
-                currentY: y
-            });
+            // AXIOMA: Cable Fantasma a 60 FPS (Estado local)
+            setLocalPendingEnd({ x: canvasX, y: canvasY });
         }
     };
 
     const handleMouseUp = () => {
+        if (draggedNodeId && localPositions[draggedNodeId]) {
+            // AXIOMA: Compromiso Final (Commit on Release)
+            const pos = localPositions[draggedNodeId];
+            execute('UPDATE_NODE', {
+                id: draggedNodeId,
+                updates: { x: pos.x, y: pos.y }
+            });
+        }
+
         setIsDragging(false);
-        // Si hay una conexión pendiente, la limpiamos después de un breve delay
+        setDraggedNodeId(null);
+        setLocalPendingEnd(null);
+
         if (state.phenotype.ui.pendingConnection) {
-            setTimeout(() => execute('CLEAR_PENDING_CONNECTION'), 100);
+            // Breve delay para permitir que el onMouseUp del puerto actúe primero
+            setTimeout(() => {
+                // Usamos el estado inyectado directamente para la comprobación
+                if (state.phenotype.ui.pendingConnection) {
+                    execute('CLEAR_PENDING_CONNECTION');
+                }
+            }, 100);
         }
     };
 
-    // --- LÓGICA DE AUTOLAYOUT AXIOMÁTICO (Fisiología Fractal) ---
-    const getAxiomaticPosition = (node, allNodes) => {
-        const arch = (node.ARCHETYPE || node.archetype || '').toUpperCase();
+    // AXIOMA: Cancelación por Escape (UX Universal)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && state.phenotype.ui.pendingConnection) {
+                execute('CLEAR_PENDING_CONNECTION');
+                setLocalPendingEnd(null);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [state.phenotype.ui.pendingConnection]);
 
-        // 1. Determinar Columna (x)
-        let x = 0; // Column B: TRANSFORMS (Default)
-        if (arch.includes('VAULT') || arch.includes('ADAPTER')) x = -450; // Column A: SEEDS
-        if (arch.includes('SLOT')) x = 450; // Column C: FRUITS
+    const handleNodeMouseDown = (e, node) => {
+        if (state.phenotype.ui.pendingConnection) return;
 
-        // 2. Determinar Posición Vertical (y) 
-        const sameColNodes = allNodes.filter(n => {
-            const nArch = (n.ARCHETYPE || n.archetype || '').toUpperCase();
-            if (x === -450) return nArch.includes('VAULT') || nArch.includes('ADAPTER');
-            if (x === 450) return nArch.includes('SLOT');
-            return !nArch.includes('VAULT') && !nArch.includes('ADAPTER') && !nArch.includes('SLOT');
-        });
+        e.stopPropagation();
+        setDraggedNodeId(node.id);
 
-        const colIndex = sameColNodes.findIndex(n => n.id === node.id);
+        const rect = containerRef.current.getBoundingClientRect();
+        const canvasX = (e.clientX - rect.left - viewState.x - (rect.width / 2)) / viewState.zoom;
+        const canvasY = (e.clientY - rect.top - viewState.y - (rect.height / 2)) / viewState.zoom;
 
-        // AXIOMA: Profundidad de Procesamiento (Staggered Flow)
-        // Sub-columnas dentro de Orígenes: Vaults (-550) vs Adapters (-350)
-        let subColumnOffset = 0;
-        if (arch.includes('VAULT')) subColumnOffset = -100;
-        if (arch.includes('ADAPTER')) subColumnOffset = 100;
-
-        const finalX = x + subColumnOffset + (colIndex % 2 === 0 ? 0 : 40);
-
-        const y = (colIndex - (sameColNodes.length - 1) / 2) * 380;
-
-        return { x: finalX, y };
+        const { x: nodeX, y: nodeY } = getAxiomaticPosition(node);
+        dragOffset.current = {
+            x: canvasX - nodeX,
+            y: canvasY - nodeY
+        };
     };
 
-    // RENDERIZADO DE SUGERENCIAS AXIOMÁTICAS (The Proactive Bridge)
-    const renderSuggestions = () => {
-        const pending = state.phenotype.ui.pendingConnection;
-        if (!pending) return null;
+    // --- LÓGICA DE GEOMETRÍA SOBERANA (Free Will Physics) ---
+    const getAxiomaticPosition = (node) => {
+        // 0. Prioridad absoluta: Movimiento en tiempo real (Local State)
+        if (localPositions[node.id]) {
+            return localPositions[node.id];
+        }
 
-        const sourceNode = nodes.find(n => n.id === pending.sourceNodeId);
-        if (!sourceNode) return null;
+        // 1. Si el nodo ya tiene voluntad propia (coordenadas guardadas), se respetan.
+        if (typeof node.x === 'number' && typeof node.y === 'number') {
+            return { x: node.x, y: node.y };
+        }
 
-        const suggestions = compiler.getCompatibleNodes(sourceNode.ARCHETYPE);
-        if (suggestions.length === 0) return null;
+        // 2. Si es un recién nacido, nace del caos (Dispersión Radial Aleatoria)
+        // Usamos el hash del ID para que sea pseudo-determinista y no salte en cada render.
+        const hash = node.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const seed = hash % 1000; // 0-999
 
-        return (
-            <div
-                className="absolute z-[1000] flex flex-col gap-2 p-3 bg-[var(--bg-glass)] backdrop-blur-xl border border-[var(--accent)]/30 rounded-2xl shadow-2xl pointer-events-auto animate-in fade-in zoom-in-90 duration-300"
-                style={{
-                    left: pending.currentX + (100 / viewState.zoom), // Offset para no tapar el cursor
-                    top: pending.currentY - (suggestions.length * 20 / viewState.zoom),
-                    transform: `scale(${1 / viewState.zoom})`, // Mantener tamaño legible
-                    transformOrigin: 'left center'
-                }}
-            >
-                <header className="flex items-center gap-2 mb-1 px-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--accent)]">Sugerencias Axiomáticas</span>
-                </header>
-                {suggestions.slice(0, 4).map((art, idx) => (
-                    <button
-                        key={idx}
-                        className="flex items-center gap-3 px-3 py-2 rounded-xl bg-[var(--bg-primary)] hover:bg-[var(--accent)]/10 border border-[var(--border-subtle)] hover:border-[var(--accent)]/30 transition-all text-left group"
-                        onMouseDown={(e) => {
-                            e.stopPropagation();
-                            // MANIFEST_AND_CONNECT
-                            execute('ADD_ARTIFACT_REQUEST', { artifact: art });
-                            // El delay es para esperar a que el nodo se materialice y tenga ID
-                            setTimeout(() => {
-                                const newNodes = state.phenotype.artifacts;
-                                const lastNode = newNodes[newNodes.length - 1];
-                                if (lastNode) {
-                                    execute('ADD_RELATIONSHIP', {
-                                        source: pending.sourceNodeId,
-                                        target: lastNode.id,
-                                        sourcePort: pending.portId,
-                                        targetPort: Object.keys(lastNode.CAPABILITIES || {})[0] || 'input'
-                                    });
-                                }
-                            }, 100);
-                        }}
-                    >
-                        <span className="text-xl">✨</span>
-                        <div className="flex flex-col">
-                            <span className="text-[11px] font-bold text-[var(--text-soft)] group-hover:text-white uppercase truncate max-w-[120px]">
-                                {art.LABEL || art.label}
-                            </span>
-                            <span className="text-[8px] font-mono text-[var(--text-dim)] uppercase">Manifestar {art.ARCHETYPE}</span>
-                        </div>
-                    </button>
-                ))}
-            </div>
-        );
+        const angle = (seed / 1000) * Math.PI * 2; // Ángulo aleatorio 0-360
+        const radius = 200 + (seed % 300); // Radio entre 200px y 500px del centro
+
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+
+        return { x, y };
     };
+
+
 
     // RENDERIZADO DE CONEXIÓN PENDIENTE (Fantasma)
     const renderPendingConnection = () => {
         const pending = state.phenotype.ui.pendingConnection;
         if (!pending) return null;
 
-        const sourceNode = nodes.find(n => n.id === pending.sourceNodeId);
-        if (!sourceNode) return null;
+        // AXIOMA: Coordenadas ya en espacio canvas (transformadas en NodeEngine)
+        const x1 = pending.startX;
+        const y1 = pending.startY;
 
-        const { x: sx, y: sy } = getAxiomaticPosition(sourceNode, nodes);
-
-        const x1 = sx + (pending.portOffsetX || 0);
-        const y1 = sy + (pending.portOffsetY || 0);
-        const x2 = pending.currentX;
-        const y2 = pending.currentY;
+        // Priorizar posición local efímera para máxima fluidez
+        const x2 = localPendingEnd ? localPendingEnd.x : pending.currentX;
+        const y2 = localPendingEnd ? localPendingEnd.y : pending.currentY;
 
         const dx = Math.abs(x1 - x2) * 0.5;
         const pathData = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
@@ -198,7 +198,7 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
                 stroke="var(--accent)"
                 strokeWidth="2"
                 strokeDasharray="5 5"
-                strokeOpacity="0.6"
+                strokeOpacity="0.8"
                 className="animate-flow"
             />
         );
@@ -207,34 +207,84 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
     // RENDERIZADO DE ARISTAS (Conexiones Sinápticas)
     const renderEdges = () => {
         const activePulses = state.phenotype.activePulses || [];
+        const canvas = containerRef.current;
+        if (!canvas) return null;
+
+        const rect = canvas.getBoundingClientRect();
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
         return edges.filter(e => !e._isDeleted).map((edge, i) => {
             const sourceNode = nodes.find(n => n.id === edge.source);
             const targetNode = nodes.find(n => n.id === edge.target);
             if (!sourceNode || !targetNode) return null;
             const isActive = activePulses.includes(edge.id);
 
-            const { x: x1_raw, y: y1_raw } = getAxiomaticPosition(sourceNode, nodes);
-            const { x: x2_raw, y: y2_raw } = getAxiomaticPosition(targetNode, nodes);
+            const { x: x1_base, y: y1_base } = getAxiomaticPosition(sourceNode);
+            const { x: x2_base, y: y2_base } = getAxiomaticPosition(targetNode);
 
-            const { NODE_WIDTH } = SPATIAL_PHYSICS.GEOMETRY;
+            // AXIOMA: Snapping Inteligente de Puerto (V14.1)
+            // Intentamos encontrar el puerto en el DOM para máxima precisión.
+            // Si no está (ej: nodo colapsado o no renderizado aún), usamos el fallback.
 
-            const x1 = x1_raw + (NODE_WIDTH / 2);
-            const y1 = y1_raw;
-            const x2 = x2_raw - (NODE_WIDTH / 2);
-            const y2 = y2_raw;
+            let x1 = x1_base + (NODE_WIDTH / 2);
+            let y1 = y1_base;
+            let x2 = x2_base - (NODE_WIDTH / 2);
+            let y2 = y2_base;
+
+            // Búsqueda de Puertos Reales
+            const sourcePortEl = document.querySelector(`[data-port-id="${edge.source}:${edge.sourcePort}"]`);
+            const targetPortEl = document.querySelector(`[data-port-id="${edge.target}:${edge.targetPort}"]`);
+
+            if (sourcePortEl) {
+                const pRect = sourcePortEl.getBoundingClientRect();
+                const bullet = sourcePortEl.querySelector('div[class*="rounded-full"]') || sourcePortEl;
+                const bRect = bullet.getBoundingClientRect();
+
+                x1 = (bRect.left + bRect.width / 2 - rect.left - centerX - viewState.x) / viewState.zoom;
+                y1 = (bRect.top + bRect.height / 2 - rect.top - centerY - viewState.y) / viewState.zoom;
+            }
+
+            if (targetPortEl) {
+                const pRect = targetPortEl.getBoundingClientRect();
+                const bullet = targetPortEl.querySelector('div[class*="rounded-full"]') || targetPortEl;
+                const bRect = bullet.getBoundingClientRect();
+
+                x2 = (bRect.left + bRect.width / 2 - rect.left - centerX - viewState.x) / viewState.zoom;
+                y2 = (bRect.top + bRect.height / 2 - rect.top - centerY - viewState.y) / viewState.zoom;
+            }
 
             const dx = Math.abs(x1 - x2) * 0.5;
             const pathData = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
 
             return (
-                <g key={edge.id || i}>
+                <g
+                    key={edge.id || i}
+                    className="cursor-pointer group/cable"
+                    onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm('¿Eliminar esta conexión sináptica?')) {
+                            execute('REMOVE_RELATIONSHIP', { id: edge.id });
+                        }
+                    }}
+                >
+                    {/* AXIOMA: Hit-box invisible (Facilita click en cables finos) */}
+                    <path
+                        d={pathData}
+                        fill="none"
+                        stroke="transparent"
+                        strokeWidth="15"
+                        className="pointer-events-auto"
+                    />
+
+                    {/* El Cable Visual */}
                     <path
                         d={pathData}
                         fill="none"
                         stroke={isActive ? "var(--accent-glow)" : "var(--accent)"}
                         strokeWidth={isActive ? "3" : "2"}
-                        strokeOpacity={isActive ? "0.8" : "0.3"}
-                        className={isActive ? "glow-pulse" : "animate-pulse"}
+                        strokeOpacity={isActive ? "0.9" : "0.3"}
+                        className={`${isActive ? "glow-pulse" : "animate-pulse"} group-hover/cable:stroke-opacity-100 transition-all`}
                     />
                     <path
                         d={pathData}
@@ -257,7 +307,7 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
 
     const handleDrop = (e) => {
         e.preventDefault();
-        const data = e.dataTransfer.getData('indra/artifact');
+        const data = e.dataTransfer.getData('axiom/artifact');
 
         if (data) {
             try {
@@ -284,13 +334,17 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
         <div
             ref={containerRef}
             className={`w-full h-full relative overflow-hidden bg-dot-pattern transition-all duration-700 ${isFocused ? 'blur-md scale-95 opacity-30 grayscale' : 'blur-0 scale-100'}`}
-            onWheel={handleWheel}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
+            // AXIOMA: Exposición de Estado Espacial (Para que NodeEngine pueda transformar coords)
+            data-graph-canvas="true"
+            data-zoom={viewState.zoom}
+            data-panx={viewState.x}
+            data-pany={viewState.y}
             style={{
                 backgroundColor: 'var(--bg-deep)',
                 backgroundImage: 'radial-gradient(var(--border-subtle) 1px, transparent 1px)',
@@ -319,11 +373,10 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
                     {renderPendingConnection()}
                 </svg>
 
-                {/* HUD de Sugerencias (Contextual) */}
-                {renderSuggestions()}
+
 
                 {nodes.filter(n => !n._isDeleted).map((node) => {
-                    const { x, y } = getAxiomaticPosition(node, nodes);
+                    const { x, y } = getAxiomaticPosition(node);
 
                     // AXIOMA: DETECCIÓN DE NACIMIENTO
                     const isNew = !newNodesRef.current.has(node.id);
@@ -335,13 +388,14 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
                     return (
                         <div
                             key={node.id}
-                            className={`absolute cursor-pointer group ${isNew ? 'animate-manifest z-[500]' : ''}`}
+                            className={`absolute cursor-pointer group ${isNew ? 'animate-manifest z-[500]' : ''} ${draggedNodeId === node.id ? 'z-[1000] scale-105' : ''}`}
+                            onMouseDown={(e) => handleNodeMouseDown(e, node)}
                             onDoubleClick={(e) => { e.stopPropagation(); execute('SELECT_ARTIFACT', node); }}
                             style={{
-                                transform: isNew ? 'none' : `translate(${x}px, ${y}px) translate(-50%, -50%)`,
-                                transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                                left: isNew ? `${x}px` : 'auto',
-                                top: isNew ? `${y}px` : 'auto'
+                                transform: (isNew && draggedNodeId !== node.id) ? 'none' : `translate(${x}px, ${y}px) translate(-50%, -50%)`,
+                                transition: draggedNodeId === node.id ? 'none' : 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                                left: (isNew && draggedNodeId !== node.id) ? `${x}px` : 'auto',
+                                top: (isNew && draggedNodeId !== node.id) ? `${y}px` : 'auto'
                             }}
                         >
                             <ProjectionMatrix
@@ -354,20 +408,6 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
                     );
                 })}
 
-                {/* ETIQUETAS DE COLUMNA (Map Labels) */}
-                {!isFocused && (
-                    <>
-                        <div className="absolute top-[-500px] left-[-450px] transform -translate-x-1/2 -translate-y-full opacity-20 pointer-events-none">
-                            <span className="text-6xl font-black uppercase tracking-[0.5em] text-[var(--text-primary)]">ORÍGENES</span>
-                        </div>
-                        <div className="absolute top-[-500px] left-[0px] transform -translate-x-1/2 -translate-y-full opacity-20 pointer-events-none">
-                            <span className="text-6xl font-black uppercase tracking-[0.5em] text-[var(--text-primary)]">PROCESOS</span>
-                        </div>
-                        <div className="absolute top-[-500px] left-[450px] transform -translate-x-1/2 -translate-y-full opacity-20 pointer-events-none">
-                            <span className="text-6xl font-black uppercase tracking-[0.5em] text-[var(--text-primary)]">RESULTADOS</span>
-                        </div>
-                    </>
-                )}
             </div>
 
             {!isFocused && (
@@ -384,6 +424,7 @@ const GraphEngine = ({ nodes = [], edges = [] }) => {
 };
 
 export default GraphEngine;
+
 
 
 

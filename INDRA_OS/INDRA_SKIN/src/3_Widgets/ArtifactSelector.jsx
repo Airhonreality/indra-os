@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import compiler from '../core/laws/Law_Compiler';
-import { Icons } from '../4_Atoms/IndraIcons';
-import { useAxiomaticStore } from '../core/state/AxiomaticStore';
+﻿import React, { useState, useEffect, useMemo } from 'react';
+import compiler from '../core/2_Semantic_Transformation/Law_Compiler.js';
+import { Icons } from '../4_Atoms/AxiomIcons.jsx';
+import { useAxiomaticStore } from '../core/1_Axiomatic_Store/AxiomaticStore.jsx';
 
 /**
  * ArtifactSelector (The Catalog)
@@ -13,7 +13,7 @@ const ArtifactSelector = ({ onSelect, onClose }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [availableArtifacts, setAvailableArtifacts] = useState([]);
 
-    const artifactCount = state.phenotype.artifacts?.length || 0;
+    const artifactCount = Object.keys(state.phenotype.artifacts || {}).length;
 
     useEffect(() => {
         if (!compiler.isCompiled) compiler.compile();
@@ -27,29 +27,28 @@ const ArtifactSelector = ({ onSelect, onClose }) => {
             // 2. Metadata Normalization
             const domain = (canon.DOMAIN || canon.domain || 'SYSTEM').toUpperCase();
             const archetype = (canon.ARCHETYPE || canon.archetype || 'NODE').toUpperCase();
+            const caps = canon.CAPABILITIES || canon.capabilities || {};
+            const traits = (canon.traits || canon.TRAITS || []).map(t => String(t).toUpperCase());
 
-            // 3. AXIOMATIC LOCK (Linear-Fractal Flow)
-            // Si el Cosmos está vacío, bloqueamos lo que no sea Semilla
-            const isSeed = archetype.includes('VAULT') || archetype.includes('ADAPTER') || archetype.includes('TRIGGER');
+            const capIds = Object.values(caps).map(c => typeof c === 'object' ? c.id : c);
+
+            // 3. AXIOMA: AXIOMATIC LOCK (Linear-Fractal Flow)
+            // Si el Cosmos está vacío, bloqueamos lo que no sea Semilla (Fuente de Verdad)
+            const isSeed = traits.includes('VAULT') || traits.includes('ADAPTER') || traits.includes('STORAGE') || capIds.includes('LIST_FILES') || capIds.includes('DATA_STREAM');
             const isLocked = artifactCount === 0 && !isSeed;
 
             // 4. COMPOSITE-ONLY EXCLUSION
-            if (archetype.includes('DESIGN_TOOL') || archetype.includes('STYLING')) return null;
+            if (traits.includes('DESIGN_TOOL') || traits.includes('STYLING') || archetype.includes('DESIGN_TOOL')) return null;
 
-            // 5. ARCHETYPE PASS
-            const manifestableArchetypes = [
-                'ADAPTER', 'VAULT', 'ORCHESTRATOR', 'AGENT',
-                'WIDGET', 'DATAGRID', 'SERVICE', 'TRANSFORM',
-                'GRID', 'COMPUTE', 'NODE', 'SLOT', 'SLOT_NODE', 'UTILITY', 'STYLING'
-            ];
-            const isTool = manifestableArchetypes.some(a => archetype.includes(a));
-            const isBridge = archetype.includes('ADAPTER') || archetype.includes('VAULT') || archetype.includes('AGENT');
+            // 5. ARCHETYPE PASS (Sovereign Filter)
+            const isTool = traits.length > 0 || Object.keys(caps).length > 0;
+            const isBridge = traits.includes('ADAPTER') || traits.includes('VAULT') || traits.includes('AGENT') || traits.includes('BRIDGE');
 
             // 6. DOMAIN REJECTION
             const coreDomains = ['SYSTEM_CORE', 'SYSTEM_INFRA', 'DATA_ENGINE', 'LOGIC', 'TEMPORAL'];
             const isInfra = coreDomains.includes(domain);
             if (isInfra && !isBridge) return null;
-            if (!isTool && !isBridge) return null;
+            if (!isTool && !isBridge && archetype === 'NODE') return null; // Solo evitamos nodos vacíos genéricos
             if (!canon.LABEL && !canon.label && !canon.functional_name) return null;
 
             return { ...canon, isLocked };
@@ -65,28 +64,32 @@ const ArtifactSelector = ({ onSelect, onClose }) => {
         setAvailableArtifacts(artifactsWithMeta);
     }, [artifactCount]);
 
-    // 6. CATEGORIZATION LOGIC (Semantic Neighborhoods)
+    // 6. CATEGORIZATION LOGIC (Functional Trait Detection) — Zen Purge
     const categorize = (art) => {
+        const caps = (art.CAPABILITIES || art.capabilities || {});
         const arch = (art.ARCHETYPE || art.archetype || '').toUpperCase();
         const dom = (art.DOMAIN || art.domain || '').toUpperCase();
+        const traits = (art.traits || art.TRAITS || []).map(t => String(t).toUpperCase());
 
-        // Vaults & Knowledge Base
-        if (arch.includes('VAULT') || dom.includes('KNOWLEDGE') || dom.includes('DATA')) return 'KNOWLEDGE_VAULTS';
+        const capIds = Object.values(caps).map(c => typeof c === 'object' ? c.id : c);
 
-        // Intelligence & Cognitive Agents
-        if (dom.includes('INTELLIGENCE') || dom.includes('COGNITIVE') || arch.includes('AGENT')) return 'COGNITIVE_ENGINES';
+        // 1. Capacidad de Conocimiento (Almacenamiento y Datos)
+        if (traits.includes('STORAGE') || traits.includes('DATABASE') || capIds.includes('LIST_FILES') || capIds.includes('DATA_STREAM') || arch === 'VAULT') return 'KNOWLEDGE_VAULTS';
 
-        // Bridges & External Channels
-        if (arch.includes('ADAPTER') || dom.includes('COMMUNICATION') || dom.includes('SPATIAL') || dom.includes('MEDIA')) return 'BRIDGES_AND_ADAPTERS';
+        // 2. Capacidad Cognitiva (IA y Procesamiento)
+        if (traits.includes('COGNITIVE') || traits.includes('AGENT') || dom.includes('INTELLIGENCE') || arch === 'AGENT') return 'COGNITIVE_ENGINES';
 
-        // Visual Utilities (Macro-Apps)
-        if (arch.includes('SLOT') || arch.includes('REALITY') || arch.includes('UTILITY') || arch.includes('VISUAL_UTILITY')) return 'VISUAL_UTILITIES';
+        // 3. Capacidad de Puente (Conexiones Externas y Comunicación)
+        if (traits.includes('BRIDGE') || traits.includes('COMMUNICATION') || capIds.includes('SEND_MESSAGE') || arch === 'COMMUNICATION' || arch === 'ADAPTER') return 'BRIDGES_AND_ADAPTERS';
 
-        // Atomic Widgets (Micro-Tools)
-        if (arch.includes('WIDGET') || arch.includes('STYLING') || arch.includes('MATH')) return 'ATOMIC_WIDGETS';
+        // 4. Capacidad de Proyección (UI Estructural y Realidad)
+        if (traits.includes('SLOT') || traits.includes('PROJECTION') || traits.includes('REALITY') || capIds.includes('RECEIVE') || arch === 'COMPOSITOR' || arch === 'REALITY') return 'VISUAL_UTILITIES';
 
-        // Structure & Logic
-        if (arch.includes('ORCHESTRATOR') || arch.includes('TRANSFORM') || arch.includes('GRID')) return 'ORCHESTRATION_UNITS';
+        // 5. Capacidad Atómica (Micro-controles)
+        if (traits.includes('WIDGET') || traits.includes('STYLING') || arch === 'WIDGET') return 'ATOMIC_WIDGETS';
+
+        // 6. Capacidad de Gesta (Orquestación y Control)
+        if (traits.includes('ORCHESTRATOR') || arch === 'ORCHESTRATOR' || dom === 'LOGIC') return 'ORCHESTRATION_UNITS';
 
         return 'UTILITIES';
     };
@@ -266,7 +269,7 @@ const ArtifactSelector = ({ onSelect, onClose }) => {
                     </div>
 
                     <div className="flex items-center gap-2 font-black text-[9px] tracking-[0.3em] text-[var(--accent)] opacity-80 uppercase">
-                        <span>Indra_OS</span>
+                        <span>Axiom_OS</span>
                         <span className="text-[var(--text-dim)] opacity-30">//</span>
                         <span>Manifest_v8.1</span>
                     </div>
@@ -277,6 +280,7 @@ const ArtifactSelector = ({ onSelect, onClose }) => {
 };
 
 export default ArtifactSelector;
+
 
 
 

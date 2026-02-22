@@ -253,7 +253,7 @@ function _assembleExecutionStack(overrides = {}) {
         const aggregatorDeps = {
           ...baseDeps,
           adapters: discovered,
-          sensingService: discovered.oracle
+          sensingService: discovered.sensing
         };
         discovered[nodeKey] = _safeCreate(adapterName + 'Adapter', global[key], aggregatorDeps);
       }
@@ -332,7 +332,7 @@ function _assembleExecutionStack(overrides = {}) {
     debug: debugAdapter
   };
 
-  const nodesRegistry = { 
+  const nodesRegistryRaw = { 
     ...initialNodes,
     ...discovered,
     isk: spatialProjectionAdapter,
@@ -340,7 +340,7 @@ function _assembleExecutionStack(overrides = {}) {
     config: serverStack.configurator,
     sensing: sensingAdapter, 
     tokenManager: serverStack.tokenManager,
-    metabolism: metabolicService,
+    monitor: metabolicService,
     networkDispatcher: networkDispatcher, // Burst mode infrastructure
     adminTools: adminTools,
     // CAPA 8: CONTROL GATEWAY (Federal Agents)
@@ -360,6 +360,20 @@ function _assembleExecutionStack(overrides = {}) {
     websocket: serverStack.webSocketManager
   };
 
+  const nodesRegistry = {};
+  Object.keys(nodesRegistryRaw).forEach(k => {
+    nodesRegistry[k.toLowerCase()] = nodesRegistryRaw[k];
+  });
+
+  // AXIOMA: Inyección de Overrides en el Registro (V13)
+  // Asegura que los mocks pasados manualmente entren en el grafo de dependencias.
+  Object.keys(overrides).forEach(key => {
+    const isComponent = key.endsWith('Adapter') || key.endsWith('Service') || key.endsWith('Node');
+    if (isComponent && !nodesRegistry[key]) {
+      nodesRegistry[key] = overrides[key];
+    }
+  });
+
   // 🔬 ONTOLOGICAL DECORATION (Axiom: Discovery over Hardcoding)
   // AXIOMA: Reificación Dinámica (Unfreeze for decoration)
   const registryMetadata = JSON.parse(JSON.stringify(constitution.COMPONENT_REGISTRY || {}));
@@ -369,59 +383,66 @@ function _assembleExecutionStack(overrides = {}) {
 
   
   /**
-   * Imbue un componente con su identidad soberana definida en la Constitución.
-   * AXIOMA: Soberanía L0 (Sobre-escritura directa de metadatos hardcodeados).
+   * Imbue un componente con su identidad soberana (ADR-022 PURE).
+   * AXIOMA: Soberanía de la Fuente. La verdad reside en el adapter, no en el ensamblador.
    */
   function _decorate(key, node) {
     if (!node || typeof node !== 'object') return node;
 
-    // AXIOMA: Mutability for Decoration
+    // AXIOMA: Mutabilidad para Decoración
     if (Object.isFrozen(node)) {
       node = { ...node }; 
     }
 
-    // AXIOMA V8.0: Auto-Descubrimiento Canónico
-    const internalCanon = (typeof node.getCanon === 'function') ? node.getCanon() : (node.CANON || {});
-    const centralConfig = registryMetadata[key.toUpperCase()] || {};
+    // 1. EXTRAER LA VERDAD SOBERANA (CANON)
+    const canon = (typeof node.getCanon === 'function') ? node.getCanon() : (node.CANON || node.canon || {});
+    
+    // AXIOMA: Si el nodo tiene CANON sólido, ignoramos legacy schemas externos
+    const hasSovereignCapabilities = canon.CAPABILITIES || canon.capabilities;
 
-    // Fusión de Identidad V15 (Technical Sovereignty)
-    // LABEL y DESCRIPTION son GENOTIPO (Autodefinición del Adaptador).
-    // ICON y otros metadatos visuales son FENOTIPO (Capa Skin).
+    // Si no hay CANON ni legacy schemas, tratamos como infraestructura básica
+    if (!hasSovereignCapabilities && !node.schemas) {
+        node.id = key.toLowerCase();
+        node.label = node.label || key;
+        node.archetype = node.archetype || "INFRASTRUCTURE";
+        return node;
+    }
+
+    // 2. REIFICACIÓN SOBERANA (Soldadura ADR-022)
     const sovereignCanon = {
         id: key.toLowerCase(), 
-        LABEL: internalCanon.LABEL || centralConfig.LABEL || key,
-        DESCRIPTION: internalCanon.DESCRIPTION || centralConfig.DESCRIPTION || node.description || "",
-        ARCHETYPE: internalCanon.ARCHETYPE || centralConfig.ARCHETYPE || "SERVICE", 
-        DOMAIN: internalCanon.DOMAIN || centralConfig.DOMAIN || "SYSTEM_CORE",
-        CAPABILITIES: internalCanon.CAPABILITIES || centralConfig.CAPABILITIES || node.schemas || {},
-        DATA_CONTRACT: internalCanon.DATA_CONTRACT || centralConfig.DATA_CONTRACT || node.schemas || {} 
+        LABEL: canon.label || canon.LABEL || node.label || key,
+        DESCRIPTION: canon.description || canon.DESCRIPTION || node.description || "",
+        ARCHETYPE: canon.archetype || canon.ARCHETYPE || node.archetype || "SERVICE", 
+        DOMAIN: canon.domain || canon.DOMAIN || node.domain || "SYSTEM",
+        // AXIOMA: Soberanía de Fuente. Prioridad absoluta al CANON.
+        CAPABILITIES: hasSovereignCapabilities || node.schemas || {},
+        REIFICATION_HINTS: canon.REIFICATION_HINTS || canon.reification_hints || {}
     };
 
-    // Propiedades Visuales (Fenotipo) - Se extraen del Canon para la Skin
-    const fenotype = {
-        SEMANTIC_INTENT: internalCanon.SEMANTIC_INTENT || centralConfig.SEMANTIC_INTENT || "STREAM"
-        // VITAL_SIGNS ha sido removido del Core por falta de claridad ontológica
-    };
-
-    node.canon = sovereignCanon; // ✅ Canon Técnico (Genotipo)
-    
-    // Inyectar propiedades legacy en el nodo para compatibilidad
-    node.id = key;
+    // 3. NORMALIZACIÓN DE FENOTIPO (Retrocompatibilidad activa)
+    node.id = sovereignCanon.id;
     node.label = sovereignCanon.LABEL;
-    node.description = sovereignCanon.DESCRIPTION; // Restaurado como Genotipo
     node.archetype = sovereignCanon.ARCHETYPE;
-    node.archetypes = [sovereignCanon.ARCHETYPE];
     node.domain = sovereignCanon.DOMAIN;
     node.schemas = sovereignCanon.CAPABILITIES;
-    // node.semantic_intent = fenotype.SEMANTIC_INTENT; // Descomentar si rompe algo legacy
-
-    // ACTUALIZACIÓN DE SEGURIDAD: Si existe node.CANON (Mayúsculas), lo purificamos también
-    if (node.CANON) {
-        node.CANON = sovereignCanon;
-    }
+    node.canon = sovereignCanon; 
+    node.CANON = sovereignCanon; 
+    
+    node.semantic_intent = canon.SEMANTIC_INTENT || node.semantic_intent || "STREAM";
+    node.archetypes = canon.archetypes || [sovereignCanon.ARCHETYPE];
     
     return node;
   }
+
+  // AXIOMA: Aliasing de Adaptadores (v12)
+  // Permite que llmAdapter sea accesible como 'llm' en el registro.
+  Object.keys(nodesRegistry).forEach(key => {
+    if (key.endsWith('Adapter')) {
+       const alias = key.replace('Adapter', '');
+       if (!nodesRegistry[alias]) nodesRegistry[alias] = nodesRegistry[key];
+    }
+  });
 
   // AXIOMA: Decoración Universal (No discriminación de nodos)
   Object.keys(nodesRegistry).forEach(key => {
@@ -444,7 +465,8 @@ function _assembleExecutionStack(overrides = {}) {
     configurator: serverStack.configurator,
     driveAdapter: serverStack.driveAdapter,
     mcepCore: mcepCore,
-    laws: laws
+    laws: laws,
+    nodes: nodesRegistry
   });
 
   // Decorar el nodo de inteligencia post-creación e insertar en el registro
@@ -507,6 +529,12 @@ function _assembleExecutionStack(overrides = {}) {
   });
   
   const decoratedPublic = _decorate('public', publicApi);
+  
+  // AXIOMA: Registar la API Pública en el grafo de nodos para ejecución recursiva
+  if (nodes) {
+    nodes.public = decoratedPublic;
+    nodes.system = decoratedPublic;
+  }
   
   Object.freeze(nodes);
 
@@ -597,6 +625,7 @@ function _assembleInjestStack(overrides = {}) {
     tokenManager
   };
 }
+
 
 
 

@@ -3,7 +3,7 @@
  * DHARMA: Motor de Propagación de Señales (v10.9)
  * AXIOMA: "La información no es estática, es un pulso."
  */
-import adapter from '../Sovereign_Adapter';
+import adapter from '../Sovereign_Adapter.js';
 
 class SynapticDispatcher {
     constructor() {
@@ -39,53 +39,32 @@ class SynapticDispatcher {
 
         visitedNodes.add(sourceNodeId);
 
-        // 1. Identificar Relaciones Salientes
-        // AXIOMA DE FILTRADO: Solo propagamos por el puerto que disparó, o por columnas si es un row-select.
+        // 1. Identificar Relaciones Salientes (Strict Port Matching)
         const outgoingRelationships = state.phenotype.relationships?.filter(
             rel => rel.source === sourceNodeId && !rel._isDeleted && (
-                !sourceCapability ||
-                rel.sourcePort === sourceCapability ||
-                (sourceCapability === 'onRowSelect' && rel.sourcePort?.startsWith('col:'))
+                !sourceCapability || rel.sourcePort === sourceCapability
             )
         ) || [];
 
         if (outgoingRelationships.length === 0) return;
 
-        // 2. Transmisión de Energía
+        // 2. Transmisión de Energía (Entropía Cero)
         for (const rel of outgoingRelationships) {
-            const targetNode = state.phenotype.artifacts.find(n => n.id === rel.target && !n._isDeleted);
-            if (!targetNode) continue;
+            const targetNode = state.phenotype.artifacts[rel.target];
+            if (!targetNode || targetNode._isDeleted) continue;
 
-            // AXIOMA: Visualización de Pulso (Tarea 4)
-            this._triggerPulse(rel.id);
-
-            // AXIOMA: Determinismo de Puerto (Tarea 1)
             const targetPort = rel.targetPort;
-            const capability = Object.entries(targetNode.CAPABILITIES || {}).find(([id, cap]) =>
-                id === targetPort || cap.io === 'INPUT' || cap.io === 'WRITE' || cap.io === 'TRIGGER'
-            )?.[0];
+            const targetCap = targetNode.CAPABILITIES?.[targetPort];
 
-            if (capability) {
-                console.log(`[SynapticDispatcher] 🌊 Flowing: ${sourceNodeId} [${rel.sourcePort}] >> ${targetNode.id} [${targetPort}]`);
+            if (targetPort) {
+                this._triggerPulse(rel.id);
+                console.log(`[SynapticDispatcher] 🌊 Reifying Flow: ${sourceNodeId} [${rel.sourcePort}] >> ${targetNode.id} [${targetPort}]`);
 
-                // Tarea 1: Transmutación de Datos (Data Normalization)
-                let transmutedData = data;
-                const sourceNode = state.phenotype.artifacts.find(n => n.id === sourceNodeId);
-                const sourceCap = sourceNode?.CAPABILITIES?.[rel.sourcePort];
-                const targetCap = targetNode.CAPABILITIES?.[targetPort] || targetNode.CAPABILITIES?.[capability];
+                // AXIOMA: No hay transmutación. La carga útil viaja íntegra.
+                let cargo = data;
 
-                // AXIOMA: Extracción de Columnas (Deep Data Mining)
-                if (rel.sourcePort?.startsWith('col:') && typeof data === 'object' && data !== null) {
-                    const fieldName = rel.sourcePort.replace('col:', '');
-                    transmutedData = data[fieldName] !== undefined ? data[fieldName] : data;
-                    console.log(`[SynapticDispatcher] 💎 Extracted [${fieldName}] from row payload.`);
-                }
-
-                if (sourceCap?.type === 'BLOB' && targetCap?.type === 'DATAFRAME') {
-                    // Transmutación: De Archivo a Texto (ID o Nombre)
-                    transmutedData = data?.name || data?.id || String(data);
-                } else if (targetCap?.type === 'SIGNAL') {
-                    transmutedData = null; // Las señales puras no llevan carga
+                if (targetCap?.type === 'SIGNAL') {
+                    cargo = null; // Las señales puras no llevan carga por definición de contrato.
                 }
 
                 if (this.dispatchFunction) {
@@ -93,27 +72,26 @@ class SynapticDispatcher {
                         type: 'LOG_ENTRY',
                         payload: {
                             time: new Date().toLocaleTimeString(),
-                            msg: `🌊 Sinapsis: ${sourceNodeId} >> ${targetNode.LABEL} (${targetCap?.type || 'SIGNAL'})`,
+                            msg: `🌊 Sinapsis: ${sourceNodeId} >> ${targetNode.LABEL} (${targetCap?.type || 'CONTRACT'})`,
                             type: 'SUCCESS'
                         }
                     });
                 }
 
-                // Ejecutar en el nodo destino (Recursión de Red)
-                // Usamos execute de forma asíncrona para no bloquear el hilo
+                // Ejecución Determinista
                 setTimeout(() => {
                     execute('EXECUTE_NODE_ACTION', {
                         nodeId: targetNode.id,
-                        capability,
-                        payload: transmutedData,
+                        capability: targetPort,
+                        payload: cargo,
                         _ttl: ttl - 1,
                         _visited: new Set(visitedNodes)
                     });
-                }, 100);
+                }, 50);
             }
 
             // Limpieza del pulso visual
-            setTimeout(() => this._clearPulse(rel.id), 1000);
+            setTimeout(() => this._clearPulse(rel.id), 800);
         }
     }
 
@@ -138,6 +116,7 @@ class SynapticDispatcher {
 
 export const synapticDispatcher = new SynapticDispatcher();
 export default synapticDispatcher;
+
 
 
 

@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { useAxiomaticStore } from '../core/state/AxiomaticStore';
+import { useAxiomaticStore } from '../core/1_Axiomatic_Store/AxiomaticStore.jsx';
 
 const CosmosInspector = () => {
     const { state } = useAxiomaticStore();
@@ -197,6 +197,7 @@ const KeyValue = ({ label, value }) => (
 );
 
 export default CosmosInspector;
+
 
 
 

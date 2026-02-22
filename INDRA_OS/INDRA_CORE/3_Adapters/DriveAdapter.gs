@@ -39,7 +39,7 @@ function createDriveAdapter({ errorHandler, monitoringService, tokenManager }) {
         info: (...args) => (monitoringService && monitoringService.logInfo) ? monitoringService.logInfo(...args) : console.log(...args)
     };
 
-    // --- INDRA CANON: Normalización Semántica ---
+    // --- AXIOM CANON: Normalización Semántica ---
 
     // Cache Root ID for normalization
     let ROOT_ID = null;
@@ -661,16 +661,23 @@ function createDriveAdapter({ errorHandler, monitoringService, tokenManager }) {
 
     // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
     const CANON = {
-        LABEL: "Google Drive (Native)",
-        ARCHETYPES: ["ADAPTER", "VAULT"],
-        ARCHETYPE: "VAULT",
-        DOMAIN: "STORAGE",
+        id: "drive",
+        label: "Google Drive Native",
+        archetype: "adapter",
+        domain: "storage",
+        REIFICATION_HINTS: {
+            "id": "id",
+            "label": "name",
+            "items": "results || items"
+        },
 
         CAPABILITIES: {
             "search": { 
+                "id": "LIST_FILES",
                 "io": "READ",
                 "risk": 1,
                 "desc": "Global semantic search",
+                "traits": ["EXPLORE", "BROWSE"],
                 "exposure": "public",
                 "inputs": {
                     "query": { "type": "string", "desc": "Filter criteria (ROOT, ID, name, mimeType)." },
@@ -681,50 +688,67 @@ function createDriveAdapter({ errorHandler, monitoringService, tokenManager }) {
                 }
             },
             "upload": { 
+                "id": "WRITE_DATA",
                 "io": "WRITE",
                 "risk": 2,
                 "desc": "Blob storage ingestion",
-                "exposure": "public",
+                "traits": ["UPLOAD", "STREAM"],
                 "inputs": {
-                    "fileId": { "type": "string", "desc": "Target file ID (overwrite)." },
-                    "folderId": { "type": "string", "desc": "Target folder ID (new file)." },
-                    "fileName": { "type": "string", "desc": "Filename for new asset." },
-                    "content": { "type": "string", "desc": "Data payload (String/Blob)." },
-                    "mimeType": { "type": "string", "desc": "IANA media type." }
+                    "content": { "type": "any", "desc": "Data stream to upload." },
+                    "fileName": { "type": "string", "desc": "Target filename." },
+                    "folderId": { "type": "string", "desc": "Destination container ID." }
                 }
             },
-            "store": { 
-                "io": "WRITE", 
-                "risk": 2,
-                "desc": "Unified persistence (alias of upload)"
+            "retrieve": {
+                "id": "READ_DATA",
+                "io": "READ",
+                "desc": "Extracts binary or linguistic stream from Drive.",
+                "traits": ["READ", "PERSISTENCE"],
+                "exposure": "public",
+                "inputs": {
+                    "fileId": { "type": "string", "desc": "Target asset identifier." },
+                    "type": { "type": "string", "desc": "Expected content format (json | text | blob)." }
+                }
             },
-            "move": {
+            "store": {
+                "id": "WRITE_DATA",
                 "io": "WRITE",
                 "risk": 2,
-                "desc": "Relocate atomic unit",
+                "desc": "Persists industrial streams into Drive.",
+                "traits": ["WRITE", "PERSISTENCE"],
                 "exposure": "public",
                 "inputs": {
-                    "fileId": { "type": "string", "desc": "Target asset ID." },
-                    "sourceId": { "type": "string", "desc": "Current parent ID." },
-                    "destinationId": { "type": "string", "desc": "New parent ID." }
+                    "content": { "type": "any", "desc": "Data stream to persist." },
+                    "fileName": { "type": "string", "desc": "Target filename." },
+                    "folderId": { "type": "string", "desc": "Destination container ID." }
                 }
             },
-            "listContents": {
+            "find": {
+                "id": "SEARCH_QUERY",
                 "io": "READ",
-                "risk": 1,
-                "desc": "List folder contents physically",
+                "desc": "Executes spatial discovery in the industrial storage layer.",
+                "traits": ["EXPLORE", "SENSING"],
                 "exposure": "public",
                 "inputs": {
-                    "folderId": { "type": "string", "desc": "Target folder ID or 'ROOT'." }
-                },
-                "outputs": {
-                    "items": { "type": "array", "desc": "List of file/folder nodes." }
+                    "query": { "type": "string", "desc": "Drive API compliant query string." }
+                }
+            },
+            "createFolder": {
+                "id": "WRITE_DATA",
+                "io": "WRITE",
+                "desc": "Spawns a new industrial container.",
+                "traits": ["STRUCTURE", "INIT"],
+                "exposure": "public",
+                "inputs": {
+                    "name": { "type": "string", "desc": "Container name." },
+                    "parentId": { "type": "string", "desc": "Anchor container ID." }
                 }
             },
             "share": {
+                "id": "ADMIN_CONTROL",
                 "io": "ADMIN",
-                "risk": 3,
-                "desc": "Permissions governance (Grant)",
+                "desc": "Alters institutional access permissions.",
+                "traits": ["PERMISSIONS", "CONTROL"],
                 "exposure": "public",
                 "inputs": {
                     "fileId": { "type": "string", "desc": "Target asset ID." },
@@ -732,25 +756,43 @@ function createDriveAdapter({ errorHandler, monitoringService, tokenManager }) {
                     "role": { "type": "string", "desc": "viewer | writer" }
                 }
             },
+            "move": {
+                "id": "WRITE_DATA",
+                "io": "WRITE",
+                "risk": 2,
+                "desc": "Relocates an atomic unit within the industrial storage layer.",
+                "traits": ["STRUCTURE", "HIERARCHY"],
+                "exposure": "public",
+                "inputs": {
+                    "targetId": { "type": "string", "desc": "Asset ID to relocate." },
+                    "destinationFolderId": { "type": "string", "desc": "New parent container ID." }
+                }
+            },
+            "listContents": {
+                "id": "LIST_FILES",
+                "io": "READ",
+                "risk": 1,
+                "desc": "Enumerates contents of a specified industrial container.",
+                "traits": ["EXPLORE", "VAULT", "BROWSE"],
+                "exposure": "public",
+                "inputs": {
+                    "folderId": { "type": "string", "desc": "Target container ID or 'ROOT'." }
+                },
+                "outputs": {
+                    "items": { "type": "array", "desc": "List of file/folder nodes." }
+                }
+            },
             "deleteItem": {
+                "id": "WRITE_DATA",
                 "io": "WRITE",
                 "risk": 3,
-                "desc": "Atomic destruction (Trash)",
+                "desc": "Initiates atomic destruction (Trash) of an asset.",
+                "traits": ["DELETE", "CLEANUP"],
                 "exposure": "public",
                 "inputs": {
                     "id": { "type": "string", "desc": "Asset ID to delete." }
                 }
-            },
-            "sync": {
-                 "io": "REFRESH",
-                 "risk": 1,
-                 "desc": "Force state consistency"
             }
-        },
-        PERSISTENCE_CONTRACT: {
-            "vault_tree": { "ttl": 300, "scope": "COSMOS", "hydrate": true, "compute": "EAGER" },
-            "folder_sizes": { "ttl": 3600, "scope": "COSMOS", "hydrate": false, "compute": "LAZY" },
-            "recent_files": { "ttl": 60, "scope": "SESSION", "hydrate": true, "compute": "EAGER" }
         }
     };
 
@@ -770,9 +812,11 @@ function createDriveAdapter({ errorHandler, monitoringService, tokenManager }) {
     })();
 
     return Object.freeze({
-        id: "drive", // Identidad del Trabajador
+        id: "drive",
+        label: CANON.label,
+        archetype: CANON.archetype,
+        domain: CANON.domain,
         CANON: CANON,
-        schemas,
         // Métodos expuestos
         retrieve,
         store,
@@ -827,17 +871,17 @@ function createDriveAdapter({ errorHandler, monitoringService, tokenManager }) {
                 };
 
                 return {
-                    results: resultItems,
-                    items: resultItems, // Backward compatibility
-                    ORIGIN_SOURCE: 'drive',
-                    SCHEMA: schema,
-                    PAGINATION: {
+                    items: resultItems,
+                    results: resultItems, 
+                    origin: 'drive',
+                    schema: schema,
+                    pagination: {
                         hasMore: false,
                         nextToken: null,
                         total: resultItems.length,
                         count: resultItems.length
                     },
-                    IDENTITY_CONTEXT: {
+                    identity: {
                         accountId: null,
                         permissions: {
                             canEdit: true,
@@ -852,20 +896,11 @@ function createDriveAdapter({ errorHandler, monitoringService, tokenManager }) {
             }
         },
         verifyConnection,
+        deleteItem,
+        share,
+        retrieveAsBlob,
+        cleanFolderByAge,
         
-        // Legacy Aliases
-        get schemas() {
-            const s = {};
-            for (const [key, cap] of Object.entries(CANON.CAPABILITIES)) {
-                s[key] = {
-                    description: cap.desc,
-                    exposure: cap.exposure || "private",
-                    risk: cap.risk || 1,
-                    io_interface: { inputs: cap.inputs || {}, outputs: cap.outputs || {} }
-                };
-            }
-            return s;
-        },
         createFile: store,
         updateFile: store,
         readFile: (payload) => retrieve(payload).content,
@@ -873,6 +908,9 @@ function createDriveAdapter({ errorHandler, monitoringService, tokenManager }) {
         setTokenManager: (tm) => { tokenManager = tm; }
     });
 }
+
+
+
 
 
 

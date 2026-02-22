@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import BridgeChassis from '../chassis/BridgeChassis';
-import { useAxiomaticStore } from '../../../state/AxiomaticStore';
-import persistenceManager from '../../../state/PersistenceManager';
-import { useSignifier } from '../../hooks/useSignifier';
-import AxiomaticProgressBar from '../../../../4_Elements/Signifiers/Axiomatic_Progress_Bar';
-import useAxiomaticState from '../../../state/AxiomaticState';
-import SchemaFormEngine from './SchemaFormEngine';
-import Icons from '../../../../4_Atoms/IndraIcons';
-import adapter from '../../../Sovereign_Adapter';
-import { useFilterPrism } from '../../hooks/useFilterPrism'; // Ajustando ruta relativa
+﻿import React, { useState, useEffect, useMemo } from 'react';
+import BridgeChassis from '../chassis/BridgeChassis.jsx';
+import { useAxiomaticStore } from '../../../1_Axiomatic_Store/AxiomaticStore.jsx';
+import { useAxiomaticHydration } from '../../hooks/useAxiomaticHydration.js';
+import useSignifier from '../../hooks/useSignifier.js';
+import useAxiomaticState from '../../../1_Axiomatic_Store/AxiomaticState.js';
+import SchemaFormEngine from './SchemaFormEngine.jsx';
+import HoldToDeleteButton from '../../../../4_Atoms/HoldToDeleteButton.jsx';
+import { Icons } from '../../../../4_Atoms/AxiomIcons.jsx';
+import adapter from '../../../Sovereign_Adapter.js';
+import { useFilterPrism } from '../../hooks/useFilterPrism.js';
+import ProjectionMatrix from '../../ProjectionMatrix.jsx';
+import AxiomaticSpinner from '../../../../4_Atoms/AxiomaticSpinner.jsx';
+import AxiomaticProgressBar from '../../../../4_Elements/Signifiers/Axiomatic_Progress_Bar.jsx';
 
 /**
  * VaultEngine: El Motor Maestro para Bóvedas de Datos (Drive, Notion, Files).
@@ -17,45 +20,79 @@ import { useFilterPrism } from '../../hooks/useFilterPrism'; // Ajustando ruta r
 const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
     const { state, execute } = useAxiomaticStore();
     const globalLoading = useAxiomaticState(s => s.session.isLoading);
-    const isDevLab = state.sovereignty.mode === 'DEV_LAB';
+    // ADR-021: isDevLab PURGADO
 
     // AXIOMA: Soberanía de Origen (Selector Interno)
-    // AXIOMA: Soberanía de Origen (Descubrimiento Dinámico)
+    // AXIOMA: Soberanía de Origen (Descubrimiento Dinámico por Capacidades)
     const VAULT_SOURCES = React.useMemo(() => {
-        const registry = state.genotype?.COMPONENT_REGISTRY || {};
-        const discovered = Object.values(registry)
-            .filter(node =>
-                node.ARCHETYPE === 'VAULT' ||
-                node.ARCHETYPE === 'ADAPTER' ||
-                node.DOMAIN === 'STORAGE'
-            )
-            .map(node => ({
-                id: node.id,
-                label: node.LABEL || node.id,
-                icon: node.id === 'drive' ? 'Vault' : (node.id === 'notion' ? 'List' : 'ADAPTER'),
-                color: node.id === 'drive' ? '#4285F4' : '#6366F1'
-            }));
+        const registry = state.genotype?.COMPONENT_REGISTRY || state.genotype?.component_registry || {};
+        const sources = Object.values(registry)
+            .filter(node => {
+                const caps = node.capabilities || node.CAPABILITIES || {};
+                const archs = (node.archetypes || node.ARCHETYPES || [node.archetype || node.ARCHETYPE] || []).map(a => String(a).toUpperCase());
+                const domain = (node.domain || node.DOMAIN || '').toUpperCase();
 
-        // Inyectamos fuentes virtuales y fallbacks canónicos
-        const sources = [...discovered];
-        if (!sources.find(s => s.id === 'drive')) sources.unshift({ id: 'drive', label: 'GDrive', icon: 'Vault', color: '#4285F4' });
-        if (!sources.find(s => s.id === 'cosmos')) sources.push({ id: 'cosmos', label: 'Cosmos', icon: 'Cosmos', color: '#9C27B0' });
+                // AXIOMA: Compatibilidad con ADR-022 donde caps es un mapa de métodos -> objetos capability
+                const capIds = Object.values(caps).map(c => typeof c === 'object' ? c.id : c);
+
+                // AXIOMA: Soberanía Funcional (Filtrado por Capacidad)
+                // Se elimina el catch-all de SYSTEM_INFRA para evitar ruidos como MCEP.
+                return capIds.includes('LIST_FILES') ||
+                    capIds.includes('BROWSE') ||
+                    capIds.includes('DATA_STREAM') ||
+                    archs.includes('VAULT') ||
+                    archs.includes('DATABASE') ||
+                    domain === 'STORAGE'; // Solo STORAGE si es explícito
+            })
+            .map(node => {
+                const caps = node.capabilities || node.CAPABILITIES || {};
+                const archs = (node.archetypes || node.ARCHETYPES || [node.archetype || node.ARCHETYPE] || []).map(a => String(a).toUpperCase());
+                const capIds = Object.values(caps).map(c => typeof c === 'object' ? c.id : c);
+
+                return {
+                    id: node.id,
+                    label: node.label || node.LABEL || node.id,
+                    icon: (capIds.includes('DATA_STREAM') || archs.includes('DATABASE')) ? 'Database' : (node.icon || 'Vault'),
+                    color: node.color || 'var(--accent)',
+                    archetypes: node.archetypes || node.ARCHETYPES || [node.archetype || node.ARCHETYPE]
+                };
+            });
+
+        // AXIOMA: Soberanía Local (El Cosmos es el primer Almacén)
+        sources.unshift({
+            id: 'cosmos',
+            label: 'COSMOS',
+            icon: 'Cosmos',
+            color: 'var(--accent)',
+            archetypes: ['COSMOS']
+        });
 
         return sources;
     }, [state.genotype?.COMPONENT_REGISTRY]);
 
     // AXIOMA: Soberanía de Identidad Sugerida. 
-    // Priorizamos el ID que viene del contrato (data.id) sobre el valor por defecto.
-    const initialSource = (data.id || 'drive').toLowerCase();
+    const initialSource = (data.id || VAULT_SOURCES[0]?.id || '').toLowerCase();
     const [activeSource, setActiveSource] = useState(initialSource);
+
+    // AXIOMA: Selector Maestro de Soberanía
+    const handleSourceClick = (sourceId) => {
+        if (activeSource === sourceId) {
+            // Re-escaneo forzado si ya estamos en la fuente
+            execute('FETCH_VAULT_CONTENT', { nodeId: sourceId, folderId: 'ROOT', accountId: activeAccount, refresh: true });
+        } else {
+            setActiveSource(sourceId);
+            // La hidratación automática por cambio de origen ya está en el useEffect
+            // Pero si el usuario hace clic, es que quiere ver data fresca.
+            execute('FETCH_VAULT_CONTENT', { nodeId: sourceId, folderId: 'ROOT', accountId: activeAccount });
+        }
+    };
 
     // AXIOMA: Consciencia del Cosmos (Distinción Cognitiva)
     // Obtenemos los IDs de los artefactos que YA están vinculados al Cosmos activo.
-    const cosmosArtifacts = state.phenotype.artifacts || [];
-    // Normalizamos a un Set para búsqueda O(1) y manejo de tipos (si son objetos o strings)
-    const linkedIds = React.useMemo(() => new Set(
-        Array.isArray(cosmosArtifacts) ? cosmosArtifacts.map(a => (typeof a === 'string' ? a : a.id)) : []
-    ), [cosmosArtifacts]);
+    const linkedIds = React.useMemo(() => {
+        const artifacts = Object.values(state.phenotype.artifacts || {});
+        return new Set(artifacts.map(a => (typeof a === 'string' ? a : a.id)));
+    }, [state.phenotype.artifacts]);
 
     const nodeId = activeSource.toLowerCase();
     const { label: statusLabel, progress, color: signifierColor, pulse } = useSignifier(nodeId);
@@ -67,7 +104,6 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
     const [viewMode, setViewMode] = useState('GRID');
     const [currentPath, setCurrentPath] = useState([{ id: 'ROOT', name: 'ROOT' }]);
     const [localScanning, setLocalScanning] = useState(false);
-    const isScanning = localScanning || globalLoading;
     const [selectedNode, setSelectedNode] = useState(null);
     const [renameModalOpen, setRenameModalOpen] = useState(false);
     const [moveModalOpen, setMoveModalOpen] = useState(false);
@@ -79,7 +115,6 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     // AXIOMA: Soberanía de Identidad Dinámica
-    const [accounts, setAccounts] = useState([]);
     const [activeAccount, setActiveAccount] = useState(null);
 
     // AXIOMA: Sincronización de Identidad Sugerida (Reacción al Cambio de Contexto)
@@ -89,23 +124,8 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
         }
     }, [data.id]);
 
-    // [TASK: Account Discovery]
+    // [TASK: Reset on Source Shift]
     useEffect(() => {
-        const discoverAccounts = async () => {
-            try {
-                const result = await adapter.executeAction('tokenManager:listTokenAccounts', { provider: nodeId });
-                if (Array.isArray(result)) {
-                    setAccounts(result);
-                    const defaultAcc = result.find(a => a.isDefault);
-                    if (defaultAcc) setActiveAccount(defaultAcc.id);
-                }
-            } catch (e) {
-                console.warn(`[VaultEngine] Discovery failed for ${nodeId}:`, e);
-                setAccounts([]);
-            }
-        };
-        discoverAccounts();
-
         setCurrentPath([{ id: 'ROOT', name: 'ROOT' }]);
         setSelectedNode(null);
         setCommand('');
@@ -114,7 +134,7 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
     // AXIOMA: Reconciliación de Identidad (Refresco ante cambio de cuenta)
     useEffect(() => {
         if (activeAccount && activeSource !== 'cosmos') {
-            console.log(`[VaultEngine] Identity Shift Detected (${activeAccount}). Refreshing Silo...`);
+            console.log('VaultEngine: Identity Shift Detected', activeAccount, 'Refreshing Silo...');
             execute('FETCH_VAULT_CONTENT', {
                 nodeId,
                 folderId: currentPath[currentPath.length - 1].id,
@@ -130,17 +150,16 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
     // AXIOMA: Recuperación y Aplanamiento de la Data (Prioridad: Props > Silo > Auto-Fetch)
     const rawSiloData = useMemo(() => {
         // 1. Prioridad: Data inyectada directamente (Mocks o Prefetch)
-        const injectedData = data.items || data.results || data.rows || data.data?.items || data.data?.results;
-        if (Array.isArray(injectedData)) return injectedData;
+        const injectedData = data.items || (Array.isArray(data) ? data : []);
+        if (Array.isArray(injectedData) && injectedData.length > 0) return injectedData;
 
         // 2. Prioridad: Modo Cosmos (Grafo Local)
-        if (activeSource === 'cosmos') return state.phenotype.artifacts || [];
+        if (activeSource === 'cosmos') return Object.values(state.phenotype.artifacts || {});
 
         // 3. Prioridad: Silos de Memoria (Caché L1)
         const silo = state.phenotype.silos?.[nodeId];
         if (!silo) return [];
-        if (Array.isArray(silo)) return silo;
-        return silo.results || silo.items || silo.rows || [];
+        return silo.items || (Array.isArray(silo) ? silo : []);
     }, [data, activeSource, state.phenotype.artifacts, state.phenotype.silos, nodeId]);
 
     // AXIOMA: Deduplicación Determinista (Prevención de Duplicate Keys)
@@ -163,6 +182,7 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
         setSearchTerm,
         searchTerm,
         setFilter,
+        clearFilters,
         activeFilters
     } = useFilterPrism(siloData, {
         searchKeys: ['name', 'LABEL', 'mimeType', 'type']  // Agregamos 'LABEL' para búsqueda de artefactos Cosmos
@@ -198,39 +218,14 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
         );
     }
 
-    // useEffect de hidratación de nodes eliminado (Soberanía Directa)
-
-    // AXIOMA: Circuit Breaker para evitar bucles de "fetch-fail-retry"
-    const ignitionRef = React.useRef(new Set());
-
-    // AXIOMA: Recuperación de caché instantánea (Fat Client)
-    useEffect(() => {
-        const tryCacheRecall = async () => {
-            if (activeSource === 'cosmos') return;
-            const cacheKey = `vault_tree_ROOT`;
-            if (persistenceManager.isCacheValid(nodeId, cacheKey)) {
-                const cached = await persistenceManager.getCached(nodeId, cacheKey);
-                if (cached && (!siloData || siloData.length === 0)) {
-                    addLog(`⚛️ [Vault] Optimistic recall from L2 Repository: ${nodeId}`, 'SUCCESS');
-                    execute('VAULT_LOAD_SUCCESS', { nodeId, data: { items: cached, metadata: { hydrationLevel: 100, source: 'CACHE' } } });
-                }
-            }
-        };
-        tryCacheRecall();
-    }, [nodeId, activeSource]);
-
-    useEffect(() => {
-        // AXIOMA: Circuit Breaker y Bypass de Cosmos
-        // No intentamos "fetchear" el Cosmos desde el backend; lo tenemos local.
-        if (activeSource !== 'cosmos' && (!siloData || siloData.length === 0)) {
-            // Solo disparamos si no estamos ya en un fetch global o local
-            if (!globalLoading && !ignitionRef.current.has(nodeId)) {
-                console.log(`[VaultEngine:${nodeId}] Silo empty. Triggering Ignition Discovery...`);
-                ignitionRef.current.add(nodeId);
-                execute('FETCH_VAULT_CONTENT', { nodeId, folderId: 'ROOT', accountId: activeAccount });
-            }
-        }
-    }, [nodeId, siloData.length, globalLoading, activeSource]);
+    // AXIOMA: Hidratación Axiomática (Fat Client)
+    const { isScanning } = useAxiomaticHydration(nodeId, {
+        activeSource,
+        activeAccount,
+        bypassCondition: activeSource === 'cosmos',
+        fetchAction: 'FETCH_VAULT_CONTENT',
+        fetchPayload: { folderId: currentPath[currentPath.length - 1]?.id || 'ROOT' }
+    });
 
     const { LABEL, DOMAIN } = data;
 
@@ -290,7 +285,14 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                 LABEL: node.name,
                 ARCHETYPES: ['DATABASE', 'VAULT'],
                 ARCHETYPE: 'DATABASE',
+                traits: ['DATABASE', 'STORAGE', 'GRID'],
+                CAPABILITIES: {
+                    DATA_STREAM: { id: 'DATA_STREAM', type: 'SIGNAL', io: 'STREAM', LABEL: 'Data Stream', icon: '📡' },
+                    QUERY: { id: 'QUERY', type: 'SIGNAL', io: 'INPUT', LABEL: 'Query / Filter', icon: '🔍' }
+                },
                 DOMAIN: 'DATABASE_L1',
+                // ADR-022: emitir ambos campos durante transición
+                origin: activeSource,
                 ORIGIN_SOURCE: activeSource,
                 ACCOUNT_ID: activeAccount
             });
@@ -350,19 +352,24 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
     };
 
     const handleDragStart = (e, node) => {
-        // AXIOMA: Polimorfismo de Arquetipos
-        // Si el objeto origen es una base de datos (Notion, SQL, etc),
-        // forzamos su ARQUETIPO a 'DATABASE' para que el Graph Editor
-        // lo renderice como un nodo de datos, no como un nodo genérico de fuente.
-        const isDatabase = node.type === 'DATABASE' || node.type === 'GRID' || node.type === 'database';
+        // AXIOMA: Inferencia de Atributos (Trait Detection)
+        const isDatabase = node.type === 'DATABASE' || node.mimeType?.includes('sheet') || node.extension === 'csv';
+        const isFolder = node.type === 'DIRECTORY' || node.mimeType?.includes('folder');
 
         const payload = {
             ...node,
-            ARCHETYPE: isDatabase ? 'DATABASE' : (node.ARCHETYPE || node.type || 'FILE'),
-            ORIGIN_SOURCE: activeSource // Preservamos el origen (Notion, Drive) como metadato
+            ARCHETYPE: isDatabase ? 'DATABASE' : (isFolder ? 'VAULT' : (node.ARCHETYPE || 'NODE')),
+            traits: isDatabase ? ['DATABASE', 'GRID'] : (node.traits || []),
+            CAPABILITIES: isDatabase ? {
+                DATA_STREAM: { id: 'DATA_STREAM', type: 'SIGNAL', io: 'STREAM', LABEL: 'Data Stream', icon: '📡' },
+                QUERY: { id: 'QUERY', type: 'SIGNAL', io: 'INPUT', LABEL: 'Query / Filter', icon: '🔍' }
+            } : (node.CAPABILITIES || {}),
+            // ADR-022: 'origin' canónico + ORIGIN_SOURCE alias legacy
+            origin: activeSource,
+            ORIGIN_SOURCE: activeSource
         };
 
-        e.dataTransfer.setData('indra/artifact', JSON.stringify(payload));
+        e.dataTransfer.setData('axiom/artifact', JSON.stringify(payload));
         addLog(`Initiating data drag: ${node.name} [Archetype: ${payload.ARCHETYPE}]`);
         e.currentTarget.style.opacity = '0.5';
     };
@@ -383,18 +390,22 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
     };
 
     const handleBindToCosmos = (node) => {
-        // AXIOMA: Enriquecimiento Semántico en el Punto de Manifestación
-        const isDatabase =
-            node.type === 'DATABASE' ||
-            node.type === 'GRID' ||
-            node.mimeType === 'application/vnd.indra.notion-db' ||
-            node.mimeType?.includes('sheet');
+        // AXIOMA: Enriquecimiento Semántico basado en Rasgos Técnicos
+        const isDatabase = node.type === 'DATABASE' || node.mimeType?.includes('sheet') || node.extension === 'csv';
+        const isFolder = node.type === 'DIRECTORY' || node.mimeType?.includes('folder');
 
         const enrichedNode = {
             ...node,
             LABEL: node.name,
             ARCHETYPE: isDatabase ? 'DATABASE' : (node.archetype || 'NODE'),
             DOMAIN: isDatabase ? 'DATA_ENGINE' : (node.DOMAIN || 'SYSTEM_VAULT'),
+            traits: isDatabase ? ['DATABASE', 'GRID'] : (node.traits || []),
+            CAPABILITIES: isDatabase ? {
+                DATA_STREAM: { id: 'DATA_STREAM', type: 'SIGNAL', io: 'STREAM', LABEL: 'Data Stream', icon: '📡' },
+                QUERY: { id: 'QUERY', type: 'SIGNAL', io: 'INPUT', LABEL: 'Query / Filter', icon: '🔍' }
+            } : (node.CAPABILITIES || {}),
+            // ADR-022: 'origin' canónico + ORIGIN_SOURCE alias legacy
+            origin: activeSource,
             ORIGIN_SOURCE: activeSource,
             ACCOUNT_ID: activeAccount,
             VITAL_SIGNS: isDatabase ? {
@@ -458,18 +469,12 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
 
                     <div className="p-6">
                         <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-dim)] block mb-4">Quick Actions</span>
-                        <div className="grid grid-cols-2 gap-3">
-                            <button onClick={() => addLog('Upload Protocol Initiated')} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-[var(--bg-deep)] border border-[var(--border-subtle)] hover:border-[var(--accent)] transition-all group">
-                                <svg className="w-5 h-5 text-[var(--text-soft)] group-hover:text-[var(--accent)] group-hover:scale-110 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="grid grid-cols-1 gap-3">
+                            <button onClick={() => addLog('Upload Protocol Initiated')} className="flex items-center justify-center gap-3 p-3 rounded-xl bg-[var(--bg-deep)] border border-[var(--border-subtle)] hover:border-[var(--accent)] transition-all group">
+                                <svg className="w-4 h-4 text-[var(--text-soft)] group-hover:text-[var(--accent)] group-hover:scale-110 transition-all font-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                 </svg>
-                                <span className="text-[9px] font-bold text-[var(--text-soft)]">UPLOAD</span>
-                            </button>
-                            <button onClick={() => execute('FETCH_VAULT_CONTENT', { nodeId, folderId: currentPath[currentPath.length - 1].id, refresh: true })} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-[var(--bg-deep)] border border-[var(--border-subtle)] hover:border-[var(--accent)] transition-all group">
-                                <svg className="w-5 h-5 text-[var(--text-soft)] group-hover:text-[var(--accent)] group-hover:rotate-180 transition-all duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                <span className="text-[9px] font-bold text-[var(--text-soft)]">SYNC</span>
+                                <span className="text-[9px] font-bold text-[var(--text-soft)] uppercase tracking-widest">Upload_Artifact</span>
                             </button>
                         </div>
                     </div>
@@ -492,7 +497,7 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                         {selectedNode.name}
                     </h3>
                     <div className="flex justify-center">
-                        <span className={`text-[9px] font-black px-2 py-1 rounded uppercase tracking-wider ${selectedNode.type === 'DIRECTORY' ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'bg-[var(--text-dim)]/10 text-[var(--text-dim)]'}`}>
+                        <span className={`text - [9px] font - black px - 2 py - 1 rounded uppercase tracking - wider ${selectedNode.type === 'DIRECTORY' ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'bg-[var(--text-dim)]/10 text-[var(--text-dim)]'} `}>
                             {selectedNode.type || 'FILE'}
                         </span>
                     </div>
@@ -557,43 +562,55 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                         {VAULT_SOURCES.map(source => (
                             <button
                                 key={source.id}
-                                onClick={() => setActiveSource(source.id)}
+                                onClick={() => handleSourceClick(source.id)}
                                 className={`
                                     flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-[9px] font-black uppercase tracking-widest
                                     ${activeSource === source.id
-                                        ? 'bg-[var(--accent)]/10 border-[var(--accent)]/40 text-[var(--accent)]'
-                                        : 'bg-transparent border-transparent text-[var(--text-dim)] hover:bg-[var(--surface-header)]'}
+                                        ? 'bg-[var(--accent)]/10 border-[var(--accent)]/40 text-[var(--accent)] shadow-[0_0_10px_var(--accent)]/10'
+                                        : 'bg-transparent border-transparent text-[var(--text-dim)] hover:bg-[var(--surface-header)]'
+                                    }
                                 `}
                             >
-                                {Icons[source.icon] && React.createElement(Icons[source.icon], { size: 10 })}
-                                <span className={isSidebar ? 'hidden xs:inline' : 'inline'}>{source.label}</span>
+                                <span className={perspective === 'SIDEBAR' ? 'hidden xs:inline' : 'inline'}>{source.label}</span>
                             </button>
                         ))}
 
-                        {/* SELECTOR DE IDENTIDAD (Multi-Account Support) */}
-                        {accounts.length > 0 && (
-                            <div className="ml-auto flex items-center gap-2 px-3 border-l border-[var(--border-subtle)]">
-                                <span className="text-[7px] font-black text-[var(--text-dim)] uppercase tracking-tighter">Identity:</span>
-                                <select
-                                    className="bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded px-2 py-0.5 text-[8px] font-mono text-[var(--accent)] outline-none cursor-pointer"
-                                    value={activeAccount || ''}
-                                    onChange={(e) => setActiveAccount(e.target.value)}
-                                >
-                                    {accounts.map(acc => (
-                                        <option key={acc.id} value={acc.id}>
-                                            {acc.label} {acc.isDefault ? '(★)' : ''}
-                                        </option>
-                                    ))}
-                                </select>
-                                <button
-                                    onClick={() => execute('SELECT_ARTIFACT', { id: 'IDENTITY_MANAGER', ARCHETYPE: 'IDENTITY', LABEL: 'Identity Manager', provider: activeSource })}
-                                    className="p-1.5 rounded-lg hover:bg-white/5 text-[var(--text-dim)] hover:text-[var(--accent)] transition-all"
-                                    title="Gestionar Cuentas"
-                                >
-                                    <Icons.Settings size={12} />
-                                </button>
-                            </div>
-                        )}
+                        {/* AXIOMA: Selector de Polimorfismo (Switch de Perspectiva) */}
+                        {(() => {
+                            const currentNode = VAULT_SOURCES.find(s => s.id === activeSource);
+                            const otherArchs = currentNode?.archetypes?.filter(a => a !== 'VAULT' && a !== 'ADAPTER') || [];
+
+                            if (otherArchs.length > 0) {
+                                return (
+                                    <div className="flex items-center gap-1 border-l border-white/10 ml-2 pl-4">
+                                        <span className="text-[7px] font-bold text-[var(--text-dim)] uppercase">Views:</span>
+                                        {otherArchs.map(arch => (
+                                            <button
+                                                key={arch}
+                                                onClick={() => execute('SELECT_ARTIFACT', { ...data, id: activeSource, ARCHETYPE: arch })}
+                                                className="px-2 py-1 rounded bg-white/5 border border-white/10 text-[8px] font-black text-[var(--accent)] hover:bg-[var(--accent)] hover:text-black transition-all"
+                                                title={`Proyectar como ${arch} `}
+                                            >
+                                                {arch}
+                                            </button>
+                                        ))}
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
+
+                        <div className="ml-auto">
+                            <ProjectionMatrix
+                                archetype="IDENTITY"
+                                perspective="WIDGET"
+                                data={{
+                                    provider: nodeId,
+                                    accountId: activeAccount,
+                                    onAccountChange: (accId) => setActiveAccount(accId)
+                                }}
+                            />
+                        </div>
                     </nav>
 
                     {/* AXIOMA: Buscador Táctico (Visible por defecto) */}
@@ -619,12 +636,6 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                                 >
                                     <Icons.Filter size={12} />
                                 </button>
-                                <button
-                                    onClick={() => execute('FETCH_VAULT_CONTENT', { nodeId, folderId: currentPath[currentPath.length - 1].id, accountId: activeAccount, refresh: true })}
-                                    className="p-2 rounded-full bg-[var(--surface-header)] border border-[var(--border-subtle)] text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-all hover:rotate-180 duration-500"
-                                >
-                                    <Icons.Sync size={12} />
-                                </button>
                             </div>
 
                             {/* PRISMA DE FILTRADO (UI Expansible) */}
@@ -638,50 +649,29 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                                         PURGAR
                                     </button>
 
-                                    {/* DRIVE FILTERS */}
-                                    {(activeSource === 'drive' || activeSource === 'VAULT') && (
-                                        <>
-                                            <button
-                                                onClick={() => setFilter('mimeType', (i) => i.mimeType?.includes('spreadsheet'))}
-                                                className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['mimeType'] ? 'bg-green-500/20 border-green-500 text-green-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'}`}
-                                            >
-                                                MATRICES (SHEETS)
-                                            </button>
-                                            <button
-                                                onClick={() => setFilter('mimeType', (i) => i.mimeType?.includes('document'))}
-                                                className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['mimeType'] ? 'bg-blue-500/20 border-blue-500 text-blue-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'}`}
-                                            >
-                                                MANIFIESTOS (DOCS)
-                                            </button>
-                                        </>
-                                    )}
-                                    {/* LOCAL FILTERS */}
-                                    {activeSource === 'local' && (
-                                        <>
-                                            <button
-                                                onClick={() => setFilter('name', (i) => i.name?.toLowerCase().endsWith('.skp'))}
-                                                className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['name'] ? 'bg-cyan-500/20 border-cyan-500 text-cyan-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'}`}
-                                            >
-                                                MOLDES (SKP)
-                                            </button>
-                                            <button
-                                                onClick={() => setFilter('name', (i) => i.name?.toLowerCase().endsWith('.dwg'))}
-                                                className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['name'] ? 'bg-indigo-500/20 border-indigo-500 text-indigo-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'}`}
-                                            >
-                                                PLANOS (DWG)
-                                            </button>
-                                        </>
-                                    )}
+                                    {/* DYNAMIC VAULT FILTERS */}
+                                    <button
+                                        onClick={() => setFilter('mimeType', (i) => i.mimeType?.includes('spreadsheet'))}
+                                        className={`px - 2 py - 1 rounded - md border text - [8px] font - bold uppercase transition - all ${activeFilters['mimeType'] ? 'bg-green-500/20 border-green-500 text-green-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'} `}
+                                    >
+                                        MATRICES
+                                    </button>
+                                    <button
+                                        onClick={() => setFilter('mimeType', (i) => i.mimeType?.includes('document'))}
+                                        className={`px - 2 py - 1 rounded - md border text - [8px] font - bold uppercase transition - all ${activeFilters['mimeType'] ? 'bg-blue-500/20 border-blue-500 text-blue-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'} `}
+                                    >
+                                        MANIFIESTOS
+                                    </button>
                                     {/* COMMON FILTERS */}
                                     <button
                                         onClick={() => setFilter('type', 'DIRECTORY')}
-                                        className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['type'] === 'DIRECTORY' ? 'bg-amber-500/20 border-amber-500 text-amber-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'}`}
+                                        className={`px - 2 py - 1 rounded - md border text - [8px] font - bold uppercase transition - all ${activeFilters['type'] === 'DIRECTORY' ? 'bg-amber-500/20 border-amber-500 text-amber-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'} `}
                                     >
                                         CONTENEDORES
                                     </button>
                                     <button
                                         onClick={() => setFilter('type', (i) => i.type !== 'DIRECTORY')}
-                                        className={`px-2 py-1 rounded-md border text-[8px] font-bold uppercase transition-all ${activeFilters['type'] && activeFilters['type'] !== 'DIRECTORY' ? 'bg-purple-500/20 border-purple-500 text-purple-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'}`}
+                                        className={`px - 2 py - 1 rounded - md border text - [8px] font - bold uppercase transition - all ${activeFilters['type'] && activeFilters['type'] !== 'DIRECTORY' ? 'bg-purple-500/20 border-purple-500 text-purple-600' : 'border-[var(--border-subtle)] text-[var(--text-dim)] hover:bg-[var(--surface-header)]'} `}
                                     >
                                         ENTIDADES
                                     </button>
@@ -696,7 +686,7 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                             <React.Fragment key={path.id}>
                                 <button
                                     onClick={() => goToBreadcrumb(idx)}
-                                    className={`text-[8px] font-black uppercase tracking-widest hover:text-[var(--accent)] transition-all ${idx === currentPath.length - 1 ? 'text-[var(--text-primary)]' : 'text-[var(--text-dim)]'}`}
+                                    className={`text - [8px] font - black uppercase tracking - widest hover: text - [var(--accent)]transition - all ${idx === currentPath.length - 1 ? 'text-[var(--text-primary)]' : 'text-[var(--text-dim)]'} `}
                                 >
                                     {path.name}
                                 </button>
@@ -707,19 +697,29 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
 
                     {/* REJILLA DE PROYECCIÓN (CONTENIDO) */}
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-6" onClick={handleBackgroundClick}>
-                        <div className={`grid gap-4 ${isSidebar ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6'}`}>
-                            {filteredNodes.length > 0 ? (
-                                filteredNodes.map(node => {
+                        <div className={`grid gap-4 ${perspective === 'SIDEBAR' ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6'}`}>
+                            {siloData.length > 0 ? (
+                                siloData.map(node => {
                                     const isLinked = linkedIds.has(node.id);
-                                    const isDatabase = node.type === 'DATABASE' || node.mimeType?.includes('sheet');
-                                    const isFolder = node.type === 'DIRECTORY';
+                                    const isCosmosSource = activeSource === 'cosmos';
 
-                                    // ESTILOS COGNITIVOS: Distinción visual inmediata
+                                    const displayLabel = node.LABEL || node.name || 'Unknown Artifact';
+                                    const displayType = (node.ARCHETYPE || node.type || 'FILE').toUpperCase();
+
+                                    const isDatabase = displayType === 'DATABASE' || node.mimeType?.includes('sheet');
+                                    const isFolder = displayType === 'DIRECTORY' || displayType === 'VAULT';
+
                                     const cognitiveStyle = isLinked
                                         ? 'opacity-100 scale-100 ring-1 ring-[var(--accent)]/50'
                                         : 'opacity-60 grayscale hover:grayscale-0 hover:opacity-100 hover:scale-[1.02]';
 
                                     const typeColorClass = isFolder ? 'hover:border-amber-500/30' : (isDatabase ? 'hover:border-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.05)]' : 'hover:border-blue-500/30');
+
+                                    const selectedClass = selectedNode?.id === node.id
+                                        ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30 shadow-2xl !opacity-100 !grayscale-0 !scale-105'
+                                        : 'bg-[var(--surface-card)] border-[var(--border-subtle)] hover:bg-[var(--surface-header)]';
+
+                                    const layoutClass = perspective === 'SIDEBAR' ? 'flex-row text-left !items-start !text-left p-3' : 'flex-col';
 
                                     return (
                                         <div
@@ -730,24 +730,16 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                                             onClick={(e) => handleNodeClick(e, node)}
                                             onDoubleClick={(e) => handleNodeDoubleClick(e, node)}
                                             onContextMenu={(e) => handleContextMenu(e, node)}
-                                            className={`
-                                                group relative p-4 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col items-center text-center
-                                                ${cognitiveStyle} ${typeColorClass}
-                                                ${selectedNode?.id === node.id
-                                                    ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30 shadow-2xl !opacity-100 !grayscale-0 !scale-105'
-                                                    : 'bg-[var(--surface-card)] border-[var(--border-subtle)] hover:bg-[var(--surface-header)]'}
-                                                ${isSidebar ? 'flex-row text-left !items-start !text-left p-3' : 'flex-col'}
-                                            `}
+                                            className={`group relative p-4 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col items-center text-center ${cognitiveStyle} ${typeColorClass} ${selectedClass} ${layoutClass}`}
                                         >
-                                            {/* Indicador de Vínculo (Punto Cuántico) */}
-                                            {isLinked && (
+                                            {isLinked && !isCosmosSource && (
                                                 <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-[var(--accent)] rounded-full shadow-[0_0_5px_var(--accent)] z-10"></div>
                                             )}
 
-                                            <div className={`${isSidebar ? 'w-8 h-8 mr-3' : 'w-12 h-12 mb-3'} rounded-xl bg-[var(--surface-header)] flex items-center justify-center text-xl group-hover:scale-110 transition-all duration-500 shadow-inner shrink-0`}>
-                                                {node.type === 'DIRECTORY' ? (
+                                            <div className={`${perspective === 'SIDEBAR' ? 'w-8 h-8 mr-3' : 'w-12 h-12 mb-3'} rounded-xl bg-[var(--surface-header)] flex items-center justify-center text-xl group-hover:scale-110 transition-all duration-500 shadow-inner shrink-0`}>
+                                                {isFolder ? (
                                                     <span className="text-amber-500">📂</span>
-                                                ) : (node.type === 'DATABASE' || node.mimeType?.includes('sheet') ? (
+                                                ) : (isDatabase ? (
                                                     <Icons.Database size={24} color="var(--accent)" />
                                                 ) : (
                                                     <span className="text-blue-500">📄</span>
@@ -755,34 +747,59 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                                             </div>
                                             <div className="flex flex-col flex-1 overflow-hidden">
                                                 <span className="text-[10px] font-bold text-[var(--text-primary)] truncate w-full break-words group-hover:text-[var(--accent)]">
-                                                    {node.name}
+                                                    {displayLabel}
                                                 </span>
-                                                <span className={`text-[7px] font-mono uppercase mt-0.5 tracking-tighter opacity-60 ${node.type === 'DATABASE' || node.mimeType?.includes('sheet') ? 'text-[var(--accent)] font-black' : 'text-[var(--text-dim)]'}`}>
-                                                    {node.mimeType?.includes('sheet') ? 'SPREADSHEET' : (node.type || 'FILE')}
+                                                <span className={`text-[7px] font-mono uppercase mt-0.5 tracking-tighter opacity-60 ${isDatabase ? 'text-[var(--accent)] font-black' : 'text-[var(--text-dim)]'}`}>
+                                                    {displayType}
                                                 </span>
                                             </div>
 
-                                            {/* BOTÓN DE MANIFESTACIÓN RÁPIDA (Hover) */}
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleBindToCosmos(node); }}
-                                                className="absolute top-2 left-2 w-6 h-6 rounded-full bg-[var(--accent)] text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg z-20"
-                                                title="Manifestar en Cosmos"
-                                            >
-                                                <Icons.Plus size={12} />
-                                            </button>
+                                            {isCosmosSource ? (
+                                                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-20">
+                                                    <HoldToDeleteButton
+                                                        size={20}
+                                                        iconSize={10}
+                                                        color="red"
+                                                        onComplete={() => {
+                                                            addLog(`Eliminando artefacto ${node.id} del Cosmos...`, 'WARNING');
+                                                            execute('DELETE_ARTIFACT', { id: node.id });
+                                                        }}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleBindToCosmos(node); }}
+                                                    className="absolute top-2 left-2 w-6 h-6 rounded-full bg-[var(--accent)] text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg z-20"
+                                                    title="Manifestar en Cosmos"
+                                                >
+                                                    <Icons.Plus size={12} />
+                                                </button>
+                                            )}
+
+                                            {isCosmosSource && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); execute('FOCUS_ARTIFACT', { id: node.id }); }}
+                                                    className="absolute bottom-2 right-2 p-1 text-[var(--accent)] opacity-0 group-hover:opacity-100 transition-all hover:scale-125 z-20"
+                                                    title="Centrar en Grafo"
+                                                >
+                                                    <Icons.Target size={12} />
+                                                </button>
+                                            )}
                                         </div>
                                     );
                                 })
+                            ) : isScanning ? (
+                                <div className="col-span-full py-20 flex flex-col items-center justify-center bg-black/5 rounded-3xl border border-dashed border-[var(--accent)]/10">
+                                    <AxiomaticSpinner size={48} label={`Sincronizando silo_${nodeId}`} />
+                                </div>
                             ) : (
                                 <div className="col-span-full py-20 flex flex-col items-center justify-center text-[var(--text-dim)] space-y-4">
                                     <Icons.Inbox size={48} className="opacity-10" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">Empty_Vector</span>
-                                    <button
-                                        onClick={() => execute('FETCH_VAULT_CONTENT', { nodeId, folderId: 'ROOT', refresh: true })}
-                                        className="mt-4 px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-full text-[9px] font-mono hover:bg-[var(--accent)] hover:text-black transition-colors"
-                                    >
-                                        FORZAR_SINCRONIZACIÓN
-                                    </button>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">Zero_Data_Detected_In_Silo</span>
+                                    <p className="text-[8px] font-mono opacity-30 text-center max-w-xs">
+                                        No se han detectado artefactos en esta coordenada de la red.
+                                        Haz clic en el origen para re-escanear.
+                                    </p>
                                 </div>
                             )}
                         </div>
@@ -847,7 +864,7 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
                                 <span className="text-[10px] font-mono text-[var(--text-soft)] group-hover:text-[var(--text-vibrant)] truncate">
                                     {node.name}
                                 </span>
-                                <span className={`text-[8px] font-mono uppercase opacity-50 ${node.type === 'DIRECTORY' ? 'text-[var(--accent)]' : 'text-[var(--text-dim)]'}`}>
+                                <span className={`text - [8px] font - mono uppercase opacity - 50 ${node.type === 'DIRECTORY' ? 'text-[var(--accent)]' : 'text-[var(--text-dim)]'} `}>
                                     {node.type || 'FILE'}
                                 </span>
                             </div>
@@ -872,6 +889,7 @@ const VaultEngine = ({ data = {}, perspective = 'VAULT', slotId }) => {
 };
 
 export default VaultEngine;
+
 
 
 

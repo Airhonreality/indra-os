@@ -21,7 +21,7 @@ export function SemanticDataCube() {
 
     async function fetchCapabilities() {
         try {
-            const response = await fetch('/api/indra/getMCEPManifest', {
+            const response = await fetch('/api/axiom/getMCEPManifest', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -130,12 +130,13 @@ export function SemanticDataCube() {
     );
 }
 
-// Metadata para INDRACore alignment
+// Metadata para AXIOMCore alignment
 SemanticDataCube.metadata = {
     archetype: 'SENSOR',
     semantic_intent: 'PROBE',
     description: 'Semantic Data Cube with drag & drop for variable bindings'
 };
+
 
 
 

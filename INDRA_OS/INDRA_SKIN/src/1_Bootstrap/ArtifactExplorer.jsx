@@ -7,8 +7,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import adapter from '../core/Sovereign_Adapter';
-import useAxiomaticState from '../core/state/AxiomaticState';
+import adapter from '../core/Sovereign_Adapter.js';
+import useAxiomaticState from '../core/1_Axiomatic_Store/AxiomaticState.js';
 
 const ArtifactExplorer = () => {
     const [artifacts, setArtifacts] = useState([]);
@@ -268,6 +268,7 @@ const ArtifactExplorer = () => {
 };
 
 export default ArtifactExplorer;
+
 
 
 

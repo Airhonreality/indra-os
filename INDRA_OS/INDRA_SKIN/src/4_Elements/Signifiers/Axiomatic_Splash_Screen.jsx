@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { useAxiomaticStore } from '../../core/state/AxiomaticStore';
-import { useSignifier } from '../../core/kernel/hooks/useSignifier';
+﻿import React, { useEffect, useState } from 'react';
+import { useAxiomaticStore } from '../../core/1_Axiomatic_Store/AxiomaticStore.jsx';
+import { useSignifier } from '../../core/kernel/hooks/useSignifier.js';
+import AxiomaticSpinner from '../../4_Atoms/AxiomaticSpinner.jsx';
 
 /**
  * Axiomatic_Splash_Screen
  * 
- * Pantalla de carga mínima y reemplazable de INDRA OS.
+ * Pantalla de carga mínima y reemplazable de AXIOM OS.
  * Dharma: Mantener la calma durante la transición de la realidad.
  */
 const AxiomaticSplashScreen = ({ onComplete }) => {
@@ -39,28 +40,12 @@ const AxiomaticSplashScreen = ({ onComplete }) => {
                 ></div>
             </div>
 
-            {/* 2. Contenido Central (Fácilmente reemplazable) */}
-            <div className="relative z-10 flex flex-col items-center gap-8">
-                {/* LOGO / ICONO REEMPLAZABLE */}
-                <div className="relative">
-                    <div className="w-24 h-24 rounded-full border-2 border-[var(--accent)]/30 flex items-center justify-center">
-                        <div className="w-16 h-16 rounded-full bg-[var(--accent)]/10 animate-pulse flex items-center justify-center">
-                            <div
-                                className="w-4 h-4 bg-[var(--accent)] rounded-full"
-                                style={{ boxShadow: `0 0 20px ${signifierColor || 'var(--accent)'}` }}
-                            ></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex flex-col items-center gap-2">
-                    <h1 className="text-xl font-black tracking-[0.5em] text-[var(--accent)] uppercase animate-pulse">
-                        INDRA_OS
-                    </h1>
-                    <span className="text-[10px] font-mono text-[var(--text-dim)] tracking-widest uppercase">
-                        {label || 'Initialising_Reality'}...
-                    </span>
-                </div>
+            {/* 2. Contenido Central (Unificado) */}
+            <div className="relative z-10 flex flex-col items-center gap-12">
+                <AxiomaticSpinner
+                    size={120}
+                    label={label || 'Initialising_Reality'}
+                />
 
                 {/* BARRA DE PROGRESO AXOMÁTICA */}
                 <div className="w-64">
@@ -84,6 +69,7 @@ const AxiomaticSplashScreen = ({ onComplete }) => {
 };
 
 export default AxiomaticSplashScreen;
+
 
 
 

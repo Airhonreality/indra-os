@@ -41,20 +41,29 @@ function diag_Sovereignty_Identity_Audit() {
     }
   });
 
-  // 2. Verificar Sincronía de Contratos (Memory vs Registry)
+  // 2. Verificar Sincronía de Contratos (Memory vs System Catalog)
   console.log('\n🧪 [PASO 2] Verificando Sincronía de Contratos técnicos...');
-  const registrySchemas = ContractRegistry.getAll();
+  let registrySchemas = {};
+  try {
+    registrySchemas = stack.public ? stack.public.getSystemContracts() : {};
+  } catch (e) {
+    console.warn(`   ⚠️ [PASO 2] System Catalog no disponible: ${e.message}`);
+  }
   
   Object.keys(nodes).forEach(key => {
     const node = nodes[key];
-    if (node.schemas) {
-      Object.keys(node.schemas).forEach(methodName => {
+    // AXIOMA: Guardián defensivo — nodos rotos o sin schemas no deben haltar el audit
+    const nodeSchemas = (node && typeof node.schemas === 'object' && node.schemas !== null) ? node.schemas : null;
+    if (nodeSchemas) {
+      Object.keys(nodeSchemas).forEach(methodName => {
         const fullId = `${key}:${methodName}`;
         if (!registrySchemas[fullId] && !registrySchemas[methodName]) {
           report.contractSync.push({ id: fullId, error: 'MISSING_IN_REGISTRY' });
-          console.log(`   ⚠️ [${fullId}] Método no registrado en ContractRegistry.`);
+          console.log(`   ⚠️ [${fullId}] Método no registrado en el Catálogo Global.`);
         }
       });
+    } else if (node && !node.isBroken) {
+      console.log(`   ℹ️ [${key}] Sin schemas declarados (nodo atómico o servicio puro).`);
     }
   });
 
@@ -80,6 +89,7 @@ function diag_Sovereignty_Identity_Audit() {
   console.log(`\n📈 COHERENCIA DE IDENTIDAD: ${report.coherence}%`);
   return report;
 }
+
 
 
 

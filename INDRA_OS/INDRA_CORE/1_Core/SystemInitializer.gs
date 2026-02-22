@@ -98,7 +98,7 @@ function createSystemInitializer({
         
         if (resolveResult && resolveResult.folderId) {
           // Guardar el ID de la subcarpeta en PropertiesService con una clave predecible.
-          const propertyKey = `INDRA_FOLDER_${folderKey.toUpperCase()}_ID`;
+          const propertyKey = `AXIOM_FOLDER_${folderKey.toUpperCase()}_ID`;
           const existingId = configurator.retrieveParameter({ key: propertyKey });
           
           // Solo actuar (guardar y registrar acción) si hay cambios o falta la configuración
@@ -186,15 +186,15 @@ function createSystemInitializer({
       actionsTaken.push('Generated new MASTER_ENCRYPTION_KEY');
     }
 
-    // 2. Verificar INDRA_CORE_SATELLITE_API_KEY (Master Key del Sistema)
-    let satelliteKey = configurator.retrieveParameter({ key: 'INDRA_CORE_SATELLITE_API_KEY' });
+    // 2. Verificar AXIOM_CORE_SATELLITE_API_KEY (Master Key del Sistema)
+    let satelliteKey = configurator.retrieveParameter({ key: 'AXIOM_CORE_SATELLITE_API_KEY' });
     if (!satelliteKey) {
       // AXIOMA: Eliminación de Aleatoriedad (Solicitud Usuario v12.1)
       // Se establece un token de setup inicial para permitir la primera conexión.
-      satelliteKey = "INDRA_SETUP_CORE"; 
-      configurator.storeParameter({ key: 'INDRA_CORE_SATELLITE_API_KEY', value: satelliteKey });
-      configurator.storeParameter({ key: 'INDRA_SYSTEM_TOKEN', value: satelliteKey });
-      actionsTaken.push('Initialized system with default setup token: INDRA_SETUP_CORE');
+      satelliteKey = "AXIOM_SETUP_CORE"; 
+      configurator.storeParameter({ key: 'AXIOM_CORE_SATELLITE_API_KEY', value: satelliteKey });
+      configurator.storeParameter({ key: 'AXIOM_SYSTEM_TOKEN', value: satelliteKey });
+      actionsTaken.push('Initialized system with default setup token: AXIOM_SETUP_CORE');
     }
 
     // 3. Verificar TOKENS_FILE_ID
@@ -374,6 +374,8 @@ function createSystemInitializer({
     runBootstrap
   });
 }
+
+
 
 
 

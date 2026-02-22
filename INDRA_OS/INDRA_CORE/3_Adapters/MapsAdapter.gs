@@ -29,56 +29,26 @@ function createMapsAdapter({ errorHandler, tokenManager }) {
 
     const schemas = {
         getTravelTime: {
-            description: "Computes institutional travel logistics between two spatial markers using native routing circuits.",
-            semantic_intent: "PROBE",
-            io_interface: {
-                inputs: {
-                    origin: { type: "string", io_behavior: "GATE", description: "Primary spatial origin marker (address/coords)." },
-                    destination: { type: "string", io_behavior: "GATE", description: "Target spatial destination marker." },
-                    mode: { type: "string", io_behavior: "SCHEMA", description: "Technical transit mode (driving, walking, bicycling, transit)." },
-                    accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." }
-                },
-                outputs: {
-                    durationSeconds: { type: "number", io_behavior: "STREAM", description: "Temporal duration in seconds." },
-                    humanReadableDuration: { type: "string", io_behavior: "STREAM", description: "Linguistic temporal descriptor." },
-                    distanceMeters: { type: "number", io_behavior: "STREAM", description: "Spatial distance in meters." },
-                    status: { type: "string", io_behavior: "PROBE", description: "Logistical operation status." }
-                }
-            }
+            id: "READ_DATA",
+            io: "READ",
+            description: "Computes institutional travel logistics between two spatial markers.",
+            traits: ["ROUTING", "LOGISTICS"]
         },
         findNearby: {
-            description: "Executes spatial discovery to locate institutional assets or commercial entities within a defined technical radius.",
-            semantic_intent: "SENSOR",
-            io_interface: {
-                inputs: {
-                    location: { type: "string", io_behavior: "GATE", description: "Spatial focus marker for discovery." },
-                    type: { type: "string", io_behavior: "SCHEMA", description: "Technical category discriminator (restaurant, hospital, etc.)." },
-                    radius: { type: "number", io_behavior: "SCHEMA", description: "Technical discovery radius in meters." },
-                    accountId: { type: "string", io_behavior: "GATE", description: "Account selector for routing." }
-                },
-                outputs: {
-                    results: { type: "array", io_behavior: "STREAM", description: "Collection of Indra DataEntry: { id, collection, fields, timestamp, raw }" }
-                }
-            }
+            id: "SEARCH_SPATIAL",
+            io: "READ",
+            description: "Executes spatial discovery to locate institutional assets or commercial entities.",
+            traits: ["SENSE", "GEOLOCATION", "EXPLORE"]
         },
         geocode: {
+            id: "READ_DATA",
+            io: "READ",
             description: "Transforms a linguistic address stream into technical spatial coordinates (lat/lng).",
-            semantic_intent: "PROBE",
-            io_interface: {
-                inputs: {
-                    address: { type: "string", io_behavior: "STREAM", description: "Linguistic address stream to be transformed." },
-                    accountId: { type: "string", io_behavior: "GATE", description: "Account selector for routing." }
-                },
-                outputs: {
-                    lat: { type: "number", io_behavior: "STREAM", description: "Technical latitude coordinate." },
-                    lng: { type: "number", io_behavior: "STREAM", description: "Technical longitude coordinate." },
-                    formattedAddress: { type: "string", io_behavior: "STREAM", description: "Standardized institutional address stream." }
-                }
-            }
+            traits: ["GEOLOCATION", "TRANSFORM"]
         }
     };
 
-    // --- INDRA CANON: Normalización Semántica ---
+    // --- AXIOM CANON: Normalización Semántica ---
 
     function _mapDataEntry(item, collectionId = 'maps_nearby') {
         return {
@@ -181,27 +151,68 @@ function createMapsAdapter({ errorHandler, tokenManager }) {
         }
     }
 
-  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+  // --- SOVEREIGN CANON V14.0 (ADR-022 Compliant — Pure Source) ---
   const CANON = {
-      ARCHETYPE: "ADAPTER",
-      DOMAIN: "SPATIAL",
-      CAPABILITIES: schemas
+      id: "maps",
+      label: "Spatial Navigation Engine",
+      archetype: "adapter",
+      domain: "spatial",
+      REIFICATION_HINTS: {
+          id: "id || place_id",
+          label: "name || formatted_address || label",
+          items: "results || items"
+      },
+      CAPABILITIES: {
+          "getTravelTime": {
+              "id": "READ_DATA",
+              "io": "READ",
+              "desc": "Computes institutional travel logistics between two spatial markers.",
+              "traits": ["ROUTING", "LOGISTICS"],
+              "inputs": {
+                "origin": { "type": "string", "desc": "Spatial starting point." },
+                "destination": { "type": "string", "desc": "Spatial target point." }
+              }
+          },
+          "findNearby": {
+              "id": "SEARCH_SPATIAL",
+              "io": "READ",
+              "desc": "Executes spatial discovery to locate institutional assets.",
+              "traits": ["SENSE", "GEOLOCATION", "EXPLORE"],
+              "inputs": {
+                "location": { "type": "string", "desc": "Center coordinate or address." },
+                "type": { "type": "string", "desc": "Asset category." }
+              }
+          },
+          "geocode": {
+              "id": "READ_DATA",
+              "io": "READ",
+              "desc": "Transforms a linguistic address stream into technical spatial coordinates.",
+              "traits": ["GEOLOCATION", "TRANSFORM"],
+              "inputs": {
+                "address": { "type": "string", "desc": "Linguistic address descriptor." }
+              }
+          }
+      }
   };
 
     return {
+        id: "maps",
+        label: CANON.label,
+        archetype: CANON.archetype,
+        domain: CANON.domain,
         description: "Industrial engine for geolocalization, logistical rounting, and spatial coordinate transformation.",
-        semantic_intent: "SENSOR",
-        CANON: CANON, // Added for Protocol V8.1
-        schemas: schemas,
-        // Protocol mapping (SYS_V1)
-        verifyConnection,
+        CANON: CANON,
+        
+        verifyConnection: verifyConnection,
         setTokenManager: (tm) => { tokenManager = tm; },
-        // Original methods
-        getTravelTime,
-        findNearby,
-        geocode
+        
+        getTravelTime: getTravelTime,
+        findNearby: findNearby,
+        geocode: geocode
     };
 }
+
+
 
 
 

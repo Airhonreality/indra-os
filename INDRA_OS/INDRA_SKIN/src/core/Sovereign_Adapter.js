@@ -1,15 +1,11 @@
-/**
- * Sovereign_Adapter.js
- * DHARMA: Adaptador Agnostico. Provee una interfaz sin estado para hablar con el Core Connector.
- */
-
-import connector from './Core_Connector';
-import compiler from './laws/Law_Compiler';
-import { StateBridge } from './state/StateBridge';
+import connector from './Core_Connector.js';
+import compiler from './2_Semantic_Transformation/Law_Compiler.js';
+import { StateBridge } from './1_Axiomatic_Store/StateBridge.js';
+import InterdictionUnit from './1_Axiomatic_Store/InterdictionUnit.js';
 
 class SovereignAdapter {
     constructor() {
-        this.isLabMode = window.location.href.includes('mode=lab');
+        // ADR-022: isLabMode PURGADO — DevLab erradicado
         this.isIgnited = false;
         this.sovereigntyStatus = 'STANDBY';
         this.L0 = null;
@@ -18,21 +14,25 @@ class SovereignAdapter {
         return new Proxy(this, {
             get: (target, prop) => {
                 if (prop in target) return target[prop];
-                return (method, payload) => target.call(prop, method, payload);
+                // Redirigir llamadas dinámicas a InterdictionUnit
+                return (method, payload) => InterdictionUnit.call(prop, method, payload);
             }
         });
     }
 
     async runSystemAudit() {
-        return await this.call('public', 'runSystemAudit', {});
+        return await InterdictionUnit.call('public', 'runSystemAudit', {});
     }
 
     async call(executor, method, payload = {}) {
-        return await connector.call(executor, method, payload);
+        // Redirigir a la membrana de contención
+        return await InterdictionUnit.call(executor, method, payload);
     }
 
     async executeAction(action, payload = {}) {
-        return await connector.executeAction(action, payload);
+        // action suele ser 'nodeId:method'
+        const [executor, method] = action.includes(':') ? action.split(':') : ['system', action];
+        return await InterdictionUnit.call(executor, method, payload);
     }
 
     async ignite() {
@@ -43,15 +43,16 @@ class SovereignAdapter {
 
         addLog(`[IGNITION] Iniciando descubrimiento core...`);
 
-        const cached = localStorage.getItem('INDRA_GENOTYPE_L0');
-        if (cached && !this.isLabMode) {
+        // ADR-022: Cache siempre se respeta — sin condición isLabMode
+        const cached = localStorage.getItem('AXIOM_GENOTYPE_L0');
+        if (cached) {
             try {
                 this.L0 = JSON.parse(cached);
                 this.isIgnited = true;
                 this.sovereigntyStatus = 'ACTIVE';
                 if (this.L0.COMPONENT_REGISTRY) compiler.setOntology(this.L0.COMPONENT_REGISTRY, this.L0);
                 addLog(`⚡ [L0] Cache restaurado v${this.L0.VERSION}.`);
-            } catch (e) { localStorage.removeItem('INDRA_GENOTYPE_L0'); }
+            } catch (e) { localStorage.removeItem('AXIOM_GENOTYPE_L0'); }
         }
 
         try {
@@ -63,7 +64,7 @@ class SovereignAdapter {
                 this.isIgnited = true;
                 this.sovereigntyStatus = 'ACTIVE';
 
-                localStorage.setItem('INDRA_GENOTYPE_L0', JSON.stringify(this.L0));
+                localStorage.setItem('AXIOM_GENOTYPE_L0', JSON.stringify(this.L0));
                 compiler.setOntology(this.L0.COMPONENT_REGISTRY, this.L0);
                 if (this.L0.ARTIFACT_SCHEMAS) compiler.setArtifactSchemas(this.L0.ARTIFACT_SCHEMAS);
 
@@ -77,6 +78,7 @@ class SovereignAdapter {
         return {
             success: this.sovereigntyStatus === 'ACTIVE',
             status: this.sovereigntyStatus,
+            sovereignty: this.sovereigntyStatus, // <--- AÑADIDO PARA COMPATIBILIDAD
             genotype: this.L0,
             error: this.sovereigntyStatus === 'LOCKED' ? "CORE_UNREACHABLE" : null
         };
@@ -90,6 +92,7 @@ class SovereignAdapter {
 
 const adapter = new SovereignAdapter();
 export default adapter;
+
 
 
 

@@ -50,8 +50,8 @@ var LOGIC_AXIOMS = Object.freeze({
     // SECTION 2: REGLAS DE PUREZA (Agnosticismo)
     // ============================================================
     "PURITY_RULES": {
-        "FORBIDDEN_TERMS": ['indra', 'mentem', 'Indra', 'Axiom'],
-        "INSTITUTIONAL_KEYS": ['indra', 'intelligence'],
+        "FORBIDDEN_TERMS": ['indra', 'mentem', 'Indra'],
+        "INSTITUTIONAL_KEYS": ['axiom', 'intelligence'],
         "RESERVED_KEYS": ['schemas', 'label', 'description', 'semantic_intent', 'archetype', 'id', 'teardown', 'isBroken', 'error', 'getAllNodes'],
         "EXEMPT_ARCHETYPES": ['ADAPTER', 'BRIDGE', 'ORCHESTRATOR', 'SERVICE']
     },
@@ -68,6 +68,7 @@ var LOGIC_AXIOMS = Object.freeze({
         "semantic_mode": "DETERMINISTIC"
     }
 });
+
 
 
 

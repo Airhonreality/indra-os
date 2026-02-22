@@ -51,7 +51,7 @@ function doPost(e) {
       const probeStack = _assembleExecutionStack();
       const { configurator } = probeStack;
       
-      const expectedToken = configurator.retrieveParameter({ key: 'INDRA_CORE_SATELLITE_API_KEY' }) || 
+      const expectedToken = configurator.retrieveParameter({ key: 'AXIOM_CORE_SATELLITE_API_KEY' }) || 
                             configurator.retrieveParameter({ key: 'SYSTEM_TOKEN' });
 
       return _respondJson(200, { 
@@ -263,6 +263,13 @@ function _handleSatelliteApiRequest(event, executionStack, preparsedBody, isSove
     result = targetMethod.call(executorInstance, payloadData);
   }
 
+  // AXIOMA: Envelope Transparente (ADR-022)
+  // Si el resultado ya es un sobre soberano (tiene success), lo devolvemos tal cual.
+  // Evitamos el doble envoltorio { success: true, result: { success: true, payload ... } }
+  if (result && typeof result === 'object' && result.success !== undefined) {
+      return { statusCode: 200, body: result };
+  }
+
   return { statusCode: 200, body: { success: true, result: result } };
 }
 
@@ -358,6 +365,7 @@ function _isNotionButtonWebhook(body) {
   // Heurística conservadora: requerimos pageId y flowId.
   return (body.pageId && body.flowId) ? true : false;
 }
+
 
 
 

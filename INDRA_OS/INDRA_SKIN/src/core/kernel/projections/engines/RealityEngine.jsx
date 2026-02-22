@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { ProjectionKernel } from '../../isk/ProjectionKernel';
-import { useAxiomaticStore } from '../../../state/AxiomaticStore';
-import useAxiomaticState from '../../../state/AxiomaticState';
+﻿import React, { useEffect, useRef } from 'react';
+import { ProjectionKernel } from '../../isk/ProjectionKernel.js';
+import { useAxiomaticStore } from '../../../1_Axiomatic_Store/AxiomaticStore.jsx';
+import useAxiomaticState from '../.././AxiomaticState.js';
 
 /**
  * RealityEngine: Manifestación del Motor ISK en el Front.
@@ -69,7 +69,7 @@ const RealityEngine = ({ data }) => {
                 // Por ahora solo logueamos para no romper el bucle físico sin contratos
             }
         }
-    }, [state.phenotype.isLoading]);
+    }, [globalLoading]);
 
     return (
         <div className="w-full h-full relative bg-black/40 rounded-3xl overflow-hidden border border-white/5 shadow-2xl">
@@ -105,6 +105,7 @@ const RealityEngine = ({ data }) => {
 };
 
 export default RealityEngine;
+
 
 
 

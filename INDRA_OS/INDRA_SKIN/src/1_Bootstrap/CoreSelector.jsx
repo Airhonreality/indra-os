@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CAPA 1: BOOTSTRAP
  * CoreSelector.jsx
  * DHARMA: Selector de Realidad y Gestión de Enlaces Multicore.
@@ -6,23 +6,22 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import adapter from '../core/Sovereign_Adapter';
-import { CONFIG, updateCoreUrl } from '../core/Config';
-import { useAxiomaticStore } from '../core/state/AxiomaticStore';
-import { Icons } from '../4_Atoms/IndraIcons';
+import adapter from '../core/Sovereign_Adapter.js';
+import { CONFIG, updateCoreUrl } from '../core/Config.js';
+import { useAxiomaticStore } from '../core/1_Axiomatic_Store/AxiomaticStore.jsx';
+import { Icons } from '../4_Atoms/AxiomIcons.jsx';
 
 const CoreSelector = ({ asOverlay = false, onClose }) => {
     const { execute } = useAxiomaticStore();
 
     // Lista de Cores Conocidos (Address Book)
     const [knownCores, setKnownCores] = useState(() => {
-        const stored = localStorage.getItem('INDRA_KNOWN_CORES');
-        return stored ? JSON.parse(stored) : [
-            { id: 'default', label: 'Indra Office', url: CONFIG.CORE_URL, token: CONFIG.SYSTEM_TOKEN }
-        ];
+        const stored = localStorage.getItem('AXIOM_KNOWN_CORES');
+        return stored ? JSON.parse(stored) : [];
     });
 
-    const [activeCoreId, setActiveCoreId] = useState(localStorage.getItem('INDRA_ACTIVE_CORE_ID') || 'default');
+    const [activeCoreId, setActiveCoreId] = useState(localStorage.getItem('AXIOM_ACTIVE_CORE_ID') || null);
+    const [connectingCoreId, setConnectingCoreId] = useState(null);
     const [isAdding, setIsAdding] = useState(false);
     const [isAuthenticating, setIsAuthenticating] = useState(false);
     const [error, setError] = useState(null);
@@ -32,23 +31,24 @@ const CoreSelector = ({ asOverlay = false, onClose }) => {
 
     const saveCores = (cores) => {
         setKnownCores(cores);
-        localStorage.setItem('INDRA_KNOWN_CORES', JSON.stringify(cores));
+        localStorage.setItem('AXIOM_KNOWN_CORES', JSON.stringify(cores));
     };
 
     const handleConnect = async (core) => {
         setIsAuthenticating(true);
+        setConnectingCoreId(core.id);
         setError(null);
 
         try {
             console.log(`[CoreSelector] Conectando a ${core.label}...`);
 
             // 1. Persistencia de Sesión Activa
-            localStorage.setItem('INDRA_SESSION_TOKEN', core.token);
-            localStorage.setItem('INDRA_OVERRIDE_URL', core.url);
-            localStorage.setItem('INDRA_ACTIVE_CORE_ID', core.id);
+            localStorage.setItem('AXIOM_SESSION_TOKEN', core.token);
+            localStorage.setItem('AXIOM_OVERRIDE_URL', core.url);
+            localStorage.setItem('AXIOM_ACTIVE_CORE_ID', core.id);
 
             // 2. Reinicializar el conector
-            const { default: connector } = await import('../core/Core_Connector');
+            const { default: connector } = await import('../core/Core_Connector.js');
             connector.init(core.url, core.token);
 
             // 3. Handshake (Ignición)
@@ -57,6 +57,18 @@ const CoreSelector = ({ asOverlay = false, onClose }) => {
             if (result.sovereignty === 'ACTIVE') {
                 console.log(`[CoreSelector] ✅ Vínculo establecido con ${core.label}`);
 
+                // 4. AXIOMA: Identidad Adquirida.
+                const identity = result.genotype?.core_identity;
+                if (identity) {
+                    const realLabel = identity.core_name || identity.user_email || 'Axiom Core';
+                    if (core.label !== realLabel) {
+                        const updatedCores = knownCores.map(c =>
+                            c.id === core.id ? { ...c, label: realLabel } : c
+                        );
+                        saveCores(updatedCores);
+                    }
+                }
+
                 if (asOverlay) {
                     execute('IGNITE_SYSTEM', {
                         sovereignty: 'ACTIVE',
@@ -64,7 +76,7 @@ const CoreSelector = ({ asOverlay = false, onClose }) => {
                     });
                     if (onClose) onClose();
                 } else {
-                    window.location.reload(); // Recarga limpia para cambio de Core
+                    setTimeout(() => window.location.reload(), 100);
                 }
             } else {
                 setError(`ERROR_VETO: El Core '${core.label}' rechazó la conexión.`);
@@ -73,6 +85,7 @@ const CoreSelector = ({ asOverlay = false, onClose }) => {
             setError(`CORE_INALCANZABLE: ${err.message}`);
         } finally {
             setIsAuthenticating(false);
+            setConnectingCoreId(null);
         }
     };
 
@@ -86,8 +99,16 @@ const CoreSelector = ({ asOverlay = false, onClose }) => {
     };
 
     const removeCore = (id) => {
-        if (id === 'default') return;
-        saveCores(knownCores.filter(c => c.id !== id));
+        const updated = knownCores.filter(c => c.id !== id);
+        saveCores(updated);
+
+        // Si borramos el core activo, limpiamos la sesión
+        if (id === activeCoreId) {
+            localStorage.removeItem('AXIOM_ACTIVE_CORE_ID');
+            localStorage.removeItem('AXIOM_OVERRIDE_URL');
+            localStorage.removeItem('AXIOM_SESSION_TOKEN');
+            setActiveCoreId(null);
+        }
     };
 
     return (
@@ -187,8 +208,14 @@ const CoreSelector = ({ asOverlay = false, onClose }) => {
                                     className={`group flex items-center justify-between p-6 rounded-3xl border transition-all cursor-pointer ${activeCoreId === core.id ? 'bg-[var(--accent)]/10 border-[var(--accent)]/40 shadow-lg shadow-[var(--accent)]/5' : 'bg-white/2 border-white/5 hover:border-white/20'}`}
                                 >
                                     <div className="flex items-center gap-6 flex-1" onClick={() => handleConnect(core)}>
-                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl bg-black/40 border transition-all ${activeCoreId === core.id ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-white/5 text-white/20'}`}>
-                                            <Icons.Transform size={30} className={activeCoreId === core.id ? 'animate-pulse' : ''} />
+                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl bg-black/40 border transition-all duration-500 ${connectingCoreId === core.id ? 'border-[var(--accent)] shadow-[0_0_20px_var(--accent)] bg-[var(--accent)]/10 scale-110' :
+                                            activeCoreId === core.id ? 'border-[var(--accent)] text-[var(--accent)] shadow-[0_0_10px_var(--accent)]/20' : 'border-white/5 text-white/20'
+                                            }`}>
+                                            {connectingCoreId === core.id ? (
+                                                <Icons.Sync size={30} className="animate-spin text-[var(--accent)]" />
+                                            ) : (
+                                                <Icons.Transform size={30} className={activeCoreId === core.id ? 'animate-pulse' : ''} />
+                                            )}
                                         </div>
                                         <div className="flex flex-col">
                                             <div className="flex items-center gap-3 mb-1">
@@ -230,3 +257,4 @@ const CoreSelector = ({ asOverlay = false, onClose }) => {
 };
 
 export default CoreSelector;
+

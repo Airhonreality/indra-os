@@ -1,5 +1,5 @@
-import React from 'react';
-import { useSignifier } from '../hooks/useSignifier';
+﻿import React from 'react';
+import { useSignifier } from '../hooks/useSignifier.js';
 
 /**
  * SignifierBar (V8.4 - Atomized)
@@ -61,6 +61,7 @@ const SignifierBar = ({ nodeId, showLabel = true, compact = false }) => {
 };
 
 export default SignifierBar;
+
 
 
 

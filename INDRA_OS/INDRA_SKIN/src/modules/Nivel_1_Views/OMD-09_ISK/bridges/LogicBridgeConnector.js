@@ -11,13 +11,13 @@
 export class LogicBridgeConnector {
     constructor() {
         this.listeners = new Map();
-        this.coreEndpoint = '/api/indra/invoke'; // MCP endpoint
+        this.coreEndpoint = '/api/axiom/invoke'; // MCP endpoint
         this.pendingChanges = new Map(); // Buffer para batch updates
         this.flushTimeout = null;
     }
 
     /**
-     * Metadata para INDRACore alignment
+     * Metadata para AXIOMCore alignment
      */
     static metadata = {
         archetype: 'BRIDGE',
@@ -154,6 +154,7 @@ export class LogicBridgeConnector {
 
 // Singleton instance
 export const logicBridge = new LogicBridgeConnector();
+
 
 
 

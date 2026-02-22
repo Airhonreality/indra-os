@@ -1,12 +1,12 @@
-import { JITCompiler } from './JITCompiler';
-import { StateBridge } from '../../state/StateBridge';
-import { ObjectPool } from './ObjectPool';
-import { SpatialRenderer } from './SpatialRenderer';
-import { InstancedShaderFactory } from './InstancedShaderFactory';
-import { IntegrityBoundary } from './IntegrityBoundary';
-import { SpatialBridge } from './SpatialBridge';
-import { USSP_PersistenceBuffer } from './USSP_PersistenceBuffer';
-import { useUSSPStateStore } from './USSP_StateStore';
+import { JITCompiler } from './JITCompiler.js';
+import { StateBridge } from '../../1_Axiomatic_Store/StateBridge.js';
+import { ObjectPool } from './ObjectPool.js';
+import { SpatialRenderer } from './SpatialRenderer.js';
+import { InstancedShaderFactory } from './InstancedShaderFactory.js';
+import { IntegrityBoundary } from './IntegrityBoundary.js';
+import { SpatialBridge } from './SpatialBridge.js';
+import { USSP_PersistenceBuffer } from './USSP_PersistenceBuffer.js';
+import { useUSSPStateStore } from './USSP_StateStore.js';
 
 /**
  * 🌌 ISK: PROJECTION KERNEL (L1 / L2 Orchestrator)
@@ -173,8 +173,8 @@ export class ProjectionKernel {
 
             // AXIOMA V12: Histéresis Visual basada en Soberanía Local (_isDirty)
             const axStore = StateBridge.getState();
-            const artifacts = axStore?.phenotype?.artifacts || [];
-            const pendingIds = new Set(artifacts.filter(a => a._isDirty).map(a => a.id));
+            const artifactsMap = axStore?.phenotype?.artifacts || {};
+            const pendingIds = new Set(Object.values(artifactsMap).filter(a => a._isDirty).map(a => a.id));
             const now = Date.now();
 
             if (!this._hysteresisMap) this._hysteresisMap = new Map();
@@ -301,6 +301,7 @@ export class ProjectionKernel {
         }
     }
 }
+
 
 
 

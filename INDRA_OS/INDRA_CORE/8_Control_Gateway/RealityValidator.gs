@@ -83,14 +83,15 @@ function createRealityValidator({ monitoringService, errorHandler }) {
     return { valid: true, verdict: 'VERDICT_COHERENT' };
   }
 
-  return Object.freeze({
+  return {
     id: 'validator',
     normalize,
     verifyAtomicLock,
     validate,
     VERSION
-  });
+  };
 }
+
 
 
 

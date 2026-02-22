@@ -116,7 +116,7 @@ export const VisualInspector = () => {
     );
 };
 
-// Metadata for INDRACore alignment
+// Metadata for AXIOMCore alignment
 VisualInspector.metadata = {
     id: "visual_inspector_isk",
     archetype: "TRANSFORM",
@@ -125,6 +125,7 @@ VisualInspector.metadata = {
 };
 
 export default VisualInspector;
+
 
 
 

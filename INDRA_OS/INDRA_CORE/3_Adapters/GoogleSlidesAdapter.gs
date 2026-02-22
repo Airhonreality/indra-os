@@ -147,7 +147,7 @@ function createGoogleSlidesAdapter({ errorHandler, driveAdapter, tokenManager })
       }
     }
 
-    // --- INDRA CANON: Normalización Semántica ---
+    // --- AXIOM CANON: Normalización Semántica ---
 
     function _mapDocumentRecord(pres) {
         return {
@@ -163,58 +163,55 @@ function createGoogleSlidesAdapter({ errorHandler, driveAdapter, tokenManager })
         };
     }
 
-  const schemas = {
-    create: { 
-      description: "Initializes a high-integrity institutional presentation within an optional target container circuit.",
-      semantic_intent: "TRIGGER",
-      io_interface: { 
-        inputs: { 
-          title: { type: "string", io_behavior: "STREAM", description: "Display identifier for the new presentation industrial asset." },
-          folderId: { type: "string", io_behavior: "GATE", description: "Target container industrial identifier." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier registry routing." }
-        },
-        outputs: { 
-          presentationId: { type: "string", io_behavior: "PROBE", description: "Unique institutional presentation identifier." },
-          url: { type: "string", io_behavior: "BRIDGE", description: "Direct access technical URL." }
-        }
-      }
+  // --- SOVEREIGN CANON V14.0 (ADR-022 Compliant — Pure Source) ---
+  const CANON = {
+    id: "slides",
+    label: "Axiom Slides",
+    archetype: "adapter",
+    domain: "editing",
+    REIFICATION_HINTS: {
+        id: "presentationId || id",
+        label: "title || name || id",
+        items: "slides || items"
     },
-    replacePlaceholders: { 
-      description: "Applies bulk institutional content replacements across all technical slides via high-performance BatchUpdate circuit.",
-      semantic_intent: "TRANSFORM",
-      io_interface: {
-        inputs: { 
-          presentationId: { type: "string", io_behavior: "GATE", description: "Target industrial presentation identifier." },
-          mapping: { type: "object", io_behavior: "STREAM", description: "Key-value dictionary stream of linguistic mappings." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for isolation." }
-        },
-        outputs: {
-          occurrencesReplaced: { type: "number", io_behavior: "PROBE", description: "Total industrial count of modified shape records." }
+    CAPABILITIES: {
+      "create": {
+        "id": "WRITE_DATA",
+        "io": "WRITE",
+        "desc": "Initializes a high-integrity institutional presentation.",
+        "traits": ["STRUCTURE", "DOCUMENT"],
+        "inputs": { 
+          "title": { "type": "string", "desc": "Display identifier for the new presentation." },
+          "folderId": { "type": "string", "desc": "Target container industrial identifier." }
         }
-      }
-    },
-    replacePlaceholdersWithImages: {
-      description: "Injects dynamic external image streams into target shape identifiers within the institutional presentation.",
-      semantic_intent: "TRANSFORM",
-      io_interface: {
-        inputs: {
-          presentationId: { type: "string", io_behavior: "GATE", description: "Target presentation identifier." },
-          imageMapping: { type: "object", io_behavior: "STREAM", description: "Dictionary mapping linguistic keys to asset URL streams." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
+      },
+      "replacePlaceholders": {
+        "id": "WRITE_DATA",
+        "io": "WRITE",
+        "desc": "Applies bulk institutional content replacements across all technical slides.",
+        "traits": ["UPDATE", "EDITOR"],
+        "inputs": { 
+          "presentationId": { "type": "string", "desc": "Target industrial presentation identifier." },
+          "mapping": { "type": "object", "desc": "Key-value dictionary of linguistic mappings." }
         }
-      }
-    },
-    addSlide: { 
-      description: "Appends a new technical slide with a specified industrial layout to the target institutional asset.",
-      semantic_intent: "TRIGGER",
-      io_interface: {
-        inputs: { 
-          presentationId: { type: "string", io_behavior: "GATE", description: "Target presentation identifier." },
-          predefinedLayout: { type: "string", io_behavior: "SCHEMA", description: "Standard industrial layout identifier (e.g., TITLE_AND_BODY)." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for routing." }
-        },
-        outputs: {
-          slideId: { type: "string", io_behavior: "PROBE", description: "Unique identifier of the created technical slide." }
+      },
+      "addSlide": {
+        "id": "WRITE_DATA",
+        "io": "WRITE",
+        "desc": "Appends a new technical slide with a specified layout.",
+        "traits": ["STRUCTURE", "EDITOR"],
+        "inputs": { 
+          "presentationId": { "type": "string", "desc": "Target presentation identifier." },
+          "predefinedLayout": { "type": "string", "desc": "Standard industrial layout identifier." }
+        }
+      },
+      "retrieve": {
+        "id": "READ_DATA",
+        "io": "READ",
+        "desc": "Extracts an industrial PresentationRecord with structural metadata.",
+        "traits": ["DOC", "CONTENT", "KNOWLEDGE"],
+        "inputs": { 
+          "presentationId": { "type": "string", "desc": "Target presentation identifier." }
         }
       }
     }
@@ -278,86 +275,14 @@ function createGoogleSlidesAdapter({ errorHandler, driveAdapter, tokenManager })
     return { results: [], message: "Not a database engine" };
   }
 
-  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
-  const CANON = {
-    ARCHETYPE: "ADAPTER",
-    DOMAIN: "DOCUMENT_ENGINE",
-    CAPABILITIES: {
-      "create": {
-        "io": "WRITE",
-        "desc": "Initialize high-integrity presentation",
-        "inputs": {
-          "title": { "type": "string", "desc": "Display identifier for the new presentation." },
-          "folderId": { "type": "string", "desc": "Target container identifier." },
-          "accountId": { "type": "string", "desc": "Account selector." }
-        },
-        "outputs": {
-          "presentationId": { "type": "string", "desc": "Unique institutional presentation identifier." },
-          "url": { "type": "string", "desc": "Direct access technical URL." }
-        }
-      },
-      "replacePlaceholders": {
-        "io": "TRANSFORM",
-        "desc": "Bulk content replacement",
-        "inputs": {
-          "presentationId": { "type": "string", "desc": "Target presentation identifier." },
-          "mapping": { "type": "object", "desc": "Key-value dictionary stream." },
-          "accountId": { "type": "string", "desc": "Account selector." }
-        },
-        "outputs": {
-          "occurrencesReplaced": { "type": "number", "desc": "Total count of modified shapes." }
-        }
-      },
-      "replacePlaceholdersWithImages": {
-        "io": "TRANSFORM",
-        "desc": "Dynamic image injection",
-        "inputs": {
-          "presentationId": { "type": "string", "desc": "Target presentation identifier." },
-          "imageMapping": { "type": "object", "desc": "Dictionary mapping keys to image URLs." },
-          "accountId": { "type": "string", "desc": "Account selector." }
-        }
-      },
-      "addSlide": {
-        "io": "WRITE",
-        "desc": "Append technical slide",
-        "inputs": {
-          "presentationId": { "type": "string", "desc": "Target presentation identifier." },
-          "predefinedLayout": { "type": "string", "desc": "Standard layout identifier (e.g., TITLE_AND_BODY)." },
-          "accountId": { "type": "string", "desc": "Account selector." }
-        },
-        "outputs": {
-          "slideId": { "type": "string", "desc": "Unique identifier of the created slide." }
-        }
-      },
-      "retrieve": {
-        "io": "READ",
-        "desc": "Extract PresentationRecord",
-        "inputs": {
-          "presentationId": { "type": "string", "desc": "Target presentation identifier." }
-        },
-        "outputs": {
-          "document": { "type": "object", "desc": "Indra PresentationRecord structure." }
-        }
-      }
-    }
-  };
-
   return {
+    id: "slides",
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
     description: "Industrial presentation engine for institutional slide generation, high-integrity batch updates, and dynamic asset injection.",
-    semantic_intent: "EDITOR",
-    // Sovereign Identity
     CANON: CANON,
-    // Legacy Bridge
-    get schemas() {
-        const s = {};
-        for (const [key, cap] of Object.entries(CANON.CAPABILITIES)) {
-            s[key] = {
-                description: cap.desc,
-                io_interface: { inputs: cap.inputs || {}, outputs: cap.outputs || {} }
-            };
-        }
-        return s;
-    },
+    
     // Protocol mapping (STORAGE_V1)
     read,
     write,
@@ -365,8 +290,8 @@ function createGoogleSlidesAdapter({ errorHandler, driveAdapter, tokenManager })
     queryDatabaseContent,
     verifyConnection,
     setTokenManager: (tm) => { tokenManager = tm; },
+    
     // Original methods
-    id: "googleSlides", // Will be overridden
     create,
     batchUpdate,
     replacePlaceholders,
@@ -375,6 +300,9 @@ function createGoogleSlidesAdapter({ errorHandler, driveAdapter, tokenManager })
     retrieve
   };
 }
+
+
+
 
 
 

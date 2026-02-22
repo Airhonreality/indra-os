@@ -18,54 +18,6 @@ function createMessengerAdapter({ errorHandler, adapters }) {
     // El mapa de proveedores se inyecta o se descubre desde las dependencias
     const _providers = adapters || {};
 
-    const schemas = {
-        send: {
-            description: "Dispatches a linguistic message stream to a specific institutional communication channel via specialized platform circuits.",
-            semantic_intent: "TRIGGER",
-            io_interface: {
-                inputs: {
-                    to: { type: "string", io_behavior: "GATE", description: "Target recipient identifier (phone, handle, ID)." },
-                    body: { type: "string", io_behavior: "STREAM", description: "Linguistic content stream to be dispatched." },
-                    platform: { type: "string", io_behavior: "SCHEMA", description: "Target communication platform circuit (whatsapp, instagram, tiktok)." },
-                    mediaUrl: { type: "string", io_behavior: "STREAM", description: "External URL for attached media assets." },
-                    accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identity-aware routing." }
-                },
-                outputs: {
-                    success: { type: "boolean", io_behavior: "PROBE", description: "Dispatch confirmation status." },
-                    platform: { type: "string", io_behavior: "SCHEMA", description: "Platform circuit used for dispatch." },
-                    externalId: { type: "string", io_behavior: "PROBE", description: "External tracking identifier." }
-                }
-            }
-        },
-        receive: {
-            description: "Normalizes an incoming data stream from any registered communication channel into an institutional canonical format.",
-            semantic_intent: "PROBE",
-            io_interface: {
-                inputs: {
-                    webhookRawPayload: { type: "object", io_behavior: "STREAM", description: "Raw data stream from the external webhook." },
-                    sourcePlatform: { type: "string", io_behavior: "SCHEMA", description: "Origin platform circuit identifier." },
-                    accountId: { type: "string", io_behavior: "GATE", description: "Account selector for routing." }
-                },
-                outputs: {
-                    message: { type: "object", io_behavior: "STREAM", description: "Normalized Indra SocialComment: { id, author, text, timestamp, stats, raw }" }
-                }
-            }
-        },
-        broadcast: {
-            description: "Executes a collective dispatch of a message stream to multiple target receivers across various circuits.",
-            semantic_intent: "TRIGGER",
-            io_interface: {
-                inputs: {
-                    destinations: { type: "array", io_behavior: "STREAM", description: "Collection of target recipients {to, platform}." },
-                    body: { type: "string", io_behavior: "STREAM", description: "Collective linguistic content stream." },
-                    accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." }
-                },
-                outputs: {
-                    results: { type: "array", io_behavior: "PROBE", description: "Collection of individual dispatch statuses." }
-                }
-            }
-        }
-    };
 
     /**
      * Despacha un mensaje ruteándolo al adaptador correspondiente.
@@ -168,24 +120,68 @@ function createMessengerAdapter({ errorHandler, adapters }) {
         };
     }
 
-    // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
-    const CANON = {
-        ARCHETYPE: "ADAPTER",
-        DOMAIN: "COMMUNICATION_HUB",
-        CAPABILITIES: schemas
-    };
+  // --- SOVEREIGN CANON V14.0 (ADR-022 Compliant — Pure Source) ---
+  const CANON = {
+      id: "messenger",
+      label: "Axiom Messenger Hub",
+      archetype: "adapter",
+      domain: "communication",
+      REIFICATION_HINTS: {
+          "id": "id",
+          "label": "text || summary || id",
+          "items": "results || items"
+      },
+      CAPABILITIES: {
+          "send": {
+              "id": "SEND_MESSAGE",
+              "io": "WRITE",
+              "desc": "Dispatches a linguistic message stream to a specific institutional communication channel.",
+              "traits": ["COMMUNICATE", "MESSAGING", "DISPATCH"],
+              "inputs": {
+                  "to": { "type": "string", "desc": "Target recipient identifier." },
+                  "body": { "type": "string", "desc": "Linguistic content stream." },
+                  "platform": { "type": "string", "desc": "Target communication platform circuit." }
+              }
+          },
+          "receive": {
+              "id": "RECEPTION",
+              "io": "READ",
+              "desc": "Normalizes an incoming data stream from any registered communication channel.",
+              "traits": ["COMMUNICATE", "NORMALIZATION"],
+              "inputs": {
+                  "webhookRawPayload": { "type": "object", "desc": "Raw data stream from the external webhook." },
+                  "sourcePlatform": { "type": "string", "desc": "Origin platform circuit identifier." }
+              }
+          },
+          "broadcast": {
+              "id": "SEND_MESSAGE",
+              "io": "WRITE",
+              "desc": "Executes a collective dispatch of a message stream to multiple target receivers.",
+              "traits": ["COMMUNICATE", "BROADCAST"],
+              "inputs": {
+                  "destinations": { "type": "array", "desc": "Collection of target recipients {to, platform}." },
+                  "body": { "type": "string", "desc": "Collective linguistic content stream." }
+              }
+          }
+      }
+  };
 
-    return {
-        description: "Industrial bridge for multi-platform communication, collective message broadcasting, and data normalization.",
-        CANON: CANON,
-        schemas: schemas,
-        send,
-        broadcast,
-        receive,
-        verifyConnection,
-        registerProvider
-    };
+  return {
+      id: "messenger",
+      label: CANON.label,
+      archetype: CANON.archetype,
+      domain: CANON.domain,
+      description: "Industrial bridge for multi-platform communication, collective message broadcasting, and data normalization.",
+      CANON: CANON,
+      send,
+      broadcast,
+      receive,
+      verifyConnection,
+      registerProvider
+  };
 }
+
+
 
 
 

@@ -56,10 +56,10 @@ function _setupPublicAPITests() {
       },
       retrieveParameter: (p) => {
         if (p.key === 'DEPLOYMENT_URL') return 'https://script.google.com/macros/s/test-deployment/exec';
-        if (p.key === 'INDRA_CORE_ROOT_ID') return 'mock-root-folder-id';
+        if (p.key === 'AXIOM_CORE_ROOT_ID') return 'mock-root-folder-id';
         return 'mock-root-id';
       },
-      getAllParameters: () => ({ DEPLOYMENT_URL: 'https://test.com', INDRA_CORE_ROOT_ID: 'root-123' }),
+      getAllParameters: () => ({ DEPLOYMENT_URL: 'https://test.com', AXIOM_CORE_ROOT_ID: 'root-123' }),
       isInSafeMode: () => false
     },
     mockTokenManager: {
@@ -335,6 +335,8 @@ function testPublicAPI_GetSystemStatus_debeRetornarConfiguracionDelCore() {
     _teardownPublicAPITests(setup.originals);
   }
 }
+
+
 
 
 

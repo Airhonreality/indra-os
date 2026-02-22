@@ -6,8 +6,8 @@
  * 
  * Objetivo: Eliminar la latencia subjetiva y centralizar la honestidad del estado.
  */
-import useAxiomaticState from '../../state/AxiomaticState';
-import { useAxiomaticStore } from '../../state/AxiomaticStore';
+import useAxiomaticState from '../../1_Axiomatic_Store/AxiomaticState.js';
+import { useAxiomaticStore } from '../../1_Axiomatic_Store/AxiomaticStore.jsx';
 
 export const useSignifier = (nodeId) => {
     const { state } = useAxiomaticStore();
@@ -65,6 +65,9 @@ export const useSignifier = (nodeId) => {
         metadata
     };
 };
+
+export default useSignifier;
+
 
 
 

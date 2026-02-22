@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import './LayerManager.css';
-import { StateBridge } from '../../../../../core/state/StateBridge';
+import { StateBridge } from '../../../../../core/1_Axiomatic_Store/StateBridge.js';
 
 export const LayerManager = () => {
     const [mcepManifest, setMcepManifest] = useState(null);
@@ -20,7 +20,7 @@ export const LayerManager = () => {
         try {
             const sessionId = sessionStorage.getItem('user_session_id') || 'default_session';
 
-            const response = await fetch('/api/indra/getMCEPManifest', {
+            const response = await fetch('/api/axiom/getMCEPManifest', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ accountId: sessionId })
@@ -81,7 +81,7 @@ export const LayerManager = () => {
     );
 };
 
-// Metadata for INDRACore alignment
+// Metadata for AXIOMCore alignment
 LayerManager.metadata = {
     id: "layer_manager_isk",
     label: "Layer Manager",
@@ -91,6 +91,7 @@ LayerManager.metadata = {
 };
 
 export default LayerManager;
+
 
 
 

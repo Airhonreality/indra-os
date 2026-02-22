@@ -1,4 +1,4 @@
-import adapter from '../../Sovereign_Adapter';
+import adapter from '../../Sovereign_Adapter.js';
 
 /**
  * 📥 ISK: USSP PERSISTENCE BUFFER (v1.0)
@@ -70,7 +70,7 @@ export class USSP_PersistenceBuffer {
             // Válvula de Alivio: Homeostasis Reactiva
             if (updatedRetry.length > 500) {
                 console.error("[ISK-USSP] 🚨 PRESSURE RELIEF: Backup queue exceeding safety limits. Engaging World Lock.");
-                const axState = (await import('../../state/AxiomaticState')).default.getState();
+                const axState = (await import('../../1_Axiomatic_Store/AxiomaticState.js')).default.getState();
                 axState.engageWorldLock('USSP_BUFFER_FULL');
             }
 
@@ -82,6 +82,7 @@ export class USSP_PersistenceBuffer {
 }
 
 export default USSP_PersistenceBuffer;
+
 
 
 

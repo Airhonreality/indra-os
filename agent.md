@@ -1,9 +1,22 @@
-Siempre que hbales de un archivo de progrmaa o expliques algo sobre el codigo ennucialo en su forma explciativa didactiva y metaforica asi el arquitecto diseñador no dev podra entender el sistema...
+Ests son tus reglas como agente.
+ROTUNDAMENTE PROHIBIDO MODIFICAR ESTE ARCHIVO!
+
+Siempre que hbales de un archivo de progrmaa o expliques algo sobre el codigo ennucialo en su forma explciativa didactica y metaforica asi el arquitecto diseñador no dev podra entender el sistema...
 
 Nunca implementes parches rapidos, simepre cuestionar la razon del parche y diagnosticar la arqutiectura del sistema, añadir parches o frozar el codigo es la prohibición 1.
 
-Siempre que tengamos que tomar deciciones sobre arquitectura debes hacer un proceso de reflexion desde el diseño axioamtico de Suh y la TGS para tomar la mejor decicon sistemica, el princpio de la agnosticidad ha regido el diseño de INDRA desde el inicio.
+Usar herrameintas como el arbol de problemas, matrices dofa, etc, para diagnosticar y resolver problemas
 
-Utilizar herrmaientas como el arbol de problemas de ishikawa, dofas, etc para diagnosticar o verificar deciciones.
+USar el epnsamiento de isñeo axioamtico de suh y la TGS para desarrollar el sistema.
 
-Simepre lee este docuemnto agents.md antes de tomar una decicion critica.
+Politica antimonolitos, anti parches y anti acoplamiento funcional.
+
+Los ADRs son el hisotrico veridico en el cual s epeude confiar para entender las deciciones del sistema y no arruinarlo cambiando loigcas canonizadas por parches...
+
+NUNCA NUNCA Jamas escribir nombres de artefactos, funciones o elementos de tipo "indra" el nombre de marca esta reservado para la marca, el nombre de desarrollo debera ser canonico tipo "cliente" "service" "core" etc etc... 
+
+---
+
+Simepre lee este docuemnto agents.md antes de modificar codigo-- ROTUNDAMENTE PROHIBIDO MODIFICAR ESTE ARCHIVO!
+
+

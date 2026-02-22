@@ -3,10 +3,11 @@
  * Dharma: Central nervous system for AI-driven automation and reasoning.
  * Version: 6.0.0 (COMPILED & Self-Correcting)
  */
-function createIntelligenceOrchestrator({ errorHandler, configurator, driveAdapter, monitoringService, flowCompiler, mcepCore, laws = {} }) {
+function createIntelligenceOrchestrator({ errorHandler, configurator, driveAdapter, monitoringService, flowCompiler, mcepCore, laws = {}, nodes }) {
   if (!errorHandler) throw new Error("IntelligenceOrchestrator: errorHandler is required");
   
   const _monitor = monitoringService || { logInfo: () => {}, logError: () => {} };
+  const _nodes = nodes || {};
 
 
   /**
@@ -14,7 +15,7 @@ function createIntelligenceOrchestrator({ errorHandler, configurator, driveAdapt
    */
   function _saveCognitiveSession(prompt, response, history, model) {
     try {
-      const folderId = configurator.retrieveParameter({ key: 'INDRA_FOLDER_MEMORY_ID' });
+      const folderId = configurator.retrieveParameter({ key: 'AXIOM_FOLDER_MEMORY_ID' });
       if (!folderId) return;
 
       const fullHistory = [...history, { io_behavior: 'user', content: prompt }, { io_behavior: 'assistant', content: response }];
@@ -57,12 +58,15 @@ function createIntelligenceOrchestrator({ errorHandler, configurator, driveAdapt
   }
 
   /**
-   * Main interaction point for the Indra ARCHITECT.
+   * Main interaction point for the Axiom Architect.
    * Optimized for token efficiency via Dynamic Tooling.
    */
-  function askArchitect({ prompt, history, model, accountId, currentFlow, nodes }) {
+  function askArchitect({ prompt, history, model, accountId, currentFlow, nodes: passedNodes }) {
     if (!prompt) throw errorHandler.createError("INVALID_INPUT", "Prompt is required.");
-    if (!nodes || !nodes.llm) throw errorHandler.createError("SYSTEM_FAILURE", "LLM Adapter not found.");
+    
+    // AXIOMA: Resolución de Nodos (Local > Inyectado)
+    const activeNodes = passedNodes || _nodes;
+    if (!activeNodes || !activeNodes.llm) throw errorHandler.createError("SYSTEM_FAILURE", "LLM Adapter not found.");
 
     const targetModel = model || 'llama-3.3-70b-versatile';
     const targetAccount = accountId || 'default';
@@ -76,7 +80,7 @@ function createIntelligenceOrchestrator({ errorHandler, configurator, driveAdapt
     
     // Obtenemos el prompt soberano de las Leyes
     const architectLaw = (typeof COGNITIVE_PROMPTS !== 'undefined') 
-                        ? COGNITIVE_PROMPTS.SYSTEM_ROLES.INDRA_ARCHITECT 
+                        ? COGNITIVE_PROMPTS.SYSTEM_ROLES.AXIOM_ARCHITECT 
                         : null;
 
     if (!architectLaw) throw errorHandler.createError('SYSTEM_FAILURE', '[Intelligence] COGNITIVE_PROMPTS Law not found.');
@@ -100,7 +104,7 @@ function createIntelligenceOrchestrator({ errorHandler, configurator, driveAdapt
       try {
         const finalPrompt = lastError ? `${prompt}\n\n⚠️ REPARACIÓN REQUERIDA:\n${lastError}` : prompt;
 
-        const aiResponse = nodes.llm.chat({
+        const aiResponse = activeNodes.llm.chat({
           prompt: finalPrompt,
           messages: history || [],
           model: targetModel,
@@ -170,25 +174,15 @@ function createIntelligenceOrchestrator({ errorHandler, configurator, driveAdapt
 
   return {
     CANON: CANON,
-    id: "INDRA_architect",
+    id: "AXIOM_architect",
     description: "Industrial reasoning engine for workspace orchestration and AI-driven topological design.",
     
-    // Legacy Bridge
-    get schemas() {
-        const s = {};
-        for (const [key, cap] of Object.entries(CANON.CAPABILITIES)) {
-            s[key] = {
-                description: cap.desc,
-                io_interface: { inputs: cap.inputs || {}, outputs: cap.outputs || {} }
-            };
-        }
-        return s;
-    },
-
     label: "Indra Architect",
     askArchitect
   };
 }
+
+
 
 
 

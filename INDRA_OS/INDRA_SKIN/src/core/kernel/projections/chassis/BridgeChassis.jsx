@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import Icons from '../../../../4_Atoms/IndraIcons';
+﻿import React, { useState } from 'react';
+import Icons from '../../../../4_Atoms/AxiomIcons.jsx';
 
 /**
  * BridgeChassis
@@ -79,6 +79,7 @@ const BridgeChassis = ({ title, domain, data, inspectorPanel, children, slotId }
 };
 
 export default BridgeChassis;
+
 
 
 

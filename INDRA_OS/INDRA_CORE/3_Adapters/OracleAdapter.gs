@@ -13,56 +13,8 @@ function createOracleAdapter({ errorHandler, tokenManager }) {
     if (!errorHandler) throw new Error("OracleAdapter: errorHandler is required");
     if (!tokenManager) throw new Error("OracleAdapter: tokenManager is required");
 
-    const schemas = {
-        search: {
-            description: "Executes institucional web search using a high-integrity cascade of cognitive discovery circuits (Tavily, Serper, Jina).",
-            semantic_intent: "SENSOR",
-            io_interface: {
-                inputs: {
-                    query: { type: "string", io_behavior: "STREAM", description: "Natural language query or technical search term." },
-                    limit: { type: "number", io_behavior: "SCHEMA", description: "Maximum number of discovery results to return." },
-                    provider: { type: "string", io_behavior: "SCHEMA", description: "Target discovery circuit (auto, tavily, serper, jina)." },
-                    accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." }
-                },
-                outputs: {
-                    results: { type: "array", io_behavior: "STREAM", description: "Collection of Indra DataEntry: { id, collection, fields, timestamp, raw }" },
-                    source: { type: "string", io_behavior: "SCHEMA", description: "Successful discovery circuit identifier." }
-                }
-            }
-        },
-        extract: {
-            description: "Transforms a target external resource (URL) into an institutional markdown data stream via cognitive reading.",
-            semantic_intent: "PROBE",
-            io_interface: {
-                inputs: {
-                    url: { type: "string", io_behavior: "GATE", description: "Target resource identifier (URL)." },
-                    accountId: { type: "string", io_behavior: "GATE", description: "Account selector for routing." }
-                },
-                outputs: {
-                    content: { type: "string", io_behavior: "STREAM", description: "Extracted linguistic content stream." },
-                    title: { type: "string", io_behavior: "STREAM", description: "Resource title descriptor." },
-                    markdown: { type: "string", io_behavior: "STREAM", description: "Institutional markdown representation." }
-                }
-            }
-        },
-        deepResearch: {
-            description: "Orchestrates multi-layered cognitive research by recursive discovery and systematic content extraction.",
-            semantic_intent: "SENSOR",
-            io_interface: {
-                inputs: {
-                    topic: { type: "string", io_behavior: "STREAM", description: "Primary research domain or query." },
-                    depth: { type: "number", io_behavior: "SCHEMA", description: "Technical depth level for recursive discovery." },
-                    accountId: { type: "string", io_behavior: "GATE", description: "Account selector for routing." }
-                },
-                outputs: {
-                    context: { type: "string", io_behavior: "STREAM", description: "Compiled institutional research report." },
-                    sources: { type: "array", io_behavior: "STREAM", description: "Collection of verified resource descriptors." }
-                }
-            }
-        }
-    };
  
-     // --- INDRA CANON: Normalización Semántica ---
+     // --- AXIOM CANON: Normalización Semántica ---
  
      function _mapDiscoveryEntry(r, platform) {
          return {
@@ -71,7 +23,7 @@ function createOracleAdapter({ errorHandler, tokenManager }) {
              fields: {
                  title: r.title,
                  url: r.link,
-                 snippet: r.snippet || r.content || "",
+                 snippet: r.content || r.snippet || "",
                  relevance: r.relevance || 0
              },
              timestamp: new Date().toISOString(),
@@ -268,54 +220,69 @@ function createOracleAdapter({ errorHandler, tokenManager }) {
         return { status: "ACTIVE", info: "Knowledge Discovery Circuits Ready" };
     }
 
-    // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
-    const CANON = {
-        id: "oracle",
-        ARCHETYPE: "SERVICE",
-        DOMAIN: "INTELLIGENCE",
-        CAPABILITIES: {
-            "search": { 
-                "io": "READ", 
-                "desc": "Global web discovery cascade",
-                "inputs": schemas.search.io_interface.inputs
-            },
-            "extract": { 
-                "io": "READ", 
-                "desc": "Linguistic content extraction",
-                "inputs": schemas.extract.io_interface.inputs
-            },
-            "deepResearch": { 
-                "io": "COMPUTE", 
-                "desc": "Recursive cognitive research",
-                "inputs": schemas.deepResearch.io_interface.inputs
+  // --- SOVEREIGN CANON V14.0 (ADR-022 Compliant — Pure Source) ---
+  const CANON = {
+    id: "sensing",
+    label: "Axiom Sensing Oracle",
+    archetype: "adapter",
+    domain: "intelligence",
+    REIFICATION_HINTS: {
+        "id": "link || url || id",
+        "label": "title || name || id",
+        "items": "results || items"
+    },
+    CAPABILITIES: {
+        "search": { 
+            "id": "SEARCH_WEB",
+            "io": "READ", 
+            "desc": "Executes institucional web search using a high-integrity cascade of cognitive discovery circuits.",
+            "traits": ["SENSE", "WEB_SEARCH", "EXPLORE"],
+            "inputs": {
+                "query": { "type": "string", "desc": "Natural language query or technical search term." },
+                "limit": { "type": "number", "desc": "Maximum number of discovery results." },
+                "provider": { "type": "string", "desc": "Target discovery circuit (auto, tavily, serper, jina)." }
+            }
+        },
+        "extract": { 
+            "id": "READ_DATA",
+            "io": "READ", 
+            "desc": "Transforms a target external resource (URL) into an institutional markdown data stream.",
+            "traits": ["CONTENT_EXTRACTION", "READ_DATA"],
+            "inputs": {
+                "url": { "type": "string", "desc": "Target resource identifier (URL)." }
+            }
+        },
+        "deepResearch": { 
+            "id": "PROCESS_SIGNAL",
+            "io": "COMPUTE", 
+            "desc": "Orchestrates multi-layered cognitive research by recursive discovery.",
+            "traits": ["RESEARCH", "AUTOMATION"],
+            "inputs": {
+                "topic": { "type": "string", "desc": "Primary research domain or query." },
+                "depth": { "type": "number", "desc": "Technical depth level." }
             }
         }
-    };
+    }
+  };
 
-    return {
-        CANON: CANON,
-        id: "oracle",
-        description: "Industrial engine for deep web discovery, cognitive content extraction, and recursive research orchestration.",
-        semantic_intent: "SENSOR",
-        
-        // Legacy Bridge
-        get schemas() {
-            const s = {};
-            for (const [key, cap] of Object.entries(CANON.CAPABILITIES)) {
-                s[key] = {
-                    description: cap.desc,
-                    io_interface: { inputs: cap.inputs || {}, outputs: {} }
-                };
-            }
-            return s;
-        },
-
-        search,
-        extract,
-        deepResearch,
-        verifyConnection
-    };
+  return {
+    id: "sensing",
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
+    description: "Industrial engine for deep web discovery, cognitive content extraction, and recursive research orchestration.",
+    CANON: CANON,
+    
+    // Original methods
+    search,
+    extract,
+    deepResearch,
+    verifyConnection
+  };
 }
+
+
+
 
 
 

@@ -7,80 +7,56 @@
 function createDebugAdapter({ monitoringService, configurator }) {
   
   const CANON = {
-    ARCHETYPE: "SYSTEM_UTILITY",
-    DOMAIN: "SYSTEM_CORE",
+    id: "debug",
+    label: "Axiom Debug Panel",
+    archetype: "infra",
+    domain: "system",
+    REIFICATION_HINTS: {
+        id: "id",
+        label: "label || id",
+        items: "logs || items"
+    },
     
     CAPABILITIES: {
       toggleBackendLogs: {
+        id: "WRITE_DATA",
         io: "WRITE",
         desc: "Enable/disable backend logs sent to frontend",
-        schema: {
-          inputs: {
-            enabled: { type: "boolean", label: "Enabled" }
-          },
-          outputs: {
-            success: { type: "boolean" },
-            newState: { type: "boolean" }
-          }
-        }
+        traits: ["DIAGNOSTICS", "CONTROL"],
+        inputs: { enabled: { type: "boolean", label: "Enabled" } },
+        outputs: { success: { type: "boolean" }, newState: { type: "boolean" } }
       },
-      
       toggleFrontendLogs: {
+        id: "WRITE_DATA",
         io: "WRITE",
         desc: "Enable/disable frontend verbose logging",
-        schema: {
-          inputs: {
-            enabled: { type: "boolean", label: "Enabled" }
-          },
-          outputs: {
-            success: { type: "boolean" },
-            newState: { type: "boolean" }
-          }
-        }
+        traits: ["DIAGNOSTICS", "CONTROL"],
+        inputs: { enabled: { type: "boolean", label: "Enabled" } },
+        outputs: { success: { type: "boolean" }, newState: { type: "boolean" } }
       },
-      
       setLogLevel: {
+        id: "WRITE_DATA",
         io: "WRITE",
         desc: "Set system logging level",
-        schema: {
-          inputs: {
-            level: { 
-              type: "string", 
-              label: "Log Level",
-              options: ["DEBUG", "INFO", "WARN", "ERROR"]
-            }
-          },
-          outputs: {
-            success: { type: "boolean" },
-            currentLevel: { type: "string" }
-          }
-        }
+        traits: ["DIAGNOSTICS", "CONTROL"],
+        inputs: { level: { type: "string", label: "Log Level", options: ["DEBUG", "INFO", "WARN", "ERROR"] } },
+        outputs: { success: { type: "boolean" }, currentLevel: { type: "string" } }
       },
-      
       getDebugStatus: {
+        id: "READ_DATA",
         io: "READ",
         desc: "Get current debug configuration",
-        schema: {
-          inputs: {},
-          outputs: {
-            backendLogsEnabled: { type: "boolean" },
-            frontendLogsEnabled: { type: "boolean" },
-            logLevel: { type: "string" },
-            bufferSize: { type: "number" }
-          }
-        }
+        traits: ["DIAGNOSTICS", "METRICS"],
+        inputs: {},
+        outputs: { backendLogsEnabled: { type: "boolean" }, frontendLogsEnabled: { type: "boolean" }, logLevel: { type: "string" }, bufferSize: { type: "number" } }
       },
-      
       clearLogBuffer: {
+        id: "WRITE_DATA",
         io: "WRITE",
         desc: "Clear accumulated log buffer",
-        schema: {
-          inputs: {},
-          outputs: {
-            success: { type: "boolean" },
-            clearedCount: { type: "number" }
-          }
-        }
+        traits: ["DIAGNOSTICS", "CLEANUP"],
+        inputs: {},
+        outputs: { success: { type: "boolean" }, clearedCount: { type: "number" } }
       }
     }
   };
@@ -201,12 +177,11 @@ function createDebugAdapter({ monitoringService, configurator }) {
   
   return Object.freeze({
     id: "debug",
-    label: "Debug Control Panel",
-    archetype: CANON.ARCHETYPE,
-    domain: CANON.DOMAIN,
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
     description: "System utility for controlling logging and debugging features.",
-    semantic_intent: "CONTROL",
-    CANON,
+    CANON: CANON,
     toggleBackendLogs,
     toggleFrontendLogs,
     setLogLevel,
@@ -215,6 +190,8 @@ function createDebugAdapter({ monitoringService, configurator }) {
     verifyConnection
   });
 }
+
+
 
 
 

@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import compiler from '../core/laws/Law_Compiler';
-import { Icons } from '../4_Atoms/IndraIcons';
+﻿import React, { useState, useMemo } from 'react';
+import compiler from '../core/2_Semantic_Transformation/Law_Compiler.js';
+import { Icons } from '../4_Atoms/AxiomIcons.jsx';
 
 /**
  * AdapterSelector (Mini-Hood)
@@ -94,6 +94,7 @@ const AdapterSelector = ({ onSelect, onClose }) => {
 };
 
 export default AdapterSelector;
+
 
 
 

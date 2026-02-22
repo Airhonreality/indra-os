@@ -1,6 +1,6 @@
 /**
  * 🛡️ ISK: INTEGRITY BOUNDARY
- * El firewall arquitectónico del Indra Spatial Kernel.
+ * El firewall arquitectónico del Axiom Spatial Kernel.
  * Asegura la coherencia absoluta entre el Core y el Hybrid.
  */
 
@@ -112,6 +112,7 @@ export class IntegrityBoundary {
         }, []);
     }
 }
+
 
 
 

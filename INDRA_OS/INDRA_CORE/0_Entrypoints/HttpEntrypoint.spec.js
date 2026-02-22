@@ -15,13 +15,13 @@ function _setupAPIGatewayTests() {
     mockErrorHandler: { createError: (code, msg, details) => { const e = new Error(msg); e.code = code; e.details = details; return e; } },
     mockConfigurator: {
       retrieveParameter: (payload) => {
-        if (payload.key === 'INDRA_CORE_SATELLITE_API_KEY') return 'test-satellite-key';
+        if (payload.key === 'AXIOM_CORE_SATELLITE_API_KEY') return 'test-satellite-key';
         if (payload.key === 'WORKER_URL' || payload.key === 'INDRA_WORKER_URL') return 'http://mock.worker.url/exec';
         if (payload.key === 'DEPLOYMENT_URL') return 'http://mock.deployment.url/exec';
         return null;
       },
       getAllParameters: () => ({
-        'INDRA_CORE_SATELLITE_API_KEY': 'SECRET',
+        'AXIOM_CORE_SATELLITE_API_KEY': 'SECRET',
         'PROJECT_NAME': 'INDRA'
       })
     },
@@ -46,6 +46,10 @@ function _setupAPIGatewayTests() {
         if (exec === 'invalidExecutor' || meth === 'invalidMethod') return false;
         if (meth === 'internalMethod') return false;
         return true;
+      },
+      isMethodPublic: (stack, exec, meth) => {
+        // En el mock, asumimos que solo 'public:getSystemContracts' es público ( Safe Harbor )
+        return meth === 'getSystemContracts';
       }
     },
     mockTextOutput: { _content: null, _mimeType: null, addHeader: function () { return this; }, setMimeType: function (mime) { this._mimeType = mime; return this; } },
@@ -229,6 +233,7 @@ function testAPIGateway_Api_debeRechazarMetodosInternos() {
     _teardownAPIGatewayTests(setup.originals);
   }
 }
+
 
 
 

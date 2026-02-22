@@ -1,6 +1,6 @@
-import React from 'react';
-import { useAxiomaticStore } from '../core/state/AxiomaticStore';
-import { Icons } from '../4_Atoms/IndraIcons';
+﻿import React from 'react';
+import { useAxiomaticStore } from '../core/1_Axiomatic_Store/AxiomaticStore.jsx';
+import { Icons } from '../4_Atoms/AxiomIcons.jsx';
 
 /**
  * OperationalHood.jsx
@@ -46,6 +46,7 @@ const OperationalHood = () => {
 };
 
 export default OperationalHood;
+
 
 
 

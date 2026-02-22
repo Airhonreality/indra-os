@@ -1,7 +1,7 @@
 /**
  * 0_Laws/Spatial_Physics.gs
  * Version: 5.5.0-Axiom
- * Dharma: Cerebro del Indra Spatial Kernel (ISK). Geometría y física.
+ * Dharma: Cerebro del Axiom Spatial Kernel (ASK). Geometría y física.
  */
 
 var SPATIAL_PHYSICS = Object.freeze({
@@ -40,6 +40,7 @@ var SPATIAL_PHYSICS = Object.freeze({
         }
     }
 });
+
 
 
 

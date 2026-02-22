@@ -288,3 +288,4 @@ function testConfigurator_BackwardCompatibility_debeRedirigirATokenManager() {
 
 
 
+

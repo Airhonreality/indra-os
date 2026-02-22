@@ -1,12 +1,12 @@
-/**
+﻿/**
  * SyncIndicator.jsx
  * DHARMA: Monitor de Deuda de Realidad.
  * Misión: Transparentar el estado de la cola de intenciones del Córtex.
  */
 
 import React from 'react';
-import useAxiomaticState from '../core/state/AxiomaticState';
-import { Icons } from '../4_Atoms/IndraIcons';
+import useAxiomaticState from '../core/1_Axiomatic_Store/AxiomaticState.js';
+import { Icons } from '../4_Atoms/AxiomIcons.jsx';
 
 const SyncIndicator = () => {
     const session = useAxiomaticState(s => s.session);
@@ -42,6 +42,7 @@ const SyncIndicator = () => {
 };
 
 export default SyncIndicator;
+
 
 
 

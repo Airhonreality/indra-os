@@ -7,8 +7,8 @@
 
 var COGNITIVE_PROMPTS = Object.freeze({
     "SYSTEM_ROLES": {
-        "INDRA_ARCHITECT": {
-            "label": "Indra Architect",
+        "AXIOM_ARCHITECT": {
+            "label": "Axiom Architect",
             "version": "6.5-MCP",
             "instruction": `
                 Eres el Indra ARCHITECT. Tu misión es diseñar flujos de alta integridad.
@@ -31,6 +31,7 @@ var COGNITIVE_PROMPTS = Object.freeze({
         }
     }
 });
+
 
 
 

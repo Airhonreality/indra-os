@@ -8,7 +8,7 @@ function runSystemBootstrap() {
   const { systemInitializer } = stack;
   
   console.log('========================================');
-  Logger.log('🏗️ INDRA SYSTEM BOOTSTRAP PROTOCOL');
+  Logger.log('🏗️ AXIOM SYSTEM BOOTSTRAP PROTOCOL');
   console.log('========================================');
   
   if (!systemInitializer) {
@@ -44,6 +44,8 @@ function runSystemBootstrap() {
     if (error.stack) Logger.log(error.stack);
   }
 }
+
+
 
 
 

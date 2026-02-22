@@ -1,5 +1,5 @@
 /* 
- * 🌞 INDRA OS - Design System (Theme Administration)
+ * 🌞 AXIOM OS - Design System (Theme Administration)
  * Axiom: Zero hardcoded colors in components.
  * This file manages the visual identity through CSS Variables.
  */
@@ -74,6 +74,3 @@
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-soft);
 }
-
-
-

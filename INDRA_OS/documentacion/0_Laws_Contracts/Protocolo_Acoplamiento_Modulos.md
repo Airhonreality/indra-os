@@ -1,14 +1,12 @@
-# Protocolo de Acoplamiento de Módulos (V12.0)
-## INDRA OS: El Algoritmo de Soberanía Híbrida
+# Protocolo de Acoplamiento de Módulos (V14.0 — Zen / ADR-022)
+## Axiom OS: El Algoritmo de Soberanía Híbrida
 
-> **Modelo Mental**: En la V12, INDRA ha evolucionado de un sistema de "esclavo y maestro" a una **Federación de Soberanías**. El Core no manda sobre la UI; el Core provee capacidades puras y la UI proyecta realidades. El puente entre ambos es el **CANON**, un contrato de ADN que reside en cada Adaptador.
+> **Modelo Mental**: En Axiom OS, el Core no manda sobre la UI; el Core provee **capacidades declaradas** y la UI proyecta realidades. El puente entre ambos es el **CANON**, un contrato de ADN que reside en cada Adaptador. No hay heurística: todo se declara, nada se infiere.
 
 ---
 
-## 1. CAPA DE IDENTIDAD (El ADN Soberano)
-**Ubicación**: `INDRA_CORE/3_Adapters/[Nombre]Adapter.gs`
-
-**En lenguaje humano**: Se prohíben las carpetas de configuración centralizadas. Cada adaptador es responsable de decir quién es. Si un adaptador no tiene un objeto `CANON` y un getter de `schemas`, el sistema lo considerará un "Órgano Muerto" y no lo ensamblará.
+### 1. Reificación Contractual (v15.0)
+El sistema abandona la transmutación heurística. Los datos recibidos del backend se reifican directamente según el contrato (CAPABILITIES/TRAITS). Si un dato no tiene contrato, el sistema no intenta interpretarlo.
 
 **Axiomas de Identidad V12:**
 *   **ARCHETYPE**: La naturaleza funcional (ej: `VAULT`, `GRID`, `ENGINE`). Determina qué motor de React se usará.
@@ -48,8 +46,8 @@ A partir de la V12, distinguimos entre **Implementación** y **Arquetipo**:
 
 ---
 
-## 3. EL PROTOCOLO DE SEÑAL UNIVERSAL (V9.0)
-Todos los adaptadores que expongan colecciones de datos DEBEN implementar el método `listContents`. Esto permite que cualquier motor de búsqueda o selector de archivos de Indra funcione con cualquier adaptador sin código extra.
+## 3. EL PROTOCOLO DE SEÑAL UNIVERSAL (V9.0 / ADR-022)
+Todos los adaptadores que expongan colecciones de datos DEBEN implementar el método `listContents` **con `io: "READ"` explícito en su `CANON.CAPABILITIES`**. Esto permite que cualquier motor de React o IA funcione con cualquier adaptador sin código extra ni inferencia.
 
 **El Contrato del Ítem:**
 ```javascript
@@ -81,7 +79,27 @@ Se ha eliminado el ruteo hardcodeado del Core (`reifyDatabase`). Ahora, es respo
 
 ---
 **Firmado bajo el Sello de Verdad Viva:**
-*El Arquitecto de Indra OS - V12.0*
+*AXIOM_ARCHITECT — V14.0 / ADR-022 Compliant*
+
+---
+
+## 6. EL CONTRATO ALQUÍMICO (Reificación de Datos — ADR-022 Compliant)
+Para que Axiom OS sea verdaderamente universal, los datos deben declarar su propia traducción mediante `REIFICATION_HINTS`. Esto elimina la necesidad del `SignalTransmuter` como capa intermedia _(removido en Zen Simplification)_.
+
+### El ADN del Contrato IO
+Cada adaptador declara en su `CANON`:
+
+1.  **IDENTIDAD (`id`)**: El "Nombre Verdadero" del objeto. Sin ID, el dato es materia fantasma y no puede ser persistido.
+2.  **MANIFESTACIÓN (`LABEL`)**: El nombre legible por humanos.
+3.  **REIFICATION_HINTS**: Mapa de campos del proveedor al esquema canónico del artefacto.
+
+### El Pipeline Simplificado (3 pasos)
+```
+CANON del Adapter → HTTP/Cache → Render Engine
+```
+El Backend emite el dato ya canónico. El Frontend cachea y renderiza. Sin transformaciones intermedias.
+
+> **Principio de Soberanía**: "Un adaptador es libre de hablar su propio idioma, siempre que entregue un REIFICATION_HINTS para que Axiom pueda entenderlo."
 
 
 

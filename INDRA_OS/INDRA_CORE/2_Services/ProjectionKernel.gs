@@ -17,6 +17,8 @@ function createProjectionKernel({ configurator, errorHandler, laws = {}, driveAd
   const SENSITIVE_STRINGS = axioms.SENSITIVE_TERMS || ['KEY', 'SECRET', 'TOKEN', 'PASSWORD'];
   const MASK = '********';
 
+  const uiLayoutHint = 'SMART_FORM';
+
   /**
    * RF-1: Proyecta todas las capacidades del sistema.
    * Filtra el stack para exponer solo lo que tiene contrato explícito.
@@ -50,6 +52,8 @@ function createProjectionKernel({ configurator, errorHandler, laws = {}, driveAd
           // El Kernel ya no impone disfraces. El componente decide cómo quiere ser proyectado.
           // Si no tiene hint, el Frontend usará el motor por defecto (Smart Form).
           // (uiLayoutHint ya está inicializado arriba)
+          
+          const effectiveHint = component.ui_layout_hint || component.uiLayoutHint || uiLayoutHint;
 
           const domainInfo = (hierarchy && typeof hierarchy.getDomainInfo === 'function') 
                              ? hierarchy.getDomainInfo(component.domain) 
@@ -63,7 +67,7 @@ function createProjectionKernel({ configurator, errorHandler, laws = {}, driveAd
             domain_label: domainInfo.label || 'N/A',
             archetype: component.archetype || 'ADAPTER',
             semantic_intent: component.semantic_intent || 'STREAM',
-            ui_layout_hint: uiLayoutHint,
+            ui_layout_hint: effectiveHint,
             resource_weight: component.resource_weight || 'low',
             methods: methods,
             schemas: _distillSchemas(component.schemas)
@@ -137,10 +141,13 @@ function createProjectionKernel({ configurator, errorHandler, laws = {}, driveAd
     const component = resolveComponent(executionStack, executorKey);
     
     // GUARD: Debe ser un objeto válido
-    if (!component || typeof component !== 'object') return false;
+    if (!component || typeof component !== 'object') {
+       console.warn(`[ProjectionKernel] BLOCKED: Executor '${executorKey}' not found in stack.`);
+       return false;
+    }
     
-    const schema = (component.schemas && component.schemas[methodName]) || 
-                   (typeof ContractRegistry !== 'undefined' && ContractRegistry.get(methodName));
+    const schema = (component.CANON && component.CANON.CAPABILITIES && component.CANON.CAPABILITIES[methodName]) || 
+                   (component.schemas && component.schemas[methodName]);
     
     // Si tiene esquema y es explícitamente interno, bloqueamos.
     if (schema && schema.exposure === 'internal') {
@@ -149,11 +156,16 @@ function createProjectionKernel({ configurator, errorHandler, laws = {}, driveAd
     }
 
     // GUARD: El método debe existir físicamente y no ser privado (_)
-    if (typeof component[methodName] !== 'function' || methodName.startsWith('_')) return false;
+    const method = component[methodName];
+    if (typeof method !== 'function' || methodName.startsWith('_')) {
+       console.warn(`[ProjectionKernel] BLOCKED: Method '${methodName}' in '${executorKey}' is not a function or is private.`);
+       return false;
+    }
 
     // AXIOMA V12: Si existe y no es interno, está expuesto (Total Polymorphism).
     return true;
   }
+
 
   /**
    * RF-6: Valida si un método tiene exposición PÚBLICA (accesible sin token).
@@ -165,8 +177,8 @@ function createProjectionKernel({ configurator, errorHandler, laws = {}, driveAd
     const component = resolveComponent(executionStack, executorKey);
     if (!component || typeof component !== 'object') return false;
 
-    const schema = (component.schemas && component.schemas[methodName]) || 
-                   (typeof ContractRegistry !== 'undefined' && ContractRegistry.get(methodName));
+    const schema = (component.CANON && component.CANON.CAPABILITIES && component.CANON.CAPABILITIES[methodName]) || 
+                   (component.schemas && component.schemas[methodName]);
     
     return schema && schema.exposure === 'public';
   }
@@ -304,6 +316,7 @@ function createProjectionKernel({ configurator, errorHandler, laws = {}, driveAd
     resource_weight: 'medium'
   });
 }
+
 
 
 

@@ -27,12 +27,13 @@ function createConfigurator({ manifest, errorHandler }) {
     }
 
     const properties = PropertiesService.getScriptProperties();
-    const VALID_PREFIXES = ['core:', 'skin:', 'adapter:', 'sys:', 'app:', 'flow:'];
+    const VALID_PREFIXES = ['axiom:', 'core:', 'skin:', 'adapter:', 'sys:', 'app:', 'flow:'];
     const LOCK_TIMEOUT_MS = 5000;
 
     // AXIOMA: Soberanía Técnica - Nomenclatura Agnóstica
     const SYSTEM_PREFIX = 'SYS_';
     const CORE_PREFIX = 'CORE_';
+    const AXIOM_PREFIX = 'AXIOM_';
 
     /**
      * @private
@@ -96,7 +97,7 @@ function createConfigurator({ manifest, errorHandler }) {
     function _prefixKey(key) {
         if (typeof key !== 'string') return key;
         if (VALID_PREFIXES.some(prefix => key.startsWith(prefix))) return key;
-        if (key.startsWith(SYSTEM_PREFIX) || key.startsWith(CORE_PREFIX)) return key;
+        if (key.startsWith(SYSTEM_PREFIX) || key.startsWith(CORE_PREFIX) || key.startsWith(AXIOM_PREFIX)) return key;
         
         // Regla de Prefijación por Naturaleza
         const isCore = key.includes('ROOT') || key.includes('API_KEY') || key.includes('TOKEN');
@@ -112,7 +113,8 @@ function createConfigurator({ manifest, errorHandler }) {
         
         return VALID_PREFIXES.some(prefix => key.startsWith(prefix)) || 
                key.startsWith(SYSTEM_PREFIX) || 
-               key.startsWith(CORE_PREFIX);
+               key.startsWith(CORE_PREFIX) ||
+               key.startsWith(AXIOM_PREFIX);
     }
 
 
@@ -123,6 +125,23 @@ function createConfigurator({ manifest, errorHandler }) {
     function storeParameter(payload) {
         let { key, value } = payload || {};
         
+        if (typeof key !== 'string' || !key.trim()) {
+            throw errorHandler.createError(
+                'NAMESPACE_ERROR',
+                `storeParameter: key must be a non-empty string.`,
+                { key }
+            );
+        }
+
+        // AXIOMA: Validación de Prefijo (L9) - El test exige rechazar si no tiene prefijo válido
+        if (!_validateKey(key)) {
+             throw errorHandler.createError(
+                'NAMESPACE_ERROR',
+                `storeParameter: key '${key}' does not have a valid technical prefix.`,
+                { key }
+            );
+        }
+
         if (typeof value !== 'string') {
             throw errorHandler.createError(
                 'CONFIGURATION_ERROR', 
@@ -177,6 +196,19 @@ function createConfigurator({ manifest, errorHandler }) {
         try {
             let value = properties.getProperty(prefixedKey);
 
+            // AXIOMA: Búsqueda de Supervivencia (Si el técnico falla, buscar el heredado)
+            if (value === null && !key.includes(':')) {
+                const legacyPrefixes = ['INDRA_', 'ORBITAL_'];
+                for (const lp of legacyPrefixes) {
+                    const legacyKey = lp + key;
+                    value = properties.getProperty(legacyKey);
+                    if (value !== null) {
+                        console.log(`[Configurator] 🏛️ Legacy hit: Found ${key} as ${legacyKey}`);
+                        break;
+                    }
+                }
+            }
+ 
             // CAPA DE COMPATIBILIDAD EXTERNA (TokenManager fallback): 
             // Si no existe tras migración, buscar en el Manifest si esta clave tiene un mapeo a TokenManager
             if (value === null && _tokenManager && manifest && (manifest.CONNECTIONS || manifest.requiredConnections)) {
@@ -395,6 +427,7 @@ function createConfigurator({ manifest, errorHandler }) {
         setTokenManager
     };
 }
+
 
 
 

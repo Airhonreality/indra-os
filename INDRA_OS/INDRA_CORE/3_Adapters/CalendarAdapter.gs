@@ -34,7 +34,7 @@ function createCalendarAdapter({ errorHandler, tokenManager }) {
   /**
    * Lista eventos de un calendario, soportando sincronización incremental.
    */
-  // --- INDRA CANON: Normalización Semántica ---
+  // --- AXIOM CANON: Normalización Semántica ---
 
   function _mapEventRecord(raw) {
     return {
@@ -281,69 +281,58 @@ function createCalendarAdapter({ errorHandler, tokenManager }) {
   // --- SOVEREIGN CANON V8.0 ---
   // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
   const CANON = {
-    ARCHETYPE: "ADAPTER",
-    DOMAIN: "TEMPORAL",
+    id: "calendar",
+    archetype: "adapter",
+    domain: "temporal",
+    REIFICATION_HINTS: {
+        id: "id",
+        label: "summary || title || id",
+        items: "items"
+    },
     CAPABILITIES: {
       "listCalendars": {
+        "id": "EXPLORE",
         "io": "READ",
         "desc": "Index accessible calendars",
+        "traits": ["BROWSE", "INDEX"],
         "inputs": {
           "accountId": { "type": "string", "desc": "Account selector for routing." }
-        },
-        "outputs": {
-          "items": { "type": "array", "desc": "Collection of calendar metadata objects." }
         }
       },
       "listEvents": {
+        "id": "DATA_STREAM",
         "io": "STREAM",
         "desc": "Chronological event stream",
+        "traits": ["EXPLORE", "TEMPORAL_VIEW", "LIST_FILES"],
         "inputs": {
           "calendarId": { "type": "string", "desc": "Unique calendar identifier (primary as default)." },
           "timeMin": { "type": "string", "desc": "Start bound for temporal filtering (ISO 8601)." },
           "syncToken": { "type": "string", "desc": "Incremental synchronization token." },
           "accountId": { "type": "string", "desc": "Account selector." }
-        },
-        "outputs": {
-          "items": { "type": "array", "desc": "Collection of Indra EventRecord." },
-          "nextSyncToken": { "type": "string", "desc": "Opaque token for subsequent delta retrieval." }
         }
       },
       "createEvent": {
+        "id": "WRITE_DATA",
         "io": "WRITE",
         "desc": "Initialize high-integrity event",
+        "traits": ["STRUCTURE", "SCHEDULING"],
         "inputs": {
           "calendarId": { "type": "string", "desc": "Target calendar identifier." },
           "eventPayload": { "type": "object", "desc": "Full event resource definition." },
           "accountId": { "type": "string", "desc": "Account selector." }
-        },
-        "outputs": {
-          "event": { "type": "object", "desc": "Resulting event record metadata." }
         }
       },
       "updateEvent": {
+        "id": "WRITE_DATA",
         "io": "WRITE",
         "desc": "Apply atomic transformations",
-        "inputs": {
-          "calendarId": { "type": "string", "desc": "Target calendar identifier." },
-          "eventId": { "type": "string", "desc": "Unique event record identifier." },
-          "eventPayload": { "type": "object", "desc": "Modified field dictionary for transformation." },
-          "accountId": { "type": "string", "desc": "Account selector." }
-        },
-        "outputs": {
-          "event": { "type": "object", "desc": "Updated event record metadata." }
-        }
+        "traits": ["UPDATE", "SCHEDULING"]
       },
       "deleteEvent": {
+        "id": "WRITE_DATA",
         "io": "WRITE",
         "desc": "Permanently remove entry",
-        "inputs": {
-          "calendarId": { "type": "string", "desc": "Target calendar identifier." },
-          "eventId": { "type": "string", "desc": "Target event record identifier." },
-          "accountId": { "type": "string", "desc": "Account selector." }
-        },
-        "outputs": {
-          "success": { "type": "boolean", "desc": "Inhibition status confirmation." }
-        }
+        "traits": ["DELETE", "SCHEDULING"]
       }
     }
   };
@@ -352,18 +341,10 @@ function createCalendarAdapter({ errorHandler, tokenManager }) {
     // Identidad Canónica (Auto-Descubrimiento)
     CANON: CANON,
     id: "calendar",
+    label: "Axiom Calendar",
+    archetype: CANON.archetype,
+    domain: CANON.domain,
 
-    // Legacy Bridge (Auto-generated from Canon)
-    get schemas() {
-      const s = {};
-      for (const [key, cap] of Object.entries(CANON.CAPABILITIES)) {
-        s[key] = {
-          description: cap.desc,
-          io_interface: { inputs: cap.inputs || {}, outputs: cap.outputs || {} }
-        };
-      }
-      return s;
-    },
     // Protocol mapping (TEMPORAL_V1)
     getEvents: listEvents,
     listContents: listEvents, // AXIOMA: Señal Universal (V9.0)
@@ -379,6 +360,9 @@ function createCalendarAdapter({ errorHandler, tokenManager }) {
     CANON: CANON
   };
 }
+
+
+
 
 
 

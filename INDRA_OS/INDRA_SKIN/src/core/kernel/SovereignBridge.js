@@ -1,7 +1,7 @@
 /**
  * src/core/kernel/SovereignBridge.js
  * 🛰️ CAPA 1: PUENTE DE SOBERANÍA (The Core-UI Gateway)
- * Dharma: Proveer un punto de acceso unificado y seguro a la lógica del INDRACore.
+ * Dharma: Proveer un punto de acceso unificado y seguro a la lógica del AXIOMCore.
  */
 
 class SovereignBridge {
@@ -129,9 +129,9 @@ class SovereignBridge {
         return new Promise((resolve) => {
             setTimeout(() => {
                 const allAccounts = [
-                    { id: 'acc_01', label: 'Indra_Workspace', provider: 'notion', status: 'ACTIVE' },
+                    { id: 'acc_01', label: 'Axiom_Workspace', provider: 'notion', status: 'ACTIVE' },
                     { id: 'acc_02', label: 'Cloud_Sovereignty', provider: 'google_drive', status: 'ACTIVE' },
-                    { id: 'acc_03', label: 'Indra_Brain', provider: 'gemini', status: 'ACTIVE' },
+                    { id: 'acc_03', label: 'Axiom_Brain', provider: 'gemini', status: 'ACTIVE' },
                     { id: 'acc_04', label: 'Omni_Social_Relay', provider: 'whatsapp', status: 'ACTIVE' }
                 ];
 
@@ -175,14 +175,14 @@ class SovereignBridge {
 
         switch (actionId) {
             case 'VAULT_CREATE_TOKEN_SESSION':
-                alert(`[CORE_ACTION] Iniciando secuencia de creación de sesión de token...`);
+                console.log(`[CORE_ACTION] Iniciando secuencia de creación de sesión de token...`);
                 // Aquí iría la llamada real a google.script.run
                 break;
             case 'VAULT_REVOKE_CREDENTIALS':
-                alert(`[CORE_ACTION] Revocando credenciales de acceso...`);
+                console.log(`[CORE_ACTION] Revocando credenciales de acceso...`);
                 break;
             case 'VAULT_PERFORM_HEALTH_CHECK':
-                alert(`[CORE_ACTION] Ejecutando diagnóstico de salud del Vault...`);
+                console.log(`[CORE_ACTION] Ejecutando diagnóstico de salud del Vault...`);
                 break;
             default:
                 console.warn(`⚠️ [SovereignBridge] Acción no mapeada: ${actionId}`);
@@ -192,6 +192,7 @@ class SovereignBridge {
 
 const bridge = new SovereignBridge();
 export default bridge;
+
 
 
 

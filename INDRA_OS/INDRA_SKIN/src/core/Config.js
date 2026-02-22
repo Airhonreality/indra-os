@@ -1,47 +1,57 @@
 /**
  * src/core/Config.js
- * DHARMA: Gestión de Configuración Híbrida (Env + Persistence).
- * Axioma: "La conectividad debe ser administrable sin reconstruir el sistema."
+ * DHARMA: Gestión de Configuración Axiomática (Pure Persistence).
+ * Axioma: "La soberanía reside en el navegador del usuario, no en archivos estáticos."
  */
 
-const getSafeEnv = (key, fallback) => {
-    return import.meta.env[key] || fallback;
+const getUrlParam = (key) => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(key);
 };
 
-const getSafePersisted = (key) => {
+const getSafePersisted = (key, urlKey) => {
+    const urlVal = urlKey ? getUrlParam(urlKey) : null;
+    if (urlVal) {
+        localStorage.setItem(key, urlVal);
+        return urlVal;
+    }
     const val = localStorage.getItem(key);
-    if (!val || val === 'undefined' || val === 'null') return "";
-    return val;
+    return (val && val !== 'undefined' && val !== 'null') ? val : "";
 };
 
 export const CONFIG = {
-    // URL del Core: Prioridad LocalStorage (Override) > .env > Hardcode Fallback
-    CORE_URL: getSafePersisted('INDRA_OVERRIDE_URL') ||
-        getSafeEnv('VITE_CORE_URL', 'https://script.google.com/macros/s/AKfycbydiid-N9D6YW-Q5ldpRAhpi9pv6mDRwfMuFaQ97EXhR1qg8bbknwMiPI8xIL6an16o/exec'),
+    // IDENTIDAD FIJA (No sensible)
+    CLIENT_NAME: 'AXIOM_V2_ARCHITECT',
+    VERSION: '2.1.0-SOVEREIGN',
 
-    // API Key (Se recomienda manejar vía Vault/Portal, no por Config)
-    SYSTEM_TOKEN: getSafePersisted('INDRA_SESSION_TOKEN') || getSafeEnv('VITE_SYSTEM_TOKEN', ''),
+    // CONECTIVIDAD DINÁMICA
+    // Prioridad: URL Param > LocalStorage (Address Book)
+    CORE_URL: (() => {
+        const url = getSafePersisted('AXIOM_OVERRIDE_URL', 'core');
+        if (url) console.log(`📡 [Config] Core URL detected: ${url}`);
+        return url || "";
+    })(),
 
-    CLIENT_NAME: getSafeEnv('VITE_CLIENT_NAME', 'INDRA_V2_Axiom'),
-    VERSION: getSafeEnv('VITE_VERSION', '2.0.0'),
+    // El Token reside únicamente en el almacenamiento persistente del usuario
+    SYSTEM_TOKEN: getSafePersisted('AXIOM_SESSION_TOKEN', 'token') || "",
 
     // Bóveda de Realidades (Cores Conocidos)
     getKnownCores: () => {
-        const stored = localStorage.getItem('INDRA_KNOWN_CORES');
-        return stored ? JSON.parse(stored) : [];
+        try {
+            const stored = localStorage.getItem('AXIOM_KNOWN_CORES');
+            return stored ? JSON.parse(stored) : [];
+        } catch (e) { return []; }
     }
 };
 
 /**
- * Función auxiliar para actualizar la URL desde la UI sin tocar código.
+ * Persiste una nueva URL de Core y reinicia el sistema para sincronizar.
  */
 export const updateCoreUrl = (newUrl) => {
     if (newUrl && newUrl.startsWith('http')) {
-        localStorage.setItem('INDRA_OVERRIDE_URL', newUrl);
-        console.log("📡 URL del Core actualizada en persistencia local. Recargando...");
+        localStorage.setItem('AXIOM_OVERRIDE_URL', newUrl);
+        console.log("📡 Cambio de Plano de Realidad detectado. Sincronizando Core...");
         window.location.reload();
     }
 };
-
-
 

@@ -4,7 +4,7 @@
  * Axioma: "La verdad no es una opinión; es la intersección lógica entre el DNA y la Materia."
  */
 
-import compiler from '../laws/Law_Compiler';
+import compiler from '../2_Semantic_Transformation/Law_Compiler.js';
 
 const VALID_ATOMS = [
     'INPUT_TEXT', 'INPUT_SECRET', 'INPUT_NUMBER', 'TEXTAREA', 'DROPDOWN',
@@ -95,6 +95,7 @@ class IntegrityMatrix {
 
 const diagnostic = new IntegrityMatrix();
 export default diagnostic;
+
 
 
 

@@ -1,6 +1,6 @@
-import React from 'react';
-import { useAxiomaticSense } from '../../../core/ui/hooks/useAxiomaticSense';
-import { AxiomaticGroup } from '../../../core/ui/AxiomaticTransmuter';
+﻿import React from 'react';
+import { useAxiomaticSense } from '../../../core/ui/hooks/useAxiomaticSense.js';
+import { AxiomaticGroup } from '../../../core/ui/AxiomaticTransmuter.jsx';
 
 /**
  * OMD-03: FLOW_CANVAS (Lienzo Maestro)
@@ -45,6 +45,7 @@ const FlowCanvas = ({ law }) => {
 };
 
 export default FlowCanvas;
+
 
 
 

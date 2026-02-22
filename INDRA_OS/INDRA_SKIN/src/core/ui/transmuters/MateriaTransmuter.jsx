@@ -1,5 +1,5 @@
-import React from 'react';
-import { useAxiomaticSense } from '../hooks/useAxiomaticSense';
+﻿import React from 'react';
+import { useAxiomaticSense } from '../hooks/useAxiomaticSense.js';
 
 /**
  * MATERIA TRANSMUTER (Input Specialist)
@@ -61,6 +61,7 @@ export const MateriaTransmuter = ({ atom }) => {
             return null;
     }
 };
+
 
 
 

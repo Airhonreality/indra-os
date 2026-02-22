@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
-import { AxiomaticProvider, useAxiomaticStore } from './core/state/AxiomaticStore';
-import assembler from './core/System_Assembler';
-import DevLab from './modules/DevLab';
-import CoreSelector from './1_Bootstrap/CoreSelector';
-import LayerOrchestrator from './0_Orchestration/LayerOrchestrator';
+import { AxiomaticProvider, useAxiomaticStore } from './core/1_Axiomatic_Store/AxiomaticStore.jsx';
+import assembler from './core/System_Assembler.js';
+// ADR-021: DevLab ERRADICADO — import eliminado
+import CoreSelector from './1_Bootstrap/CoreSelector.jsx';
+import LayerOrchestrator from './0_Orchestration/LayerOrchestrator.jsx';
+import AxiomaticSpinner from './4_Atoms/AxiomaticSpinner.jsx';
+import { CONFIG } from './core/Config.js';
 import './index.css';
 
 /**
@@ -21,11 +23,17 @@ const AxiomBootloader = () => {
         const igniteSystem = async () => {
             console.log("🚀 [Main] Iniciando Bootloader...");
 
+            // AXIOMA: Guardia de Conconectividad Previa
+            if (!CONFIG.CORE_URL) {
+                console.warn("⚠️ [Main] No se detectó URL de Core. Redirigiendo a Selector.");
+                setBootStatus('LOCKED');
+                return;
+            }
+
             // 1. Invocamos al Ensamblador Maestro
             const assembly = await assembler.assemble();
 
             if (assembly.success && assembly.status === 'ACTIVE') {
-                // 2. Si el ensamblaje es exitoso y el núcleo responde "ACTIVE"
                 console.log("✅ [Main] Sistema Activo. Transfiriendo control a Orchestrator.");
 
                 setAssemblyData(assembly);
@@ -38,16 +46,13 @@ const AxiomBootloader = () => {
         };
 
         igniteSystem();
-    }, [dispatch]);
+    }, []); // Dependencias vacías para mount único (dispatch es estable)
 
     // RENDER DE ESTADOS
     if (bootStatus === 'BOOTING') {
         return (
-            <div className="w-screen h-screen bg-black flex flex-col items-center justify-center gap-6 text-[var(--accent)] font-mono">
-                <div className="w-16 h-16 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
-                <div className="text-xs tracking-[0.5em] animate-pulse uppercase">
-                    INITIALIZING INDRA OS
-                </div>
+            <div className="w-screen h-screen bg-black flex flex-col items-center justify-center">
+                <AxiomaticSpinner size={80} label="Initializing Axiom OS" />
             </div>
         );
     }
@@ -67,6 +72,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         </AxiomaticProvider>
     </React.StrictMode>,
 );
+
 
 
 

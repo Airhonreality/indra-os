@@ -30,7 +30,7 @@ function createGoogleFormsAdapter({ errorHandler, driveAdapter, tokenManager }) 
   function create(payload) {
     const { title, description, folderId } = payload;
     try {
-      const form = FormApp.create(title || 'Formulario Indra');
+      const form = FormApp.create(title || 'Formulario Axiom');
       if (description) form.setDescription(description);
       
       const formId = form.getId();
@@ -141,7 +141,7 @@ function createGoogleFormsAdapter({ errorHandler, driveAdapter, tokenManager }) 
     }
   }
 
-  // --- INDRA CANON: Normalización Semántica ---
+  // --- AXIOM CANON: Normalización Semántica ---
 
   function _mapDataEntry(r, collectionId = 'google_form') {
     return {
@@ -160,51 +160,7 @@ function createGoogleFormsAdapter({ errorHandler, driveAdapter, tokenManager }) 
     };
   }
 
-  const schemas = {
-    create: { 
-      description: "Initializes a high-integrity Google Form within an optional target container.",
-      semantic_intent: "TRIGGER",
-      io_interface: {
-        inputs: { 
-          title: { type: "string", io_behavior: "STREAM", description: "The display title for the new form." },
-          description: { type: "string", io_behavior: "STREAM", description: "Technical or user-facing description." },
-          folderId: { type: "string", io_behavior: "GATE", description: "Target container identifier." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
-        },
-        outputs: { 
-          formId: { type: "string", io_behavior: "PROBE", description: "Unique form identifier." },
-          url: { type: "string", io_behavior: "BRIDGE", description: "Published access URL." }
-        }
-      }
-    },
-    addItems: { 
-      description: "Appends technical form elements (questions, lists) to the target resource.",
-      semantic_intent: "STREAM",
-      io_interface: {
-        inputs: { 
-          formId: { type: "string", io_behavior: "GATE", description: "Target form identifier." },
-          items: { type: "array", io_behavior: "STREAM", description: "Collection of form item metadata objects." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
-        },
-        outputs: {
-          success: { type: "boolean", io_behavior: "PROBE", description: "Transformation status confirmation." }
-        }
-      }
-    },
-    getResponses: { 
-      description: "Extracts all submitted form entries as a structured data stream.",
-      semantic_intent: "STREAM",
-      io_interface: {
-        inputs: { 
-          formId: { type: "string", io_behavior: "GATE", description: "Target form identifier." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
-        },
-        outputs: {
-          responses: { type: "array", io_behavior: "STREAM", description: "Collection of Indra DataEntry: { id, collection, fields, timestamp, raw }" }
-        }
-      }
-    }
-  };
+
 
   function verifyConnection(payload = {}) {
     const accountId = payload.accountId || null;
@@ -256,14 +212,66 @@ function createGoogleFormsAdapter({ errorHandler, driveAdapter, tokenManager }) 
      return getResponses({ formId: payload.databaseId || payload.id });
   }
 
+  const CANON = {
+    id: "forms",
+    label: "Axiom Forms",
+    archetype: "adapter",
+    domain: "data_collection",
+    REIFICATION_HINTS: {
+        id: "formId || id",
+        label: "title || name || id",
+        items: "responses || items"
+    },
+    CAPABILITIES: {
+      "create": {
+        "id": "WRITE_DATA",
+        "io": "WRITE",
+        "desc": "Initializes a high-integrity Google Form.",
+        "traits": ["STRUCTURE", "HIERARCHY"],
+        "inputs": { 
+          "title": { "type": "string", "desc": "The display title for the new form." },
+          "description": { "type": "string", "desc": "Technical or user-facing description." },
+          "folderId": { "type": "string", "desc": "Target container identifier." }
+        }
+      },
+      "addItems": {
+        "id": "WRITE_DATA",
+        "io": "WRITE",
+        "desc": "Appends technical form elements.",
+        "traits": ["UPDATE", "STRUCTURE"],
+        "inputs": { 
+          "formId": { "type": "string", "desc": "Target form identifier." },
+          "items": { "type": "array", "desc": "Collection of form item metadata objects." }
+        }
+      },
+      "getResponses": {
+        "id": "DATA_STREAM",
+        "io": "READ",
+        "desc": "Extracts form entries.",
+        "traits": ["STREAM", "DATABASE", "TABLE_VIEW"],
+        "inputs": { 
+          "formId": { "type": "string", "desc": "Target form identifier." }
+        }
+      },
+      "retrieve": {
+        "id": "READ_DATA",
+        "io": "READ",
+        "traits": ["DOC", "METADATA"],
+        "inputs": { 
+          "formId": { "type": "string", "desc": "Target form identifier." }
+        }
+      }
+    }
+  };
+
   return {
-    id: "googleForms",
-    label: "Forms Engine",
-    archetype: "ADAPTER",
-    domain: "DOCUMENT_ENGINE",
+    id: "forms",
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
     description: "Industrial survey engine for dynamic form generation and automated response management.",
-    semantic_intent: "EDITOR",
-    schemas,
+    CANON: CANON,
+    
     // Protocol mapping (STORAGE_V1)
     read,
     write,
@@ -271,6 +279,7 @@ function createGoogleFormsAdapter({ errorHandler, driveAdapter, tokenManager }) 
     queryDatabaseContent, // Mapped to getResponses for Forms
     verifyConnection,
     setTokenManager: (tm) => { tokenManager = tm; },
+    
     // Original methods
     create,
     addItems,
@@ -280,6 +289,9 @@ function createGoogleFormsAdapter({ errorHandler, driveAdapter, tokenManager }) 
   };
 
 }
+
+
+
 
 
 

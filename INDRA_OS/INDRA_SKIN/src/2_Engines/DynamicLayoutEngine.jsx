@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CAPA 2: ENGINES
  * DynamicLayoutEngine.jsx
  * DHARMA: Renderizar el Layout del Cosmos activo.
@@ -6,10 +6,11 @@
  */
 
 import React, { useMemo } from 'react';
-import { useAxiomaticStore } from '../core/state/AxiomaticStore';
-import SlotRenderer from './SlotRenderer';
-import GraphEngine from './GraphEngine';
-import ProjectionMatrix from '../core/kernel/ProjectionMatrix';
+import { useAxiomaticStore } from '../core/1_Axiomatic_Store/AxiomaticStore.jsx';
+import SlotRenderer from './SlotRenderer.jsx';
+import GraphEngine from './GraphEngine.jsx';
+import ProjectionMatrix from '../core/kernel/ProjectionMatrix.jsx';
+import compiler from '../core/2_Semantic_Transformation/Law_Compiler.js';
 
 const DynamicLayoutEngine = () => {
     const { state, execute } = useAxiomaticStore();
@@ -24,7 +25,7 @@ const DynamicLayoutEngine = () => {
             return {
                 view: { visible_slots: ['CANVAS_MAIN', 'TERMINAL_STATUS', 'FLOAT_OVERLAY'], id: 'rescue_view' },
                 slots: { 'CANVAS_MAIN': compiler.compileSlot({ id: 'SLOT_NODE' }) },
-                layoutSchema: { VIEW_MODE: 'DASHBOARD' },
+                layoutSchema: { VIEW_MODE: 'GRAPH' },
                 cosmosContext: { identity: state.phenotype.cosmosIdentity || { id: 'dev_scaffold' } }
             };
         }
@@ -51,7 +52,7 @@ const DynamicLayoutEngine = () => {
         return {
             view: targetView,
             slots: compiledSlots,
-            layoutSchema: activeLayoutArtifact.config || { VIEW_MODE: 'DASHBOARD' },
+            layoutSchema: activeLayoutArtifact.config || { VIEW_MODE: 'GRAPH' },
             cosmosContext: {
                 identity: state.phenotype.cosmosIdentity,
                 layout: activeLayoutArtifact,
@@ -86,10 +87,11 @@ const DynamicLayoutEngine = () => {
                             </div>
                         </div>
                     ) : (
-                        /* Modo Exploración (Grafo o Dash por defecto) */
-                        (layoutSchema.VIEW_MODE === 'GRAPH') ? (
+                        /* AXIOMA: El Grafo es la Realidad Base (Indra Core) */
+                        /* Solo usamos SlotRenderer si el modo está explícitamente en DASHBOARD o similar */
+                        (layoutSchema.VIEW_MODE !== 'DASHBOARD' && layoutSchema.VIEW_MODE !== 'SLOTS') ? (
                             <GraphEngine
-                                nodes={(state.phenotype.artifacts || []).filter(a => !a._isDeleted)}
+                                nodes={Object.values(state.phenotype.artifacts || {}).filter(a => !a._isDeleted)}
                                 edges={(state.phenotype.relationships || []).filter(r => !r._isDeleted)}
                             />
                         ) : (
@@ -138,6 +140,7 @@ const DynamicLayoutEngine = () => {
 };
 
 export default DynamicLayoutEngine;
+
 
 
 

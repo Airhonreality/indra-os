@@ -1,8 +1,11 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Icons } from '../../../../4_Atoms/IndraIcons';
-import { useAxiomaticStore } from '../../../state/AxiomaticStore';
-import { MOCK_DATABASE_ROWS } from '../mocks/MockFactory';
-import { useFilterPrism } from '../../hooks/useFilterPrism';
+﻿import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Icons } from '../../../../4_Atoms/AxiomIcons.jsx';
+import { useAxiomaticStore } from '../../../1_Axiomatic_Store/AxiomaticStore.jsx';
+import { useAxiomaticHydration } from '../../hooks/useAxiomaticHydration.js';
+// ADR-021: MOCK_DATABASE_ROWS PURGADO — import eliminado (MockFactory ya no existe)
+import { useFilterPrism } from '../../hooks/useFilterPrism.js';
+import AxiomaticSpinner from '../../../../4_Atoms/AxiomaticSpinner.jsx';
+import ProjectionMatrix from '../../ProjectionMatrix.jsx';
 
 /**
  * DatabaseEngine.jsx
@@ -16,58 +19,43 @@ const DatabaseEngine = ({ data, perspective = 'STANDARD' }) => {
     const { adapter } = state.sovereignty;
 
     // ESTADO DE IDENTIDAD DINÁMICA
-    const [accounts, setAccounts] = useState([]);
-    const [activeAccount, setActiveAccount] = useState(data.ACCOUNT_ID || data.data?.ACCOUNT_ID);
+    const [activeAccount, setActiveAccount] = useState(data.accountId || data.ACCOUNT_ID || data.data?.accountId || data.data?.ACCOUNT_ID);
     const [loadingAccounts, setLoadingAccounts] = useState(false);
 
 
     // AXIOMA: Resolución de Identidad y Origen (Deep Introspection)
     const artifactId = data.id || data.data?.id || data.ID;
-    const accountId = data.ACCOUNT_ID || data.data?.ACCOUNT_ID;
+    const accountId = data.accountId || data.ACCOUNT_ID || data.data?.accountId || data.data?.ACCOUNT_ID;
 
-    // AXIOMA: Soberanía de Origen (Contract First - PUREZA ABSOLUTA)
-    // Se elimina toda inferencia (regex, path prefixes). El origen debe ser declarado.
+    // ADR-022: Resolución de origen. 'origin' es el campo canónico, ORIGIN_SOURCE es el alias legacy.
+    // Cadena de prioridad: origin > ORIGIN_SOURCE > data.origin > data.ORIGIN_SOURCE > siloMetadata
     const originSource = useMemo(() => {
+        if (data.origin) return data.origin.toLowerCase();
         if (data.ORIGIN_SOURCE) return data.ORIGIN_SOURCE.toLowerCase();
+        if (data.data?.origin) return data.data.origin.toLowerCase();
         if (data.data?.ORIGIN_SOURCE) return data.data.ORIGIN_SOURCE.toLowerCase();
 
         const siloMeta = state.phenotype.siloMetadata?.[artifactId];
+        if (siloMeta?.origin) return siloMeta.origin.toLowerCase();
         if (siloMeta?.ORIGIN_SOURCE) return siloMeta.ORIGIN_SOURCE.toLowerCase();
 
         return null;
     }, [data, artifactId, state.phenotype.siloMetadata]);
 
-    // AXIOMA: Descubrimiento de Identidades (Deep Binding)
+    // AXIOMA: Sincronización de Identidad Suggestiva 
+    // (DatabaseEngine no requiere descubrimiento manual, IdentityEngine lo gestiona)
     useEffect(() => {
-        const discover = async () => {
-            if (!originSource) return;
-            setLoadingAccounts(true);
-            try {
-                const result = await adapter.executeAction('tokenManager:listTokenAccounts', { provider: originSource });
-                if (Array.isArray(result)) {
-                    setAccounts(result);
-                    // Si no hay cuenta activa aún, o la que tenemos no está en la lista, usamos la default
-                    if (!activeAccount && result.length > 0) {
-                        const def = result.find(a => a.isDefault) || result[0];
-                        setActiveAccount(def.id);
-                    }
-                }
-            } catch (e) {
-                console.warn(`[DatabaseEngine] Discovery failed for ${originSource}:`, e);
-            } finally {
-                setLoadingAccounts(false);
-            }
-        };
-        discover();
-    }, [originSource]);
+        if (accountId && accountId !== activeAccount) setActiveAccount(accountId);
+    }, [accountId]);
 
-    // AXIOMA: Reificación ante cambio de Identidad
-    useEffect(() => {
-        if (activeAccount && originSource && artifactId) {
-            // Solo si es distinto al que ya tenemos en el silo o si queremos forzar
-            execute('FETCH_DATABASE_CONTENT', { databaseId: artifactId, nodeId: originSource, accountId: activeAccount });
-        }
-    }, [activeAccount]);
+    // AXIOMA: Hidratación Axiomática (Fat Client)
+    const { isScanning, isRefreshing } = useAxiomaticHydration(artifactId, {
+        activeAccount,
+        bypassCondition: !originSource || !artifactId,
+        fetchAction: 'FETCH_DATABASE_CONTENT',
+        fetchPayload: { databaseId: artifactId, nodeId: originSource, accountId: activeAccount },
+        cacheKey: `database_${artifactId}`
+    });
 
 
     // AXIOMA: Recuperación y Aplanamiento de la Data Cruda (Semantic Bridge)
@@ -75,30 +63,29 @@ const DatabaseEngine = ({ data, perspective = 'STANDARD' }) => {
         let base = [];
         // Prioridad 1: Data inyectada directamente en el prop
         if (Array.isArray(data.items)) base = data.items;
-        else if (Array.isArray(data.results)) base = data.results;
-        else if (Array.isArray(data.rows)) base = data.rows;
-        else if (Array.isArray(data.data?.results)) base = data.data.results;
-        else if (Array.isArray(data.data?.items)) base = data.data.items;
+        else if (Array.isArray(data)) base = data;
 
         // Prioridad 2: Buscar en Silos (Caché L1 del Front)
         if (base.length === 0 && artifactId) {
             const siloData = state.phenotype.silos?.[artifactId];
             if (siloData) {
-                base = Array.isArray(siloData) ? siloData : (siloData.results || siloData.items || siloData.rows || []);
+                base = siloData.items || (Array.isArray(siloData) ? siloData : []);
             }
         }
+
+        console.log(`[DatabaseEngine:${artifactId}] 📊 Final base size: ${base.length}`, {
+            source: base === data.items ? 'PROPS_ITEMS' : (base === data ? 'PROPS_ROOT' : 'SILO'),
+            perspective
+        });
 
         // Prioridad 3: Mock fallback (Solo en modo Dev)
         if (base.length === 0 && state.sovereignty?.mode !== 'LIVE') {
             base = MOCK_DATABASE_ROWS[artifactId] || [];
         }
 
-        // Normalización de Estructuras (Quitar el layer 'fields' si existe)
-        return base.map(item => {
-            if (!item) return null;
-            if (typeof item === 'object' && item.fields) return { id: item.id || item.ID, ...item.fields, _raw: item };
-            return item;
-        }).filter(Boolean);
+        // AXIOMA: Soberanía de Estructura
+        // La data ya viene aplanada y reificada por el Transmuter.
+        return base;
     }, [data, artifactId, state.phenotype.silos, state.sovereignty.mode]);
 
     // AXIOMA: Inferencia de Columnas (Introspección de Forma)
@@ -152,6 +139,13 @@ const DatabaseEngine = ({ data, perspective = 'STANDARD' }) => {
 
     return (
         <div className="w-full h-full flex flex-col bg-[var(--bg-deep)] overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+            {/* AXIOMA: Indicador de Re-Fetch No-Destructivo (Fat Client Law) */}
+            {/* Cuando hay datos pero se está actualizando en background, mostramos solo una barra sutil */}
+            {isRefreshing && (
+                <div className="h-0.5 w-full bg-[var(--bg-deep)] overflow-hidden shrink-0">
+                    <div className="h-full bg-[var(--accent)] animate-pulse origin-left" style={{ animation: 'indeterminate-progress 1.5s ease infinite' }} />
+                </div>
+            )}
             {/* HERRAMIENTAS DE MANDO (Superior) */}
             <header className="px-8 py-5 border-b border-white/5 bg-black/40 backdrop-blur-3xl flex items-center justify-between shrink-0 z-30">
                 <div className="flex items-center gap-6">
@@ -185,27 +179,17 @@ const DatabaseEngine = ({ data, perspective = 'STANDARD' }) => {
                                 <span className={`text-[8px] font-black px-1.5 py-0.5 rounded leading-none ${originSource ? 'bg-[var(--accent)]/20 text-[var(--accent)]' : 'bg-red-500/20 text-red-400'}`}>
                                     {originSource || 'IDENTITY_VOID'}
                                 </span>
-                                {accounts.length > 0 && (
+                                {originSource && (
                                     <div className="flex items-center gap-2 px-2 border-l border-white/10 ml-2">
-                                        <span className="text-[7px] font-bold text-white/30 uppercase">Identity:</span>
-                                        <select
-                                            className="bg-black/40 border border-white/10 rounded px-1 py-0 text-[8px] font-mono text-[var(--accent)] outline-none cursor-pointer"
-                                            value={activeAccount || ''}
-                                            onChange={(e) => setActiveAccount(e.target.value)}
-                                        >
-                                            {accounts.map(acc => (
-                                                <option key={acc.id} value={acc.id}>
-                                                    {acc.label} {acc.isDefault ? '(★)' : ''}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <button
-                                            onClick={() => execute('SELECT_ARTIFACT', { id: 'IDENTITY_MANAGER', ARCHETYPE: 'IDENTITY', LABEL: 'Identity Manager', provider: originSource })}
-                                            className="p-1 rounded-lg hover:bg-white/5 text-white/30 hover:text-[var(--accent)] transition-all"
-                                            title="Gestionar Cuentas"
-                                        >
-                                            <Icons.Settings size={10} />
-                                        </button>
+                                        <ProjectionMatrix
+                                            componentId="IDENTITY_MANAGER"
+                                            perspective="WIDGET"
+                                            data={{
+                                                provider: originSource,
+                                                accountId: activeAccount,
+                                                onAccountChange: (accId) => setActiveAccount(accId)
+                                            }}
+                                        />
                                     </div>
                                 )}
                                 <span className="text-[8px] font-mono text-white/30 uppercase tracking-widest">{artifactId}</span>
@@ -299,21 +283,28 @@ const DatabaseEngine = ({ data, perspective = 'STANDARD' }) => {
                         ) : (
                             <tr>
                                 <td colSpan={columns.length} className="px-8 py-32 text-center">
-                                    <div className="flex flex-col items-center gap-6 animate-pulse opacity-30">
-                                        <div className="w-16 h-16 rounded-full border-2 border-dashed border-[var(--border-subtle)] flex items-center justify-center">
-                                            <Icons.Inbox size={32} />
+                                    {isScanning ? (
+                                        <div className="flex flex-col items-center gap-6">
+                                            <AxiomaticSpinner size={48} label={`Sintonizando_${originSource || 'DATABASE'}`} />
+                                            <span className="text-[9px] font-mono text-[var(--accent)] animate-pulse uppercase tracking-[0.3em]">REIFICANDO_ESTRUCTURAS...</span>
                                         </div>
-                                        <div className="flex flex-col gap-2">
-                                            <span className="text-xs font-black uppercase tracking-[0.5em] text-[var(--text-primary)]">No_Manifestation_Found</span>
-                                            <span className="text-[9px] font-mono text-[var(--text-dim)]">EL VECTOR SE ENCUENTRA EN ESTADO DE VACÍO</span>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-6 opacity-30">
+                                            <div className="w-16 h-16 rounded-full border-2 border-dashed border-[var(--border-subtle)] flex items-center justify-center">
+                                                <Icons.Inbox size={32} />
+                                            </div>
+                                            <div className="flex flex-col gap-2">
+                                                <span className="text-xs font-black uppercase tracking-[0.5em] text-[var(--text-primary)]">No_Manifestation_Found</span>
+                                                <span className="text-[9px] font-mono text-[var(--text-dim)]">EL VECTOR SE ENCUENTRA EN ESTADO DE VACÍO</span>
+                                            </div>
+                                            <button
+                                                onClick={handleResync}
+                                                className="mt-4 px-6 py-2 rounded-full border border-[var(--border-subtle)] text-[10px] uppercase font-black tracking-widest hover:bg-[var(--accent)] hover:text-white transition-all"
+                                            >
+                                                FORZAR_REIFICACIÓN
+                                            </button>
                                         </div>
-                                        <button
-                                            onClick={handleResync}
-                                            className="mt-4 px-6 py-2 rounded-full border border-[var(--border-subtle)] text-[10px] uppercase font-black tracking-widest hover:bg-[var(--accent)] hover:text-white transition-all"
-                                        >
-                                            FORZAR_REIFICACIÓN
-                                        </button>
-                                    </div>
+                                    )}
                                 </td>
                             </tr>
                         )}
@@ -367,6 +358,7 @@ const renderCellValue = (value, type) => {
 };
 
 export default DatabaseEngine;
+
 
 
 

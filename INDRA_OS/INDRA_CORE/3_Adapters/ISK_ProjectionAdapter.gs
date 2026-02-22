@@ -350,111 +350,79 @@ function createSpatialProjectionAdapter({ errorHandler, renderEngine, sensingAda
     return edges;
   }
 
-  const schemas = {
-    getProjectedScene: {
-      description: "Generates an institutional 3D spatial projection of the current technical state, translating logical relations into topological markers.",
-      semantic_intent: "SENSOR",
-      io_interface: {
-        inputs: { 
-          context_id: { type: "string", io_behavior: "GATE", description: "Target context identifier for spatial discovery." },
-          dimension_mode: { type: "string", io_behavior: "SCHEMA", description: "Technical projection dimensionality (2D/3D)." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." }
-        },
-        outputs: { 
-          scene: { type: "object", io_behavior: "STREAM", description: "Resulting industrial 3D scene graph stream." } 
-        }
-      }
+  function verifyConnection() {
+    return { status: "ACTIVE", info: "Spatial Kernel Projections Online" };
+  }
+
+  // --- SOVEREIGN CANON V14.0 (ADR-022 Compliant — Pure Source) ---
+  const CANON = {
+    id: "spatial_projection_manager",
+    label: "ISK Real-Time Pilot",
+    archetype: "infra",
+    domain: "system",
+    REIFICATION_HINTS: {
+        id: "id",
+        label: "name || label || id",
+        items: "snapshots || items"
     },
-    reconcileSpatialState: {
-      description: "Persists technical spatial coordinates and topological adjustments back into the institutional registry.",
-      semantic_intent: "TRANSFORM",
-      io_interface: {
-        inputs: { 
-          context_id: { type: "string", io_behavior: "GATE", description: "Target context identifier." },
-          move_events: { type: "array", io_behavior: "STREAM", description: "Collection of technical spatial adjustment events." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for isolation." }
-        },
-        outputs: { 
-          success: { type: "boolean", io_behavior: "PROBE", description: "Reconciliation status confirmation." } 
+    CAPABILITIES: {
+      "getProjectedScene": {
+        "id": "PROJECT_SCENE",
+        "io": "READ",
+        "desc": "Generates an institutional 3D spatial projection of the current technical state.",
+        "traits": ["VISUALIZATION", "GEOMETRY", "PHYSICS"],
+        "inputs": { 
+          "context_id": { "type": "string", "desc": "Target context identifier for spatial discovery." },
+          "dimension_mode": { "type": "string", "desc": "Technical projection dimensionality (2D/3D)." }
         }
-      }
-    },
-    commitSpatialChanges: {
-      description: "Performs atomic multi-property merge into the system layout based on USSP protocol packets.",
-      semantic_intent: "TRANSFORM",
-      io_interface: {
-        inputs: {
-          context_id: { type: "string", io_behavior: "GATE" },
-          changes: { type: "array", io_behavior: "STREAM" }
-        },
-        outputs: {
-          status: { type: "string" },
-          summary: { type: "string" }
+      },
+      "reconcileSpatialState": {
+        "id": "STABILIZE_REALITY",
+        "io": "WRITE",
+        "desc": "Persists technical spatial coordinates and topological adjustments.",
+        "traits": ["PERSISTENCE", "STABILIZATION", "GEOMETRY"],
+        "inputs": { 
+          "context_id": { "type": "string", "desc": "Target context identifier." },
+          "move_events": { "type": "array", "desc": "Collection of technical spatial adjustment events." }
         }
-      }
-    },
-    createSnapshot: {
-      description: "Creates a versioned snapshot of the current spatial layout for rollback capability.",
-      semantic_intent: "TRANSFORM",
-      io_interface: {
-        inputs: {
-          context_id: { type: "string", io_behavior: "GATE" },
-          snapshot_label: { type: "string", io_behavior: "SCHEMA", description: "Optional label for the snapshot" }
-        },
-        outputs: {
-          snapshot_id: { type: "string" },
-          snapshot_name: { type: "string" },
-          created_at: { type: "string" }
+      },
+      "commitSpatialChanges": {
+        "id": "TRANSFORM",
+        "io": "WRITE",
+        "desc": "Performs atomic multi-property merge based on USSP protocol packets.",
+        "traits": ["TRANSFORM", "COMMIT"],
+        "inputs": {
+          "context_id": { "type": "string", "desc": "Target context identifier." },
+          "changes": { "type": "array", "desc": "Technical change stream." }
         }
-      }
-    },
-    restoreSnapshot: {
-      description: "Restores a previous spatial layout snapshot.",
-      semantic_intent: "TRANSFORM",
-      io_interface: {
-        inputs: {
-          context_id: { type: "string", io_behavior: "GATE" },
-          snapshot_id: { type: "string", io_behavior: "GATE" }
-        },
-        outputs: {
-          status: { type: "string" },
-          restored_from: { type: "string" },
-          restored_at: { type: "string" }
-        }
-      }
-    },
-    listSnapshots: {
-      description: "Lists all available snapshots for a context.",
-      semantic_intent: "SENSOR",
-      io_interface: {
-        inputs: {
-          context_id: { type: "string", io_behavior: "GATE" }
-        },
-        outputs: {
-          snapshots: { type: "array", io_behavior: "STREAM" },
-          total: { type: "number" }
+      },
+      "createSnapshot": {
+        "id": "TRANSFORM",
+        "io": "WRITE",
+        "desc": "Creates a versioned snapshot of the current spatial layout.",
+        "traits": ["VERSIONING", "SNAPSHOT"],
+        "inputs": {
+          "context_id": { "type": "string", "desc": "Target context identifier." },
+          "snapshot_label": { "type": "string", "desc": "Optional label." }
         }
       }
     }
   };
 
-  function verifyConnection() {
-    return { status: "ACTIVE", info: "Spatial Kernel Projections Online" };
-  }
-
   return {
     id: "spatial_projection_manager",
-    label: "ISK Real-Time Pilot",
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
     description: "Industrial engine for multidimensional reality management, logical-to-topological translation, and spatial state orchestration.",
-    archetype: "SYSTEM_INFRA",
-    domain: "SYSTEM_INFRA",
-    semantic_intent: "SENSOR",
+    CANON: CANON,
     resource_weight: "medium",
-    schemas: schemas,
+    
     // Protocol Mapping (VISUAL_V1)
     render: getProjectedScene,
     project: commitSpatialChanges,
     verifyConnection,
+    
     // Original methods
     getProjectedScene,
     commitSpatialChanges,
@@ -464,6 +432,8 @@ function createSpatialProjectionAdapter({ errorHandler, renderEngine, sensingAda
     listSnapshots
   };
 }
+
+
 
 
 

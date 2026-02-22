@@ -6,7 +6,19 @@
 function testConnectionTester() {
   console.log('--- Corriendo testConnectionTester ---');
   const errorHandler = createErrorHandler();
-  const tester = createConnectionTester({ errorHandler });
+  
+  // Mocking UrlFetchApp for this test suite
+  const mockUrlFetchApp = {
+    fetch: function(url, options) {
+      const auth = (options && options.headers && options.headers['Authorization']) || '';
+      if (url.includes('notion.com') && auth.includes('fake_token')) {
+        return { getResponseCode: () => 401 };
+      }
+      return { getResponseCode: () => 200 };
+    }
+  };
+
+  const tester = createConnectionTester({ errorHandler, urlFetchApp: mockUrlFetchApp });
 
   // 1. Probar validación por defecto (Admin Email)
   const res1 = tester.test('ADMIN_EMAIL');
@@ -30,3 +42,5 @@ function testConnectionTester() {
 
   return true;
 }
+
+

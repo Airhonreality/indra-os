@@ -10,8 +10,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useAxiomaticStore } from '../core/state/AxiomaticStore';
-import adapter from '../core/Sovereign_Adapter';
+import { useAxiomaticStore } from '../core/1_Axiomatic_Store/AxiomaticStore.jsx';
+import adapter from '../core/Sovereign_Adapter.js';
 
 /**
  * Renderiza un template (email, reporte, dashboard) resolviendo placeholders.
@@ -104,6 +104,7 @@ const TemplateRenderer = ({ templateId, context, showCosmosMetadata = false }) =
 };
 
 export default TemplateRenderer;
+
 
 
 

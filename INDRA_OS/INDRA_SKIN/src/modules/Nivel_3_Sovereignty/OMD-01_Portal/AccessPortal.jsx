@@ -4,9 +4,9 @@ import React, { useState } from 'react';
  * OMD-01: Portal de Acceso (The Keyhole)
  * DHARMA: Frontera de seguridad y sincronía soberana.
  */
-import { CONFIG } from '../../../core/Config';
-import connector from '../../../core/Core_Connector';
-import { StateBridge } from '../../../core/state/StateBridge';
+import { CONFIG } from '../../../core/Config.js';
+import connector from '../../../core/Core_Connector.js';
+import { StateBridge } from '../../../core/1_Axiomatic_Store/StateBridge.js';
 
 const AccessPortal = ({ law }) => {
     const [apiKey, setApiKey] = useState('');
@@ -47,7 +47,7 @@ const AccessPortal = ({ law }) => {
         // 1. Guardar URL inmediatamente si ha cambiado (Prioridad Máxima)
         const finalUrl = coreUrl || CONFIG.CORE_URL;
         if (coreUrl && coreUrl !== CONFIG.CORE_URL) {
-            localStorage.setItem('INDRA_OVERRIDE_URL', coreUrl);
+            localStorage.setItem('AXIOM_OVERRIDE_URL', coreUrl);
         }
 
         // 2. Validar Formato de Llave
@@ -62,7 +62,7 @@ const AccessPortal = ({ law }) => {
         setErrorMessage('');
 
         // 3. Persistencia y Propagación (Axioma de Sincronía)
-        localStorage.setItem('INDRA_SESSION_TOKEN', apiKey);
+        localStorage.setItem('AXIOM_SESSION_TOKEN', apiKey);
 
         // Sincronizar el singleton del conector inmediatamente
         connector.init(finalUrl, apiKey);
@@ -90,7 +90,7 @@ const AccessPortal = ({ law }) => {
                         <span className="text-accent-primary -rotate-45 font-bold">AX</span>
                     </div>
                     <h1 className="text-xs font-black tracking-[0.8em] uppercase text-white/90">
-                        {law.sub_artefactos?.find(a => a.id === 'gate_header')?.contenido?.titulo || 'INDRA OS'}
+                        {law.sub_artefactos?.find(a => a.id === 'gate_header')?.contenido?.titulo || 'AXIOM OS'}
                     </h1>
                     <p className="text-[7px] font-mono text-white/20 uppercase tracking-[0.4em]">
                         {law.sub_artefactos?.find(a => a.id === 'gate_header')?.contenido?.subtitulo || 'Sovereign Orchestration System'}
@@ -183,6 +183,7 @@ const AccessPortal = ({ law }) => {
 };
 
 export default AccessPortal;
+
 
 
 

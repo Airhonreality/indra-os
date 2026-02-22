@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { useAxiomaticStore } from '../core/state/AxiomaticStore';
+import { useAxiomaticStore } from '../core/1_Axiomatic_Store/AxiomaticStore.jsx';
 
 const ThemeToggle = () => {
     const { state, execute } = useAxiomaticStore();
@@ -31,7 +31,7 @@ const ThemeToggle = () => {
         document.documentElement.setAttribute('data-theme', newTheme);
 
         // Persistir
-        localStorage.setItem('INDRA_THEME', newTheme);
+        localStorage.setItem('AXIOM_THEME', newTheme);
 
         // Actualizar el Store Axiomático
         execute('SET_THEME', { theme: newTheme });
@@ -64,6 +64,7 @@ const ThemeToggle = () => {
 };
 
 export default ThemeToggle;
+
 
 
 

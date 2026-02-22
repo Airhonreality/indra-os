@@ -1,7 +1,7 @@
 // ======================================================================
 // ARTEFACTO: 3_Adapters/EmailAdapter.gs
 // DHARMA: Proporcionar capacidades de comunicación asíncrona y despacho de notificaciones industriales.
-// VERSION: 5.5.0 (MCEP-Ready)
+// VERSION: 5.6.0 (ADR-022 Compliant — Single CANON)
 // ======================================================================
 
 /**
@@ -14,7 +14,7 @@ function createEmailAdapter({ errorHandler, tokenManager }) {
         throw new TypeError('createEmailAdapter: errorHandler contract not fulfilled');
     }
 
-    // --- INDRA CANON: Normalización Semántica ---
+    // --- AXIOM CANON: Normalización Semántica ---
 
     function _mapDocumentRecord(data) {
         return {
@@ -118,16 +118,9 @@ function createEmailAdapter({ errorHandler, tokenManager }) {
      * @description Implementación mínima de envío vía Gmail REST API para soporte multi-cuenta.
      */
     function _sendViaRestApi(to, subject, body, options, token) {
-        const url = "https://www.googleapis.com/upload/gmail/v1/users/me/messages/send?uploadType=media";
-        
-        // Construir email simple en formato RFC 2822
-        // Nota: Para adjuntos complejos esto requiere una construcción MIME robusta.
-        // Por ahora, implementamos lo básico para cumplir el contrato multi-cuenta.
         let email = `To: ${to}\r\nSubject: ${subject}\r\n\r\n${body}`;
         
         if (options.htmlBody) {
-            // Nota: Esto es ultra-simplificado. 
-            // En producción usaríamos una librería de construcción MIME.
             email = `To: ${to}\r\nSubject: ${subject}\r\nContent-Type: text/html; charset=utf-8\r\n\r\n${options.htmlBody}`;
         }
 
@@ -139,9 +132,7 @@ function createEmailAdapter({ errorHandler, tokenManager }) {
             headers: {
                 "Authorization": "Bearer " + token
             },
-            payload: JSON.stringify({
-                raw: base64Email
-            }),
+            payload: JSON.stringify({ raw: base64Email }),
             muteHttpExceptions: true
         };
 
@@ -151,19 +142,18 @@ function createEmailAdapter({ errorHandler, tokenManager }) {
         }
     }
 
-
     /**
      * @description Verifica la conectividad y validez del token para una cuenta específica.
      * @param {object} payload - { accountId? }
      * @returns {object} { status: "ACTIVE" | "BROKEN", success: boolean, error? }
      */
-    function verifyConnection(payload = {}) {
+    function verifyConnection(payload) {
+        payload = payload || {};
         const accountId = payload.accountId || null;
         const accessToken = _getAccessToken(accountId);
         
         try {
             if (accessToken) {
-                // Validación vía REST API de Google
                 const response = UrlFetchApp.fetch("https://gmail.googleapis.com/gmail/v1/users/me/profile", {
                    headers: { "Authorization": "Bearer " + accessToken },
                    muteHttpExceptions: true
@@ -175,7 +165,6 @@ function createEmailAdapter({ errorHandler, tokenManager }) {
                     return { status: "BROKEN", success: false, error: `REST API Error: ${response.getContentText()}` };
                 }
             } else {
-                 // Fallback: Sesión por defecto del script
                  GmailApp.getAliases();
                  return { status: "ACTIVE", success: true };
             }
@@ -188,123 +177,151 @@ function createEmailAdapter({ errorHandler, tokenManager }) {
         return { normalized_message: null, info: "Polling not supported by default. Use specialized sensing for intake." };
     }
 
-    // --- SOVEREIGN CANON V8.0 ---
+    /**
+     * INTERFAZ UNIVERSAL V9.0 (ADR-022): listContents
+     * Permite al frontend listar correos como si fueran archivos en un Vault.
+     * io: READ — declarado explícitamente, nunca inferido.
+     */
+    function listContents(payload) {
+        payload = payload || {};
+        const folderId = payload.folderId || 'INBOX';
+        const query = payload.query || '';
+        const accountId = payload.accountId;
+        const items = [];
+        
+        try {
+            const threads = query 
+                ? GmailApp.search(query, 0, 50)
+                : GmailApp.getInboxThreads(0, 50);
 
-    // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+            threads.forEach(thread => {
+                const lastMsg = thread.getMessages()[thread.getMessageCount() - 1];
+                items.push({
+                    id: thread.getId(),
+                    name: thread.getFirstMessageSubject() || "(No Subject)",
+                    type: "FILE",
+                    mimeType: "message/rfc822",
+                    lastUpdated: thread.getLastMessageDate().toISOString(),
+                    raw: {
+                        snippet: thread.getSnippet(),
+                        from: lastMsg.getFrom(),
+                        isUnread: thread.isUnread(),
+                        count: thread.getMessageCount()
+                    }
+                });
+            });
+
+            const schema = {
+                columns: [
+                    { id: 'name', label: 'ASUNTO', type: 'STRING' },
+                    { id: 'from', label: 'DE', type: 'STRING' },
+                    { id: 'lastUpdated', label: 'FECHA', type: 'DATE' },
+                    { id: 'snippet', label: 'EXTRACTO', type: 'STRING' }
+                ]
+            };
+
+            return {
+                results: items,
+                items: items,
+                origin: 'email',
+                schema: schema,
+                pagination: {
+                    total: items.length,
+                    hasMore: items.length === 50,
+                    nextToken: null,
+                    count: items.length
+                },
+                identity: {
+                    accountId: accountId || 'default',
+                    permissions: { canEdit: true, role: 'owner' }
+                }
+            };
+        } catch (e) {
+            console.error(`[Email:Vault] Error en listado: ${e.message}`);
+            throw e;
+        }
+    }
+
+    // ======================================================================
+    // SOVEREIGN CANON V14.0 (ADR-022 Compliant — Explicit Contract)
+    // ======================================================================
+    const schemas = {
+        send: {
+            description: "Dispatches an institutional message stream (email) via the high-integrity Google Mail circuit.",
+            semantic_intent: "TRIGGER",
+            io_interface: {
+                inputs: {
+                    to: { type: "string", io_behavior: "GATE", description: "Target recipient linguistic identifier (email)." },
+                    subject: { type: "string", io_behavior: "STREAM", description: "Linguistic descriptor for the message envelope." },
+                    body: { type: "string", io_behavior: "STREAM", description: "Primary linguistic content stream." },
+                    htmlBody: { type: "string", io_behavior: "STREAM", description: "Enriched HTML linguistic stream." },
+                    accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." }
+                },
+                outputs: {
+                    success: { type: "boolean", io_behavior: "PROBE", description: "Dispatch confirmation status." }
+                }
+            }
+        },
+        listContents: {
+            description: "Extracts an industrial interaction stream (emails) from the target institutional repository.",
+            semantic_intent: "SENSOR",
+            io_interface: {
+                inputs: {
+                    query: { type: "string", io_behavior: "STREAM", description: "Technical query string for stream filtering." },
+                    accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." }
+                },
+                outputs: {
+                    items: { type: "array", io_behavior: "STREAM", description: "Collection of Axiom EmailRecord: { id, author, subject, body, timestamp, raw }" }
+                }
+            }
+        }
+    };
+
     const CANON = {
         id: "email",
-        ARCHETYPE: "ADAPTER",
-        DOMAIN: "COMMUNICATION",
+        label: "Email Engine",
+        archetype: "adapter",
+        domain: "communication",
+        REIFICATION_HINTS: {
+            id: "id",
+            label: "subject || title || id",
+            items: "items"
+        },
         CAPABILITIES: {
-            "send": { 
-                "io": "WRITE", 
-                "desc": "Dispatch courier",
+            "send": {
+                "id": "SEND_MESSAGE",
+                "io": "WRITE",
+                "traits": ["COMMUNICATE", "EMAIL", "DISPATCH"],
                 "inputs": {
-                    "to": { type: "string", desc: "Recipient address." },
-                    "subject": { type: "string", desc: "Message header." },
-                    "body": { type: "string", desc: "Content payload." },
-                    "options": { type: "object", desc: "Configuration." },
-                    "accountId": { type: "string", desc: "Routing key." }
+                    "to": { "type": "string", "desc": "Recipient." },
+                    "subject": { "type": "string", "desc": "Subject." },
+                    "body": { "type": "string", "desc": "Body." },
+                    "htmlBody": { "type": "string", "desc": "HTML Body.", "optional": true }
                 }
             },
-            "listContents": { 
-                "io": "READ", 
-                "desc": "Inbox telemetry and listing",
-                "exposure": "public",
+            "listContents": {
+                "id": "DATA_STREAM",
+                "io": "READ",
+                "traits": ["EXPLORE", "COMMUNICATION", "DATA_STREAM"],
                 "inputs": {
-                    "folderId": { type: "string", desc: "Target label (INBOX, SENT, TRASH)." },
-                    "query": { type: "string", desc: "Filter syntax." }
-                },
-                "outputs": {
-                    "items": { type: "array", desc: "Collection of Email nodes." }
+                    "query": { "type": "string", "desc": "Search query." },
+                    "maxResults": { "type": "number", "desc": "Max emails to retrieve." }
                 }
             }
         }
     };
 
     return {
-        // Identidad Canónica
-        CANON: CANON,
         id: "email",
-
-        // Legacy Bridge (Auto-generated from Canon)
-        get schemas() { 
-            return { send: { io_interface: { inputs: CANON.CAPABILITIES.send.inputs, outputs: {} } } }; 
-        },
-        send: send,
-        verifyConnection,
+        label: CANON.label,
+        archetype: CANON.archetype,
+        domain: CANON.domain,
+        description: "Industrial engine for institutional email dispatch, message stream extraction, and communication lifecycle management.",
+        CANON: CANON,
+        // Protocol mapping (MESSENGER_V1)
+        send,
+        listContents,
         receive,
-
-        /**
-         * INTERFAZ UNIVERSAL V9.0: listContents
-         * Permite al frontend listar correos como si fueran archivos en un Vault.
-         */
-        listContents: function(payload = {}) {
-            const { folderId = 'INBOX', query = '', accountId } = payload;
-            const items = [];
-            
-            try {
-                // AXIOMA: Búsqueda Inducida vs Listado Simple
-                // Usamos GmailApp para el listado por simplicidad de la sesión
-                const threads = query 
-                    ? GmailApp.search(query, 0, 50)
-                    : GmailApp.getInboxThreads(0, 50);
-
-                threads.forEach(thread => {
-                    const lastMsg = thread.getMessages()[thread.getMessageCount() - 1];
-                    items.push({
-                        id: thread.getId(),
-                        name: thread.getFirstMessageSubject() || "(No Subject)",
-                        type: "FILE",
-                        mimeType: "message/rfc822",
-                        lastUpdated: thread.getLastMessageDate().toISOString(),
-                        raw: {
-                            snippet: thread.getSnippet(),
-                            from: lastMsg.getFrom(),
-                            isUnread: thread.isUnread(),
-                            count: thread.getMessageCount()
-                        }
-                    });
-                });
-
-                // AXIOMA: Reducción de Entropía (Esquema de Email)
-                const schema = {
-                    columns: [
-                        { id: 'name', label: 'ASUNTO', type: 'STRING' },
-                        { id: 'from', label: 'DE', type: 'STRING' },
-                        { id: 'lastUpdated', label: 'FECHA', type: 'DATE' },
-                        { id: 'snippet', label: 'EXTRACTO', type: 'STRING' }
-                    ]
-                };
-
-                return {
-                    results: items,
-                    items: items, // Forward compatibility
-                    ORIGIN_SOURCE: 'email',
-                    SCHEMA: schema,
-                    PAGINATION: {
-                        total: items.length,
-                        hasMore: items.length === 50,
-                        nextToken: null,
-                        count: items.length
-                    },
-                    IDENTITY_CONTEXT: {
-                        accountId: accountId || 'default',
-                        permissions: {
-                            canEdit: true,
-                            role: 'owner'
-                        }
-                    }
-                };
-            } catch (e) {
-                console.error(`[Email:Vault] Error en listado: ${e.message}`);
-                throw e;
-            }
-        }
+        verifyConnection
     };
 }
-
-
-
-
-

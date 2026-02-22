@@ -15,7 +15,7 @@ class CosmosCache {
     constructor() {
         this.memoryCache = new Map();
         this.defaultTTL = 5 * 60 * 1000; // 5 minutos
-        this.localStoragePrefix = 'INDRA_COSMOS_CACHE_';
+        this.localStoragePrefix = 'AXIOM_COSMOS_CACHE_';
     }
 
     /**
@@ -212,6 +212,7 @@ class CosmosCache {
 // Singleton instance
 export const cosmosCache = new CosmosCache();
 export default cosmosCache;
+
 
 
 

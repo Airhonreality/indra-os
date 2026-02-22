@@ -67,7 +67,7 @@ function createInstagramAdapter({ errorHandler, tokenManager }) {
     }
   }
 
-  // --- INDRA CANON: Normalización Semántica ---
+  // --- AXIOM CANON: Normalización Semántica ---
 
   function _mapProfile(raw) {
     return {
@@ -319,7 +319,7 @@ function createInstagramAdapter({ errorHandler, tokenManager }) {
     const { webhookEvent } = payload;
     if (!webhookEvent) throw errorHandler.createError('INVALID_INPUT', '[InstagramAdapter.receive] webhookEvent es obligatorio');
 
-    // Canon de Eventos Indra
+    // Canon de Eventos Axiom
     const normalized = {
       source: 'social_instagram',
       type: 'unknown',
@@ -362,139 +362,82 @@ function createInstagramAdapter({ errorHandler, tokenManager }) {
   
   const schemas = {
     getUserProfile: {
-      description: "Extracts an institutional technical profile from the Instagram Graph registry using native discovery circuits.",
-      semantic_intent: "PROBE",
-      io_interface: {
-        inputs: {
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier registry routing." }
-        },
-        outputs: {
-          profile: { type: "object", io_behavior: "STREAM", description: "Indra SocialProfile: { id, handle, displayName, bio, avatarUrl, stats, raw }" }
-        }
-      }
+      id: "READ_DATA",
+      io: "READ",
+      description: "Extracts an institutional technical profile from the Instagram Graph registry.",
+      traits: ["SOCIAL_PROFILE", "IDENTITY"]
     },
     getMedia: {
-      description: "Extracts a chronological data stream of media resources from the target institutional social account.",
-      semantic_intent: "SENSOR",
-      io_interface: {
-        inputs: {
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." },
-          limit: { type: "number", io_behavior: "SCHEMA", description: "Maximum records for the data stream." }
-        },
-        outputs: {
-            mediaList: { type: "array", io_behavior: "STREAM", description: "Collection of Indra SocialMedia: { id, type, url, caption, permalink, timestamp, author, stats, raw }" }
-        }
-      }
+      id: "DATA_STREAM",
+      io: "READ",
+      description: "Extracts a chronological data stream of media resources.",
+      traits: ["EXPLORE", "SOCIAL_MEDIA", "DATA_STREAM"]
     },
     getMediaComments: {
-      description: "Extracts a technical interaction stream (comments) from a specific industrial media resource.",
-      semantic_intent: "SENSOR",
-      io_interface: {
-        inputs: {
-          mediaId: { type: "string", io_behavior: "GATE", description: "Target media resource identifier." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." }
-        },
-        outputs: {
-            comments: { type: "array", io_behavior: "STREAM", description: "Collection of Indra SocialComment: { id, author, text, timestamp, stats, hidden, raw }" }
-        }
-      }
+      id: "DATA_STREAM",
+      io: "READ",
+      description: "Extracts a technical interaction stream (comments) from a specific media resource.",
+      traits: ["EXPLORE", "SOCIAL_MEDIA"]
     },
     postComment: {
-        description: "Initializes a new technical interaction record (comment) upon a target industrial media resource.",
-        semantic_intent: "TRIGGER",
-        io_interface: {
-            inputs: {
-                mediaId: { type: "string", io_behavior: "GATE", description: "Target media resource identifier." },
-                message: { type: "string", io_behavior: "STREAM", description: "Linguistic comment content stream." },
-                accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
-            },
-            outputs: {
-                result: { type: "object", io_behavior: "PROBE", description: "Interaction status confirmation." }
-            }
-        }
+        id: "WRITE_DATA",
+        io: "WRITE",
+        description: "Initializes a new technical interaction record (comment) upon a target media resource.",
+        traits: ["COMMUNICATE", "POST"]
     },
     replyComment: {
+        id: "SEND_REPLY",
+        io: "WRITE",
         description: "Initializes a threaded linguistic response within the institutional social registry.",
-        semantic_intent: "TRIGGER",
-        io_interface: {
-            inputs: {
-                commentId: { type: "string", io_behavior: "GATE", description: "Parent interaction identifier." },
-                message: { type: "string", io_behavior: "STREAM", description: "Linguistic response content stream." },
-                accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
-            },
-            outputs: {
-                result: { type: "object", io_behavior: "PROBE", description: "Threaded interaction confirmation metadata." }
-            }
-        }
+        traits: ["COMMUNICATE", "REPLY"]
     },
     getInsights: {
-        description: "Extracts high-integrity performance metrics and industrial telemetry from a target social asset.",
-        semantic_intent: "SENSOR",
-        io_interface: {
-            inputs: {
-                targetId: { type: "string", io_behavior: "GATE", description: "Target industrial resource identifier." },
-                metrics: { type: "array", io_behavior: "SCHEMA", description: "Collection of requested technical metric identifiers." },
-                accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
-            },
-            outputs: {
-                metricsData: { type: "object", io_behavior: "STREAM", description: "Resulting industrial telemetry data stream." }
-            }
-        }
+        id: "READ_DATA",
+        io: "READ",
+        description: "Extracts high-integrity performance metrics and industrial telemetry.",
+        traits: ["METRICS", "TELEMETRY"]
     },
     publishMedia: {
-        description: "Orchestrates a multi-stage industrial publishing flow for social content resources via asset URL.",
-        semantic_intent: "TRIGGER",
-        io_interface: {
-            inputs: {
-                imageUrl: { type: "string", io_behavior: "STREAM", description: "Primary resource asset URL stream." },
-                caption: { type: "string", io_behavior: "STREAM", description: "Resource linguistic metadata description." },
-                accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
-            },
-            outputs: {
-                result: { type: "object", io_behavior: "PROBE", description: "Industrial publishing confirmation status." }
-            }
-        }
+        id: "PROCESS_SIGNAL",
+        io: "WRITE",
+        description: "Orchestrates a multi-stage industrial publishing flow for social content resources.",
+        traits: ["PUBLISHING", "AUTOMATION"]
     },
     sendDirectMessage: {
-      description: "Orchestrates a technical interaction record (Direct Message) within the institutional social registry.",
-      semantic_intent: "TRIGGER",
-      io_interface: {
-        inputs: {
-          recipientId: { type: "string", io_behavior: "GATE", description: "Target interaction recipient identifier." },
-          message: { type: "string", io_behavior: "STREAM", description: "Linguistic interaction content stream." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector." }
-        },
-        outputs: {
-          result: { type: "object", io_behavior: "PROBE", description: "Interaction dispatch confirmation." }
-        }
-      }
+      id: "SEND_MESSAGE",
+      io: "WRITE",
+      description: "Orchestrates a technical interaction record (Direct Message).",
+      traits: ["COMMUNICATE", "MESSAGING"]
     },
     verifyConnection: {
-      description: "Executes a high-integrity health check of the Instagram Graph connectivity and token validity.",
-      semantic_intent: "PROBE",
-      io_interface: {
-        inputs: {
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for the health check." }
-        },
-        outputs: {
-          success: { type: "boolean", io_behavior: "PROBE", description: "True if connectivity is established and token is valid." },
-          message: { type: "string", io_behavior: "PROBE", description: "Status message or error detail." }
-        }
-      }
+      id: "HEALTH_CHECK",
+      io: "READ",
+      description: "Executes a high-integrity health check of connectivity.",
+      traits: ["DIAGNOSTICS"]
     }
   };
 
   // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
   const CANON = {
-      ARCHETYPE: "ADAPTER",
-      DOMAIN: "SOCIAL_MEDIA",
+      id: "instagram",
+      archetype: "adapter",
+      domain: "social_media",
+      REIFICATION_HINTS: {
+          id: "id",
+          label: "username || name || caption || id",
+          items: "results || items"
+      },
       CAPABILITIES: schemas
   };
 
   return {
+    id: "instagram",
+    label: "Instagram Control Panel",
+    archetype: CANON.archetype,
+    domain: CANON.domain,
+    semantic_intent: "social_media",
     description: "Industrial engine for Instagram Graph API integration, social interaction management, and performance telemetry.",
     CANON: CANON,
-    schemas: schemas,
     // Protocol mapping (MESSENGER_V1)
     send: sendDirectMessage,
     receive,
@@ -510,6 +453,9 @@ function createInstagramAdapter({ errorHandler, tokenManager }) {
     sendDirectMessage
   };
 }
+
+
+
 
 
 

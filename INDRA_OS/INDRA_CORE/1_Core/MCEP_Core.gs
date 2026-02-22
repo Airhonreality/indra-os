@@ -59,6 +59,8 @@ function createMCEP_Core({ laws, nodesRegistry, errorHandler, monitoringService 
           label: node.label,
           description: node.description,
           archetype: node.archetype,
+          archetypes: node.archetypes || (node.CANON && node.CANON.archetypes) || [node.archetype],
+          capabilities: node.schemas,
           semantic_intent: node.semantic_intent,
           tools: node.schemas
         };
@@ -260,6 +262,7 @@ function createMCEP_Core({ laws, nodesRegistry, errorHandler, monitoringService 
     description: "Cognitive translation layer for law-integrated AI orchestration.",
     semantic_intent: "LOGIC_CORE",
     archetype: "SYSTEM_INFRA",
+    archetypes: ["SYSTEM_INFRA"],
     schemas,
     digestLaws,
     resolveCapabilities,
@@ -268,6 +271,8 @@ function createMCEP_Core({ laws, nodesRegistry, errorHandler, monitoringService 
     expandCategory // <--- NEW V2 TOOL
   });
 }
+
+
 
 
 

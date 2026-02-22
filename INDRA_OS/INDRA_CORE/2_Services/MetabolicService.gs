@@ -1,6 +1,6 @@
 /**
- * @file MetabolicService.gs
- * @dharma Gestionar la salud, limpieza y optimización del Core (Sistema Metabólico).
+ * @file SystemMonitor.gs
+ * @dharma Gestionar la salud, limpieza y optimización del Core (Sistema de Monitoreo).
  * @description Orquestra tareas de mantenimiento preventivo, monitoreo de cuotas y 
  *              limpieza de residuos digitales para asegurar el rendimiento a largo plazo.
  */
@@ -15,7 +15,7 @@ function createMetabolicService({ configurator, errorHandler, driveAdapter, jobQ
    * Limpia la carpeta de salida (outputs) de archivos viejos.
    */
   function runAssetJanitor() {
-    const outputFolderId = configurator.retrieveParameter({ key: 'INDRA_FOLDER_OUTPUT_ID' });
+    const outputFolderId = configurator.retrieveParameter({ key: 'AXIOM_FOLDER_OUTPUT_ID' });
     if (!outputFolderId) return { success: false, reason: "No output folder configured." };
     
     const maxAgeDays = 7; // Configurable en el futuro
@@ -62,13 +62,13 @@ function createMetabolicService({ configurator, errorHandler, driveAdapter, jobQ
    * ORQUESTADOR MAESTRO DE METABOLISMO
    */
   function executeDailyMaintenance() {
-    console.log("🧬 [METABOLISMO] Iniciando mantenimiento diario...");
+    console.log("[SYSTEM_MONITOR] Iniciando mantenimiento diario...");
     
     const janitor = runAssetJanitor();
     const quota = runQuotaSentinel();
     const queue = jobQueueService.purgeProcessedJobs();
     
-    console.log(`🧬 [METABOLISMO] Resumen: Janitor(${janitor.deletedCount} files), Quota(${quota.status}), Queue(${queue.purged} purged)`);
+    console.log(`[SYSTEM_MONITOR] Resumen: Janitor(${janitor.deletedCount} files), Quota(${quota.status}), Queue(${queue.purged} purged)`);
     
     return {
       janitor,
@@ -77,30 +77,19 @@ function createMetabolicService({ configurator, errorHandler, driveAdapter, jobQ
     };
   }
 
-  const schemas = {
-    executeDailyMaintenance: {
-      description: "Executes institucional self-healing protocols, encompassing asset cleanup, quota monitoring, and job queue purging.",
-      semantic_intent: "TRIGGER",
-      io_interface: {
-        inputs: {
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for maintenance isolation." }
-        },
-        outputs: {
-          janitor: { type: "object", io_behavior: "PROBE", description: "Asset cleanup operational status." },
-          quota: { type: "object", io_behavior: "SENSOR", description: "Capacitor health and resource availability telemetry." },
-          queue: { type: "object", io_behavior: "PROBE", description: "Job queue refinement status." }
-        }
-      }
-    }
+  const CANON = {
+    id: "monitor",
+    label: "System Monitor",
+    archetype: "service",
+    domain: "system_infra"
   };
 
-  function verifyConnection() {
-    return { status: "ACTIVE", lastPulse: new Date().toISOString() };
-  }
-
   return {
+    id: "monitor",
+    label: "System Monitor",
     description: "Industrial self-healing engine for continuous architectural optimization and resource reclamation.",
     semantic_intent: "SENSOR",
+    CANON: CANON,
     schemas: schemas,
     // Protocol mapping (SYS_V1)
     verifyConnection,
@@ -111,6 +100,7 @@ function createMetabolicService({ configurator, errorHandler, driveAdapter, jobQ
     executeDailyMaintenance
   };
 }
+
 
 
 

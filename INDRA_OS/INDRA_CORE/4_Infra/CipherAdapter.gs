@@ -143,9 +143,19 @@ function createCipherAdapter({ errorHandler }) {
     }
   }
 
+  const CANON = {
+    id: "security",
+    label: "Security & Encryption",
+    archetype: "adapter",
+    domain: "system_infra"
+  };
+
   return {
+    id: "security",
+    label: "Security & Encryption",
     description: "Industrial security bridge for symmetric encryption and identity sovereignty.",
     semantic_intent: "GUARD",
+    CANON: CANON,
     schemas,
     // Protocol mapping (SYS_V1 compatibility)
     verifyConnection,
@@ -154,6 +164,7 @@ function createCipherAdapter({ errorHandler }) {
     decrypt
   };
 }
+
 
 
 

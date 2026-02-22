@@ -1,4 +1,4 @@
-import { useAxiomaticSense } from '../hooks/useAxiomaticSense';
+﻿import { useAxiomaticSense } from '../hooks/useAxiomaticSense.js';
 
 /**
  * SENSE TRANSMUTER (Telemetry Specialist)
@@ -51,6 +51,7 @@ export const SenseTransmuter = ({ atom }) => {
             return null;
     }
 };
+
 
 
 

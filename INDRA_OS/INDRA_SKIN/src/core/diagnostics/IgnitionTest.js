@@ -4,8 +4,8 @@
  * Este script simula la compilación de un módulo JSON y su preparación para el renderizado.
  */
 
-import compiler from '../laws/Law_Compiler';
-import assembler from '../System_Assembler';
+import compiler from '../2_Semantic_Transformation/Law_Compiler.js';
+import assembler from '../System_Assembler.js';
 import probeJSON from '../laws/OMD-00_TestProbe.json';
 
 async function runDiagnostic() {
@@ -43,6 +43,7 @@ async function runDiagnostic() {
 }
 
 export default runDiagnostic;
+
 
 
 

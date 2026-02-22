@@ -4,8 +4,8 @@
  * Axioma: "El sistema no existe hasta que sus leyes son ensambladas y su conectividad es certificada."
  */
 
-import adapter from './Sovereign_Adapter';
-import compiler from './laws/Law_Compiler';
+import adapter from './Sovereign_Adapter.js';
+import compiler from './2_Semantic_Transformation/Law_Compiler.js';
 
 const AUTH_GATE_ID = "AUTH_GATEWAY";
 
@@ -172,6 +172,7 @@ class SystemAssembler {
 
 const assembler = new SystemAssembler();
 export default assembler;
+
 
 
 

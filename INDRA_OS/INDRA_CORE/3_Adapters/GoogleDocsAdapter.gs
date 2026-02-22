@@ -30,7 +30,7 @@ function createGoogleDocsAdapter({ errorHandler, driveAdapter, tokenManager }) {
   function create(payload) {
     const { title, folderId } = payload;
     try {
-      const doc = DocumentApp.create(title || 'Nuevo Documento Indra');
+      const doc = DocumentApp.create(title || 'Nuevo Documento Axiom');
       const documentId = doc.getId();
       
       if (folderId && driveAdapter) {
@@ -69,7 +69,7 @@ function createGoogleDocsAdapter({ errorHandler, driveAdapter, tokenManager }) {
   /**
    * Obtiene la estructura JSON del documento.
    */
-  // --- INDRA CANON: Normalización Semántica ---
+  // --- AXIOM CANON: Normalización Semántica ---
 
   function _mapDocumentRecord(doc) {
     return {
@@ -285,76 +285,69 @@ function createGoogleDocsAdapter({ errorHandler, driveAdapter, tokenManager }) {
     return { results: [], message: "Not a database engine" };
   }
 
-  // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
+  // --- SOVEREIGN CANON V14.0 (ADR-022 Compliant — Pure Source) ---
   const CANON = {
-    ARCHETYPE: "ADAPTER",
-    DOMAIN: "DOCUMENT_ENGINE",
+    id: "docs",
+    label: "Axiom Docs",
+    archetype: "adapter",
+    domain: "editing",
+    REIFICATION_HINTS: {
+        id: "documentId || id",
+        label: "title || name || id",
+        items: "content || items"
+    },
     CAPABILITIES: {
       "create": {
+        "id": "WRITE_DATA",
         "io": "WRITE",
-        "desc": "Initialize high-integrity document",
+        "desc": "Initializes a high-integrity institutional document.",
+        "traits": ["STRUCTURE", "DOCUMENT"],
         "inputs": {
-          "title": { "type": "string", "desc": "The display title for the new document." },
-          "folderId": { "type": "string", "desc": "Target container identifier." },
-          "accountId": { "type": "string", "desc": "Account selector." }
-        },
-        "outputs": {
-          "documentId": { "type": "string", "desc": "Unique document identifier." },
-          "url": { "type": "string", "desc": "Direct access URL." }
+          "title": { "type": "string", "desc": "Target document title identifier." },
+          "folderId": { "type": "string", "desc": "Destination container (folder) identifier." }
         }
       },
       "syncFromMarkdown": {
+        "id": "WRITE_DATA",
         "io": "WRITE",
-        "desc": "Apply complex Markdown content",
+        "desc": "Orchestrates high-fidelity linguistic synchronization from Markdown source.",
+        "traits": ["UPDATE", "EDITOR"],
         "inputs": {
           "documentId": { "type": "string", "desc": "Target document identifier." },
-          "markdown": { "type": "string", "desc": "Markdown source content stream." },
-          "mode": { "type": "string", "desc": "Application mode (append/replace)." },
-          "accountId": { "type": "string", "desc": "Account selector." }
+          "markdown": { "type": "string", "desc": "Source linguistic content stream." },
+          "mode": { "type": "string", "desc": "Synchronization strategy (append, replace)." }
         }
       },
       "exportDocument": {
+        "id": "TRANSFORM",
         "io": "STREAM",
-        "desc": "Transform document format",
+        "desc": "Transforms an institutional document resource into standard industrial formats.",
+        "traits": ["PUBLISHING", "EXPORT"],
         "inputs": {
-          "documentId": { "type": "string", "desc": "Target document identifier." },
-          "format": { "type": "string", "desc": "Format selector (pdf, docx, txt)." },
-          "accountId": { "type": "string", "desc": "Account selector." }
-        },
-        "outputs": {
-          "blob": { "type": "object", "desc": "Exported binary data stream." }
+          "documentId": { "type": "string", "desc": "Source document identifier." },
+          "format": { "type": "string", "desc": "Target transformation format (pdf, docx, txt)." }
         }
       },
       "retrieve": {
+        "id": "READ_DATA",
         "io": "READ",
-        "desc": "Extract DocumentRecord",
+        "desc": "Extracts an industrial DocumentRecord with structural metadata.",
+        "traits": ["DOC", "CONTENT", "KNOWLEDGE"],
         "inputs": {
-          "documentId": { "type": "string", "desc": "Target document identifier." },
-          "accountId": { "type": "string", "desc": "Account selector." }
-        },
-        "outputs": {
-           "document": { "type": "object", "desc": "Indra DocumentRecord structure." }
+          "documentId": { "type": "string", "desc": "Target document identifier." }
         }
       }
     }
   };
 
   return {
+    id: "docs",
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
     description: "Industrial documentation engine for advanced content generation and format transformation.",
-    semantic_intent: "EDITOR",
-    // Sovereign Identity
     CANON: CANON,
-    // Legacy Bridge
-    get schemas() {
-        const s = {};
-        for (const [key, cap] of Object.entries(CANON.CAPABILITIES)) {
-            s[key] = {
-                description: cap.desc,
-                io_interface: { inputs: cap.inputs || {}, outputs: cap.outputs || {} }
-            };
-        }
-        return s;
-    },
+    
     // Protocol mapping (STORAGE_V1)
     read,
     write,
@@ -362,8 +355,7 @@ function createGoogleDocsAdapter({ errorHandler, driveAdapter, tokenManager }) {
     queryDatabaseContent,
     verifyConnection,
     setTokenManager: (tm) => { tokenManager = tm; },
-    // Original methods
-    id: "googleDocs", // Will be overridden
+    
     create,
     batchUpdate,
     retrieve,
@@ -371,6 +363,9 @@ function createGoogleDocsAdapter({ errorHandler, driveAdapter, tokenManager }) {
     exportDocument
   };
 }
+
+
+
 
 
 

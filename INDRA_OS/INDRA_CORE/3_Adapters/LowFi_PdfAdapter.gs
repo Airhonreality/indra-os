@@ -10,7 +10,7 @@ function createLowFi_PdfAdapter({ errorHandler }) {
     throw new TypeError('createLowFi_PdfAdapter: errorHandler contract not fulfilled');
   }
 
-  // --- INDRA CANON: Normalización Semántica ---
+  // --- AXIOM CANON: Normalización Semántica ---
 
   function _mapDocumentRecord(blob, title) {
     return {
@@ -54,18 +54,26 @@ function createLowFi_PdfAdapter({ errorHandler }) {
     }
   }
 
-  const schemas = {
-    generate: {
-      description: "Transforms a technical HTML data stream into an institutional PDF document structure using native conversion circuits.",
-      semantic_intent: "TRANSFORM",
-      io_interface: { 
-        inputs: {
-          htmlContent: { type: "string", io_behavior: "STREAM", description: "Technical HTML content stream to be converted." },
-          accountId: { type: "string", io_behavior: "GATE", description: "Account selector for routing." }
-        }, 
-        outputs: {
-          document: { type: "object", io_behavior: "STREAM", description: "Indra DocumentRecord containing the industrial PDF binary data stream." }
-        } 
+  // --- SOVEREIGN CANON V14.0 (ADR-022 Compliant — Pure Source) ---
+  const CANON = {
+    id: "pdf_generator",
+    label: "Axiom PDF Engine",
+    archetype: "adapter",
+    domain: "editing",
+    REIFICATION_HINTS: {
+        id: "id",
+        label: "title || name || id",
+        items: "items"
+    },
+    CAPABILITIES: {
+      "generate": {
+        "id": "TRANSFORM",
+        "io": "WRITE",
+        "desc": "Transforms institutional HTML streams into high-integrity PDF resources.",
+        "traits": ["PUBLISHING", "EXPORT", "DOCUMENT"],
+        "inputs": {
+          "htmlContent": { "type": "string", "desc": "Source linguistic content in HTML format." }
+        }
       }
     }
   };
@@ -93,23 +101,27 @@ function createLowFi_PdfAdapter({ errorHandler }) {
   }
 
   return {
-    id: "lowFiPdf",
-    label: "PDF Generator",
-    archetype: "ADAPTER",
-    domain: "DOCUMENT_ENGINE",
+    id: "pdf_generator",
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
     description: "Industrial engine for technical document synthesis, HTML-to-PDF transformation, and institutional reporting.",
-    semantic_intent: "EDITOR",
-    schemas: schemas,
+    CANON: CANON,
+    
     // Protocol mapping (STORAGE_V1)
     write,
     read,
     query,
     queryDatabaseContent,
     verifyConnection,
+    
     // Original methods
     generate
   };
 }
+
+
+
 
 
 

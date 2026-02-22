@@ -65,7 +65,7 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
   const schemaCache = {};
   const relationCache = {}; // AXIOMA: Caché de Resonancia de Títulos
 
-  // --- INDRA CANON: Normalización Semántica ---
+  // --- AXIOM CANON: Normalización Semántica ---
 
   function _mapDocumentRecord(page) {
     return {
@@ -77,7 +77,7 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
       },
       url: page.url,
       ORIGIN_SOURCE: 'notion', // AXIOMA: Soberanía de Origen
-      mimeType: 'application/vnd.indra.notion-page',
+      mimeType: 'application/vnd.axiom.notion-page',
       lastUpdated: page.last_edited_time,
       raw: page
     };
@@ -490,6 +490,7 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
           else if (t === 'email') type = 'EMAIL';
           else if (t === 'url') type = 'URL';
           else if (t === 'files') type = 'FILE';
+          else if (t === 'relation') type = 'RELATION';
           else if (t === 'formula' || t === 'rollup') type = 'COMPUTED';
           
           return {
@@ -630,7 +631,12 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
     const schema = _getDatabaseSchema(databaseId);
     const relationKeys = Object.keys(schema).filter(k => schema[k].type === 'relation');
 
-    if (relationKeys.length === 0) return _injectRelationLabels(results);
+    _monitor.info(`[Notion:Hydrator] Database ${databaseId} has ${relationKeys.length} relation columns: ${relationKeys.join(', ')}`);
+
+    if (relationKeys.length === 0) {
+        _monitor.warn(`[Notion:Hydrator] No se encontraron columnas de relación en el esquema. ¿Es correcto el databaseId?`);
+        return _injectRelationLabels(results);
+    }
 
     // 1. Recolectar UUIDs de relaciones usando estrictamente las claves del SCHEMA
     results.forEach(row => {
@@ -659,8 +665,10 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
     // Esto reduce el tiempo de N*Tiempo a max(Tiempo).
     
     const idsToFetch = Array.from(uniqueIds);
-    // Limitamos el burst a 5 por seguridad de quota (Bandwidth quota exceeded con 30)
-    const batchSize = 5;
+    _monitor.info(`[Notion:Hydrator] IDs únicos recolectados: ${idsToFetch.join(', ')}`);
+
+    // Limitamos el burst a 10 por seguridad de quota (Bandwidth quota exceeded con 30)
+    const batchSize = 10;
     const batches = [];
     
     for (let i = 0; i < idsToFetch.length; i += batchSize) {
@@ -1416,39 +1424,64 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
   
   // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
   const CANON = {
-      // AXIOMA: Identidad Técnica Pura. 
-      ARCHETYPES: ["ADAPTER", "VAULT", "GRID", "DOC"], 
-      ARCHETYPE: "VAULT", 
-      DOMAIN: "KNOWLEDGE_GRAPH",
-      
-      // 1. MATH & LOGIC CAPABILITIES (Technical Engine)
-      MATH_CAPABILITIES: {
-          "engine": "NOTION_FORMULA", 
-          "injectable": true, 
-          "desc": "Propel logic via Formulas and Rollups",
-          "constructs": {
-              "rollup": { "syntax": "RELATION_AGGREGATION", "desc": "Calculate based on relations" },
-              "formula": { "syntax": "prop('Field A') + prop('Field B')", "desc": "Native property calculation" }
-          }
+      id: "notion",
+      label: "Notion",
+      archetypes: ["adapter", "vault", "grid", "doc"], 
+      archetype: "adapter", 
+      domain: "database",
+      REIFICATION_HINTS: {
+          id: "id",
+          label: "properties.Name.title[0].plain_text || properties.title.title[0].plain_text || name || title",
+          items: "results || items"
       },
-
-      // 2. FUNCTIONAL CAPABILITIES
       CAPABILITIES: {
-          listContents: { desc: "Explora la estructura del grafo de Notion como un sistema de archivos.", exposure: "public" },
-          queryDatabase: { desc: "Consulta una base de datos con filtros y ordenación.", exposure: "public" },
-          queryDatabaseContent: { desc: "Obtiene todas las páginas de una base de datos.", exposure: "public" },
-          search: { desc: "Busca páginas y bases de datos por título.", exposure: "public" },
-          retrievePage: { desc: "Obtiene los metadatos de una página.", exposure: "public" },
-          retrievePageWithContent: { desc: "Obtiene una página incluyendo sus bloques de contenido.", exposure: "public" },
-          appendBlockChildren: { desc: "Añade bloques de contenido a una página.", exposure: "public" },
-          updatePageProperties: { desc: "Actualiza las propiedades de una página.", exposure: "public" },
-          createPage: { desc: "Crea una nueva página.", exposure: "public" },
-          createDatabase: { desc: "Crea una nueva base de datos.", exposure: "public" }
+          "listContents": {
+              "id": "LIST_FILES",
+              "io": "READ",
+              "desc": "Navega por el espacio de trabajo de Notion (Búsqueda y Bases de Datos).",
+              "traits": ["EXPLORE", "VAULT", "BROWSE"],
+              "exposure": "public"
+          },
+          "queryDatabase": { 
+              "id": "QUERY_FILTER",
+              "io": "READ",
+              "desc": "Consulta una base de datos con filtros avanzados.", 
+              "traits": ["GRID", "DATABASE", "SEARCH"],
+              "exposure": "public" 
+          },
+          "search": { 
+              "id": "SEARCH_QUERY",
+              "io": "READ",
+              "desc": "Busca páginas y bases de datos por título.", 
+              "traits": ["SENSE", "DISCOVERY"],
+              "exposure": "public" 
+          },
+          "retrievePageWithContent": { 
+              "id": "READ_PAGE",
+              "io": "READ",
+              "desc": "Obtiene una página incluyendo sus bloques de contenido.", 
+              "traits": ["DOC", "CONTENT", "KNOWLEDGE"],
+              "exposure": "public" 
+          },
+          "createPage": { 
+              "id": "WRITE_DATA",
+              "io": "WRITE",
+              "desc": "Crea una nueva página.", 
+              "traits": ["STRUCTURE", "PERSISTENCE"],
+              "exposure": "public" 
+          },
+          "DATA_SOURCE": {
+              "id": "DATA_SOURCE",
+              "io": "STREAM",
+              "type": "TABLE",
+              "desc": "Flujo de datos en tiempo real de la base de datos o página.",
+              "traits": ["GRID", "CONTENT"]
+          }
       }
   };
 
-  // Helper interno para mapeo consistente de Notion a la estructura de INDRA
-  function _mapNotionToIndra(node) {
+  // Helper interno para mapeo consistente de Notion a la estructura Axiomática
+  function _mapNotionToAxiom(node) {
       const isDb = node.object === 'database';
       let name = "Untitled Artifact";
       
@@ -1471,13 +1504,13 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
       return {
           id: node.id,
           name: name,
-          LABEL: name,
+          label: name,
           type: isDb ? "DATABASE" : "FILE",
-          ARCHETYPE: isDb ? "DATABASE" : "FILE",
-          mimeType: isDb ? "application/vnd.indra.notion-db" : "text/markdown",
-          ORIGIN_SOURCE: 'notion',
+          archetype: isDb ? "database" : "file",
+          mimeType: isDb ? "application/vnd.axiom.notion-db" : "text/markdown",
+          origin: 'notion',
           lastUpdated: node.last_edited_time,
-          path: `notion://${node.id}`,
+          path: `axiom://notion/${node.id}`,
           raw: { 
               object: node.object,
               parentId: node.parent?.type === 'workspace' ? 'ROOT' : (node.parent?.id || 'ORPHAN')
@@ -1493,22 +1526,12 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
     // Identity
     CANON: CANON, // <--- Exposed DNA
     id: "notion", // Legacy ID
-
+    // AXIOMA: Soberanía de Identidad (DNA)
+    label: CANON.label,
+    archetype: CANON.archetype,
+    archetypes: CANON.archetypes,
+    domain: CANON.domain,
     description: "Technical interface for Notion database operations and block-level content management.",
-    semantic_intent: "BRIDGE",
-
-    // Legacy Bridge (Derived)
-    get schemas() {
-        const s = {};
-        for (const [key, cap] of Object.entries(CANON.CAPABILITIES)) {
-            s[key] = {
-                description: cap.desc,
-                exposure: cap.exposure || "private",
-                io_interface: { inputs: cap.inputs || {}, outputs: cap.outputs || {} }
-            };
-        }
-        return s;
-    },
 
     // AXIOMA: Burst Mode Configuration (for NetworkDispatcher)
     BURST_CONFIG: {
@@ -1559,6 +1582,8 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
     verifyConnection,
     configureIdentity,
     
+
+
     /**
      * INTERFAZ VAULT V8.1: Protocolo de Descubrimiento Canónico (Resonancia Global).
      * Mapea el grafo de Notion a una estructura jerárquica compatible con el Kernel.
@@ -1573,7 +1598,7 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
                 const response = search({ accountId, query: query });
                 const results = response.results || [];
                 
-                const items = results.map(node => _mapNotionToIndra(node));
+                const items = results.map(node => _mapNotionToAxiom(node));
                 return {
                     items,
                     metadata: {
@@ -1591,7 +1616,7 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
                 const response = search({ accountId, query: "", page_size: 100 });
                 const results = response.results || [];
                 
-                const items = results.map(node => _mapNotionToIndra(node));
+                const items = results.map(node => _mapNotionToAxiom(node));
                     // AXIOMA: En Notion, el ROOT es una abstracción virtual.
                     // Mostramos la "Resonancia Reciente" sin filtrar jerarquías pesadas de inicio.
 
@@ -1610,8 +1635,8 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
                 const response = queryDatabase({ databaseId: folderId, accountId, pageSize: 50 });
                 const results = response.results || [];
                 
-                // AXIOMA: Unificación de Mapeo. Usamos el mismo helper _mapNotionToIndra
-                const items = results.map(node => _mapNotionToIndra(node));
+                // AXIOMA: Unificación de Mapeo. Usamos el mismo helper _mapNotionToAxiom
+                const items = results.map(node => _mapNotionToAxiom(node));
 
                 return {
                     items,
@@ -1630,6 +1655,9 @@ function createNotionAdapter({ errorHandler, tokenManager, keyGenerator, monitor
     }
   };
 }
+
+
+
 
 
 

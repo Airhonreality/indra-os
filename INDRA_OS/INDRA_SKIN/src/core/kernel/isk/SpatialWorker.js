@@ -230,7 +230,7 @@ self.onmessage = function (e) {
 
 function applyPhysics(prevBuffer, nextBuffer, state) {
     // Tarea 3: Actualización de Índice (Soberanía de Identidad)
-    const artifactList = state.phenotype.artifacts || [];
+    const artifactList = Object.values(state.phenotype.artifacts || {});
     artifactList.forEach(art => artifactIndex.set(art.id, art));
 
     const laws = Object.values(iskContext.laws);
@@ -401,6 +401,7 @@ function handleHFSUpdate(targetId, property, value) {
         isPartial: true
     }, [partial.buffer]);
 }
+
 
 
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import bridge from '../../kernel/SovereignBridge';
-import useAxiomaticState from '../../state/AxiomaticState';
+import bridge from '../../kernel/SovereignBridge.js';
+import useAxiomaticState from '.././AxiomaticState.js';
 
 /**
  * useAxiomaticSense
@@ -37,6 +37,7 @@ export const useAxiomaticSense = (entity) => {
 
     return { data, isLoading, error };
 };
+
 
 
 

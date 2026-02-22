@@ -1,59 +1,69 @@
-/**
+﻿/**
  * KERNEL: src/core/kernel/ContextClient.js
  * DHARMA: Cliente de Exploración y Montaje de Contexto.
  * Responsabilidad: Hablar con el 'commander' (L8) y traer la realidad al Frontend.
  * AXIOMA: "El cliente es el observador; la interdicción es su filtro."
  */
 
-import { StateBridge } from '../state/StateBridge';
-import InterdictionUnit from '../state/InterdictionUnit';
-import backendLogger from '../utils/BackendLogger';
-import Validator_IO_node_Data from '../state/Infrastructure/Validator_IO_node_Data';
-import AxiomaticDB from '../state/Infrastructure/AxiomaticDB';
+import { StateBridge } from '../1_Axiomatic_Store/StateBridge.js';
+import InterdictionUnit from '../1_Axiomatic_Store/InterdictionUnit.js';
+import backendLogger from '../utils/BackendLogger.js';
+import AxiomaticDB from '../1_Axiomatic_Store/Infrastructure/AxiomaticDB.js';
 
 class ContextClient {
     constructor() {
         this.activeCosmosId = null;
         this.memoryCache = new Map(); // Short-term RAM
         this.pendingRequests = new Map(); // Request Deduplication Locks
-        this.PERSISTENCE_KEY = 'INDRA_CORTEX_CACHE_V1';
+        this.PERSISTENCE_KEY = 'AXIOM_CORTEX_CACHE_V1';
         this._loadPersistence(); // Load Long-term Memory
 
         // AXIOMA: Cola de Sincronización (Background Sync)
         this.syncQueue = Promise.resolve();
         this.isSyncing = false;
-        this.lastRevisionHash = null;
+        this.lastRevisionHash = null; // TODO: Migrar a last_modified (Fase Verde)
 
-        // AXIOMA: Bloqueo de Instancia Única (IndraLock)
+        // AXIOMA: Bloqueo de Instancia Única (AxiomLock)
+        const instanceId = sessionStorage.getItem('AXIOM_INSTANCE_ID') || Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('AXIOM_INSTANCE_ID', instanceId);
+
         try {
-            this.lockChannel = new BroadcastChannel('INDRA_SATTVA_LOCK');
+            this.lockChannel = new BroadcastChannel('AXIOM_SATTVA_LOCK');
 
             // Solo responder si llevamos más de 2 segundos vivos (evita conflictos en refresh)
             const ignitionTime = Date.now();
 
             this.lockChannel.onmessage = (event) => {
+                // AXIOMA: Ignorar ecos de nuestra propia instancia (Refrescos rápidos)
+                if (event.data.instanceId === instanceId) return;
+
                 if (event.data.type === 'CHECK_ALIVE') {
                     if (Date.now() - ignitionTime > 2000) {
-                        this.lockChannel.postMessage({ type: 'I_AM_ALIVE', timestamp: ignitionTime });
+                        this.lockChannel.postMessage({ type: 'I_AM_ALIVE', timestamp: ignitionTime, instanceId });
                     }
                 } else if (event.data.type === 'I_AM_ALIVE') {
-                    // Si recibimos esto y somos "jóvenes", es que hay un veterano ya activo
-                    if (Date.now() - ignitionTime < 2000) {
-                        console.error("🛑 [CRITICAL] Instance Conflict. Locking UI.");
-                        window.dispatchEvent(new CustomEvent('INDRA_LOCKDOWN', { detail: { reason: 'MULTIPLE_TABS' } }));
+                    // Si recibimos esto de OTRA instancia y somos "jóvenes", es que hay un veterano ya activo
+                    // AXIOMA V13: Relajamos el check en DEV para evitar falsos positivos por StrictMode
+                    const isStrictDevDouble = (Date.now() - ignitionTime < 1000);
+
+                    if (Date.now() - ignitionTime < 2000 && !isStrictDevDouble) {
+                        console.error("🛑 [CRITICAL] Instance Conflict detected. Locking UI.");
+                        window.dispatchEvent(new CustomEvent('AXIOM_LOCKDOWN', { detail: { reason: 'MULTIPLE_TABS' } }));
+                    } else if (isStrictDevDouble) {
+                        console.warn("⚠️ [ContextClient] StrictMode Double Init detected. Ignoring echo.");
                     }
                 }
             };
 
             // Preguntar si hay alguien
-            this.lockChannel.postMessage({ type: 'CHECK_ALIVE' });
+            this.lockChannel.postMessage({ type: 'CHECK_ALIVE', instanceId });
 
             // Cleanup on page unload
             window.addEventListener('beforeunload', () => {
                 this.lockChannel.close();
             });
         } catch (e) {
-            console.warn("BroadcastChannel not supported. IndraLock disabled.");
+            console.warn("BroadcastChannel not supported. AxiomLock disabled.");
         }
 
         // AXIOMA: Compresión Nativa (CompressionStream)
@@ -108,12 +118,12 @@ class ContextClient {
         // 1. Immediate Recall
         const cachedCosmos = this.memoryCache.get('availableCosmos');
         if (cachedCosmos) {
-            dispatch({ type: 'UPDATE_COSMOS_REGISTRY', payload: cachedCosmos });
+            dispatch({ type: 'SET_AVAILABLE_COSMOS', payload: cachedCosmos });
         }
 
         // 2. Silent Update (L8 discovery)
         this.listAvailableCosmos(false).then(fresh => {
-            dispatch({ type: 'UPDATE_COSMOS_REGISTRY', payload: fresh.artifacts || [] });
+            dispatch({ type: 'SET_AVAILABLE_COSMOS', payload: fresh.artifacts || [] });
         }).catch(e => console.warn("[Cortex] Reflex fizzled:", e));
     }
 
@@ -129,29 +139,13 @@ class ContextClient {
             try {
                 const response = await InterdictionUnit.call('cosmos', 'listAvailableCosmos', { includeAll });
 
-                // AXIOMA: Soberanía de Datos
-                const scrubbing = Validator_IO_node_Data.scrub(response, 'listAvailableCosmos');
-                const processed = backendLogger.processResponse(scrubbing, 'listAvailableCosmos');
-
-                if (processed && processed.artifacts) {
-                    // AXIOMA: Filtrado de Ruido (Solo Realidades Válidas)
-                    // Ignoramos JSONs basura que no sean Cosmos.
-                    const validCosmos = processed.artifacts.filter(art =>
-                        (art.type === 'COSMOS' ||
-                            (art.name && art.name.toLowerCase().includes('cosmos')) ||
-                            (art.identity && art.identity.label)) &&
-                        !(art.id && String(art.id).startsWith('temp_'))
-                    );
-
-                    this.memoryCache.set(cacheKey, validCosmos);
-                    if (!includeAll) this.memoryCache.set('availableCosmos', validCosmos);
+                if (response && response.artifacts) {
+                    this.memoryCache.set(cacheKey, response.artifacts);
+                    if (!includeAll) this.memoryCache.set('availableCosmos', response.artifacts);
                     this._savePersistence();
-
-                    // Retornamos la lista filtrada
-                    processed.artifacts = validCosmos;
                 }
 
-                return processed;
+                return response;
             } catch (error) {
                 console.error(`🛑 [Cortex] Synapse Failed: ${error.message}`);
                 throw error;
@@ -171,51 +165,14 @@ class ContextClient {
         if (!cosmosId) throw new Error("[ContextClient] cosmosId is required to mount.");
 
         try {
-            // Verificar Cache L7 primero (Velocidad Reactor)
-            const cached = localStorage.getItem(`INDRA_COSMOS_${cosmosId}`);
-            if (cached) {
-                const localData = JSON.parse(cached);
+            // Fetch directo al backend — IndexedDB (L2) maneja la caché local
+            const data = await InterdictionUnit.call('cosmos', 'mountCosmos', { cosmosId });
+
+            if (data) {
                 this.activeCosmosId = cosmosId;
-                this.lastRevisionHash = localData._local_hash || 'unknown'; // Hash local temporal
-                console.log("⚡ [ContextClient] L7 Cache Hit. Instant Mount.");
-                // Devolvemos caché instantáneo, pero seguimos con fetch en background (SWR)
-                // TODO: Implementar SWR real. Por ahora, priorizamos la verdad del servidor para evitar desincronización
-            }
-
-            // BACKEND BLINDADO: Recibimos un Sobre, no el Payload directo
-            const envelope = await InterdictionUnit.call('cosmos', 'mountCosmos', { cosmosId });
-
-            // AXIOMA: Validación de Sobre (Envelope Integrity)
-            if (!envelope || !envelope.payload) {
-                // FALLBACK LEGACY (Por si el deploy falló parcialmente)
-                if (envelope && envelope.nodes) {
-                    console.warn("[ContextClient] ⚠️ Legacy Response detected.");
-                    this.activeCosmosId = cosmosId;
-                    return envelope;
-                }
-                throw new Error("Invalid Reality Envelope received.");
-            }
-
-            // Extracción y Cache de Integridad
-            const payload = envelope.payload;
-            this.lastRevisionHash = envelope.revision_hash; // Guardamos hash para el próximo save
-
-            // Actualizar Cache L7 (Persistencia Local para próxima vez)
-            try {
-                // Guardamos hash local para validación futura
-                payload._local_hash = envelope.revision_hash;
-                localStorage.setItem(`INDRA_COSMOS_${cosmosId}`, JSON.stringify(payload));
-            } catch (e) { console.warn("L7 Cache Full"); }
-
-            // AXIOMA: Soberanía de Datos (Logging en consola backend simulada)
-            const scrubbing = Validator_IO_node_Data.scrub(payload, 'mountCosmos');
-            const processedResponse = backendLogger.processResponse(scrubbing, 'mountCosmos');
-
-            if (processedResponse) {
-                this.activeCosmosId = cosmosId;
-                return processedResponse;
+                return data;
             } else {
-                throw new Error("Empty payload in envelope.");
+                throw new Error("Materia Incoherente: No se detectó esencia de Cosmos en la respuesta.");
             }
         } catch (error) {
             console.error(`🛑 [ContextClient] Failed to mount: ${error.message}`);
@@ -229,13 +186,7 @@ class ContextClient {
     async saveCosmos(cosmos) {
         if (!cosmos) throw new Error("[ContextClient] Invalid cosmos object");
 
-        // 1. Persistencia Local Inmediata (Fire & Forget UI)
-        try {
-            localStorage.setItem(`INDRA_COSMOS_${this.activeCosmosId}`, JSON.stringify(cosmos));
-            console.log("✅ [ContextClient] Local Save Secured.");
-        } catch (e) { console.warn("⚠️ [ContextClient] LocalStorage Full. Risk of data loss."); }
-
-        // 2. Encolar Subida en Background (No bloquea la UI)
+        // Encolar subida al backend (IndexedDB maneja persistencia local)
         return this._enqueueUpload(cosmos);
     }
 
@@ -293,7 +244,6 @@ class ContextClient {
         // Eliminamos todo rastro local para evitar resurrección zombie.
         try {
             console.log(`🗑️ [ContextClient] Deep Cleaning: ${cosmosId}`);
-            localStorage.removeItem(`INDRA_COSMOS_${cosmosId}`);
             await AxiomaticDB.deleteCosmos(`COSMOS_STATE_${cosmosId}`);
 
             // Si era el cosmos activo por defecto, lo olvidamos
@@ -311,9 +261,7 @@ class ContextClient {
 
         try {
             const response = await InterdictionUnit.call('cosmos', 'deleteCosmos', { cosmosId });
-
-            const scrubbing = Validator_IO_node_Data.scrub(response, 'deleteCosmos');
-            return backendLogger.processResponse(scrubbing, 'deleteCosmos');
+            return response;
         } catch (error) {
             console.error(`🛑 [ContextClient] Delete failed: ${error.message}`);
             // Rollback (Opcional, por ahora confiamos en el reload si falla)
@@ -324,6 +272,7 @@ class ContextClient {
 
 export const contextClient = new ContextClient();
 export default contextClient;
+
 
 
 

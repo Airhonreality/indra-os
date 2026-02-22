@@ -1,5 +1,5 @@
-import React from 'react';
-import { useSignifier } from '../../core/kernel/hooks/useSignifier';
+﻿import React from 'react';
+import { useSignifier } from '../../core/kernel/hooks/useSignifier.js';
 
 /**
  * Axiomatic_Progress_Bar
@@ -9,7 +9,7 @@ import { useSignifier } from '../../core/kernel/hooks/useSignifier';
  * @param {string} className - Clases adicionales de Tailwind.
  */
 const AxiomaticProgressBar = ({ nodeId, className = "" }) => {
-    const { progress, signifierColor, pulse, iskResonance, opacity } = useSignifier(nodeId);
+    const { progress, color: signifierColor, pulse, iskResonance, opacity } = useSignifier(nodeId);
 
     return (
         <div className={`h-1.5 w-full bg-[var(--bg-deep)] rounded-full overflow-hidden border border-[var(--border-subtle)]/30 ${className}`}>
@@ -28,6 +28,7 @@ const AxiomaticProgressBar = ({ nodeId, className = "" }) => {
 };
 
 export default AxiomaticProgressBar;
+
 
 
 

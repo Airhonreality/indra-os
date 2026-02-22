@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import compiler from '../../core/laws/Law_Compiler';
-import ProjectionMatrix from '../../core/kernel/ProjectionMatrix';
-import Icons from '../../4_Atoms/IndraIcons';
-import { useAxiomaticStore } from '../../core/state/AxiomaticStore';
+﻿import React, { useState, useEffect } from 'react';
+import compiler from '../../core/2_Semantic_Transformation/Law_Compiler.js';
+import ProjectionMatrix from '../../core/kernel/ProjectionMatrix.jsx';
+import Icons from '../../4_Atoms/AxiomIcons.jsx';
+import { useAxiomaticStore } from '../../core/1_Axiomatic_Store/AxiomaticStore.jsx';
 
 /**
  * DefaultSkeleton: El Sostenedor de la Realidad.
@@ -25,7 +25,7 @@ const DefaultSkeleton = ({ law, cosmosContext, phenotype, slotId, perspective = 
     if (perspective === 'TOPOLOGICAL') {
         const label = (canon?.LABEL || law.functional_name || 'System Unit').toUpperCase();
         const arch = (canon?.ARCHETYPE || law.config?.archetype || '').toUpperCase();
-        const isVault = arch === 'VAULT';
+        const isVault = !!(artifactCanon?.CAPABILITIES?.LIST_FILES || artifactCanon?.CAPABILITIES?.BROWSE);
 
         // Búsqueda Segura de Icono
         let IconComponent = Icons.Sovereign; // Fallback maestro
@@ -147,7 +147,7 @@ const DefaultSkeleton = ({ law, cosmosContext, phenotype, slotId, perspective = 
                                         {artifactCanon?.LABEL || id}
                                     </span>
                                     <span className="text-[9px] font-mono text-[var(--text-dim)] uppercase tracking-tighter opacity-60">
-                                        {artifactCanon?.ARCHETYPE || 'CORE_UNIT'}
+                                        {artifactCanon?.ARCHETYPE} {/* Removed 'CORE_UNIT' fallback */}
                                     </span>
                                 </div>
                                 {Icons.ChevronRight && <Icons.ChevronRight size={14} className="text-[var(--text-dim)] opacity-0 group-hover/item:opacity-100 transform translate-x-1 group-hover/item:translate-x-0 transition-all" />}
@@ -183,6 +183,7 @@ const DefaultSkeleton = ({ law, cosmosContext, phenotype, slotId, perspective = 
 };
 
 export default DefaultSkeleton;
+
 
 
 

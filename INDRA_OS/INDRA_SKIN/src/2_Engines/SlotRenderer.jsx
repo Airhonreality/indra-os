@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CAPA 2: ENGINES
  * SlotRenderer.jsx
  * DHARMA: Renderizador universal de slots con contexto de Cosmos.
@@ -10,9 +10,9 @@
  */
 
 import React from 'react';
-import { useAxiomaticStore } from '../core/state/AxiomaticStore';
-import compiler from '../core/laws/Law_Compiler';
-import DefaultSkeleton from '../modules/System_Core/DefaultSkeleton';
+import { useAxiomaticStore } from '../core/1_Axiomatic_Store/AxiomaticStore.jsx';
+import compiler from '../core/2_Semantic_Transformation/Law_Compiler.js';
+import DefaultSkeleton from '../modules/System_Core/DefaultSkeleton.jsx';
 
 /**
  * Renderiza un slot específico con su colección de widgets.
@@ -79,9 +79,9 @@ const SlotRenderer = ({ slotId, visibleSlots, cosmosContext, slots = {} }) => {
                 padding: 'var(--axiom-edge-margin)'
             }}
         >
-            {validWidgets.map(widget => (
+            {validWidgets.map((widget, idx) => (
                 <div
-                    key={widget.omd}
+                    key={`${widget.omd || widget.id}_${idx}`}
                     className="w-full axiom-slot shrink-0 animate-fade-in flex justify-center"
                     data-omd={widget.omd}
                     data-cosmos-id={cosmosContext?.identity?.id}
@@ -100,6 +100,7 @@ const SlotRenderer = ({ slotId, visibleSlots, cosmosContext, slots = {} }) => {
 };
 
 export default SlotRenderer;
+
 
 
 

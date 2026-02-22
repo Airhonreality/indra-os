@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CAPA 0: ORCHESTRATION
  * LayerOrchestrator.jsx
  * DHARMA: El Gran Decididor. Gobierna qué capa de la realidad se proyecta.
@@ -6,26 +6,27 @@
  */
 
 import React, { useEffect } from 'react';
-import { useAxiomaticStore } from '../core/state/AxiomaticStore';
-import useAxiomaticState from '../core/state/AxiomaticState';
+import { useAxiomaticStore } from '../core/1_Axiomatic_Store/AxiomaticStore.jsx';
+import useAxiomaticState from '../core/1_Axiomatic_Store/AxiomaticState.js';
 
 // LAYERS
-import CoreSelector from '../1_Bootstrap/CoreSelector';
-import CosmosSelector from '../1_Bootstrap/CosmosSelector';
-import DevLab from '../modules/DevLab';
-import DynamicLayoutEngine from '../2_Engines/DynamicLayoutEngine';
-import CosmosInspector from '../1_Bootstrap/CosmosInspector';
+import CoreSelector from '../1_Bootstrap/CoreSelector.jsx';
+import CosmosSelector from '../1_Bootstrap/CosmosSelector.jsx';
+// DevLab ERRADICADO (ADR-021: Pureza Soberana)
+import DynamicLayoutEngine from '../2_Engines/DynamicLayoutEngine.jsx';
+import CosmosInspector from '../1_Bootstrap/CosmosInspector.jsx';
 
 // WIDGETS / ATOMS
-import SovereignSphere from '../3_Widgets/SovereignSphere';
-import SystemControlHood from '../3_Widgets/SystemControlHood';
-import SyncIndicator from '../3_Widgets/SyncIndicator';
-import ThemeToggle from '../4_Atoms/ThemeToggle';
-import AxiomaticSplashScreen from '../4_Elements/Signifiers/Axiomatic_Splash_Screen';
-import OperationalHood from '../3_Widgets/OperationalHood';
-import VaultPanel from '../3_Widgets/VaultPanel';
-import { Icons } from '../4_Atoms/IndraIcons';
-import { ATTENTION_PROFILES, SYSTEM_MODULES } from '../core/Indra_Canon_Registry';
+import SovereignSphere from '../3_Widgets/SovereignSphere.jsx';
+import SystemControlHood from '../3_Widgets/SystemControlHood.jsx';
+import SyncIndicator from '../3_Widgets/SyncIndicator.jsx';
+import ThemeToggle from '../4_Atoms/ThemeToggle.jsx';
+import AxiomaticSplashScreen from '../4_Elements/Signifiers/Axiomatic_Splash_Screen.jsx';
+import OperationalHood from '../3_Widgets/OperationalHood.jsx';
+import VaultPanel from '../3_Widgets/VaultPanel.jsx';
+import { Icons } from '../4_Atoms/AxiomIcons.jsx';
+import { ATTENTION_PROFILES, SYSTEM_MODULES } from '../core/Canon_Registry.js';
+import AxiomaticLoadingOverlay from '../4_Elements/Signifiers/AxiomaticLoadingOverlay.jsx';
 
 
 const LayerOrchestrator = ({ initialAssembly }) => {
@@ -33,7 +34,7 @@ const LayerOrchestrator = ({ initialAssembly }) => {
 
     const isWorldLoading = useAxiomaticState(s => s.session?.isLoading);
 
-    // AXIOMA: Sincronización Post-Ensamblaje
+    // AXIOMA: Sincronización Post-Ensamblaje (Solo Fuego Inicial)
     useEffect(() => {
         if (initialAssembly) {
             if (initialAssembly.status === 'LOCKED') {
@@ -43,20 +44,23 @@ const LayerOrchestrator = ({ initialAssembly }) => {
                     sovereignty: initialAssembly.status,
                     genotype: initialAssembly.genotype || state.genotype
                 });
+
+                // NOTA: La restauración de sesión ahora es responsabilidad exclusiva de AxiomaticStore.
+                // LayerOrchestrator es solo una ventana pasiva.
             }
         }
     }, [initialAssembly]);
 
-    // AXIOMA: Transición Automática al Mundo del Grafos
-    // Cuando detectamos que un Cosmos ha sido habitado, colapsamos el selector.
-    useEffect(() => {
-        if (state.phenotype.cosmosIdentity && state.phenotype.ui.currentLayer === 'SELECTOR') {
-            console.log('[Orchestrator] 🌌 Realidad Habitada. Colapsando Selector.');
-            execute('SET_CURRENT_LAYER', null);
-        }
-    }, [state.phenotype.cosmosIdentity]);
+    // AXIOMA: Semáforo de Unicidad para Restauración (Evita bucles de montaje)
+    // const hasAttemptedRestoration = React.useRef(false); // REMOVED
 
-    // AXIOMA: Reflejar tema y contexto en el DOM
+    // AXIOMA: Sincronización Post-Ensamblaje y Restauración de Conciencia
+    useEffect(() => {
+        console.log("🔄 [Orchestrator] MOUNTED / UPDATED");
+        return () => console.log("💀 [Orchestrator] UNMOUNTED");
+    }, []);
+
+    // AXIOMA: Reflejar tema en el DOM
     useEffect(() => {
         const theme = state.sovereignty.theme;
         document.documentElement.setAttribute('data-theme', theme);
@@ -84,6 +88,8 @@ const LayerOrchestrator = ({ initialAssembly }) => {
         const showE2 = currentLayer === 'SELECTOR' || activeProfile === 'NAVIGATIONAL';
         const showE3 = isLocked;
 
+        const hasActiveFocus = (state.phenotype.focusStack || []).length > 0;
+
         return (
             <div className="w-full h-full relative overflow-hidden flex flex-col">
 
@@ -98,20 +104,15 @@ const LayerOrchestrator = ({ initialAssembly }) => {
                             opacity: showE3 ? 0.3 : 1
                         }}
                     >
-                        {state.sovereignty.mode === 'DEV_LAB' || currentLayer === 'DEV_LAB' ? (
-                            <DevLab />
-                        ) : (
-                            // AXIOMA: Suelo Territorial Dinámico
-                            // Si no hay mundo habitado, el Selector es nuestro Home.
-                            hasHabitedReality ? <DynamicLayoutEngine /> : <CosmosSelector asHome={true} />
-                        )}
+                        {/* AXIOMA: Suelo Territorial Dinámico (ADR-021: Un solo suelo, honesto) */}
+                        {(hasHabitedReality || hasActiveFocus) ? <DynamicLayoutEngine /> : <CosmosSelector asHome={true} />}
                     </div>
                 )}
 
                 {/* E1: AMBIENTE (z-10) - Widgets Flotantes */}
                 <div className="absolute inset-0 z-[10] pointer-events-none flex items-center justify-center">
                     {showE1 && (
-                        <div className="w-full max-w-xl glass p-8 rounded-[2.5rem] border border-[var(--indra-glass-border)] shadow-2xl animate-fade-in pointer-events-auto">
+                        <div className="w-full max-w-xl glass p-8 rounded-[2.5rem] border border-[var(--axiom-glass-border)] shadow-2xl animate-fade-in pointer-events-auto">
                             <CoreSelector asOverlay={true} onClose={() => setManualLayer(null)} />
                         </div>
                     )}
@@ -126,7 +127,7 @@ const LayerOrchestrator = ({ initialAssembly }) => {
                         >
                             <div
                                 onClick={(e) => e.stopPropagation()}
-                                className="w-full max-w-7xl h-full glass rounded-[3rem] shadow-2xl overflow-hidden border border-[var(--indra-glass-border)] flex flex-col pointer-events-auto cursor-default"
+                                className="w-full max-w-7xl h-full glass rounded-[3rem] shadow-2xl overflow-hidden border border-[var(--axiom-glass-border)] flex flex-col pointer-events-auto cursor-default"
                             >
                                 <div className="h-1 bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent opacity-20"></div>
                                 <div className="flex-1 overflow-auto">
@@ -141,7 +142,7 @@ const LayerOrchestrator = ({ initialAssembly }) => {
                 {
                     showE3 && (
                         <div className="absolute inset-0 flex items-center justify-center z-[100] animate-fade-in bg-black/60 backdrop-blur-md">
-                            <div className="w-full max-w-xl glass p-10 rounded-[2.5rem] border border-[var(--indra-glass-border)] shadow-2xl pointer-events-auto text-center">
+                            <div className="w-full max-w-xl glass p-10 rounded-[2.5rem] border border-[var(--axiom-glass-border)] shadow-2xl pointer-events-auto text-center">
                                 <CoreSelector asOverlay={false} />
                             </div>
                         </div>
@@ -159,28 +160,8 @@ const LayerOrchestrator = ({ initialAssembly }) => {
                     {/* AXIOMA: MANIFESTACIÓN DE ALMACÉN (Vault) */}
                     <VaultPanel />
 
-                    {/* AXIOMA: Velo de Resonancia (Solo bloquea en transición profunda) */}
-                    {isWorldLoading && !state.phenotype.cosmosIdentity && currentLayer !== 'SELECTOR' && (
-                        <div className="absolute inset-0 z-[1000] flex flex-col items-center justify-center bg-black/40 backdrop-blur-md animate-in fade-in duration-500 pointer-events-auto">
-                            <div className="relative">
-                                {/* Spinner Cuántico */}
-                                <div className="w-24 h-24 rounded-full border-t-2 border-b-2 border-[var(--accent)] animate-spin"></div>
-                                <div className="absolute inset-0 w-24 h-24 rounded-full border-l-2 border-r-2 border-[var(--accent)]/30 animate-spin-reverse opacity-50"></div>
-                                {/* Núcleo Pulsante */}
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-[var(--accent)] rounded-full shadow-[0_0_20px_var(--accent)] animate-pulse"></div>
-                            </div>
-                            <div className="mt-8 flex flex-col items-center gap-2">
-                                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--accent)] animate-pulse">Sintonizando Realidad</span>
-                                <div className="flex gap-1 h-1">
-                                    {[0, 1, 2].map(i => (
-                                        <div key={i} className="w-8 h-full bg-[var(--accent)]/20 rounded-full overflow-hidden">
-                                            <div className={`w-full h-full bg-[var(--accent)] animate-[indra-loading-bar_1.5s_infinite]`} style={{ animationDelay: `${i * 0.2}s` }}></div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {/* AXIOMA: Velo de Resonancia (Unificado) */}
+                    <AxiomaticLoadingOverlay />
 
                     {/* AXIOMA: Materia Oscura (Deep Hydration Overlay) */}
                     {state.phenotype.isDeepHydrating && !isWorldLoading && (
@@ -214,6 +195,7 @@ const LayerOrchestrator = ({ initialAssembly }) => {
 };
 
 export default LayerOrchestrator;
+
 
 
 

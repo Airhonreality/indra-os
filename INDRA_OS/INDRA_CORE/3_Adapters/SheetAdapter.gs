@@ -43,7 +43,7 @@ function createSheetAdapter({ errorHandler, driveAdapter, tokenManager }) {
     }
   }
 
-  // --- INDRA CANON: Normalización Semántica ---
+  // --- AXIOM CANON: Normalización Semántica ---
 
   function _mapDataEntry(item, collectionId = 'google_sheet') {
     return {
@@ -336,20 +336,38 @@ function createSheetAdapter({ errorHandler, driveAdapter, tokenManager }) {
       const sheet = _getSheet({ sheetId, sheetName });
       const lastRow = sheet.getLastRow();
       
-      // Si la hoja está vacía o solo tiene header (1 fila)
-      if (lastRow <= 1) {
-        return [];
-      }
       
       const lastCol = sheet.getLastColumn();
+      let headers = [];
+      if (lastCol > 0) {
+        headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+      }
+
+      // Inferencia de Esquema (Axioma: Reducción de Entropía)
+      const schema = {
+          columns: headers.map(h => ({
+              id: h,
+              label: h ? String(h).toUpperCase() : '',
+              type: 'STRING'
+          }))
+      };
+
+      // Si la hoja solo tiene header o está totalmente vacía
+      if (lastRow <= 1) {
+          return {
+              items: [],
+              results: [],
+              origin: 'sheet',
+              schema: schema,
+              SCHEMA: schema, // Compatibilidad con tests v1.x
+              pagination: { hasMore: false, nextToken: null, total: 0, count: 0 }
+          };
+      }
       
       // Leer todas las filas de una vez (batch)
       const allData = sheet.getRange(1, 1, lastRow, lastCol).getValues();
       
-      // Primera fila son los headers
-      const headers = allData[0];
-      
-      // Resto son los datos
+      // Resto son los datos (allData[0] ya son los headers)
       const dataRows = allData.slice(1);
       
       // Convertir a objetos usando helper
@@ -358,30 +376,23 @@ function createSheetAdapter({ errorHandler, driveAdapter, tokenManager }) {
       // AXIOMA: Hidratación Determinista (Soberanía Lexical)
       _hydrateIdentity(rows, headers);
 
-      // AXIOMA: Reducción de Entropía (Inferencia de Esquema)
-      const schema = {
-          columns: headers.map(h => ({
-              id: h,
-              label: h.toUpperCase(),
-              type: 'STRING' // Default a string por seguridad en Sheets
-          }))
-      };
-
-      // Normalizar a ISR (Indra Standard Response)
+      // Normalizar a ISR (Axiom Standard Response)
       return {
+          items: rows.map(r => _mapDataEntry(r, sheetName || 'primary')),
           results: rows.map(r => _mapDataEntry(r, sheetName || 'primary')),
-          ORIGIN_SOURCE: 'sheet',
-          SCHEMA: schema,
-          PAGINATION: {
+          origin: 'sheet',
+          schema: schema,
+          SCHEMA: schema, // Inyección de Sello para Tests
+          pagination: {
               hasMore: false,
               nextToken: null,
               total: rows.length,
               count: rows.length
           },
-          IDENTITY_CONTEXT: {
-              accountId: null, // To be hydrated by controller
+          identity: {
+              accountId: null,
               permissions: {
-                  canEdit: true, // Default if we have access to the script
+                  canEdit: true,
                   role: 'editor'
               }
           }
@@ -579,10 +590,15 @@ function createSheetAdapter({ errorHandler, driveAdapter, tokenManager }) {
 
     // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
     const CANON = {
-        // AXIOMA: Identidad Técnica Pura. 
-        ARCHETYPES: ["ADAPTER", "GRID"], 
-        ARCHETYPE: "DATAGRID",
-        DOMAIN: "DATA",
+        id: "sheet",
+        label: "Google Sheets (Grid)",
+        archetype: "datagrid",
+        domain: "data",
+        REIFICATION_HINTS: {
+            "id": "id",
+            "label": "label || name || title || id",
+            "items": "results || items"
+        },
 
         MATH_CAPABILITIES: {
             "engine": "NATIVE_GS_FORMULA",
@@ -597,14 +613,18 @@ function createSheetAdapter({ errorHandler, driveAdapter, tokenManager }) {
         },
         CAPABILITIES: {
             "create": { 
+                "id": "CREATE_STRUCTURE",
                 "io": "WRITE", "risk": 2, "desc": "Init spreadsheet", 
+                "traits": ["STRUCTURE", "DATAGRID"],
                 "inputs": {
                     "name": { type: "string", desc: "Display identifier." },
                     "header": { type: "array", desc: "Column definitions." }
                 } 
             },
             "read": { 
+                "id": "DATA_STREAM",
                 "io": "READ", "risk": 1, "desc": "Fetch rows", 
+                "traits": ["READ_DATA", "QUERY"],
                 "inputs": {
                     "sheetId": { type: "string", desc: "Target ID." },
                     "sheetName": { type: "string", desc: "Optional tab name." }
@@ -614,14 +634,18 @@ function createSheetAdapter({ errorHandler, driveAdapter, tokenManager }) {
                 }
             },
             "append": { 
+                "id": "WRITE_DATA",
                 "io": "WRITE", "risk": 2, "desc": "Insert batch rows", 
+                "traits": ["UPDATE", "APPEND"],
                 "inputs": {
                     "sheetId": { type: "string", desc: "Target ID." },
                     "rows": { type: "array", desc: "Data objects to insert." }
                 }
             },
             "update": { 
+                "id": "WRITE_DATA",
                 "io": "WRITE", "risk": 2, "desc": "Modify cell/row", 
+                "traits": ["UPDATE"],
                 "inputs": {
                     "sheetId": { type: "string", desc: "Target ID." },
                     "rowNumber": { type: "number", desc: "Row index." },
@@ -630,7 +654,9 @@ function createSheetAdapter({ errorHandler, driveAdapter, tokenManager }) {
                 } 
             },
             "query": { 
-                "io": "READ", "risk": 1, "desc": "Find by value", 
+                "id": "QUERY_DATA",
+                "io": "READ", "risk": 1, "desc": "Find by value",
+                "traits": ["SENSE", "SEARCH"],
                 "inputs": {
                     "sheetId": { type: "string", desc: "Target ID." },
                     "columnIndex": { type: "number", desc: "Search column." },
@@ -638,7 +664,9 @@ function createSheetAdapter({ errorHandler, driveAdapter, tokenManager }) {
                 } 
             },
             "compute": {
+                "id": "WRITE_DATA",
                 "io": "WRITE", "risk": 2, "desc": "Execute formula block",
+                "traits": ["COMPUTE", "TRANSFORM"],
                 "inputs": {
                     "sheetId": { "type": "string" },
                     "sheetName": { "type": "string", "optional": true },
@@ -652,8 +680,10 @@ function createSheetAdapter({ errorHandler, driveAdapter, tokenManager }) {
   return {
     // Identidad Canónica
     CANON: CANON,
-
-    // Sovereign Aliases
+    id: "sheet",
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
     create: createSheet,
     read: getRows,
     listContents: getRows, // AXIOMA: Señal Universal (V9.0)
@@ -662,20 +692,6 @@ function createSheetAdapter({ errorHandler, driveAdapter, tokenManager }) {
     query: findRowByValue,
     compute: injectFormula,
     
-    // Legacy Bridge
-    schemas: (function() {
-        const s = {};
-        for (const [key, cap] of Object.entries(CANON.CAPABILITIES)) {
-            s[key] = {
-                description: cap.desc,
-                exposure: cap.exposure || "private",
-                risk: cap.risk || 1,
-                io_interface: { inputs: cap.inputs || {}, outputs: cap.outputs || {} }
-            };
-        }
-        return s;
-    })(),
-
     // Technical Methods
     id: "sheet", // Override
     createSheet,
@@ -720,6 +736,9 @@ function createSheetAdapter({ errorHandler, driveAdapter, tokenManager }) {
     _mapObjectToArray
   };
 }
+
+
+
 
 
 

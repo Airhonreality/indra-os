@@ -1,8 +1,9 @@
 # Protocolo de Arquitectura V9.0: Matriz de Proyección Soberana
 
 **Status:** VIGENTE  
-**Versión:** 9.0 (The Great Decoupling)  
-**Fecha:** 2026-02-05  
+**Versión:** 9.1 (Post-Zen Simplification — ADR-022)  
+**Fecha:** 2026-02-21 _(actualizado)_  
+**Relación:** Implementado por ADR-022 (Explicit Contract Mandate)
 
 ## 1. Visión General: El Fin del Monolito
 La arquitectura V9.0 marca la transición de un sistema monolítico reactivo (donde el Store y los Componentes sabían "demasiado") a una **Arquitectura Polimórfica Pura**. En este modelo, ningún componente del frontend discrimina lógica basada en la identidad del proveedor de datos (Drive, Notion, Email, etc.). El sistema opera mediante contratos abstractos.
@@ -54,13 +55,15 @@ Con la implementación de la V9.0, los siguientes artefactos han quedado obsolet
 
 ---
 
-## 5. Guía de Extensión (Cómo añadir un nuevo Adapter)
+## 5. Guía de Extensión (Cómo añadir un nuevo Adapter — ADR-022)
 
-Para añadir un nuevo servicio (ej. **Dropbox**) en V9.0, **NO SE TOCA CÓDIGO DEL FRONTEND**.
+Para añadir un nuevo servicio (ej. **Dropbox**) en V9.x, **NO SE TOCA CÓDIGO DEL FRONTEND**.
 
-1.  **Backend:** Crear `DropboxAdapter.gs`. Definir `CANON` con `ARCHETYPE: "VAULT"` y `CAPABILITIES`.
-2.  **Backend:** Registrar en `SystemAssembler.gs`.
-3.  **Frontend:** **NADA**. El sistema lo descubrirá, le asignará el `VaultEngine` y funcionará automáticamente.
+1.  **Backend:** Crear `DropboxAdapter.gs`. Definir `CANON` con `ARCHETYPE: "VAULT"`, `CAPABILITIES` con `io` y `traits` explícitos.
+2.  **Backend:** Registrar en `SystemAssembler.gs` (o el auto-discovery lo captura automáticamente por convención `createXxxAdapter`).
+3.  **Frontend:** **NADA**. El sistema lo descubrirá, le asignará el `VaultEngine` y funcionará automáticamente via contratos.
+
+> **El Axioma de Extensión:** Si necesitas tocar el Frontend para añadir un nuevo adaptador, el adaptador viola ADR-022.
 
 
 

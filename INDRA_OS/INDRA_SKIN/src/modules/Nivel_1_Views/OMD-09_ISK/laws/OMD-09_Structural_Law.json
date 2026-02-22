@@ -3,7 +3,7 @@
         "id": "view_ui_designer_ide",
         "clase_ui": "AXIOM_DESIGN_IDE",
         "engine": "VECTOR_2D_CANVAS",
-        "description": "Kernel de manifestación de realidades y diseño espacial (Indra Spatial Kernel).",
+        "description": "Kernel de manifestación de realidades y diseño espacial (Axiom Spatial Kernel).",
         "distribucion_espacial": {
             "panel_izquierdo": {
                 "top": {
@@ -166,5 +166,6 @@
         ]
     }
 }
+
 
 

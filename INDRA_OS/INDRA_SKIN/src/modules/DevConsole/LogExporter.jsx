@@ -27,7 +27,7 @@ const LogExporter = ({ logs }) => {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(logs, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", `indra_debug_logs_${new Date().getTime()}.json`);
+        downloadAnchorNode.setAttribute("download", `axiom_debug_logs_${new Date().getTime()}.json`);
         document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
@@ -49,6 +49,7 @@ const LogExporter = ({ logs }) => {
 };
 
 export default LogExporter;
+
 
 
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * modules/isk/ISKShellProjector.jsx
  * 
  * DHARMA: Proyector del Kernel Espacial de Indra.
@@ -6,8 +6,8 @@
  */
 
 import React, { useEffect, useState, Suspense } from 'react';
-import { ISK_MODULE_REGISTRY } from './ISK_Module_Registry';
-import AxiomProjector from '../../../core/AxiomProjector';
+import { ISK_MODULE_REGISTRY } from './ISK_Module_Registry.js';
+import AxiomProjector from '../../../core/AxiomProjector.jsx';
 import './ISKShellProjector.css';
 
 export function ISKShellProjector({ law }) {
@@ -90,6 +90,7 @@ export function ISKShellProjector({ law }) {
         </div>
     );
 }
+
 
 
 

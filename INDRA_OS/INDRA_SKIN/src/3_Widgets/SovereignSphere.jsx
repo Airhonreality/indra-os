@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CAPA 1: AMBIENTE (Z-10)
  * SovereignSphere.jsx
  * DHARMA: El Nodo de Enlace - Puntos de contacto con otros Cores.
@@ -6,13 +6,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useAxiomaticStore } from '../core/state/AxiomaticStore';
-import adapter from '../core/Sovereign_Adapter';
-import { Icons } from '../4_Atoms/IndraIcons';
-import useAxiomaticState from '../core/state/AxiomaticState';
-import { useMagneticSnap } from '../2_Engines/MagneticSnapEngine';
-import ArtifactSelector from './ArtifactSelector';
-import AdapterSelector from './AdapterSelector';
+import { useAxiomaticStore } from '../core/1_Axiomatic_Store/AxiomaticStore.jsx';
+import adapter from '../core/Sovereign_Adapter.js';
+import { Icons } from '../4_Atoms/AxiomIcons.jsx';
+import useAxiomaticState from '../core/1_Axiomatic_Store/AxiomaticState.js';
+import { useMagneticSnap } from '../2_Engines/MagneticSnapEngine.js';
+import ArtifactSelector from './ArtifactSelector.jsx';
+// ADR-021: AdapterSelector PURGADO — ya no existe el contexto de laboratorio
 import './SovereignSphere.css';
 
 // AXIOMA: Generador de Arcos SVG
@@ -57,10 +57,10 @@ const SyncStatusCore = ({ syncStatus = 'SYNCED', isOpen }) => {
             <div className="sphere-corona sphere-corona-middle" />
             <div className="sphere-corona sphere-corona-inner" />
 
-            {/* El Núcleo Sólido (Ojo de Indra) */}
+            {/* El Núcleo Sólido (Ojo de Axiom) */}
             <div className="sphere-nucleus" />
 
-            {/* Partículas INDRAes (Efecto molecular) */}
+            {/* Partículas Axiomaticas (Efecto molecular) */}
             {[...Array(6)].map((_, i) => (
                 <div
                     key={i}
@@ -106,55 +106,7 @@ const SovereignSphere = ({ manualLayer, setManualLayer }) => {
 
     // ANILLO INTERIOR: ACCIONES CONTEXTUALES (Dinámico)
     const getInnerActions = () => {
-        // DEV_LAB Context: Controles de Laboratorio
-        if (manualLayer === 'DEV_LAB') {
-            const currentPerspective = state.phenotype.devLab?.perspective || 'BRIDGE';
-            return [
-                {
-                    id: 'PERSPECTIVE_BRIDGE',
-                    label: 'Vista Bridge',
-                    icon: Icons.Eye,
-                    isActive: currentPerspective === 'BRIDGE',
-                    action: () => execute('SET_LAB_PERSPECTIVE', 'BRIDGE')
-                },
-                {
-                    id: 'PERSPECTIVE_WIDGET',
-                    label: 'Vista Widget',
-                    icon: Icons.SidebarLeft,
-                    isActive: currentPerspective === 'WIDGET',
-                    action: () => execute('SET_LAB_PERSPECTIVE', 'WIDGET')
-                },
-                {
-                    id: 'PERSPECTIVE_NODE',
-                    label: 'Vista Nodo',
-                    icon: Icons.Terminal,
-                    isActive: currentPerspective === 'NODE',
-                    action: () => execute('SET_LAB_PERSPECTIVE', 'NODE')
-                },
-                {
-                    id: 'SELECT_ADAPTER',
-                    label: 'Seleccionar Adaptador',
-                    icon: Icons.Search,
-                    action: () => setShowSelector(true)
-                },
-                {
-                    id: 'TEST_SUITE',
-                    label: 'Módulo de Caos',
-                    icon: Icons.Activity, // Usando Activity como metáfora de monitoreo/test
-                    action: () => execute('TOGGLE_UI_PANEL', { panel: 'chaos' })
-                },
-                {
-                    id: 'NUCLEAR_PURGE',
-                    label: 'Purgado Nuclear',
-                    icon: Icons.Sync,
-                    action: () => {
-                        if (confirm("☢️ PURGADO NUCLEAR\n\nEsto borrará toda la memoria local (Genotipo L0) y forzará una descarga completa del Servidor.\n\n¿Proceder?")) {
-                            execute('NUCLEAR_PURGE');
-                        }
-                    }
-                }
-            ];
-        }
+        // ADR-021: DEV_LAB context PURGADO de la Esfera
         if (activeContext === 'COSMOS') {
             return [
                 {
@@ -182,17 +134,7 @@ const SovereignSphere = ({ manualLayer, setManualLayer }) => {
     const INNER_RING = getInnerActions();
 
     const handleArtifactSelect = (artifact) => {
-        // AXIOMA: Context-Aware Selection
-        // If we're in DevLab, this is an adapter selection (string ID)
-        if (manualLayer === 'DEV_LAB') {
-            console.log('[SovereignSphere] DevLab Target Selected:', artifact);
-            execute('SET_LAB_TARGET', artifact);
-            setShowSelector(false);
-            setIsOpen(false);
-            return;
-        }
-
-        // Otherwise, it's a Cosmos artifact manifestation
+        // ADR-021: El selector siempre manifiesta artefactos reales en el Cosmos
         const cosmosId = state.phenotype.cosmosIdentity?.id;
         console.log('[SovereignSphere] Manifesting:', artifact);
 
@@ -290,17 +232,10 @@ const SovereignSphere = ({ manualLayer, setManualLayer }) => {
     return (
         <>
             {showSelector && (
-                manualLayer === 'DEV_LAB' ? (
-                    <AdapterSelector
-                        onSelect={handleArtifactSelect}
-                        onClose={() => setShowSelector(false)}
-                    />
-                ) : (
-                    <ArtifactSelector
-                        onSelect={handleArtifactSelect}
-                        onClose={() => setShowSelector(false)}
-                    />
-                )
+                <ArtifactSelector
+                    onSelect={handleArtifactSelect}
+                    onClose={() => setShowSelector(false)}
+                />
             )}
             {/* AXIOMA: Esfera de Mando Libre (Magnética) */}
             <div
@@ -311,7 +246,7 @@ const SovereignSphere = ({ manualLayer, setManualLayer }) => {
                     transform: 'translate(-50%, -50%)' // Centrado perfecto en el punto de anclaje
                 }}
             >
-                {/* LA ESFERA (El Ojo de Indra) */}
+                {/* LA ESFERA (El Ojo de Axiom) */}
                 <button
                     onMouseDown={startDrag}
                     onClick={(e) => { if (!isDragging) setIsOpen(!isOpen) }}
@@ -456,6 +391,7 @@ const SovereignSphere = ({ manualLayer, setManualLayer }) => {
 };
 
 export default SovereignSphere;
+
 
 
 

@@ -12,39 +12,8 @@
 function createAudioAdapter({ errorHandler, tokenManager }) {
     if (!errorHandler) throw new Error("AudioAdapter: errorHandler is required");
 
-    const schemas = {
-        textToSpeech: {
-            description: "Transforms a linguistic text stream into a synthetic acoustic data stream via technical synthesis circuits.",
-            semantic_intent: "PROBE",
-            io_interface: {
-                inputs: {
-                    text: { type: "string", io_behavior: "STREAM", description: "Linguistic content to be converted into acoustic data." },
-                    voice: { type: "string", io_behavior: "SCHEMA", description: "Acoustic profile and language identifier (e.g., en-US-Standard-A)." },
-                    accountId: { type: "string", io_behavior: "GATE", description: "Account selector for identifier routing." }
-                },
-                outputs: {
-                    audioUrl: { type: "string", io_behavior: "STREAM", description: "URL to the generated synthetic acoustic resource." },
-                    audioBlob: { type: "object", io_behavior: "STREAM", description: "Resulting industrial acoustic binary data stream." }
-                }
-            }
-        },
-        speechToText: {
-            description: "Transcribes an acoustic data stream into a high-integrity linguistic text stream via cognitive recognition circuits.",
-            semantic_intent: "PROBE",
-            io_interface: {
-                inputs: {
-                    audioUrl: { type: "string", io_behavior: "STREAM", description: "Source acoustic resource URL for transcription." },
-                    language: { type: "string", io_behavior: "SCHEMA", description: "Linguistic model identifier for recognition." },
-                    accountId: { type: "string", io_behavior: "GATE", description: "Account selector for routing." }
-                },
-                outputs: {
-                    document: { type: "object", io_behavior: "STREAM", description: "Indra DocumentRecord containing the transcription." }
-                }
-            }
-        }
-    };
 
-    // --- INDRA CANON: Normalización Semántica ---
+    // --- AXIOM CANON: Normalización Semántica ---
 
     function _mapDocumentRecord(text, confidence) {
         return {
@@ -143,27 +112,63 @@ function createAudioAdapter({ errorHandler, tokenManager }) {
         return { status: "ACTIVE", success: true, info: "Audio Processing Logic Ready (Fallback Mode)" };
     }
 
-    // --- SOVEREIGN CANON V12.0 (Algorithmic Core) ---
-    const CANON = {
-        ARCHETYPE: "ADAPTER",
-        DOMAIN: "ACOUSTIC_INTELLIGENCE",
-        CAPABILITIES: schemas
-    };
+  // --- SOVEREIGN CANON V14.0 (ADR-022 Compliant — Pure Source) ---
+  const CANON = {
+      id: "audio",
+      label: "Axiom Audio",
+      archetype: "adapter",
+      domain: "audio",
+      REIFICATION_HINTS: {
+          "id": "id",
+          "label": "transcript || name || id",
+          "items": "results || items"
+      },
+      CAPABILITIES: {
+          "textToSpeech": {
+              "id": "PROCESS_SIGNAL",
+              "io": "WRITE",
+              "desc": "Transforms a linguistic text stream into synthetic acoustic data.",
+              "traits": ["TTS", "ACOUSTIC_SYNTHESIS", "SPEAK"],
+              "inputs": {
+                  "text": { "type": "string", "desc": "Linguistic content to be converted into acoustic data." },
+                  "voice": { "type": "string", "desc": "Acoustic profile and language identifier." }
+              }
+          },
+          "speechToText": {
+              "id": "PROCESS_SIGNAL",
+              "io": "READ",
+              "desc": "Transcribes an acoustic data stream into linguistic text.",
+              "traits": ["STT", "TRANSCRIPTION", "LISTEN"],
+              "inputs": {
+                  "audioUrl": { "type": "string", "desc": "Source acoustic resource URL for transcription." },
+                  "language": { "type": "string", "desc": "Linguistic model identifier." }
+              }
+          }
+      }
+  };
 
-    return {
-        description: "Industrial engine for acoustic synthesis, linguistic transcription, and multi-modal audio processing.",
-        CANON: CANON,
-        schemas: schemas,
-        // Protocol Mapping (ORACLE_V1)
-        search: textToSpeech,
-        extract: speechToText,
-        deepResearch: (p) => ({ status: "IN_PROGRESS", info: "Acoustic pattern analysis requires MCEP cycle." }),
-        verifyConnection,
-        // Original methods
-        textToSpeech,
-        speechToText
-    };
+  return {
+    id: "audio",
+    label: CANON.label,
+    archetype: CANON.archetype,
+    domain: CANON.domain,
+    description: "Industrial engine for acoustic synthesis, linguistic transcription, and multi-modal audio processing.",
+    CANON: CANON,
+    
+    // Protocol Mapping (ORACLE_V1)
+    search: textToSpeech,
+    extract: speechToText,
+    deepResearch: (p) => ({ status: "IN_PROGRESS", info: "Acoustic pattern analysis requires MCEP cycle." }),
+    verifyConnection,
+    
+    // Original methods
+    textToSpeech,
+    speechToText
+  };
 }
+
+
+
 
 
 

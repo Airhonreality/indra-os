@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import compiler from '../../../laws/Law_Compiler';
+import compiler from '../../../2_Semantic_Transformation/Law_Compiler.js';
 
 /**
  * SchemaFormEngine.jsx
@@ -112,7 +112,7 @@ const SchemaFormEngine = ({ schemaId, onCommit, onCancel, isLoading = false, err
                         Create New {schemaId.replace('_V1', '')}
                     </h2>
                     <p className="text-xs text-[var(--text-dim)]">
-                        Indra Axiomatic Projection Protocol v8.0
+                        Axiom Axiomatic Projection Protocol v8.0
                     </p>
                 </div>
 
@@ -157,6 +157,7 @@ const SchemaFormEngine = ({ schemaId, onCommit, onCancel, isLoading = false, err
 };
 
 export default SchemaFormEngine;
+
 
 
 

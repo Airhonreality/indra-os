@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CAPA 2: ENGINES
  * CosmosSync.js
  * DHARMA: Servicio de sincronización reactiva de Cosmos.
@@ -13,7 +13,7 @@
  * - Indicador de estado de sincronización
  */
 
-import cosmosCache from './CosmosCache';
+import cosmosCache from './CosmosCache.js';
 
 class CosmosSync {
     constructor() {
@@ -131,7 +131,7 @@ class CosmosSync {
      */
     async _tryWebSocket() {
         try {
-            const { default: adapter } = await import('../core/Sovereign_Adapter');
+            const { default: adapter } = await import('../core/Sovereign_Adapter.js');
 
             // Generar ID de conexión único
             this.connectionId = `ws_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -167,7 +167,7 @@ class CosmosSync {
      */
     async _unsubscribeWebSocket() {
         try {
-            const { default: adapter } = await import('../core/Sovereign_Adapter');
+            const { default: adapter } = await import('../core/Sovereign_Adapter.js');
 
             await adapter.call('websocket', 'unsubscribe', {
                 connectionId: this.connectionId
@@ -200,7 +200,7 @@ class CosmosSync {
      */
     async _checkWebSocketNotifications() {
         try {
-            const { default: adapter } = await import('../core/Sovereign_Adapter');
+            const { default: adapter } = await import('../core/Sovereign_Adapter.js');
 
             const result = await adapter.call('websocket', 'getNotifications', {
                 connectionId: this.connectionId
@@ -285,7 +285,7 @@ class CosmosSync {
 
         try {
             // Importar dinámicamente para evitar dependencias circulares
-            const { contextClient } = await import('../core/kernel/ContextClient');
+            const { contextClient } = await import('../core/kernel/ContextClient.js');
 
             // Intentar caché primero (solo en carga inicial)
             if (!this.lastSyncedCosmos) {
@@ -395,6 +395,7 @@ class CosmosSync {
 // Singleton instance
 export const cosmosSync = new CosmosSync();
 export default cosmosSync;
+
 
 
 

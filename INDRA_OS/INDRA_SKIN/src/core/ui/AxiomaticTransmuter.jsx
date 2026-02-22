@@ -1,8 +1,8 @@
-import React from 'react';
-import { useAxiomaticSense } from './hooks/useAxiomaticSense';
-import { ActionTransmuter } from './transmuters/ActionTransmuter';
-import { MateriaTransmuter } from './transmuters/MateriaTransmuter';
-import { SenseTransmuter } from './transmuters/SenseTransmuter';
+﻿import React from 'react';
+import { useAxiomaticSense } from './hooks/useAxiomaticSense.js';
+import { ActionTransmuter } from './transmuters/ActionTransmuter.jsx';
+import { MateriaTransmuter } from './transmuters/MateriaTransmuter.jsx';
+import { SenseTransmuter } from './transmuters/SenseTransmuter.jsx';
 
 /**
  * AXIOMATIC TRANSMUTER (The Orchestrator)
@@ -92,6 +92,7 @@ export const AxiomaticGroup = ({ subModule }) => {
         </div>
     );
 };
+
 
 
 

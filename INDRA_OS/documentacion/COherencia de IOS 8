@@ -1,0 +1,653 @@
+
+
+Thought for 20s
+
+
+
+
+
+La ruta completa y los puntos críticos totales. Voy a ser directo:
+
+El Sistema Actual: 7 Transformaciones
+CANON del Adapter (GAS)              ← Fuente de verdad
+    ↓ T1: GenotypeDistiller           ← Lee CANON, convierte a UPPER_CASE
+    ↓ T2: JSON.stringify → HTTP       ← Serialización + red
+    ↓ T3: SovereignAdapter.ignite()   ← Recibe, cachea en localStorage
+    ↓ T4: compiler.setOntology()      ← Inyecta al LawCompiler
+    ↓ T5: compiler.compile()          ← deepMerge con Semantic_Manifest.js
+    ↓ T6: ProjectionKernel.resolve()  ← Mapea ARCHETYPE → componente React
+    ↓ T7: ProjectionMatrix.render()   ← Construye props final para el Engine
+Ya son 7 antes de que el usuario vea un pixel.
+
+Los Puntos Críticos (ordenados por severidad)
+🔴 CRÍTICO 1 — Semantic_Manifest.js es un espejo roto
+
+Es el más grave. Este archivo re-declara en el front lo que ya existe en el CANON del backend. Cuando ambos difieren (y difieren frecuentemente), el 
+deepMerge
+ debe elegir quién gana. Hoy gana el backend (item sobreescribe semanticRef). Pero el order del merge en 
+compile()
+ es 
+deepMerge(semanticRef, item)
+, donde el segundo argumento sobreescribe el primero. Eso significa que el CANON del adapter ya gana. El Semantic_Manifest.js solo aporta valor en:
+
+Items con isVirtual: true (componentes sin backend)
+Metadata visual que el backend no tiene (icon, color, ui_layout_hint)
+Todo lo demás en él es ruido duplicado.
+
+🔴 CRÍTICO 2 — Casing dual como protocolo de ambigüedad
+
+El sistema entero tiene dos "dialectos" mezclados:
+
+Backend CANON emite:  { LABEL, ARCHETYPE, DOMAIN, CAPABILITIES }
+DriveAdapter emite:   { id, name, type, archetype, parent }  ← minúsculas
+CoreOrchestrator usa: { source, target, sourceHandle }        ← camelCase
+GraphEngine usa:       { id, source, target }                 ← camelCase
+Front espera:          LABEL, ARCHETYPE, ORIGIN_SOURCE...     ← UPPER
+No hay un contrato de casing acordado. El Law_Compiler hace de intérprete con fallbacks: LABEL || label || functional_name || 'UNIT_SKELETON'. Cuatro niveles de fallback son una confesión de que el contrato no existe.
+
+🔴 CRÍTICO 3 — 
+_normalizeCapabilities
+ infiere lo que el CANON ya sabe
+
+js
+// Law_Compiler.js línea 196-200
+if (lowerKey.match(/^(get|read|fetch|list|scan|query|search)/)) io = 'READ';
+else if (lowerKey.match(/^(set|write|update|create|delete|add|remove)/)) io = 'WRITE';
+Esta inferencia por regex existe porque algunos adapters no declaran 
+io
+ en sus capabilities. Pero el 
+DriveAdapter
+ sí lo declara perfectamente: "io": "READ", "io": "WRITE", "io": "ADMIN". Los que no lo declaran son adapters incompletos. La solución no es más inteligencia en el compilador, es un contrato de adapter obligatorio.
+
+🟡 CRÍTICO 4 — El envelope de respuesta { success, payload, ORIGIN_SOURCE }
+
+PublicAPI._secureInvoke() envuelve cada respuesta:
+
+js
+return { success: true, payload: result, ORIGIN_SOURCE: nodeKey }
+El front debe desempaquetar en cada llamada. En 
+AxiomaticStore
+ hay docenas de response.payload o response.results. Si una respuesta devuelve el dato directamente y otra lo devuelve en .payload, explota silenciosamente. Este envelope debería ser transparente (el front recibe directamente el resultado) o siempre consistente (nunca mezclar results array con payload objeto como hace hoy).
+
+🟡 CRÍTICO 5 — REIFICATION_HINTS existe pero el front no lo usa sistemáticamente
+
+El 
+DriveAdapter
+ declara:
+
+js
+REIFICATION_HINTS: {
+  "id": "id",
+  "LABEL": "name",
+  "items": "results"
+}
+Esto es exactamente el mapa de traducción entre el esquema del adapter y el esquema del artefacto del front. Pero el front no lo lee automáticamente. Los engines tienen código manual para hacer ese mapeo. REIFICATION_HINTS ya es la solución al problema de keys inconsistentes — solo falta que alguien lo use.
+
+🟡 CRÍTICO 6 — 
+SovereignAdapter
+ tiene un rezago de DevLab
+
+js
+this.isLabMode = window.location.href.includes('mode=lab');
+// ...línea 47:
+if (cached && !this.isLabMode) { ... }
+DevLab fue erradicado pero este flag sigue activo. Si alguien accede con ?mode=lab en la URL, el sistema ignora el cache del L0. Es un vector de comportamiento inesperado huérfano.
+
+🟢 CRÍTICO 7 — GraphEngine no valida la semántica de las conexiones
+
+Los edges no tienen noción de sourceHandle/targetHandle. El CoreOrchestrator sí los necesita para 
+_applyGraphTopology
+. Si el usuario hace una conexión visualmente en el Graph, el front emite { source, target } pero el Core espera { source, target, sourceHandle, targetHandle }. La ejecución falla silenciosamente porque 
+_applyGraphTopology
+ recibe undefined y simplifica a _wiredData.
+
+La Ruta Mínima Limpia
+CANON del Adapter
+    ↓ GenotypeDistiller emite keys canónicas (sin transformar el casing)
+      → UN solo casing acordado: lowercase todo (id, label, archetype, domain)
+      → Añade 'ports' calculado desde capabilities.io
+      → REIFICATION_HINTS incluido en el output
+    ↓ HTTP JSON (sin cambio)
+    ↓ SovereignAdapter.ignite()
+      → Eliminar isLabMode (DevLab muerto)
+      → Cachea directo sin transformar
+    ↓ Law_Compiler SIMPLIFICADO
+      → Solo procesa items isVirtual: true del Semantic_Manifest
+      → Para items reales: solo _normalizeCapabilities si io está ausente
+      → Sin deepMerge con Semantic_Manifest para items reales
+    ↓ ProjectionKernel / ProjectionMatrix (sin cambio)
+Transformaciones restantes: 3 (del L0 que ya viene bien → cacheo → render). Las otras 4 desaparecen.
+
+Orden de Ejecución Recomendado
+1. GenotypeDistiller.gs   → casing + ports + REIFICATION_HINTS  (Core)
+2. SovereignAdapter.js    → eliminar isLabMode                   (Front)
+3. Law_Compiler.compile() → simplificar merge                    (Front)
+4. Semantic_Manifest.js   → poda de items no-virtuales           (Front)
+5. PublicAPI.gs           → estandarizar envelope response       (Core)
+El paso 1 es el que desbloquea todo lo demás. Sin él, el front seguirá necesitando el 
+deepMerge
+ ruidoso para compensar lo que el backend no declara correctamente.
+
+----post implementación:---
+Estado final del pipeline:
+
+7 transformaciones → 3 transformaciones
+4 capas de ruido eliminadas
+Pipeline: CANON → HTTP → Cache → Render
+El único paso pendiente es el Paso 6 (
+GraphEngine.jsx
+ — ports → handles), que es un feature nuevo que no bloquea nada y depende de que el Paso 1 sea verificado en el backend desplegado.
+
+----- COMENTARIOS ----
+1. SI ya no hay pay loads envueltos significa que el signal transmuter era como un parche? 
+2. AL borrar  cache el core selector no permite actualizar o "vovler a conectar" con un core listado, 
+
+---
+---
+IMPLEMETNACION 2---
+📋 Plan de Refactorización Integral: De Listas a Mapas
+Objetivo: Sustituir Array por Object (Key-Value Map) en el almacenamiento de artefactos para que la duplicidad sea matemáticamente imposible por diseño.
+
+Fase 1: El Corazón del Estado (
+DataLobe.js
+)
+Cambio: state.phenotype.artifacts pasa de [] a {}.
+Normalización:
+ADD_ARTIFACT: De push(node) a artifacts[id] = node.
+REMOVE_ARTIFACT: De filter() a delete artifacts[id].
+COSMOS_MOUNTED: El reductor convertirá el array results del backend en un Mapa inmediatamente usando el 
+id
+ como llave.
+Fase 2: El Motor Visual (
+GraphEngine.jsx
+)
+Cambio: Adaptar el renderizado para iterar sobre valores.
+Acción: Cambiar nodes.map(...) por Object.values(nodes).map(...).
+Ventaja: React ahora tendrá llaves 100% garantizadas y únicas.
+Fase 3: El Almacén (
+VaultEngine.jsx
+)
+Cambio: La lógica de filtrado del "Warehouse".
+Acción: Adaptar los selectores de búsqueda para manejar el Mapa de artefactos.
+Fase 4: La Capa de Persistencia (Sovereign_Adapter.js)
+Misión Diplomática (Bridge):
+Como no queremos tocar el backend (GAS), el PersistenceManager del front se encargará de la traducción:
+Al Guardar: Convierte el Mapa {} a Array [] antes de enviarlo a Drive.
+Al Cargar: Recibe el Array [] y lo inyecta como Mapa {}.
+🗺️ Mapa de Dependencias a Intervenir
+Artefacto	Impacto	Riesgo
+DataLobe.js
+ALTO (Estructura de datos)	Se rompen todos los reductores de artefactos.
+GraphEngine.jsx
+MEDIO (Iteración)	El lienzo no pintará nada hasta que use .values().
+VaultEngine.jsx
+MEDIO (Filtrado)	Las búsquedas en el almacén fallarán.
+AxiomaticStore.jsx
+BAJO (Init)	Cambiar artifacts: [] por {} en el estado inicial.
+🎯 Por qué esto soluciona el error actual
+El error que ves de Warning: Encountered two children with the same key, notion desaparecerá porque:
+
+Si el backend te envía a Notion 2 veces por error.
+El map.notion = item1 se ejecuta.
+Luego el map.notion = item2 se ejecuta sobre la misma dirección.
+Resultado: Un solo objeto Notion en el estado. React recibe una sola llave. El canvas revive.
+Luego el map.notion = item2 se ejecuta sobre la misma dirección.
+Resultado: Un solo objeto Notion en el estado. React recibe una sola llave. El canvas revive.
+
+
+
+---- IMPLEMENTACIÓN 3----
+ continuación, el Diagnóstico de Dependencias de Nombre (Prejuicio de Arquetipo):
+
+1. 
+ArtifactSelector.jsx
+ (El Portero del Conocimiento)
+Dependencia: Clasifica los nodos en carpetas (KNOWLEDGE_VAULTS, BRIDGES, VISUAL_UTILITIES) basándose estrictamente en archetype.includes('VAULT') o dom.includes('COMMUNICATION').
+Riesgo: Si un nodo de tipo AGENT adquiere capacidades de almacenamiento, nunca aparecerá en la sección de "Bóvedas", quedando huérfano de su función principal.
+Transmutación: Debe clasificar por Rasgos Funcionales. (Ej: Si tiene LIST_FILES, va a Bóvedas; si tiene EMIT_SIGNAL, va a Utilidades).
+2. 
+CommunicationEngine.jsx
+ (La Central de Mensajería)
+Dependencia: Filtra los mensajes y la UI buscando específicamente ARCHETYPE === 'MAIL' o DOMAIN === 'COMMUNICATION'.
+Riesgo: Un nodo de tipo LLM o SERVICE que pueda enviar mensajes (SEND_REPLY) no será reconocido por esta central.
+Transmutación: Debe buscar nodos con la capacidad MESSAGE_PROVIDER o puertos de tipo INBOX/OUTBOX.
+3. 
+VisualHydrator.js
+ (La Estética de Identidad)
+Dependencia: Tiene un mapa estático: 'VAULT': Icons.Vault, 'DATABASE': Icons.Database.
+Riesgo: Obliga a que cada nuevo arquetipo sea registrado manualmente para tener un icono, o se queda con un icono genérico.
+Transmutación: El icono debe ser un Atributo de la Capacidad Principal. (Ej: La capacidad DATA_STREAM trae consigo el icono de Base de Datos).
+4. 
+Law_Compiler.js
+ (El Juez de Vínculos)
+Dependencia: Valida conexiones con lógica: if (arch === 'VAULT' || arch === 'DATABASE').
+Riesgo: Impide que un usuario conecte un nodo innovador a un receptor de datos solo porque el nombre no está en la "lista blanca" de la ley.
+Transmutación: Implementar Contratos de Datos (IO Contracts). Si el puerto A emite un TENSOR y el puerto B acepta un TENSOR, la ley debe permitirlo sin preguntar el nombre del nodo.
+5. 
+IdentityEngine.jsx
+ (La Gestión de Cuentas)
+Dependencia: Agrupa configuraciones por domain.includes('STORAGE').
+Riesgo: Fragmenta la configuración del sistema.
+Transmutación: Agrupar por Requerimientos de Credenciales (AUTH_REQUIRED).
+
+
+Pregunta tecnica: al hacer estas implementaciones la sigueinte  estrucutra sigue igual o hya cambios?:
+1. MAPA RELACIONAL: Del Core (Soberanía) al Widget (Fenotipo)
+Este mapa describe el "Viaje del Bit" desde que nace en el adaptador hasta que se proyecta en un Slot.
+
+Nivel	Responsable	Proceso de Transmutación	Artefactos Clave
+L0: Core	Sovereign_Adapter	Ejecución bruta de scripts GS/API. Retorna JSON "sucio".	
+Adapter.js
+, GS Scripts
+L1: Alquimia	SignalTransmuter	Reificación: El JSON se convierte en "Materia Soberana". Se asignan ID, LABEL y ARCHETYPE usando REIFICATION_HINTS.	
+SignalTransmuter.js
+, Law_Compiler.js
+L2: Estado	
+AxiomaticStore
+Encapsulamiento: La materia se guarda en el DataLobe dentro del mapa de artifacts. El campo canónico es _currentProjection.	
+AxiomaticStore.jsx
+, 
+DataLobe.js
+L3: Sinapsis	
+SynapticDispatcher
+Propagación: La señal viaja de un nodo a otro. Si el targetPort es RECEIVE, el 
+Compositor
+ "escucha" el cambio.	
+SynapticDispatcher.js
+L4: Lente	
+ProjectionMatrix
+Resolución de Motor: Decide qué "Cámara" usar. Si es NODE, usa 
+NodeEngine
+. Si es FOCUS, usa 
+CompositorEngine
+.	
+ProjectionMatrix.jsx
+, 
+Archetype_Registry.js
+L5: Motor	
+CompositorEngine
+Orquestación: Renderiza la "App" completa (
+Header
+, 
+LiveView
+, 
+PropertyPanel
+).	
+CompositorEngine.jsx
+L6: Micro	
+NodeBodyDispatcher
+Especialización: Dentro del grafo, decide qué dibujo (Widget) poner dentro del marco del nodo.	
+NodeBodyDispatcher.jsx
+L7: Final	
+SlotNodeWidget
+Reflexión: Muestra un "espejo" de _currentProjection en miniatura.	
+SlotNodeWidget.jsx
+
+----- IMPLEMENTACIÓN 4 -----
+1. El Ocaso del "Engine" Específico (Hacia el Motor Polimórfico)
+Hoy tenemos un VaultEngine, un DatabaseEngine, un 
+NodeEngine
+, etc. Cada uno tiene lógica interna que "conoce" qué es un archivo o qué es una celda.
+
+La Simplificación: Deberíamos transicionar hacia un único AxiomEngine agnóstico. En lugar de preguntar "¿Qué motor soy?", el motor debería preguntar "¿Qué capacidades tengo?".
+Visión: Un componente no sabe que es un "Sheets"; sabe que tiene un rasgo GRID y una capacidad QUERY_DATA. El componente simplemente proyecta visualmente la capacidad. Si mañana creas un adaptador de "Control de Tráfico" que emita GRID, el sistema lo proyectaría igual sin que tengas que tocar una sola línea de código en el front-end.
+2. Eliminación Total del "Casing Dual"
+El sistema actual gasta muchísima energía (y líneas de código) manteniendo la retrocompatibilidad entre label, LABEL, ARCHETYPE y archetype.
+
+La Simplificación: Dictadura del lowercase (o snake_case) desde el origen. El GenotypeDistiller en el backend no debería transformar nada. Si el Adapter emite 
+id
+, el front usa 
+id
+.
+Perspectiva: El uso de UPPER_CASE en el front-end es un "dialecto heredado" que obliga al Law_Compiler a ser un traductor constante. Si estandarizamos el contrato en un solo idioma de casing, el compilador se reduce en un 40% de peso.
+3. Del Law_Compiler al Manifest_Reader
+Actualmente, el Law_Compiler es "inteligente": usa regex para adivinar si una función es de lectura o escritura y asigna rasgos (traits) por su cuenta.
+
+La Simplificación: El compilador debería ser tonto. Toda la inteligencia (el mapeo de capacidades e iconos) debería vivir en el CANON del adaptador en el backend o en el Semantic_Manifest.
+Perspectiva: El compilador no debería "normalizar", solo debería "validar". Si un adaptador no declara su 
+io
+, el sistema debería rechazarlo en lugar de intentar adivinarlo. Esto obligaría a mantener contratos perfectos en la base de la pirámide (L0).
+4. Reificación por Esquema, no por Nombre
+Hoy, 
+AxiomaticStore
+ tiene condicionales como if (targetNodeId === 'notion'). Esto es lo opuesto a ser agnóstico.
+
+La Simplificación: El Store no debería saber quién es el proveedor de datos. Debería usar el REIFICATION_HINTS que ya definimos.
+Perspectiva: Si un dato dice "mis filas están en la propiedad results", el Store debería mapearlo automáticamente usando esa pista, sin importar si el nodo se llama Notion, Drive o "Servidor_X".
+5. El "Limbo Ontológico" de los Ítems Virtuales
+El Semantic_Manifest y el Law_Compiler todavía se fusionan (
+deepMerge
+) de formas complejas.
+
+La Simplificación: Separación física de los registros. El front-end debería tener un Virtual_Registry y el backend un Core_Registry. El sistema de renderizado simplemente consulta ambos. No hace falta mezclarlos en una estructura única pesada antes de renderizar.
+Resumen de la Perspectiva "Zen":
+Si purificamos el sistema, Indra no sería un sistema operativo con "programas" (motores), sino un Lienzo de Proyección de Capacidades.
+
+Adapter: Emite un JSON estricto en minúsculas con IDs funcionales.
+Connector: Pasa el JSON sin tocar una sola coma.
+Projector: Recibe el JSON y, al ver el trait COMMUNICATE, despliega un chat.
+En esta visión, el código del front-end dejaría de crecer. No importa cuántos adaptadores añadas en el futuro, el front-end siempre tendría el mismo tamaño porque solo sabe reaccionar a Traits Canónicos, no a marcas o nombres de herramientas.
+
+
+----- cHAEK LIST:
+🧩 Fase 1: Estandarización de la Fuente de Verdad (Backend L0)
+Antes de tocar el front-end, el origen debe ser impecable.
+
+ Dictadura del Casing: Modificar 
+GenotypeDistiller.gs
+ para dejar de transformar keys a UPPER_CASE. Todo debe fluir en lowercase (
+id
+, label, domain, archetype).
+ Contrato Obligatorio: Eliminar el fallback de 
+io
+ en el backend. Si un adaptador no tiene 
+io
+ definido en su CANON, el sistema debe lanzar un error en tiempo de despliegue.
+ Universalización de REIFICATION_HINTS: Asegurar que cada adaptador (Drive, Sheets, Notion) incluya su mapa de traducción de datos (ej. "items": "rows") en su definición canónica.
+ Envelope Transparente: Ajustar PublicAPI.gs para que no envuelva resultados en payload si no es estrictamente necesario, o estandarizar que siempre lo haga de forma invisible para el conector.
+🧬 Fase 2: Simplificación de la Membrana (Core S1-S3)
+Eliminar la "inteligencia" innecesaria del compilador.
+
+ Manifest Reader: Refactorizar 
+Law_Compiler.js
+ para eliminar las funciones de inferencia por Regex (match(/get|read/)).
+ Separación Óntica: Crear dos registros independientes en el compilador: _coreRegistry (backend) y _virtualRegistry (frontend). Eliminar el 
+deepMerge
+ entre ambos para ítems reales.
+ Purgado de Alias: Eliminar todos los LABEL: item.label || item.LABEL. Solo existirá una propiedad label en minúsculas.
+ Agnosticismo en el Store: Refactorizar 
+AxiomaticStore.jsx
+ para eliminar los bloques if (nodeId === 'notion'). Crear una única función executeAgnosticAction que use REIFICATION_HINTS para procesar el resultado.
+🎭 Fase 3: Morfogénesis por Rasgos (Motores S4)
+Dejar de preguntar "¿Qué componente soy?" y empezar a preguntar "¿Qué puedo hacer?".
+
+ Componentes por Traits: Modificar 
+Indra_Canon_Registry.js
+ para que la resolución de componentes no sea por nombre ('DATABASE'), sino por concurrencia de rasgos (traits: ['GRID', 'VAULT']).
+ AxiomEngine Polimórfico: Crear una estructura de contenedor único que cargue "Micro-Widgets" basados en las capacidades detectadas.
+Ejemplo: Si el nodo tiene el rasgo COMMUNICATE, inyecta el widget de entrada de texto. Si tiene GRID, inyecta la tabla.
+ Uniformidad Visual: Estandarizar 
+NodeEngine.jsx
+ para que sus dimensiones y colores dependan exclusivamente del domain y el número de puertos, no de una lógica manual de "si es base de datos mide 420px".
+🛰️ Fase 4: Pruebas de Desacoplo (Validación)
+ Prueba de "El Intruso": Crear un adaptador falso en el backend que no se parezca a nada conocido (ej. "Motor de Clima") pero que emita rasgos de GRID y READ_DATA. El sistema debería proyectarlo perfectamente sin haberlo "visto" nunca en el código del front-end.
+ Prueba de Performance: Verificar que el tiempo de "Ignición" del sistema baja al eliminar las recursiones de 
+deepMerge
+ y las transformaciones de casing.
+
+ ---COMENTARIOS---
+podriamos cambiar y o modificar el indra canon regystri para que no usa nombres de tipo "indra" ya que estan prohibidos por @agent.md ? 
+
+Estaban pendientes esots:
+📋 ❹ Pendientes compilados del COherencia IOS 8 (las 3 implementaciones)
+Aquí están los items que quedaron abiertos de las 3 implementaciones documentadas:
+
+De la Impl. 1 (7→3 transformaciones):
+
+🔴 GraphEngine.jsx — Paso final pendiente: ports → handles (sourceHandle/targetHandle para que CoreOrchestrator reciba las conexiones correctamente)
+🔴 SovereignAdapter.js — Flag isLabMode basado en URL (?mode=lab) sigue activo como vector de comportamiento inesperado
+De la Impl. 2 (Listas → Mapas):
+
+🟡 Pérdida de conexión del Core pasado un rato → El AxiomaticState tiene retry con NaN en el intento (attempt NaN), indica bug en el contador de reintentos del ciclo de sincronización
+🟡 Al borrar caché, el Core Selector no permite reconectar con un core listado
+De la Impl. 3 (Purga de Prejuicio de Arquetipo):
+
+🔴 
+ArtifactSelector.jsx
+ — Clasifica por nombre de arquetipo, debe clasificar por Rasgos Funcionales (traits)
+🔴 
+CommunicationEngine.jsx
+ — Filtra por ARCHETYPE === 'MAIL', debe filtrar por capacidad MESSAGE_PROVIDER
+🟡 VisualHydrator.js — Mapa estático de iconos por arquetipo, debe derivarse de la capacidad principal
+🟡 
+IdentityEngine.jsx
+ — Agrupa por domain.includes('STORAGE'), debe agrupar por AUTH_REQUIRED
+--------
+
+pendientes de docuemntación:
+
+PROBLEM_TREE_ANALYSIS.md
+ y 
+BURST_MODE_DEPENDENCY_MAP.md
+ → Absorber en el ADR-007 correspondiente, luego eliminar
+BURST_MODE_FRONTEND_ANALYSIS.md
+ → Eliminar (el Burst Mode ya es parte del sistema, no análisis)
+010_DETERMINISTIC_HYDRATION.md
+ → Renombrar como ADR-010 y normalizar formato
+
+ Cerrar el corpus documental deprecar/fusionar/eliminar, ambpliar analicis sobre la docuemntación hay mucha contamienzaicón .
+
+
+
+ ------------ Verificacion de orfden de enginces final:
+{{ ORDEN IDEALengines/
+├─ [Macro-Engines] — Consumen el Archetype_Registry
+│   ├─ CompositorEngine/       ← (actual SlotEngine) - renombrar
+│   │   ├─ CompositorEngine.jsx       ← orquestador ≤80 líneas
+│   │   ├─ CompositorHeader.jsx
+│   │   ├─ CompositorPropertyPanel.jsx
+│   │   ├─ CompositorLiveView.jsx
+│   │   └─ CompositorDashboard.jsx
+│   ├─ DatabaseEngine.jsx
+│   ├─ VaultEngine.jsx
+│   ├─ CommunicationEngine.jsx
+│   ├─ IdentityEngine.jsx
+│   ├─ ServiceEngine.jsx
+│   └─ RealityEngine.jsx
+│
+├─ [Micro-Engines] — Componentes puros, invocables por cualquier Macro
+│   ├─ SchemaFormEngine.jsx    ← formulario genérico (ya agnóstico)
+│   ├─ RGBCurvesEngine.jsx     ← futuro: sin estado global
+│   └─ DataGridEngine.jsx      ← futuro: tabla pura sin adapters
+│
+└─ [Node Widgets] → nodes/    ← vistas compactas para el canvas
+    ├─ SlotNodeWidget.jsx
+    ├─ DatabaseNodeWidget.jsx
+    └─ CommunicationNodeWidget.jsx  ← (renombrar EmailNodeWidget)}}}}}}}
+
+
+ORDEN MAS CERCANO POSIBLE:
+
+ engines/
+├─ CompositorEngine/        ← NUEVO (ex-SlotEngine, desmonolitizado)
+│   ├─ CompositorEngine.jsx      ← Orquestador ~80 líneas
+│   ├─ CompositorHeader.jsx      ← Cabecera + navegación de vistas  
+│   ├─ CompositorPropertyPanel.jsx ← Panel de propiedades (lee CAPABILITIES reales)
+│   ├─ CompositorLiveView.jsx    ← Tabla agnóstica para datos vivos
+│   └─ CompositorDashboard.jsx   ← Vista idle con tiles de capacidades
+│
+├─ SchemaFormEngine.jsx     ← Micro-engine compartido (no en Registry)
+├─ DatabaseEngine.jsx / VaultEngine.jsx / CommunicationEngine.jsx...
+│
+nodes/
+├─ CommunicationNodeWidget.jsx  ← NUEVO (ex-EmailNodeWidget, agnóstico)
+├─ SlotNodeWidget.jsx / DatabaseNodeWidget.jsx...
+
+
+
+----- detección de esquizofrenia de sistema ----
+Tienes toda la razón. He caído en el error de intentar "parchar" la comunicación con lógica condicional (if (isSlotNode)) en lugar de dejar que el Contrato Canónico (ADR-022) sea el que dicte el comportamiento. Al meter esos if, estoy rompiendo la arquitectura agnóstica del Grafo y creando una deuda técnica que nos perseguirá después.
+
+Aquí el análisis de la Causa Real (Root Cause) sin parches:
+
+1. El Fracaso del "Dumb Pipe" (Tubería Ciega)
+El 
+SynapticDispatcher
+ y el 
+AxiomaticStore
+ deberían ser tuberías ciegas. Su única función debe ser: "Si el cable llega al Puerto X, y el nodo tiene una entrada llamada Puerto X, entrega el dato". El error real: No es que el Slot necesite un trato especial, es que el GenotypeDistiller y el Semantic_Manifest están entregando contratos que el Front-end no está "reificando" (haciendo realidad) de forma automática.
+
+2. La Mentira del Manifiesto vs. La Realidad del Backend
+Tenemos una "esquizofrenia" en los datos:
+
+En el Backend (Notion): El puerto se llama DATA_SOURCE.
+En el Front (Manifiesto): El nodo virtual (Slot) espera algo que no está definido explícitamente como una capacidad de entrada compatible.
+El resultado: El sistema, al ser "estricto", bloquea el paso de datos porque no encuentra el "match" exacto en el diccionario de capacidades del receptor.
+3. Síndrome de "Hardcoding" en los Motores
+El motor de proyección (
+NodeEngine
+ / 
+CompositorEngine
+) debería reaccionar a la existencia de datos en un estado estandarizado (como _currentProjection), sin importarle si el nodo es un Slot, un Adaptador o una utilidad. Al meterle isSlotNode, estoy asumiendo que solo los Slots pueden recibir proyecciones, lo cual es una limitación absurda para un sistema basado en grafos.
+
+La Solución Arquitectónica Real (Sin implementar, solo análisis):
+Sincronización de Contratos: Si el backend envía DATA_SOURCE, el receptor DEBE tener un puerto DATA_SOURCE (o un mapeo universal de tipos). No necesitamos lógica de "Slot", necesitamos que el Slot node en el 
+Semantic_Manifest.js
+ defina explícitamente sus puertos de entrada como cualquier otro nodo.
+---
+
+A pesar de las refactorizaciones recientes, aquí está el mapa de la lógica hardcoded que todavía sobrevive y que impide que Indra sea un lienzo realmente puro:
+
+1. El "Traductor Universal" Esquizofrénico (
+SignalTransmuter.js
+)
+Este es el archivo más "zombi" del sistema. Es un monumento a la desconfianza en el contrato:
+
+Adivinación de Identidad: Tiene cadenas de fallback como "id || ID || fileId || uuid" y "name || label || title || LABEL". El sistema no sabe quién es la verdad, así que "prueba" hasta que algo pega.
+Prejuicio de Notion: Tiene un bloque try/catch específico que busca raw.properties para extraer títulos de Notion. Esto es anti-agnosticismo puro; el transmutador tiene "favoritos" en el backend.
+Heurística de Arquetipos: Clasifica nodos usando regex (si dice DIRECTORY es VAULT). Si mañana un adaptador llama a sus carpetas "Colecciones", el sistema las ignorará.
+2. Los Motores con "Nombres y Apellidos" (
+SlotEngine.jsx
+ / 
+AxiomaticStore.jsx
+)
+El Pecado de SlotEngine: En la línea 327 de 
+SlotEngine.jsx
+, hay un 
+if
+ que pregunta explícitamente: if (selectedProperty === 'db_id' && LABEL.toUpperCase().includes('NOTION')). Si añades un adaptador de Airtable, el SlotEngine no sabrá qué hacer porque no está en su "lista de amigos hardcodeada".
+La Tubería de la Bóveda en el Store: En 
+AxiomaticStore.jsx
+ (líneas 557-564), el sistema decide a qué adaptador llamar haciendo un if/else por nombre: if (targetNodeId === 'notion') ... else if (targetNodeId === 'drive'). Esto rompe el "Dharma de la Tubería Ciega". El Store debería llamar a una capacidad, no a una marca.
+3. La Fábrica de "Puertos Fantasma" (
+DataLobe.js
+)
+Incluso después de limpiar el motor visual, el 
+DataLobe.js
+ sigue inyectando capacidades "inventadas" como Data Rows 🔢 y Query Filter 🔍 basándose en el arquetipo. Es como si el sistema no se fiara de que el backend le diga lo que sabe hacer, por lo que le "pega" puertos artificiales por si acaso.
+
+4. El "Dialecto Dual" (Upper vs Lower)
+Seguimos viviendo en dos mundos:
+
+Law_Compiler.js
+ gasta ciclos duplicando cada propiedad a UPPER_CASE (LABEL, ARCHETYPE).
+Esto obliga a todos los Engines a tener un código redundante: data.label || data.LABEL. Es una confesión de que no hemos decidido qué idioma habla Indra.
+5. El Rezago de DevLab (SovereignAdapter.js)
+El flag isLabMode basado en la URL (?mode=lab) sigue activo. Si alguien entra con esa URL, el sistema ignora el cache por un motivo que ya no existe (DevLab fue erradicado), creando un comportamiento impredecible.
+
+Conclusión "Cruda":
+El sistema es actualmente "Pseudo-Agnóstico". Se viste de gala con ADRs y términos como "Sincronía Sináptica", pero en las alcantarillas de los archivos 
+.js
+ y 
+.jsx
+, Indra sigue preguntando: "¿Tú eres Notion? Ah, entonces te trato así. ¿Tú eres un Slot? Entonces te inyecto esto".
+
+¿Cuántos fallbacks quedan? He contado al menos 12 bloques de decisión manual que dependen de nombres específicos de nodos o propiedades en lugar de rasgos (traits) o capacidades (capabilities).
+
+Aquí está el Plan de Diseño Axiomático para la Fase de Estabilidad Total:
+
+Phase 1: La Erradicación del "Fantasma en la Máquina" (SignalTransmuter)
+El SignalTransmuter era el epicentro de la poesía; era el órgano que intentaba "dar sentido" a los datos sin contrato.
+
+Acción: Borrado físico del archivo (ya iniciado) y purga de su mención en todos los ADRs (especialmente el ADR-021).
+Axioma: La materia no se transmuta, se REIFICA. Si el backend envía BLOB, el frontend recibe BLOB. Si no sabes qué hacer con un BLOB sin ayuda de una heurística, entonces el sistema debe mostrar un error de contrato, no intentar "adivinar" que es una imagen.
+Phase 2: Fragmentación del Monolito (DataLobe 700 -> 150 líneas)
+Siguiendo la TGS, un sistema complejo debe estar compuesto por subsistemas con cohesión alta y acoplamiento bajo. Vamos a desmembrar el DataLobe en tres "Órganos" especializados:
+
+IdentityLobe.js (El Mapa de Identidad):
+Dharma: Solo gestiona el mapa de artefactos (state.phenotype.artifacts).
+Misión: Asegurar que cada ID sea único y que la reificación fenotípica sea consistente. No sabe nada de silos ni de archivos.
+ContinuityLobe.js (La Memoria de Cosmos):
+Dharma: Gestiona la sesión activa, los silos de datos (silos, vault) y los metadatos de persistencia.
+Misión: Mantener la "conciencia" de dónde estamos (Cosmos ID) y qué datos temporales tenemos en caché.
+TopologyLobe.js (El Grafo):
+Dharma: Gestiona exclusivamente las relationships.
+Misión: Validar la integridad de los cables. Si borras un nodo, el TopologyLobe limpia los cables, no el DataLobe.
+Phase 3: El Pipeline Fenotípico (Store Inmune al Backend)
+Actualmente, el 
+AxiomaticStore
+ y el DataLobe reciben "materia prima" del backend y la cocinan. Esto es un error de diseño.
+
+El Plan: Crear un middleware de Pre-Procesamiento Fenotípico.
+Flujo Ideal: Backend -> Law_Compiler (Transformación Total) -> Store (Update Directo).
+Resultado: El Reducer del Store debería tener la complejidad de un todo-list. Si el Reducer tiene un 
+if
+ o un switch complejo, hemos fallado. El Law_Compiler es el único que "suda" para convertir el caos en orden.
+Phase 4: Sincronización IO Estricta (SynapticDispatcher)
+Se eliminan los "nombres bonitos".
+
+Regla de Oro: Solo existe el Mapping de Puertos.
+Axioma: Si el Puerto A se llama OUT_STREAM y el Puerto B se llama IN_DATA, NO SE CONECTAN, aunque ambos transporten agua. El sistema ideal no asume equivalencias. Esto fuerza a los desarrolladores de adaptadores a ser rigurosos con el lenguaje de sus contratos.
+El Sistema Ideal (Visión Axiomática y TGS)
+En el sistema ideal de Indra:
+
+Entropía Cero: Los datos no cambian de forma mientras viajan por el sistema.
+Transparencia de Capas: El UI no sabe si un dato viene de la nube o de IndexedDB; solo sabe que el 
+PersistenceManager
+ le entregó un objeto que cumple con el Phenotype_Contract.
+Modularidad Fractal: Cada "Lobe" puede ser sustituido por otro sin romper el sistema, porque se comunican por mensajes (actions) de una sola vía.
+
+1. Fragmentación en Lóbulos (Especialización Cerebral)
+Antes el 
+AxiomaticStore
+ era un archivo monolítico gigante que intentaba gestionarlo todo. Lo fragmentamos en reductores especializados (Lóbulos) para evitar el "espagueti de estados":
+
+IdentityLobe: Solo le importa quiénes son los nodos (artifacts). Es el que ahora tiene la lógica de convertir el JSON del servidor en objetos React.
+TopologyLobe: Solo le importa cómo se conectan (relationships).
+ContinuityLobe: El guardián de la sesión. Sabe qué Cosmos estás viendo y si estás en modo "Lectura" o "Escritura".
+InterfaceLobe: Maneja lo visual (capas, paneles, temas) sin tocar los datos.
+2. Reificación Vía Snapshot (ADR-021/022)
+Adiós a los Mocks: Eliminamos toda la "MockFactory". Ahora el Store no inventa datos; si el backend no responde, el sistema muestra vacío absoluto (Honestidad de Estado).
+Carga Agóstica: El reductor maestro ya no decide si un dato es válido; simplemente pasa el "Snapshot" del servidor a los lóbulos y ellos lo digieren.
+Piggybacking (ADR-003): Simplificamos la sincronización. En lugar de enviar cada cambio por separado, la 
+InterdictionUnit
+ "monta" un snapshot de todo el grafo local en cada petición saliente como un polizón (piggyback) para que el servidor siempre esté al día.
+3. El "Gran Filtro" del Law_Compiler
+Simplificamos la lógica de los nodos. El compilador ya no "crea" nodos, los completa.
+Recibe la esencia del servidor y le inyecta las Capacidades (CAPABILITIES) y Signos Vitales basándose en su ARCHETYPE. Esto permite que el mismo JSON del servidor se vea como una tabla en un lado y como un nodo circular en el grafo sin duplicar lógica.
+4. Centralización de la "Materia Oscura" (AxiomaticDB)
+Simplificamos la persistencia local (L2). Ya no guardamos cosas pequeñas bit a bit.
+Cada vez que hay un cambio en el fenotipo, el 
+AxiomaticStore
+ dispara un efecto que guarda una foto completa de la realidad en IndexedDB. Al recargar, el sistema intenta "auto-montar" esa última foto antes de preguntar al servidor.
+
+ 1. Verificación del Dharma
+Pieza	Dharma (Misión Sagrada)	Estado de Pureza
+IdentityLobe	Custodio del Arquetipo. Asegurar que cada átomo de información tenga una identidad única y herede sus propiedades.	Puro. Se mantiene enfocado en el mapa de artifacts.
+TopologyLobe	Tejedor de Vínculos. Su única razón de ser es la estructura de las conexiones (relationships).	Puro. Su lógica es puramente relacional.
+Law_Compiler	Traductor de la Voluntad. Convertir el "caos" del JSON crudo en "leyes" visuales (Capacidades, Signos Vitales).	Crítico. Es el puente semántico. Si falla aquí, el sistema es "ciego".
+RealityManager
+Guardián de la Verdad. Decidir qué realidad es más fresca (Cloud vs Local) y sincronizarlas.	En Riesgo. Está empezando a asumir demasiada lógica de validación de datos.
+InterdictionUnit
+Escudo de Soberanía. Impedir que el sistema escriba en el Core si no hay permiso o coherencia.	Puro. Actúa como un firewall inteligente.
+
+------
+------
+
+
+Seré totalmente sincero contigo, como me pides. Aquí está el estado real de la "operación soldadora" tras esta intensa sesión de purga:
+
+1. ¿ContractRegistry eliminado?
+Sí, al 100%. 🏺 No solo ha desaparecido el archivo físico, sino que he auditado los núcleos de ejecución (
+PublicAPI
+, SovereignGuard, GenotypeDistiller) y ya no existe ninguna invocación a su "espíritu". Hemos matado el intermediario. El sistema ya no mira una lista central para saber qué puede hacer un nodo; le pregunta directamente al nodo por su CANON.
+
+2. ¿Heurísticas Monolíticas?
+Desmanteladas. Quedan artefactos como 
+BlueprintRegistry
+ o 
+SchemaLexicon
+, pero su Dharma ha cambiado:
+
+Ya no intentan "compilar reglas" sobre el comportamiento de los adaptadores.
+Ahora son Guardianes de Estructura Pasiva: solo validan que un archivo COSMOS sea un COSMOS, o que un FLOW tenga nodos.
+La "heurística" (el saber qué hace cada cosa) ahora emana exclusivamente de la Física del Nodo. Si el adapter no lo declara en su CANON, no existe para la realidad del Core.
+3. El Viaje del Return: ¿Pureza Total?
+Aquí es donde quiero ser más preciso. El viaje es fluido, pero tiene una "membrana de protección" que es necesaria para la supervivencia del Front-End:
+
+Paso 1 (Adapter): El retorno nace puro (un array de archivos, un objeto de texto).
+Paso 2 (PublicAPI/SovereignGuard): Aquí ocurre la única "intervención" permitida por ADR-022: el Envelope Canónico. La señal se envuelve en { success, results || payload, origin }.
+¿Esto corta la pureza? Técnicamente le añade una caja, pero es una caja que ADR-022 exige para que el Front-End no tenga que "adivinar" si lo que recibe es un error o un dato. Es una "pureza estructurada".
+Paso 3 (GenotypeDistiller): Cuando el front pide el mapa de lo que es posible (el Genotipo), el Distiller proyecta el CANON sumándole los Puertos Calculados (
+_computePorts
+). Esto permite que el cableado en el Canvas sea inmediato y sin fallos de snapping.

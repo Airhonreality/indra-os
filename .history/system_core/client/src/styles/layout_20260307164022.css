@@ -1,0 +1,124 @@
+/* ══════════════════════════════════════════════════════════════
+   INDRA — LAYOUT SYSTEM (Flexbox Logic)
+   Principios: El padre declara el layout, los hijos se posicionan.
+   ══════════════════════════════════════════════════════════════ */
+
+/* STACK: Columna vertical */
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.stack--tight {
+    gap: var(--space-1);
+}
+
+.stack--loose {
+    gap: var(--space-6);
+}
+
+/* SHELF: Fila horizontal central */
+.shelf {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.shelf--loose {
+    gap: var(--space-4);
+}
+
+.shelf--tight {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+/* SPREAD: Fila que empuja a los extremos */
+.spread {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+/* FILL: El hijo ocupa todo el espacio disponible */
+.fill {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* CENTER: Centrado absoluto */
+.center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── CONTAINERS (SLOTS) ── */
+
+/* Gran Slot (Layout principal de motores) */
+.slot-large {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg-deep);
+    border-radius: var(--radius-xl);
+    padding: var(--space-4);
+    gap: var(--space-4);
+    border: 1px solid var(--color-border);
+}
+
+/* Pequeño Micro-Container (Tarjetas, Nodos, Atributos) */
+.slot-small {
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    transition: all var(--transition-fast);
+    box-sizing: border-box;
+}
+
+.slot-small:hover {
+    border-color: var(--color-border-strong);
+    background: var(--color-bg-hover);
+}
+
+/* GRID AUTO: Para el Dashboard */
+.grid-auto {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-4);
+}
+
+/* GRID SPLIT: Para formularios estilo HUD asimétricos */
+.grid-split {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: var(--space-8);
+    align-items: flex-start;
+}
+
+/* ── ELEMENTOS TÉCNICOS HUD ── */
+.hud-line {
+    height: 1px;
+    background: var(--color-border);
+    position: relative;
+    margin: var(--space-2) 0;
+}
+
+.hud-line::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: -2px;
+    width: 5px;
+    height: 5px;
+    background: var(--color-accent);
+    border-radius: 50%;
+    box-shadow: 0 0 5px var(--color-accent);
+}

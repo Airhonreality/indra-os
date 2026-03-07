@@ -1,0 +1,484 @@
+# ADR_003 — APP STATE: Motor de Estado, Caché y Persistencia
+
+> **Versión:** 2.0
+> **Estado:** VIGENTE — Documento fundacional del App State
+> **Relación:** Implementado en `state/app_state.js` (Zustand store)
+
+---
+
+## 1. PROBLEMA QUE RESUELVE
+
+Sin un motor de estado inteligente, la UI cae en el peor antipatrón:
+
+```
+Usuario hace clic → Spinner → Petición al Backend → Respuesta → Render
+```
+
+Esto significa que **cada acción del usuario espera al servidor**. En un sistema con múltiples silos externos (Notion, Drive, Google Apps Script remoto), esto produce latencias de 1-4 segundos por interacción. El usuario percibe la UI como lenta y torpe.
+
+**La solución es un motor de estado con tres capas:**
+
+```
+1. CACHÉ LOCAL  → Respuesta instantánea (0ms)
+2. OPTIMISTIC   → El UI actúa como si ya ocurrió, mientras el servidor confirma
+3. SYNC         → El servidor es la fuente de verdad final
+```
+
+---
+
+## 2. ARQUITECTURA DEL APP STATE
+
+El `app_state.js` es un **store global basado en Zustand**. Es la única fuente de verdad del frontend. Ningún componente hace peticiones al backend directamente — todo pasa por el store o por el `directive_executor.js`.
+
+### 2.1 Estructura del Store
+
+```javascript
+{
+  // ── IDENTIDAD ────────────────────────────────────────────
+  coreUrl:            null,       // URL del Core conectado
+  activeWorkspaceId:  null,       // ID del workspace activo
+  
+  // ── CATÁLOGOS CACHEADOS ──────────────────────────────────
+  workspaces:   [],   // Lista de workspaces disponibles
+  pins:         [],   // Átomos anclados al workspace activo
+  bridges:      [],   // Logic Bridges del workspace activo
+  schemas:      [],   // DATA_SCHEMAs del workspace activo
+  documents:    [],   // DOCUMENTs del workspace activo
+  
+  // ── CACHÉ DE SILOS (por provider:id) ────────────────────
+  atomCache:    {},   // { "notion:db_abc": [items...], ... }
+  
+  // ── ESTADO DE EJECUCIÓN ──────────────────────────────────
+  loadingKeys:  {},   // { "notion:db_abc": true } — qué está cargando
+  pendingMuts:  [],   // Mutaciones optimistas encoladas
+}
+```
+
+---
+
+## 3. LAS TRES LEYES DEL CACHÉ
+
+### LEY 1 — Caché-First (Respuesta Inmediata)
+
+> Antes de ir al servidor, el store siempre revisa si ya tiene el dato.
+
+```
+Componente pide "dame los items de notion:db_abc"
+  → ¿Está en atomCache["notion:db_abc"]?
+    → SÍ: devuelve de inmediato. Spinner = 0ms
+    → NO: pone loadingKeys["notion:db_abc"] = true, va al servidor
+```
+
+El componente recibe datos inmediatamente si ya fueron cargados antes en la sesión. El spinner solo aparece la **primera vez** o después de una invalidación explícita.
+
+### LEY 2 — Purga Determinista por Contrato
+
+> El sistema **nunca invalida caché por instinto o por tiempo**. Solo invalida cuando el backend le dice que debe hacerlo, a través del campo `capabilities.purge` del provider.
+
+Este campo viene en cada respuesta del backend (via `CONF_*()`) y tiene tres valores:
+
+| `purge` | Significado | Ejemplo de uso |
+|---------|-------------|----------------|
+| `NONE` | No invalidar nada. El dato no mutó. | `ATOM_READ`, `TABULAR_STREAM` |
+| `ID` | Invalidar solo el átomo con el ID afectado. | `ATOM_UPDATE` |
+| `ALL` | Invalidar toda la caché del provider. Lista cambió. | `ATOM_CREATE`, `ATOM_DELETE` |
+
+**Ejemplo del ciclo completo:**
+
+```
+Usuario renombra un workspace (ATOM_UPDATE)
+  → directive_executor manda la petición
+  → Backend responde OK
+  → directive_executor lee capabilities["ATOM_UPDATE"].purge = "ID"
+  → Store invalida solo workspaces.find(w => w.id === "ws_abc")
+  → Store re-fetcha ese átomo específico
+  → UI se actualiza con el nuevo nombre
+  → Ningún otro dato fue tocado
+```
+
+### LEY 3 — Optimistic Updates (Actuar antes de confirmar)
+
+> Para operaciones de escritura con feedback visual inmediato, el store **aplica el cambio primero en local, y luego confirma con el servidor**. Si el servidor falla, revierte.
+
+```
+Usuario marca un pin como favorito
+  → Store aplica el cambio LOCAL inmediatamente (0ms, UI responde)
+  → directive_executor manda la petición en background
+  → Si OK: nada extra (ya estaba aplicado)
+  → Si ERROR: store revierte el cambio + muestra ToastNotification de error
+```
+
+**Cuándo usar Optimistic vs Blocking:**
+
+| Escenario | Estrategia | Razón |
+|-----------|------------|-------|
+| Reordenar campos en SchemaDesigner | Optimistic | No hay riesgo de pérdida de datos |
+| Guardar un Schema (ATOM_UPDATE) | Blocking | Dato crítico, el usuario debe saber si falló |
+| Anclar un pin (SYSTEM_PIN) | Optimistic | El usuario ve el resultado inmediato |
+| Eliminar un workspace (ATOM_DELETE) | Blocking + ConfirmModal | Acción irreversible |
+| Logic Bridge EXECUTE | Blocking | Resultado depende de la computación del servidor |
+
+---
+
+## 4. EL `directive_executor.js` — El Único Guardián
+
+Ningún componente de React llama a `fetch` directamente. Toda comunicación con el backend pasa por `directive_executor.js`. Este módulo es el **único punto de salida al Core**.
+
+### 4.1 Responsabilidades del directive_executor
+
+1. **Serializa el UQO** y lo envía al `coreUrl` configurado.
+2. **Lee la respuesta** y verifica que cumpla la Return Law (`{ items, metadata }`).
+3. **Lee `capabilities.purge`** del manifiesto del provider para saber qué invalidar.
+4. **Notifica al store** para que ejecute la purga correspondiente.
+5. **Emite eventos** al `resonance_hub.js` para que los componentes suscritos reaccionen.
+
+### 4.2 Flujo Completo
+
+```
+Componente llama directiveExecutor.execute({ provider, protocol, data })
+  ↓
+directive_executor construye el UQO
+  ↓
+fetch() al coreUrl/exec
+  ↓
+Backend procesa → retorna { items, metadata }
+  ↓
+directive_executor valida la Return Law
+  ↓
+directive_executor llama store.purge(provider, purgeMode, affectedId)
+  ↓
+store recalcula la caché
+  ↓
+Componentes suscritos se re-renderizan con datos frescos
+```
+
+---
+
+## 5. ESTRATEGIA DE LOADING (Cuándo mostrar el Spinner)
+
+### 5.1 La Regla del Spinner
+
+> El `Spinner` solo aparece cuando el dato pedido NO existe en la caché local.
+
+```javascript
+// En el componente:
+const items = useAppState(s => s.atomCache["notion:db_abc"]);
+const isLoading = useAppState(s => s.loadingKeys["notion:db_abc"]);
+
+if (isLoading && !items) return <Spinner />;  // Solo la primera vez
+return <MiLista items={items} />;             // Inmediato en visitas siguientes
+```
+
+### 5.2 Loading de Fondo (Background Refresh)
+
+Cuando un dato está en caché pero es potencialmente viejo, el sistema puede refrescar **en segundo plano** sin mostrar spinner:
+
+```javascript
+// La UI muestra datos viejos mientras se actualiza en background
+const items = useAppState(s => s.atomCache["notion:db_abc"]) ?? [];
+useEffect(() => {
+  directiveExecutor.execute({ protocol: 'TABULAR_STREAM', ... }); // sin await
+}, []);
+// Cuando llega la respuesta, el store actualiza y React re-renderiza automáticamente
+```
+
+### 5.3 Estados de Loading Granulares
+
+El `loadingKeys` es un mapa, no un booleano global. Esto permite tener spinners en paneles específicos sin bloquear el resto de la UI:
+
+```javascript
+loadingKeys: {
+  "notion:db_productos":    true,   // Solo el panel de productos está cargando
+  "system:ws_abc":          false,  // El workspace ya cargó
+  "bridge_op_1234":         true,   // Solo el nodo resolver está cargando
+}
+```
+
+---
+
+## 6. PERSISTENCIA DE SESIÓN
+
+### 6.1 Qué se persiste
+
+El store guarda en `localStorage` un subconjunto mínimo para que la sesión sobreviva un refresh de página:
+
+| Campo | Persistido | Razón |
+|-------|------------|-------|
+| `coreUrl` | ✅ Sí | El usuario no quiere reconfigurar la conexión cada vez |
+| `activeWorkspaceId` | ✅ Sí | Retoma el workspace donde estaba |
+| `atomCache` | ❌ No | Los datos de los silos pueden estar desactualizados |
+| `pins` | ✅ Sí (parcial) | Los punteros IUH mínimos, sin data pesada |
+| `bridges` | ✅ Sí | La configuración del bridge es del workspace |
+| `loadingKeys` | ❌ No | Se resetean al iniciar |
+
+### 6.2 Hidratación al Arrancar
+
+Al iniciar la app, el store:
+1. Lee `coreUrl` y `activeWorkspaceId` de `localStorage`.
+2. Si existen, hace un `SYSTEM_PINS_READ` para verificar que el workspace sigue vivo.
+3. Popula `pins` y `bridges` con la respuesta fresca del servidor.
+4. La UI renderiza con datos del servidor, no del caché viejo.
+
+### 6.3 El Workspace es la Unidad de Contexto
+
+Todo el estado de trabajo del usuario está asociado al `activeWorkspaceId`. Al cambiar de workspace, el store:
+1. Limpia `atomCache`, `pins`, `bridges`, `schemas`, `documents`.
+2. Hace `SYSTEM_PINS_READ` del nuevo workspace.
+3. El usuario ve un estado limpio y fresco del nuevo contexto.
+
+---
+
+## 7. AXIOMAS DEL APP STATE
+
+### A1 — Store como Única Fuente de Verdad
+El `app_state.js` es la única fuente de verdad del frontend. Ningún componente tiene su propio estado de servidor. `useState` solo para estado de UI local (modal abierto, tab activo, etc.).
+
+### A2 — Caché Nunca se Invalida por Tiempo
+La caché no tiene TTL (Time-To-Live). Solo se invalida cuando el backend lo indica explícitamente a través de `capabilities.purge`. Esto elimina refetches innecesarios y Spinners fantasma.
+
+### A3 — El directive_executor es el Único Guardián
+Ningún `fetch` directo fuera de `directive_executor.js`. Esto asegura que toda petición pasa por validación, purga, y emisión de eventos. Un solo lugar para observar y depurar todo el tráfico de red.
+
+### A4 — Optimistic First para Escrituras de Bajo Riesgo
+Las escrituras de bajo riesgo aplican el cambio en local antes de confirmar con el servidor. El usuario siente una UI viva e instantánea.
+
+### A5 — Granularidad de Loading por Recurso
+Los estados de carga son por recurso (provider:id), nunca un booleano global. Esto permite que partes de la UI respondan mientras otras cargan.
+
+### A6 — Workspace como Unidad de Aislamiento
+Todo el contexto de trabajo está asociado al `activeWorkspaceId`. Cambiar de workspace limpia el estado de trabajo sin afectar la conexión al Core.
+
+### A7 — Persistencia Mínima y Segura
+Solo se persisten los punteros IUH mínimos y la configuración de conexión. Nunca los datos pesados de silos externos. Al arrancar, siempre se verifica con el servidor.
+
+---
+
+## 8. ANTIPATRONES PROHIBIDOS
+
+```javascript
+// ❌ PROHIBIDO: fetch directo en un componente
+useEffect(() => {
+  fetch(coreUrl + '/exec', { body: JSON.stringify(uqo) })
+    .then(r => r.json())
+    .then(data => setItems(data.items));
+}, []);
+
+// ✅ CORRECTO: a través del directive_executor (que actualiza el store)
+useEffect(() => {
+  directiveExecutor.execute({ provider: 'notion', protocol: 'TABULAR_STREAM', context_id: dbId });
+}, []);
+const items = useAppState(s => s.atomCache[`notion:${dbId}`] ?? []);
+```
+
+```javascript
+// ❌ PROHIBIDO: estado local de servidor en un componente
+const [workspaces, setWorkspaces] = useState([]);
+
+// ✅ CORRECTO: datos del servidor siempre en el store global  
+const workspaces = useAppState(s => s.workspaces);
+```
+
+```javascript
+// ❌ PROHIBIDO: invalidar toda la caché por precaución
+store.clearAll();
+
+// ✅ CORRECTO: purga selectiva determinada por el contrato del provider
+store.purge('notion', 'ID', affectedAtomId);
+```
+
+---
+
+*El App State no es una base de datos. Es un espejo inteligente del servidor, con memoria a corto plazo y reactividad instantánea.*
+
+---
+
+## 9. DOFA DEL APP STATE (Diagnóstico Real del Sistema)
+
+Este análisis está basado en los problemas reales experimentados durante el desarrollo. Es la memoria institucional de lo que falló y por qué.
+
+### 🟢 FORTALEZAS (Lo que funciona bien)
+
+| Fortaleza | Descripción |
+|-----------|-------------|
+| **Zustand como store** | Minimal, sin boilerplate. Los componentes solo suscriben a la slice que necesitan — no re-renderizan por cambios en otros campos. |
+| **UQO + Return Law** | El contrato de datos entre frontend y backend es estable y predecible. Una vez que el componente aprende a hablar UQO, no necesita conocer el provider. |
+| **`capabilities.purge`** | El backend ya firma qué invalidar. El frontend no necesita adivinar. |
+| **`activeWorkspaceId`** | Unidad de aislamiento clara. El contexto de trabajo es reproducible. |
+
+### 🔴 DEBILIDADES (Lo que causó problemas reales)
+
+| Debilidad | Síntoma Observado | Causa Raíz |
+|-----------|-------------------|------------|
+| **IDs Fantasma** | El frontend generó IDs propios (`ws_abc123`, `frm_xyz`) que el backend nunca reconoció. La UI mostraba datos pero el servidor no los encontraba. | Violación del Axioma §2.3: el cliente inventó IDs en lugar de esperar al servidor. |
+| **State Optimista No Revertido** | El usuario veía un pin anclado que en realidad no existía. Al recargar, desaparecía. | El optimistic update se aplicó pero nunca se confirmó ni se revirtió al fallar la petición. |
+| **Workspace JSON Desincronizado** | El frontend modificaba el store local pero no persistía al servidor. Al recargar, el workspace volvía al estado anterior. | Faltaba el `ATOM_UPDATE` de confirmación. El store y el JSON maestro vivían vidas separadas. |
+| **Nested Raw Bug** | Al hacer `ATOM_UPDATE`, el campo `raw` se anidaba recursivamente (`raw.raw.raw...`), corrompiendo el JSON. | El backend hacía spread de todo el objeto sin limpiar el campo `raw` antes de persistir. |
+| **Ghost Pins** | Pines referenciando átomos eliminados. El workspace mostraba recursos rotos. | La eliminación de un átomo no propagaba la limpieza a los workspaces que lo tenían anclado. |
+| **Cache Staleness sin Indicador** | El usuario veía datos viejos sin saber que estaban desactualizados. | No había distinción visual entre "dato fresco del servidor" y "dato en caché de sesión anterior". |
+| **Loading Global Bloqueante** | Usar un booleano `isLoading` global hacía que toda la UI se congelara mientras se cargaba un solo dato. | Falta de granularidad en `loadingKeys`. |
+
+### 🟡 OPORTUNIDADES (Mejoras identificadas)
+
+| Oportunidad | Descripción |
+|-------------|-------------|
+| **SYSTEM_WORKSPACE_REPAIR** | Ya existe en el backend. Usarlo periódicamente desde el frontend para purgar Ghost Pins automáticamente. |
+| **Differential Save** | En lugar de guardar el workspace JSON completo en cada `ATOM_UPDATE`, guardar solo el delta (las propiedades que cambiaron). Reduce el tamaño del payload y el riesgo de colisiones. |
+| **Confirmación Visual de Persistencia** | Un indicador sutil (ej: un punto verde parpadeante junto al nombre del workspace) que muestre al usuario si sus cambios han llegado al servidor. |
+| **Sesión Offline Parcial** | Con la arquitectura actual, sería posible acumular mutaciones en `pendingMuts` y enviarlas cuando la conexión se restaure. |
+
+### 🔴 AMENAZAS (Riesgos que persisten)
+
+| Amenaza | Descripción | Mitigación |
+|---------|-------------|------------|
+| **Pérdida de datos por navegación** | Si el usuario cierra el tab antes de que el `ATOM_UPDATE` confirme, los cambios se pierden. | Operaciones de guardado deben ser `BLOCKING` + indicador visual de estado. |
+| **Colisión de edición concurrente** | Si dos instancias del mismo workspace están abiertas, la última en guardar sobreescribe a la otra. | El backend debe retornar el `updated_at` del JSON; el frontend debe rechazar si el timestamp no coincide con el que tenía en caché. |
+| **Corrupción por Bug del Cliente** | Un bug en el frontend podría persistir un objeto malformado al JSON maestro. | El backend debe validar la estructura del payload antes de persistir (`ATOM_UPDATE` handler). |
+
+---
+
+## 10. EL PROTOCOLO DE PERSISTENCIA CORRECTO
+
+Este protocolo establece cuándo, cómo y con qué frecuencia el frontend sincroniza su estado local con el JSON maestro del workspace en el backend.
+
+### La Regla de Las Dos Realidades
+
+El sistema tiene exactamente dos realidades:
+
+```
+REALIDAD A: El store local de Zustand (en RAM del navegador)
+REALIDAD B: El JSON maestro en Google Drive (persistente, la verdad)
+```
+
+**El usuario siempre ve la Realidad A. La Realidad B es lo que sobrevive un refresh.**
+
+El objetivo es mantener A ≡ B (A siempre converge hacia B).
+
+### 10.1 Clasificación de Operaciones por Urgencia de Persistencia
+
+| Tipo de Operación | Ejemplos | Estrategia | Cuándo se guarda en B |
+|-------------------|----------|------------|----------------------|
+| **Structural** | Crear schema, agregar campo, configurar bridge | `BLOCKING` | Inmediatamente. El usuario espera la confirmación antes de continuar. |
+| **Identity** | Renombrar workspace, cambiar alias de un nodo | `BLOCKING` pospuesto | Al perder foco del campo (onBlur), no en cada keystroke. |
+| **Navigation** | Anclar/desanclar silo, cambiar orden de pins | `OPTIMISTIC` + confirmación background | Inmediato en A, confirmado en B en background. |
+| **Ephemeral** | Arrastrar un nodo en el canvas, hover, focus | `NEVER` | Nunca se persiste. Solo existe en A. |
+
+### 10.2 El Ciclo de Vida de una Operación Structural
+
+```
+1. Usuario hace acción (ej: agrega un campo al schema)
+2. Store aplica el cambio en RAM (Realidad A) → UI responde al instante
+3. Store muestra indicador de "pendiente" (punto naranja suave)
+4. directive_executor envía ATOM_UPDATE al backend
+5. Backend persiste en Drive → retorna { items: [atomActualizado], metadata: { status: 'OK' } }
+6. Store reemplaza el atom en A con el atom que vino del servidor (Realidad B)
+7. Store muestra indicador de "guardado" (punto verde por 2 segundos)
+8. Si el servidor falla: store REVIERTE el cambio en A + muestra ToastNotification de error
+```
+
+**El Paso 6 es crítico:** El store nunca confía en el estado local después de un guardado. Siempre reemplaza con lo que el servidor devuelve. Esto elimina el Nested Raw Bug y cualquier discrepancia de formato.
+
+### 10.3 Qué NO Dispara un ATOM_UPDATE
+
+- Mover un nodo en el canvas del Logic Bridge (solo posición visual)
+- Abrir/cerrar un panel o modal
+- Escribir en un campo de texto mientras sigue en foco
+- Cambiar de tab dentro de un motor
+- Cualquier estado de UI puro (hover, focus, selección)
+
+La regla: **si el estado no cambia el JSON del átomo, no hay llamada al backend.**
+
+### 10.4 Garantías del JSON Maestro (Workspace en Drive)
+
+El JSON maestro del workspace es el único documento que el backend persiste. Contiene:
+
+```json
+{
+  "id":          "[Drive ID — inmutable]",
+  "class":       "WORKSPACE",
+  "handle":      { "ns": "...", "alias": "...", "label": "Mi Workspace" },
+  "pins":        [],
+  "bridges":     [],
+  "created_at":  "ISO8601",
+  "updated_at":  "ISO8601"
+}
+```
+
+**Invariantes del JSON maestro:**
+- `id` nunca cambia después de `ATOM_CREATE`.
+- `class` nunca cambia.
+- El backend siempre actualiza `updated_at` en cada escritura.
+- El campo `raw` nunca se persiste en el JSON maestro (limpiado en `_system_updateAtom`).
+- Los `schemas`, `formulas` y `documents` son átomos independientes con sus propios IDs de Drive. El workspace solo guarda punteros en `pins[]`.
+
+### 10.5 Anti-Pattern del Workspace JSON Enciclopédico
+
+```json
+// ❌ PROHIBIDO: Guardar TODO en el workspace
+{
+  "pins": [{ "id": "...", "data": { ...TODO EL SCHEMA EMBEBIDO... } }]
+}
+
+// ✅ CORRECTO: Solo el puntero mínimo IUH
+{
+  "pins": [{
+    "id":        "1BxiMVs...",
+    "class":     "DATA_SCHEMA",
+    "handle":    { "ns": "...", "alias": "cotizador", "label": "Cotizador" },
+    "provider":  "system",
+    "protocols": ["ATOM_READ", "ATOM_UPDATE"]
+  }]
+}
+```
+
+El workspace solo guarda la **dirección** del átomo. Los datos del átomo viven en su propio archivo de Drive y se leen bajo demanda con `ATOM_READ`.
+
+
+---
+
+## 11. JERARQUÍA DE NAVEGACIÓN Y NIVELES DE HIDRATACIÓN
+
+La aplicación no usa un router tradicional basado en URLs para su flujo principal. La vista activa está determinada estrictamente por el **Nivel de Hidratación** del `app_state`.
+
+`App.jsx` actúa como un portero lógico que evalúa el estado en orden descendente:
+
+### Nivel 0 — Desconectado (Core Connection)
+*   **Estado:** `coreUrl === null` o `isConnected === false`.
+*   **UI:** Renderiza exclusivamente `CoreConnectionView.jsx`.
+*   **Acción:** El usuario debe ingresar la URL del Core y la contraseña. Al validar, el sistema marca `isConnected: true` y persiste el `coreUrl` en `localStorage`.
+
+### Nivel 1 — Sin Contexto (Workspace Selector)
+*   **Estado:** `isConnected === true` Y `activeWorkspaceId === null`.
+*   **UI:** Renderiza `WorkspaceSelector.jsx`.
+*   **Acción:** El sistema hace un `SYSTEM_WORKSPACES_LIST` y muestra las tarjetas de los espacios disponibles. El usuario elige un workspace, lo que popula `activeWorkspaceId`.
+
+### Nivel 2 — Operacional (Main Dashboard / Engines)
+*   **Estado:** `activeWorkspaceId !== null`.
+*   **UI:** Renderiza el shell principal con el Dashboard o el Motor activo.
+*   **Acción:** El sistema dispara el `SYSTEM_PINS_READ` para cargar el "json maestro" del workspace y habilitar los Macro Engines.
+
+### Resumen del Flujo Lógico en App.jsx:
+
+```jsx
+function App() {
+  const { coreUrl, isConnected, activeWorkspaceId } = useAppState();
+
+  // Nivel 0
+  if (!coreUrl || !isConnected) {
+    return <CoreConnectionView />;
+  }
+
+  // Nivel 1
+  if (!activeWorkspaceId) {
+    return <WorkspaceSelector />;
+  }
+
+  // Nivel 2
+  return <MainLayout />; // Dashboard, Engines, etc.
+}
+```
+
+> **Axioma de Navegación:** Es imposible acceder a un Motor (Nivel 2) si no hay un Workspace seleccionado (Nivel 1). Del mismo modo, no se puede ver la lista de Workspaces si no hay una conexión válida al Core (Nivel 0). La UI es un reflejo exacto de la profundidad del estado.
+
+---
+
+*El App State no es una base de datos. Es un espejo inteligente del servidor, con memoria a corto plazo y reactividad instantánea.*

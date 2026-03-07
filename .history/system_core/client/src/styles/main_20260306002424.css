@@ -1,0 +1,45 @@
+@import './design_tokens.css';
+@import './layout.css';
+@import './component_styles.css';
+
+/* ── RESET BASE ── */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--color-bg-void);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+    /* Scroll controlado por MCA */
+}
+
+#root {
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+}
+
+/* Custom Scrollbar futurista */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+    border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-tertiary);
+}

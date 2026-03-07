@@ -1,0 +1,78 @@
+@import './design_tokens.css';
+@import './layout.css';
+@import './component_styles.css';
+
+/* ── RESET BASE ── */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--grad-hud);
+    background-attachment: fixed;
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+    position: relative;
+}
+
+body::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: var(--hud-grid);
+    background-size: 40px 40px;
+    pointer-events: none;
+    opacity: 0.5;
+    z-index: 0;
+}
+
+body::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: var(--hud-scanline);
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+#root {
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    position: relative;
+    z-index: 2;
+}
+
+/* Custom Scrollbar Indra Solar Punk */
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 10, 20, 0.4);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, var(--color-accent), var(--color-accent-glow));
+    border-radius: var(--radius-pill);
+    box-shadow: 0 0 10px var(--color-accent-dim);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: white;
+    box-shadow: 0 0 15px var(--color-accent);
+}

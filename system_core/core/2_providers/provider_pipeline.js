@@ -17,29 +17,29 @@
  */
 function CONF_PIPELINE() {
   return Object.freeze({
-    id:       'pipeline',
+    id: 'pipeline',
     handle: {
       ns: 'com.indra.system.logic',
       alias: 'pipeline',
       label: 'Transformador'
     },
-    class:    'LOGIC_ENGINE',
-    version:  '1.0',
+    class: 'LOGIC_ENGINE',
+    version: '1.0',
     protocols: [
-      'TRANSFORM_FILTER', 
-      'TRANSFORM_MAP', 
-      'TRANSFORM_COMPUTE', 
-      'TRANSFORM_AGGREGATE', 
-      'TRANSFORM_SORT', 
+      'TRANSFORM_FILTER',
+      'TRANSFORM_MAP',
+      'TRANSFORM_COMPUTE',
+      'TRANSFORM_AGGREGATE',
+      'TRANSFORM_SORT',
       'TRANSFORM_TEMPLATE'
     ],
     implements: {
-      TRANSFORM_FILTER:    'handlePipeline',
-      TRANSFORM_MAP:       'handlePipeline',
-      TRANSFORM_COMPUTE:   'handlePipeline',
+      TRANSFORM_FILTER: 'handlePipeline',
+      TRANSFORM_MAP: 'handlePipeline',
+      TRANSFORM_COMPUTE: 'handlePipeline',
       TRANSFORM_AGGREGATE: 'handlePipeline',
-      TRANSFORM_SORT:      'handlePipeline',
-      TRANSFORM_TEMPLATE:  'handlePipeline',
+      TRANSFORM_SORT: 'handlePipeline',
+      TRANSFORM_TEMPLATE: 'handlePipeline',
     },
     config_schema: [], // No requiere API Keys ni configuración persistente
   });
@@ -51,16 +51,16 @@ function CONF_PIPELINE() {
  */
 function handlePipeline(uqo) {
   const protocol = (uqo.protocol || '').toUpperCase();
-  const items    = (uqo.data && uqo.data.items) || [];
+  const items = (uqo.data && uqo.data.items) || [];
 
   logInfo(`[provider_pipeline] Ejecutando: ${protocol} sobre ${items.length} ítems.`);
 
-  if (protocol === 'TRANSFORM_FILTER')    return _pipe_handleFilter(items, uqo.query);
-  if (protocol === 'TRANSFORM_MAP')       return _pipe_handleMap(items, uqo.query);
-  if (protocol === 'TRANSFORM_COMPUTE')   return _pipe_handleCompute(items, uqo.query);
-  if (protocol === 'TRANSFORM_SORT')      return _pipe_handleSort(items, uqo.query);
+  if (protocol === 'TRANSFORM_FILTER') return _pipe_handleFilter(items, uqo.query);
+  if (protocol === 'TRANSFORM_MAP') return _pipe_handleMap(items, uqo.query);
+  if (protocol === 'TRANSFORM_COMPUTE') return _pipe_handleCompute(items, uqo.query);
+  if (protocol === 'TRANSFORM_SORT') return _pipe_handleSort(items, uqo.query);
   if (protocol === 'TRANSFORM_AGGREGATE') return _pipe_handleAggregate(items, uqo.query);
-  if (protocol === 'TRANSFORM_TEMPLATE')  return _pipe_handleTemplate(items, uqo.query);
+  if (protocol === 'TRANSFORM_TEMPLATE') return _pipe_handleTemplate(items, uqo.query);
 
   return { items: [], metadata: { status: 'ERROR', error: `Protocolo ${protocol} no implementado.` } };
 }
@@ -78,13 +78,13 @@ function _pipe_handleFilter(items, query) {
   const filtered = items.filter(item => {
     return filters.every(f => {
       const val = item[f.field] !== undefined ? item[f.field] : (item.raw && item.raw[f.field]);
-      
+
       switch (f.operator) {
-        case 'EQUALS':      return String(val) === String(f.value);
-        case 'NOT_EQUALS':  return String(val) !== String(f.value);
-        case 'CONTAINS':    return String(val).toLowerCase().includes(String(f.value).toLowerCase());
+        case 'EQUALS': return String(val) === String(f.value);
+        case 'NOT_EQUALS': return String(val) !== String(f.value);
+        case 'CONTAINS': return String(val).toLowerCase().includes(String(f.value).toLowerCase());
         case 'GREATER_THAN': return Number(val) > Number(f.value);
-        case 'LESS_THAN':    return Number(val) < Number(f.value);
+        case 'LESS_THAN': return Number(val) < Number(f.value);
         default: return true;
       }
     });
@@ -99,7 +99,7 @@ function _pipe_handleFilter(items, query) {
  */
 function _pipe_handleMap(items, query) {
   const fieldMap = query.fields || {};
-  const mapKeys  = Object.keys(fieldMap);
+  const mapKeys = Object.keys(fieldMap);
 
   const mapped = items.map(item => {
     const newItem = { ...item };
@@ -121,7 +121,7 @@ function _pipe_handleMap(items, query) {
  */
 function _pipe_handleCompute(items, query) {
   const formula = query.formula;
-  const target  = query.target_field || 'computed_value';
+  const target = query.target_field || 'computed_value';
 
   if (!formula) return { items, metadata: { status: 'ERROR', error: 'Faltan parámetros: formula' } };
 
@@ -129,8 +129,8 @@ function _pipe_handleCompute(items, query) {
     try {
       // Inyectar contexto: propiedades del átomo + propiedades del raw
       const context = { ...item, ...(item.raw || {}) };
-      const keys    = Object.keys(context).filter(k => k !== 'raw'); // evitar recursión circular
-      const values  = keys.map(k => context[k]);
+      const keys = Object.keys(context).filter(k => k !== 'raw'); // evitar recursión circular
+      const values = keys.map(k => context[k]);
 
       // Crear función dinámica en V8
       const fn = new Function(...keys, `try { return (${formula}); } catch(e) { return null; }`);
@@ -177,7 +177,7 @@ function _pipe_handleSort(items, query) {
  */
 function _pipe_handleAggregate(items, query) {
   const groupBy = query.group_by;
-  const ops     = query.operations || [];
+  const ops = query.operations || [];
 
   if (!groupBy) return { items, metadata: { status: 'ERROR', error: 'TRANSFORM_AGGREGATE requiere group_by.' } };
 
@@ -190,7 +190,7 @@ function _pipe_handleAggregate(items, query) {
 
   const results = Object.keys(groups).map(groupKey => {
     const groupItems = groups[groupKey];
-    const resultItem = { 
+    const resultItem = {
       id: `agg_${groupKey}`,
       handle: {
         ns: 'com.indra.pipeline.aggregate',
@@ -199,13 +199,14 @@ function _pipe_handleAggregate(items, query) {
       },
       class: 'DATA_ROW',
       [groupBy]: groupKey,
-      count: groupItems.length 
+      count: groupItems.length,
+      protocols: []
     };
 
     ops.forEach(opDef => {
       const field = opDef.field;
-      const op    = opDef.op;
-      const name  = opDef.name || `${op}_${field}`;
+      const op = opDef.op;
+      const name = opDef.name || `${op}_${field}`;
 
       if (op === 'COUNT') {
         resultItem[name] = groupItems.length;
@@ -231,14 +232,14 @@ function _pipe_handleAggregate(items, query) {
  */
 function _pipe_handleTemplate(items, query) {
   const template = query.template;
-  const target   = query.target_field || 'rendered_text';
+  const target = query.target_field || 'rendered_text';
 
   if (!template) return { items, metadata: { status: 'ERROR', error: 'Falta parámetro template.' } };
 
   const rendered = items.map(item => {
     let result = template;
     const context = { ...item, ...(item.raw || {}) };
-    
+
     // Buscar todas las ocurrencias de {{campo}}
     const regex = /\{\{(.+?)\}\}/g;
     result = result.replace(regex, (match, fieldName) => {

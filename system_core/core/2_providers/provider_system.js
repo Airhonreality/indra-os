@@ -54,7 +54,7 @@ function CONF_SYSTEM() {
     version: '1.0',
     protocols: ['ATOM_READ', 'ATOM_CREATE', 'ATOM_DELETE', 'ATOM_UPDATE',
       'SYSTEM_PIN', 'SYSTEM_UNPIN', 'SYSTEM_PINS_READ', 'SYSTEM_WORKSPACE_REPAIR', 'TABULAR_STREAM',
-      'FORMULA_EVAL', 'SCHEMA_SUBMIT', 'SCHEMA_FIELD_OPTIONS', 'ACCOUNT_RESOLVE'],
+      'FORMULA_EVAL', 'SCHEMA_SUBMIT', 'SCHEMA_FIELD_OPTIONS', 'ACCOUNT_RESOLVE', 'SYSTEM_AUDIT'],
     implements: {
       ATOM_READ: 'handleSystem',
       ATOM_CREATE: 'handleSystem',
@@ -65,10 +65,11 @@ function CONF_SYSTEM() {
       SYSTEM_PINS_READ: 'handleSystem',
       SYSTEM_WORKSPACE_REPAIR: 'handleSystem',
       TABULAR_STREAM: 'handleSystem',
-      FORMULA_EVAL: 'LogicEngine.executeLogicBridge', // O una función específica si prefieres
+      FORMULA_EVAL: 'SYSTEM_executeLogicBridge',
       SCHEMA_SUBMIT: 'handleSystem',
       SCHEMA_FIELD_OPTIONS: 'handleSystem',
       ACCOUNT_RESOLVE: 'handleSystem',
+      SYSTEM_AUDIT: 'handleSystem',
     },
     config_schema: [],
     capabilities: {
@@ -165,6 +166,7 @@ function handleSystem(uqo) {
   if (protocol === 'SCHEMA_SUBMIT') return _system_handleSchemaSubmit(uqo);
   if (protocol === 'SCHEMA_FIELD_OPTIONS') return _system_handleSchemaFieldOptions(uqo);
   if (protocol === 'ACCOUNT_RESOLVE') return _system_handleAccountResolve(uqo);
+  if (protocol === 'SYSTEM_AUDIT') return AuditEngine.runFullAudit();
 
   // Protocolo no soportado por este provider
   const err = createError('PROTOCOL_NOT_FOUND',
@@ -189,7 +191,8 @@ function _system_handleAccountResolve(uqo) {
         alias: 'indra_cloud',
         label: label
       },
-      class: 'ACCOUNT_IDENTITY'
+      class: 'ACCOUNT_IDENTITY',
+      protocols: ['ATOM_READ']
     }],
     metadata: { status: 'OK' }
   };
@@ -493,11 +496,11 @@ function _system_readAtom(atomId, providerId) {
  */
 function _system_createAtom(atomClass, label, extraData, providerId) {
   try {
-    const folderName = _system_getFolderForClass(atomClass);
+    if (!atomClass || !label) {
+      throw createError('CONTRACT_VIOLATION', '[system] ATOM_CREATE: se requiere class y handle.label.');
+    }
 
-    // AXIOMA V1 (DATA_CONTRACTS §2.3): El ID del átomo es SIEMPRE el ID de
-    // infraestructura real asignado por Google Drive. El sistema NO inventa IDs.
-    // Un solo getOrCreateSubfolder — eliminar duplicación anterior.
+    const folderName = _system_getFolderForClass(atomClass);
     const now = new Date().toISOString();
     const subfolder = _system_getOrCreateSubfolder_(folderName);
     const alias = _system_slugify_(label);
@@ -505,20 +508,15 @@ function _system_createAtom(atomClass, label, extraData, providerId) {
 
     const atomDoc = {
       handle: {
-        ns: `com.indra.system.${atomClass.toLowerCase()}`,
-        alias: alias || 'slot_unnamed',
+        ns: extraData.handle?.ns || `com.indra.system.${atomClass.toLowerCase()}`,
+        alias: alias,
         label: label
       },
       class: atomClass,
       provider: providerId,
       created_at: now,
       updated_at: now,
-      payload: {
-        fields: (extraData.payload?.fields) || extraData.fields || [],
-        description: (extraData.payload?.description) || extraData.description || '',
-        target_context: (extraData.payload?.target_context) || extraData.target_context || '',
-        op_mode: (extraData.payload?.op_mode) || extraData.op_mode || 'COLLECT'
-      },
+      payload: extraData.payload || {},
       protocols: ['ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE'],
       raw: extraData.raw || {},
     };
@@ -848,32 +846,32 @@ function _system_findAtomFile(contextId) {
  * @private
  */
 function _system_toAtom(doc, fileId, providerId) {
-  const atomClass = doc.class || doc.archetype || 'WORKSPACE';
-  const protocols = Array.isArray(doc.protocols)
-    ? doc.protocols
-    : ['ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE'];
-
-  const label = doc.handle?.label || doc.name || doc.label || doc.id || 'Workspace';
-  const alias = doc.handle?.alias || _system_slugify_(label);
+  // ADR-008: Sinceridad Radical. No adivinamos la clase ni el nombre.
+  if (!doc.class || !doc.handle?.label) {
+    logWarn(`[provider_system] Átomo ${fileId} ignorado por falta de Sinceridad (class/label faltantes).`);
+    // En lugar de inventar, devolvemos un átomo roto para que la aduana lo bloquee
+    return {
+      id: fileId,
+      class: doc.class || 'BROKEN_ATOM',
+      handle: doc.handle || {
+        ns: 'com.indra.system.broken',
+        alias: 'broken_atom',
+        label: 'INCOMPLETE_IDENTITY'
+      },
+      protocols: [],
+      payload: doc.payload || {}
+    };
+  }
 
   return {
     id: fileId || doc.id,
-    handle: {
-      ns: doc.handle?.ns || `com.indra.system.${atomClass.toLowerCase()}`,
-      alias: alias,
-      label: label
-    },
-    class: atomClass,
-    protocols,
+    handle: doc.handle,
+    class: doc.class,
+    protocols: Array.isArray(doc.protocols) ? doc.protocols : [],
     provider: providerId || 'system',
     created_at: doc.created_at,
     updated_at: doc.updated_at,
-    payload: doc.payload || {
-      fields: doc.fields || [],
-      description: doc.description || '',
-      target_context: doc.target_context || '',
-      op_mode: doc.op_mode || 'COLLECT'
-    },
+    payload: doc.payload || {}, // No inventamos campos desde el root
     raw: { ...doc, _file_id: fileId },
   };
 }
@@ -1071,7 +1069,8 @@ function _system_handleSchemaFieldOptions(uqo) {
         alias: item.handle?.alias || _system_slugify_(item.handle?.label || item.id),
         label: item.handle?.label || item.name || String(item.id)
       },
-      class: 'OPTION'
+      class: 'OPTION',
+      protocols: []
     }));
 
     return { items: options, metadata: { status: 'OK' } };
@@ -1094,10 +1093,10 @@ function _system_handleTabularStream(uqo) {
 
   // Si es un esquema de datos, su schema son sus campos configurados en raw.fields
   if (doc.class === DATA_SCHEMA_CLASS_) {
-    const fields = (doc.raw && doc.raw.fields) || [];
-    const columns = fields.map(f => ({
-      key: f.key,
-      name: f.label, // En el form designer, label es el nombre de visualización
+    const rawFields = (doc.raw && doc.raw.fields) || [];
+    const fields = rawFields.map(f => ({
+      id: f.key,
+      label: f.label,
       type: f.type
     }));
 
@@ -1108,7 +1107,7 @@ function _system_handleTabularStream(uqo) {
       items: [], // Un Stream con limit 0 o sin filas físicas por ahora
       metadata: {
         status: 'OK',
-        schema: { columns: columns }
+        schema: { fields: fields }
       }
     };
   }
@@ -1118,7 +1117,7 @@ function _system_handleTabularStream(uqo) {
     handle: doc.handle,
     class: doc.class,
     items: [],
-    metadata: { status: 'OK', schema: { columns: [] } }
+    metadata: { status: 'OK', schema: { fields: [] } }
   };
 }
 

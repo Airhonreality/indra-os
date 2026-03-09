@@ -40,23 +40,23 @@
  */
 function CONF_NOTION() {
   return Object.freeze({
-    id:       'notion',
+    id: 'notion',
     handle: {
       ns: 'com.indra.system.silo',
       alias: 'notion',
       label: 'Notion'
     },
-    class:     'FOLDER',         // class del átomo-silo en el manifest
-    version:  '1.0',
+    class: 'FOLDER',         // class del átomo-silo en el manifest
+    version: '1.0',
     protocols: ['HIERARCHY_TREE', 'TABULAR_STREAM', 'ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 'SEARCH_DEEP', 'SYSTEM_CONNECTION_TEST', 'ACCOUNT_RESOLVE'],
     implements: {
       HIERARCHY_TREE: 'handleNotion',
       TABULAR_STREAM: 'handleNotion',
-      ATOM_READ:      'handleNotion',
-      ATOM_CREATE:    'handleNotion',
-      ATOM_UPDATE:    'handleNotion',
-      ATOM_DELETE:    'handleNotion',
-      SEARCH_DEEP:    'handleNotion',
+      ATOM_READ: 'handleNotion',
+      ATOM_CREATE: 'handleNotion',
+      ATOM_UPDATE: 'handleNotion',
+      ATOM_DELETE: 'handleNotion',
+      SEARCH_DEEP: 'handleNotion',
       SYSTEM_CONNECTION_TEST: 'handleNotion',
       ACCOUNT_RESOLVE: 'handleNotion'
     },
@@ -64,23 +64,23 @@ function CONF_NOTION() {
       { key: 'NOTION_API_KEY', type: 'password', label: 'API Key de Notion', required: true },
     ],
     capabilities: {
-      ATOM_READ:    { sync: 'BLOCKING', purge: 'NONE' },
-      ATOM_CREATE:  { sync: 'BLOCKING', purge: 'ALL' },
-      ATOM_UPDATE:  { sync: 'BLOCKING', purge: 'ID' },
-      ATOM_DELETE:  { sync: 'BLOCKING', purge: 'ALL' },
+      ATOM_READ: { sync: 'BLOCKING', purge: 'NONE' },
+      ATOM_CREATE: { sync: 'BLOCKING', purge: 'ALL' },
+      ATOM_UPDATE: { sync: 'BLOCKING', purge: 'ID' },
+      ATOM_DELETE: { sync: 'BLOCKING', purge: 'ALL' },
       TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE' },
       HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE' },
-      SEARCH_DEEP:    { sync: 'BLOCKING', purge: 'NONE' },
+      SEARCH_DEEP: { sync: 'BLOCKING', purge: 'NONE' },
       SYSTEM_CONNECTION_TEST: { sync: 'BLOCKING', purge: 'NONE' }
     },
     protocol_meta: {
       HIERARCHY_TREE: { label: 'Conectando con Notion', help: 'Escaneando páginas y bases de datos en la raíz.' },
       TABULAR_STREAM: { label: 'Extrayendo Datos', help: 'Consultando filas y resolviendo relaciones en paralelo.' },
-      ATOM_READ:      { label: 'Abriendo Página', help: 'Recuperando bloques y contenido de Notion.' },
-      ATOM_CREATE:    { label: 'Creando en Notion', help: 'Esculpiendo nueva página en el workspace externo.' },
-      ATOM_UPDATE:    { label: 'Sincronizando Notion', help: 'Actualizando propiedades en la nube.' },
-      ATOM_DELETE:    { label: 'Archivando en Notion', help: 'Enviando página a la papelera (archivar).' },
-      SEARCH_DEEP:    { label: 'Búsqueda Profunda', help: 'Consultando todo el workspace de Notion.' },
+      ATOM_READ: { label: 'Abriendo Página', help: 'Recuperando bloques y contenido de Notion.' },
+      ATOM_CREATE: { label: 'Creando en Notion', help: 'Esculpiendo nueva página en el workspace externo.' },
+      ATOM_UPDATE: { label: 'Sincronizando Notion', help: 'Actualizando propiedades en la nube.' },
+      ATOM_DELETE: { label: 'Archivando en Notion', help: 'Enviando página a la papelera (archivar).' },
+      SEARCH_DEEP: { label: 'Búsqueda Profunda', help: 'Consultando todo el workspace de Notion.' },
       SYSTEM_CONNECTION_TEST: { label: 'Probando Enlace', help: 'Verificando validez del Token de Integración.' }
     }
   });
@@ -89,8 +89,8 @@ function CONF_NOTION() {
 
 // ─── CONSTANTES DE API ────────────────────────────────────────────────────────
 
-const NOTION_BASE_URL_  = 'https://api.notion.com/v1';
-const NOTION_API_VER_   = '2022-06-28';
+const NOTION_BASE_URL_ = 'https://api.notion.com/v1';
+const NOTION_API_VER_ = '2022-06-28';
 
 // ─── MANEJADOR PRINCIPAL ──────────────────────────────────────────────────────
 
@@ -102,7 +102,7 @@ const NOTION_API_VER_   = '2022-06-28';
  */
 function handleNotion(uqo) {
   const protocol = (uqo.protocol || '').toUpperCase();
-  const parts    = uqo.provider.split(':');
+  const parts = uqo.provider.split(':');
   const provider = parts[0];
   const accountId = parts[1] || 'default';
 
@@ -124,11 +124,11 @@ function handleNotion(uqo) {
 
   if (protocol === 'HIERARCHY_TREE') return _notion_handleHierarchyTree(uqo, apiKey);
   if (protocol === 'TABULAR_STREAM') return _notion_handleTabularStream(uqo, apiKey);
-  if (protocol === 'ATOM_READ')      return _notion_handleAtomRead(uqo, apiKey);
-  if (protocol === 'ATOM_CREATE')    return _notion_handleAtomCreate(uqo, apiKey);
-  if (protocol === 'ATOM_UPDATE')    return _notion_handleAtomUpdate(uqo, apiKey);
-  if (protocol === 'ATOM_DELETE')    return _notion_handleAtomDelete(uqo, apiKey);
-  if (protocol === 'SEARCH_DEEP')    return _notion_handleSearchDeep(uqo, apiKey);
+  if (protocol === 'ATOM_READ') return _notion_handleAtomRead(uqo, apiKey);
+  if (protocol === 'ATOM_CREATE') return _notion_handleAtomCreate(uqo, apiKey);
+  if (protocol === 'ATOM_UPDATE') return _notion_handleAtomUpdate(uqo, apiKey);
+  if (protocol === 'ATOM_DELETE') return _notion_handleAtomDelete(uqo, apiKey);
+  if (protocol === 'SEARCH_DEEP') return _notion_handleSearchDeep(uqo, apiKey);
   if (protocol === 'ACCOUNT_RESOLVE') return _notion_handleAccountResolve(uqo, apiKey);
 
   const err = createError('PROTOCOL_NOT_FOUND',
@@ -169,12 +169,12 @@ function _notion_handleAccountResolve(uqo, passedApiKey) {
   try {
     // En Notion, /v/users/me devuelve el bot y el workspace relacionado
     const identity = _notion_notionRequest('/users/me', { method: 'GET', apiKey });
-    
+
     // El workspace name viene en bot.owner.workspace_name (Integraciones Internas)
-    const label = identity.bot?.owner?.workspace_name 
-               || identity.name 
-               || identity.bot?.owner?.user?.name 
-               || 'Notion Workspace';
+    const label = identity.bot?.owner?.workspace_name
+      || identity.name
+      || identity.bot?.owner?.user?.name
+      || 'Notion Workspace';
 
     logInfo(`[provider_notion] Identidad resuelta: ${label}`);
 
@@ -186,7 +186,8 @@ function _notion_handleAccountResolve(uqo, passedApiKey) {
           alias: _system_slugify_(label),
           label: label
         },
-        class: 'ACCOUNT_IDENTITY'
+        class: 'ACCOUNT_IDENTITY',
+        protocols: ['ATOM_READ']
       }],
       metadata: { status: 'OK' }
     };
@@ -211,7 +212,7 @@ function _notion_handleHierarchyTree(uqo, apiKey) {
     let contextId = uqo.context_id || 'ROOT';
     // Normalización Axiomática: si el context_id es la propia identidad del silo, es el ROOT.
     if (contextId === uqo.provider) contextId = 'ROOT';
-    const cursor    = uqo.query && uqo.query.cursor ? uqo.query.cursor : undefined;
+    const cursor = uqo.query && uqo.query.cursor ? uqo.query.cursor : undefined;
     const providerId = uqo.provider;
 
     let results, hasMore, nextCursor;
@@ -220,14 +221,14 @@ function _notion_handleHierarchyTree(uqo, apiKey) {
       // STRATEGY: STRUCTURE_FIRST
       // 1. Discover Databases
       const dbResponse = _notion_notionRequest('/search', {
-        method:  'POST',
+        method: 'POST',
         payload: { filter: { value: 'database', property: 'object' }, page_size: 20 },
         apiKey,
       });
 
       // 2. Buscar Todo (para el resto)
       const allResponse = _notion_notionRequest('/search', {
-        method:  'POST',
+        method: 'POST',
         payload: { page_size: 40 },
         apiKey,
       });
@@ -235,7 +236,7 @@ function _notion_handleHierarchyTree(uqo, apiKey) {
       // 3. Mezclar deduplicando (Databases primero)
       const seenIds = new Set();
       const combinedResults = [];
-      
+
       [...(dbResponse.results || []), ...(allResponse.results || [])].forEach(item => {
         if (!seenIds.has(item.id)) {
           seenIds.add(item.id);
@@ -243,19 +244,19 @@ function _notion_handleHierarchyTree(uqo, apiKey) {
         }
       });
 
-      results    = combinedResults;
-      hasMore    = allResponse.has_more || false;
+      results = combinedResults;
+      hasMore = allResponse.has_more || false;
       nextCursor = allResponse.next_cursor || null;
 
     } else if (contextId === 'ROOT' && cursor) {
       // Paginación normal para profundidad
       const response = _notion_notionRequest('/search', {
-        method:  'POST',
+        method: 'POST',
         payload: { page_size: 50, start_cursor: cursor },
         apiKey,
       });
-      results   = response.results || [];
-      hasMore   = response.has_more || false;
+      results = response.results || [];
+      hasMore = response.has_more || false;
       nextCursor = response.next_cursor || null;
 
     } else {
@@ -265,10 +266,10 @@ function _notion_handleHierarchyTree(uqo, apiKey) {
         { method: 'GET', apiKey }
       );
 
-      results   = (blocksResponse.results || []).filter(b =>
+      results = (blocksResponse.results || []).filter(b =>
         b.type === 'child_page' || b.type === 'child_database'
       );
-      hasMore    = blocksResponse.has_more || false;
+      hasMore = blocksResponse.has_more || false;
       nextCursor = blocksResponse.next_cursor || null;
     }
 
@@ -280,7 +281,7 @@ function _notion_handleHierarchyTree(uqo, apiKey) {
     const hoodCounts = {
       STRUCTURE: items.filter(i => i.system_hood === 'STRUCTURE').length,
       PHENOTYPE: items.filter(i => i.system_hood === 'PHENOTYPE').length,
-      ROUTES: 0 
+      ROUTES: 0
     };
 
     logInfo(`[provider_notion] hierarchy_tree: ${items.length} ítems. context: ${contextId}`);
@@ -317,47 +318,47 @@ function _notion_handleTabularStream(uqo, apiKey) {
   }
 
   try {
-    const dbId   = uqo.context_id;
-    const query  = uqo.query || {};
+    const dbId = uqo.context_id;
+    const query = uqo.query || {};
     const cursor = query.cursor;
     const providerId = uqo.provider;
 
-    const dbMeta   = _notion_notionRequest(`/databases/${dbId}`, { method: 'GET', apiKey });
-    const schema   = dbMeta.properties || {};
-    const dbName   = _notion_extractNotionTitle(dbMeta.title);
+    const dbMeta = _notion_notionRequest(`/databases/${dbId}`, { method: 'GET', apiKey });
+    const schema = dbMeta.properties || {};
+    const dbName = _notion_extractNotionTitle(dbMeta.title);
 
     const queryPayload = { page_size: 50 };
-    if (cursor)       queryPayload.start_cursor = cursor;
-    if (query.filter) queryPayload.filter       = query.filter;
+    if (cursor) queryPayload.start_cursor = cursor;
+    if (query.filter) queryPayload.filter = query.filter;
     // Traducir sorts del formato UQO canónico (ASC/DESC) al formato nativo de Notion
     if (query.sorts && query.sorts.length > 0) {
       queryPayload.sorts = _notion_translateSorts(query.sorts);
     }
 
     const pagePayload = { page_size: 50 };
-    if (cursor)       pagePayload.start_cursor = cursor;
-    if (query.filter) pagePayload.filter       = query.filter;
+    if (cursor) pagePayload.start_cursor = cursor;
+    if (query.filter) pagePayload.filter = query.filter;
     if (query.sorts && query.sorts.length > 0) {
       pagePayload.sorts = _notion_translateSorts(query.sorts);
     }
-    
+
     logInfo(`[provider_notion] TABULAR_STREAM: Query Payload: ${JSON.stringify(pagePayload)}`);
 
     const response = _notion_notionRequest(`/databases/${dbId}/query`, {
-      method:  'POST',
+      method: 'POST',
       payload: pagePayload,
       apiKey,
     });
 
-    const rows     = response.results || [];
-    const hasMore  = response.has_more || false;
+    const rows = response.results || [];
+    const hasMore = response.has_more || false;
     const nextCursor = response.next_cursor || null;
 
     const rawItems = rows.map(page => _notion_rowToAtom(page, dbId, dbName, providerId));
-    const columns  = _notion_schemaToColumns(schema);
+    const fields = _notion_schemaToFields(schema);
 
     logInfo(`[provider_notion] TABULAR_STREAM: DB Metadata Schema Properties: ${Object.keys(schema).join(', ')}`);
-    logInfo(`[provider_notion] TABULAR_STREAM: Columnas Resultantes: ${columns.length}`);
+    logInfo(`[provider_notion] TABULAR_STREAM: Fields Resultantes: ${fields.length}`);
 
     // ── RESOLUCIÓN DE RELACIONES ──────────────────────────────────────────────
     // Usa UrlFetchApp.fetchAll() — todos los requests van en paralelo.
@@ -365,19 +366,19 @@ function _notion_handleTabularStream(uqo, apiKey) {
     // El límite protege solo contra bases de datos con miles de relaciones únicas
     // (caso extremo). Para uso normal (50-100 filas) cubre el 100% de los IDs.
     const RELATION_RESOLVE_LIMIT = 100;
-    const relationColumns = columns.filter(function(c) { return c.type === 'RELATION'; });
-    const items = _notion_resolveRelationNames(rawItems, relationColumns, apiKey, RELATION_RESOLVE_LIMIT);
+    const relationFields = fields.filter(function (c) { return c.type === 'RELATION'; });
+    const items = _notion_resolveRelationNames(rawItems, relationFields, apiKey, RELATION_RESOLVE_LIMIT);
 
     logInfo(`[provider_notion] tabular_stream: ${items.length} filas de "${dbName}"`);
 
     return {
       items,
       metadata: {
-        status:      'OK',
-        has_more:    hasMore,
+        status: 'OK',
+        has_more: hasMore,
         next_cursor: nextCursor,
-        schema:      { columns },     // DATA_CONTRACTS: schema en metadata
-        context:     { db_id: dbId, db_name: dbName },
+        schema: { fields },     // DATA_CONTRACTS: schema en metadata
+        context: { db_id: dbId, db_name: dbName },
       },
     };
 
@@ -422,7 +423,7 @@ function _notion_handleAtomRead(uqo, apiKey) {
     }
 
     const atom = _notion_notionObjectToAtom(rawObj, uqo.provider);
-    
+
     // 3. Si es página, enriquecer con bloques (contenido)
     if (typeFound === 'page' && atom) {
       const blocks = _notion_notionRequest(`/blocks/${id}/children?page_size=100`, { method: 'GET', apiKey });
@@ -432,7 +433,7 @@ function _notion_handleAtomRead(uqo, apiKey) {
     logInfo(`[provider_notion] ATOM_READ: Resuelto como ${typeFound}`);
 
     return {
-      items:    atom ? [atom] : [],
+      items: atom ? [atom] : [],
       metadata: { status: 'OK', notion_type: typeFound },
     };
 
@@ -470,7 +471,7 @@ function _notion_handleAtomCreate(uqo, apiKey) {
     };
 
     const created = _notion_notionRequest('/pages', { method: 'POST', payload: pagePayload, apiKey });
-    const atom    = _notion_notionObjectToAtom(created, uqo.provider);
+    const atom = _notion_notionObjectToAtom(created, uqo.provider);
 
     logInfo(`[provider_notion] ATOM_CREATE: Created resource: "${label}" under ${uqo.context_id}`);
     return { items: atom ? [atom] : [], metadata: { status: 'OK' } };
@@ -502,7 +503,7 @@ function _notion_handleAtomUpdate(uqo, apiKey) {
     }
 
     const updated = _notion_notionRequest(`/pages/${uqo.context_id}`, {
-      method:  'PATCH',
+      method: 'PATCH',
       payload: { properties },
       apiKey,
     });
@@ -530,7 +531,7 @@ function _notion_handleAtomDelete(uqo, apiKey) {
 
   try {
     _notion_notionRequest(`/pages/${uqo.context_id}`, {
-      method:  'PATCH',
+      method: 'PATCH',
       payload: { archived: true },
       apiKey,
     });
@@ -562,28 +563,28 @@ function _notion_notionObjectToAtom(notionObj, providerId) {
   if (!notionObj) return null;
 
   const objectType = notionObj.object; // 'page', 'database', 'block'
-  const blockType  = notionObj.type;   // 'child_page', 'child_database' (si es bloque)
+  const blockType = notionObj.type;   // 'child_page', 'child_database' (si es bloque)
 
   let id, name, atomClass;
 
   if (objectType === 'database') {
-    id           = notionObj.id;
-    name         = _notion_extractNotionTitle(notionObj.title) || 'Sin título';
-    atomClass    = 'TABULAR';
+    id = notionObj.id;
+    name = _notion_extractNotionTitle(notionObj.title) || 'Sin título';
+    atomClass = 'TABULAR';
 
   } else if (objectType === 'page') {
-    id           = notionObj.id;
-    name         = _notion_extractPageTitle(notionObj) || 'Sin título';
-    atomClass    = 'DOCUMENT';
+    id = notionObj.id;
+    name = _notion_extractPageTitle(notionObj) || 'Sin título';
+    atomClass = 'DOCUMENT';
 
   } else if (objectType === 'block') {
-    id            = notionObj.id;
+    id = notionObj.id;
     if (blockType === 'child_database') {
-      name         = notionObj.child_database?.title || 'Database sin título';
-      atomClass    = 'TABULAR';
+      name = notionObj.child_database?.title || 'Database sin título';
+      atomClass = 'TABULAR';
     } else if (blockType === 'child_page') {
-      name         = notionObj.child_page?.title || 'Página sin título';
-      atomClass    = 'DOCUMENT';
+      name = notionObj.child_page?.title || 'Página sin título';
+      atomClass = 'DOCUMENT';
     } else {
       return null; // Bloques que no son páginas/databases no son proyectables en el silo
     }
@@ -603,15 +604,15 @@ function _notion_notionObjectToAtom(notionObj, providerId) {
       alias: _system_slugify_(name) || 'notion_unnamed',
       label: name
     },
-    class:       atomClass,
-    provider:    providerId,
+    class: atomClass,
+    provider: providerId,
     protocols,
     system_hood: atomClass === 'TABULAR' ? 'STRUCTURE' : 'PHENOTYPE',
     raw: {
-      notion_type:  objectType,
-      notion_url:   notionObj.url || null,
-      created_at:   notionObj.created_time || null,
-      modified_at:  notionObj.last_edited_time || null,
+      notion_type: objectType,
+      notion_url: notionObj.url || null,
+      created_at: notionObj.created_time || null,
+      modified_at: notionObj.last_edited_time || null,
     },
   };
 }
@@ -629,22 +630,22 @@ function _notion_notionObjectToAtom(notionObj, providerId) {
  */
 function _notion_rowToAtom(page, dbId, dbName, providerId) {
   const flatProps = _notion_flattenProperties(page.properties || {});
-  const title     = _notion_extractPageTitle(page) || page.id;
+  const title = _notion_extractPageTitle(page) || page.id;
 
   return {
     ...flatProps,
-    id:        page.id,
+    id: page.id,
     handle: {
       ns: `com.notion.row.${dbId}`,
       alias: (title || '').toLowerCase().replace(/[^\w\s]/gi, '').replace(/\s+/g, '_'),
       label: title
     },
-    class:     'TABULAR',
-    provider:  providerId,
+    class: 'TABULAR',
+    provider: providerId,
     protocols: ['ATOM_READ', 'ATOM_UPDATE', 'ATOM_DELETE'],
     raw: {
-      db_id:      dbId,
-      db_name:    dbName,
+      db_id: dbId,
+      db_name: dbName,
       notion_url: page.url || null,
       modified_at: page.last_edited_time || null,
     },
@@ -691,7 +692,7 @@ function _notion_flattenProperties(properties) {
         flat[key] = prop.select ? prop.select.name : null;
         break;
       case 'multi_select':
-        flat[key] = prop.multi_select ? prop.multi_select.map(function(o) { return o.name; }) : [];
+        flat[key] = prop.multi_select ? prop.multi_select.map(function (o) { return o.name; }) : [];
         break;
       case 'date':
         // CORRECCIÓN: retornar solo el string ISO de inicio, no el objeto {start, end}.
@@ -715,15 +716,15 @@ function _notion_flattenProperties(properties) {
         break;
       case 'relation':
         // Array de objetos {id} → array de IDs string
-        flat[key] = prop.relation ? prop.relation.map(function(r) { return r.id; }) : [];
+        flat[key] = prop.relation ? prop.relation.map(function (r) { return r.id; }) : [];
         break;
       case 'people':
         // Array de objetos de usuario → array de IDs
-        flat[key] = prop.people ? prop.people.map(function(p) { return p.name || p.id; }) : [];
+        flat[key] = prop.people ? prop.people.map(function (p) { return p.name || p.id; }) : [];
         break;
       case 'files':
         // CORRECCIÓN: Extraer solo la URL del archivo como string, no el objeto completo.
-        flat[key] = prop.files ? prop.files.map(function(f) {
+        flat[key] = prop.files ? prop.files.map(function (f) {
           return f.file ? f.file.url : (f.external ? f.external.url : f.name || null);
         }).filter(Boolean) : [];
         break;
@@ -795,46 +796,46 @@ function _notion_flattenProperties(properties) {
 }
 
 /**
- * Convierte el schema de propiedades de Notion al formato de columnas canónico.
- * Este formato viaja en metadata.schema.columns y es consumido por tabular_view.
+ * Convierte el schema de propiedades de Notion al formato de campos canónico (ADR-008).
+ * Este formato viaja en metadata.schema.fields y es consumido por el Bridge.
  *
  * @param {Object} notionSchema - Objeto properties de una Notion Database.
- * @returns {Array<{ id, label, type }>} Array de columnas canónicas.
+ * @returns {Array<{ id, label, type }>} Array de campos canónicos.
  * @private
  */
-function _notion_schemaToColumns(notionSchema) {
+function _notion_schemaToFields(notionSchema) {
   if (!notionSchema) return [];
 
-  return Object.entries(notionSchema).map(function(entry) {
-    const key  = entry[0];
+  return Object.entries(notionSchema).map(function (entry) {
+    const key = entry[0];
     const prop = entry[1];
-    const t    = prop.type;
+    const t = prop.type;
 
     // Mapa de tipos Notion → tipos canónicos del sistema (DATA_CONTRACTS §5.x)
     let canonicalType = 'STRING';
-    if (t === 'number')                                    canonicalType = 'NUMBER';
+    if (t === 'number') canonicalType = 'NUMBER';
     else if (t === 'date' || t === 'created_time' || t === 'last_edited_time') canonicalType = 'DATE';
-    else if (t === 'checkbox')                             canonicalType = 'BOOLEAN';
-    else if (t === 'select' || t === 'status')             canonicalType = 'SELECT';
-    else if (t === 'multi_select')                         canonicalType = 'MULTI_SELECT';
-    else if (t === 'email')                                canonicalType = 'EMAIL';
-    else if (t === 'url')                                  canonicalType = 'URL';
-    else if (t === 'files')                                canonicalType = 'FILE';
-    else if (t === 'relation')                             canonicalType = 'RELATION';
-    else if (t === 'formula' || t === 'rollup')            canonicalType = 'COMPUTED';
-    else if (t === 'people')                               canonicalType = 'PEOPLE';
+    else if (t === 'checkbox') canonicalType = 'BOOLEAN';
+    else if (t === 'select' || t === 'status') canonicalType = 'SELECT';
+    else if (t === 'multi_select') canonicalType = 'MULTI_SELECT';
+    else if (t === 'email') canonicalType = 'EMAIL';
+    else if (t === 'url') canonicalType = 'URL';
+    else if (t === 'files') canonicalType = 'FILE';
+    else if (t === 'relation') canonicalType = 'RELATION';
+    else if (t === 'formula' || t === 'rollup') canonicalType = 'COMPUTED';
+    else if (t === 'people') canonicalType = 'PEOPLE';
 
     return {
-      key:     key,
+      id: key,
       handle: {
         ns: 'com.indra.schema.field',
         alias: (key || '').toLowerCase().replace(/[^\w\s]/gi, '').replace(/\s+/g, '_'),
         label: key
       },
-      name:    key,          // Legacy
-      type:    canonicalType,
-      options: (prop.select && prop.select.options ? prop.select.options.map(function(o) { return o.name; }) :
-               (prop.multi_select && prop.multi_select.options ? prop.multi_select.options.map(function(o) { return o.name; }) : [])),
+      label: key,
+      type: canonicalType,
+      options: (prop.select && prop.select.options ? prop.select.options.map(function (o) { return o.name; }) :
+        (prop.multi_select && prop.multi_select.options ? prop.multi_select.options.map(function (o) { return o.name; }) : [])),
     };
   });
 }
@@ -860,11 +861,11 @@ function _notion_resolveRelationNames(items, relationCols, apiKey, limit) {
 
   // 1. Recopilar todos los IDs de relación únicos en todos los ítems
   const allRelationIds = {};
-  items.forEach(function(item) {
-    relationCols.forEach(function(col) {
+  items.forEach(function (item) {
+    relationCols.forEach(function (col) {
       const cellValue = item[col.id];
       if (Array.isArray(cellValue)) {
-        cellValue.forEach(function(id) {
+        cellValue.forEach(function (id) {
           if (typeof id === 'string' && id) allRelationIds[id] = true;
         });
       }
@@ -886,16 +887,16 @@ function _notion_resolveRelationNames(items, relationCols, apiKey, limit) {
   // Resultado: ~tiempo del request más lento en lugar de suma de todos.
   // Con 20 relaciones: ~1s paralelo vs ~20s en serie.
   const headers = {
-    'Authorization':  'Bearer ' + apiKey,
+    'Authorization': 'Bearer ' + apiKey,
     'Notion-Version': NOTION_API_VER_,
-    'Content-Type':   'application/json',
+    'Content-Type': 'application/json',
   };
 
-  const fetchRequests = idsToResolve.map(function(pageId) {
+  const fetchRequests = idsToResolve.map(function (pageId) {
     return {
-      url:              NOTION_BASE_URL_ + '/pages/' + pageId,
-      method:           'GET',
-      headers:          headers,
+      url: NOTION_BASE_URL_ + '/pages/' + pageId,
+      method: 'GET',
+      headers: headers,
       muteHttpExceptions: true,
     };
   });
@@ -913,7 +914,7 @@ function _notion_resolveRelationNames(items, relationCols, apiKey, limit) {
 
   // 3. Construir caché de nombres desde las respuestas paralelas
   const nameCache = {};
-  responses.forEach(function(response, i) {
+  responses.forEach(function (response, i) {
     const pageId = idsToResolve[i];
     try {
       const statusCode = response.getResponseCode();
@@ -932,12 +933,12 @@ function _notion_resolveRelationNames(items, relationCols, apiKey, limit) {
   });
 
   // 4. Reemplazar IDs por nombres en cada ítem
-  return items.map(function(item) {
+  return items.map(function (item) {
     const enriched = Object.assign({}, item);
-    relationCols.forEach(function(col) {
+    relationCols.forEach(function (col) {
       const cellValue = enriched[col.id];
       if (Array.isArray(cellValue)) {
-        enriched[col.id] = cellValue.map(function(id) {
+        enriched[col.id] = cellValue.map(function (id) {
           return nameCache[id] || id; // Si no se resolvió, mantener el ID
         });
       }
@@ -959,9 +960,9 @@ function _notion_resolveRelationNames(items, relationCols, apiKey, limit) {
  */
 function _notion_translateSorts(sorts) {
   if (!Array.isArray(sorts)) return [];
-  return sorts.map(function(s) {
+  return sorts.map(function (s) {
     return {
-      property:  s.field,
+      property: s.field,
       direction: (s.direction === 'ASC') ? 'ascending' : 'descending',
     };
   });
@@ -998,7 +999,7 @@ function _notion_extractPageTitle(page) {
  */
 function _notion_extractNotionTitle(titleArray) {
   if (!titleArray || !titleArray.length) return '';
-  return titleArray.map(function(t) { return t.plain_text || ''; }).join('');
+  return titleArray.map(function (t) { return t.plain_text || ''; }).join('');
 }
 
 // ─── CLIENTE HTTP PARA LA API DE NOTION ──────────────────────────────────────
@@ -1015,18 +1016,18 @@ function _notion_extractNotionTitle(titleArray) {
  * @private
  */
 function _notion_notionRequest(endpoint, options) {
-  const url    = NOTION_BASE_URL_ + endpoint;
+  const url = NOTION_BASE_URL_ + endpoint;
   const method = (options.method || 'GET').toUpperCase();
 
   logInfo(`[provider_notion] HTTP ${method} ${endpoint}`);
 
   const fetchOptions = {
-    method:           method,
+    method: method,
     muteHttpExceptions: true,
     headers: {
-      'Authorization':   'Bearer ' + options.apiKey,
-      'Notion-Version':  NOTION_API_VER_,
-      'Content-Type':    'application/json',
+      'Authorization': 'Bearer ' + options.apiKey,
+      'Notion-Version': NOTION_API_VER_,
+      'Content-Type': 'application/json',
     },
   };
 
@@ -1044,16 +1045,16 @@ function _notion_notionRequest(endpoint, options) {
     );
   }
 
-  const statusCode   = response.getResponseCode();
+  const statusCode = response.getResponseCode();
   const responseText = response.getContentText();
 
   if (statusCode < 200 || statusCode >= 300) {
     let errorMessage = `Notion API error HTTP ${statusCode}`;
-    let errorCode    = 'NOTION_API_ERROR';
+    let errorCode = 'NOTION_API_ERROR';
     try {
       const errorBody = JSON.parse(responseText);
-      errorMessage    = errorBody.message || errorMessage;
-      errorCode       = errorBody.code    || errorCode;
+      errorMessage = errorBody.message || errorMessage;
+      errorCode = errorBody.code || errorCode;
     } catch (e) { /* body no es JSON — usar mensaje genérico */ }
 
     logError(`[provider_notion] Error ${statusCode} en ${endpoint}: ${errorMessage}`);

@@ -12,7 +12,7 @@ import { IndraIcon } from '../../../utilities/IndraIcons';
 import { useAppState } from '../../../../state/app_state';
 import { executeDirective } from '../../../../services/directive_executor';
 
-export function ResolverConfig({ config, onUpdate, onOpenSelector }) {
+export function ResolverConfig({ config, onUpdate, focusedTarget, setFocusedTarget, opId }) {
     const { coreUrl, sessionSecret, pins, services } = useAppState();
     const [showSelector, setShowSelector] = useState(false);
     const [fields, setFields] = useState([]);
@@ -86,7 +86,8 @@ export function ResolverConfig({ config, onUpdate, onOpenSelector }) {
                 <MicroSlot
                     value={config.pointer}
                     label={config.pointer_label}
-                    onOpenSelector={() => onOpenSelector('pointer')}
+                    isActive={focusedTarget?.id === opId && focusedTarget?.key === 'pointer'}
+                    onActivate={() => setFocusedTarget({ mode: 'OPERATOR', id: opId, key: 'pointer' })}
                     placeholder="CHOOSE_SLOT_TO_SEARCH"
                 />
             </div>

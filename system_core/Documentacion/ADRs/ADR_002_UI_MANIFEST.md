@@ -1,7 +1,7 @@
 # ADR_002 — UI MANIFEST: Arquitectura y Árbol de Artefactos del Frontend
 
-> **Versión:** 1.0
-> **Estado:** VIGENTE — Documento de referencia estructural del Frontend
+> **Versión:** 2.0
+> **Estado:** VIGENTE — Actualizado 2026-03-11 para reflejar la arquitectura real desplegada
 > **Principio rector:** Modularidad absoluta. Cero monolitos. Agnosticismo total.
 
 ---
@@ -30,123 +30,113 @@ system_core/client/src/
 ├── state/
 │   └── app_state.js                    # Estado global (Zustand). Fuente única de verdad.
 │
-├── api/
-│   └── core/
-│       └── directive_executor.js       # Capa de transporte. Único punto de salida al Backend.
+├── services/
+│   ├── directive_executor.js           # Capa de transporte. Único punto de salida al Backend.
+│   ├── EngineRegistry.js              # Registro dinámico: atom.class → componente React.
+│   ├── EngineBoot.js                  # Importa todos los init.js para inicializar el registro.
+│   ├── DataProjector.js               # Transforma Átomos crudos en proyecciones UI.
+│   └── CapabilityBridge.js            # Inyecta capacidades del core a los motores.
+│
+├── context/
+│   ├── ProtocolContext.jsx            # Conectividad y bootstrapping.
+│   ├── WorkspaceContext.jsx           # Estado del workspace activo y sus pins.
+│   └── ShellContext.jsx               # Shell global: activeArtifact, lang.
 │
 ├── components/
 │   │
-│   ├── ── MACRO ENGINES ──────────────────────────────────────────────────────
+│   ├── ── SHELL (Nivel 0 y 1) ────────────────────────────────────────────────
+│   │
+│   ├── shell/
+│   │   ├── CoreConnectionView.jsx     # Nivel 0: Acceso al Núcleo (HUD)
+│   │   ├── NexusView.jsx              # Nivel 1: Centro de Navegación y Servicios
+│   │   ├── NexusView.css
+│   │   └── ServiceManager/            # Panel de admin de Keys (sub-artefactos propios)
+│   │
+│   ├── ── DASHBOARD (Nivel 2) ─────────────────────────────────────────────────
+│   │
+│   ├── dashboard/
+│   │   ├── WorkspaceDashboard.jsx     # Orquestador del Nivel 2.
+│   │   │                              # Layout: [MacroHeader | ActionRail | ArtifactGrid]
+│   │   ├── ActionRail.jsx             # Banda de creación de artefactos.
+│   │   ├── ArtifactGrid.jsx           # Grid de tarjetas organizadas por class.
+│   │   ├── ArtifactCard.jsx           # Tarjeta de un átomo pinneado.
+│   │   └── ArtifactCard.css
+│   │
+│   ├── ── MACRO ENGINES (Nivel 3) ─────────────────────────────────────────────
 │   │
 │   ├── macro_engines/
 │   │   │
 │   │   ├── ── 1. SCHEMA DESIGNER ─────────────────────────────────────────────
-│   │   ├── schema_designer.jsx         # Orquestador principal. Gestiona estado de edición.
-│   │   ├── schema_renderer.jsx         # Runner del formulario. Capturador ciego de datos.
+│   │   ├── SchemaDesigner/
+│   │   │   ├── index.jsx              # Orquestador. Gestiona historial y estado de edición.
+│   │   │   ├── LayersPanel.jsx        # Panel de navegación jerárquica de campos.
+│   │   │   ├── BlueprintCanvas.jsx    # Previsualización viva del schema.
+│   │   │   └── DNAInspector.jsx       # Inspector de propiedades del campo seleccionado.
 │   │   │
-│   │   ├── SchemaDesigner/             # Sub-artefactos del motor de esquemas
-│   │   │   ├── FieldList.jsx           # Lista drag-drop de campos del schema
-│   │   │   ├── FieldTypeSelector.jsx   # Paleta de tipos de campo (TEXT, NUMBER, RELATION_SELECT...)
-│   │   │   └── FormulaUtility.jsx      # Utilidad de enlace a Fórmulas guardadas
-│   │   │
-│   │   ├── ── 2. LOGIC BRIDGE ────────────────────────────────────────────────
-│   │   ├── BridgeDesigner.jsx          # Orquestador principal. Gestiona sources/targets/operators.
-│   │   │
-│   │   ├── BridgeDesigner/             # Sub-artefactos del motor lógico
-│   │   │   ├── LogicCanvas.jsx         # Lienzo de nodos: MATH, TEXT, RESOLVER
-│   │   │   ├── PortManager.jsx         # SourcePanel + TargetPanel (conexiones entrada/salida)
-│   │   │   ├── SimulationPanel.jsx     # Panel de prueba en vivo del bridge
-│   │   │   ├── useBridgeHydration.js   # Hook: resuelve campos de sources/targets/resolvers async
-│   │   │   └── Utilities.jsx           # EditableAlias, slugify y helpers del bridge
+│   │   ├── ── 2. BRIDGE DESIGNER ─────────────────────────────────────────────
+│   │   ├── BridgeDesigner/
+│   │   │   ├── index.jsx              # Orquestador. Gestiona pipeline de operadores.
+│   │   │   ├── OperatorCard.jsx       # Tarjeta genérica de operador (MATH, TEXT, RESOLVER, EXPRESSION)
+│   │   │   ├── OperatorTypes/         # Configuraciones específicas por tipo:
+│   │   │   │   ├── ExtractorConfig.jsx
+│   │   │   │   ├── MathConfig.jsx
+│   │   │   │   ├── TextConfig.jsx
+│   │   │   │   └── ExpressionConfig.jsx
+│   │   │   ├── PortManager.jsx        # SourcePanel + TargetPanel
+│   │   │   ├── SandboxPanel.jsx       # Panel de prueba en vivo
+│   │   │   ├── FieldMapper.jsx        # Mapeador de variables → campos del silo destino
+│   │   │   ├── MicroSlot.jsx          # Slot visual de variable
+│   │   │   ├── useBridgeHydration.js  # Hook de hidratación de fuentes y destinos
+│   │   │   └── init.js               # Registro: registry.register('BRIDGE', BridgeDesigner)
 │   │   │
 │   │   ├── ── 3. DOCUMENT DESIGNER ───────────────────────────────────────────
-│   │   ├── DocumentDesigner.jsx        # Orquestador principal. Editor de plantillas.
+│   │   ├── DocumentDesigner/
+│   │   │   ├── index.jsx              # Orquestador. Editor de plantillas.
+│   │   │   └── [sub-artefactos]      # BlockRenderer, DesignPanel, etc.
 │   │   │
-│   │   ├── DocumentDesigner/           # Sub-artefactos del motor de documentos
-│   │   │   ├── BlockRenderer.jsx       # Renderer recursivo de bloques AST
-│   │   │   ├── BlockPalette.jsx        # Paleta de tipos de bloque (TEXT, IMAGE, FRAME, ITERATOR)
-│   │   │   ├── DesignPanel.jsx         # Panel de propiedades visuales del bloque activo
-│   │   │   └── useDocumentAST.js       # Hook: mutadores del AST del documento
+│   │   ├── ── 4. WORKFLOW DESIGNER ───────────────────────────────────────────
+│   │   ├── WorkflowDesigner/
+│   │   │   ├── index.jsx              # Orquestador. Layout: [Header | 3 cols]
+│   │   │   ├── StationCard.jsx        # Tarjeta de una estación del workflow
+│   │   │   ├── WorkflowInspector.jsx  # Inspector de propiedades de la estación activa
+│   │   │   ├── WorkflowSandbox.jsx    # Panel de prueba del workflow completo
+│   │   │   ├── WorkflowTrigger.jsx    # Configuración del trigger de inicio
+│   │   │   ├── context/              # Contexto local del motor (estado del pipeline)
+│   │   │   ├── useWorkflowExecution.js
+│   │   │   └── init.js               # Registro: registry.register('WORKFLOW', WorkflowDesigner)
 │   │   │
-│   │   └── ── 4. AEE — AGNOSTIC EXECUTION ENGINE ─────────────────────────────
-│   │       ├── AEE_Dashboard.jsx       # Orquestador: corre un Schema + Bridge en tiempo real
-│   │       │
-│   │       └── AEE/                    # Sub-artefactos del runner
-│   │           ├── FormRunner.jsx      # Proyecta un DATA_SCHEMA como formulario interactivo
-│   │           ├── ResultPanel.jsx     # Muestra el resultado del LOGIC_EXECUTE
-│   │           └── useAEESession.js    # Hook: gestiona el ciclo de vida de una sesión de ejecución
+│   │   └── ── 5. AEE FORM RUNNER ─────────────────────────────────────────────
+│   │       └── AEEFormRunner/
+│   │           ├── AEE_Dashboard.jsx  # Orquestador: runner de Schema + Bridge
+│   │           ├── FormRunner.jsx     # Proyecta un DATA_SCHEMA como formulario
+│   │           ├── ResultPanel.jsx    # Muestra resultado del LOGIC_EXECUTE
+│   │           ├── useAEESession.js   # Hook: ciclo de vida de sesión de ejecución
+│   │           └── init.js           # Registro: registry.register('AEE_RUNNER', AEEDashboard)
 │   │
-│   ├── ── MICRO-ENGINES (Utilidades Universales Invocables) ──────────────────
-│   │
-│   ├── utilities/
-│   │   │
-│   │   ├── ArtifactSelector.jsx        # Selector universal de silos/átomos del workspace.
-│   │   │                               # Invocado por: BridgeDesigner, SchemaDesigner,
-│   │   │                               # DocumentDesigner, LogicCanvas (nodo RESOLVER).
-│   │   │
-│   │   ├── PropertyInspector.jsx       # Panel de propiedades universal (key:value editor).
-│   │   │                               # Invocado por: SchemaDesigner, DocumentDesigner.
-│   │   │
-│   │   ├── FieldMapper.jsx             # Mapeador universal schema → silo.
-│   │   │                               # Invocado por: BridgeDesigner (TargetPanel).
-│   │   │
-│   │   ├── SlotSelector.jsx            # Dropdown de variables disponibles en un contexto.
-│   │   │                               # Invocado por: LogicCanvas (inputs de nodos).
-│   │   │
-│   │   ├── IndraIcons.jsx              # Librería de iconos canónicos del sistema.
-│   │   │
-│   │   ├── GraphicDesignUtils/         # Utilidades de diseño visual desacopladas
-│   │   │   ├── ColorPicker.jsx         # Selector de colores HSL con presets del sistema
-│   │   │   ├── SpacingControl.jsx      # Control de padding/margin/gap (px/rem)
-│   │   │   ├── TypographyControl.jsx   # Control de fuente, tamaño, peso, alineación
-│   │   │   └── BorderControl.jsx       # Control de estilo, grosor y radio de bordes
-│   │   │
-│   │   └── primitives/                 # ── ÁTOMOS DE UI (Piezas de Lego) ──────────────
-│   │       │                           # Componentes base sin opinión de dominio.
-│   │       │                           # Todo lo demás se construye combinando estos.
-│   │       │
-│   │       ├── Spinner.jsx             # Indicador de carga. Props: size, color, label.
-│   │       │                           # Invocado por: cualquier componente en estado async.
-│   │       │
-│   │       ├── IndraActionTrigger.jsx  # Gatillo universal con retardo de seguridad (Hold).
-│   │       │                           # Proyecta protocolos (DELETE, SYNC, etc) de forma agnóstica.
-│   │       │
-│   │       ├── EditableLabel.jsx       # Texto inline editable con doble-click.
-│   │       │                           # Props: value, onCommit. Invocado por: alias de nodos.
-│   │       │
-│   │       ├── Badge.jsx               # Etiqueta de estado/tipo. Props: label, color, icon.
-│   │       │                           # Invocado por: tarjetas del Dashboard, headers de motor.
-│   │       │
-│   │       ├── EmptyState.jsx          # Pantalla vacía con ilustración y CTA.
-│   │       │                           # Props: icon, title, description, action.
-│   │       │                           # Invocado por: paneles sin contenido (sin sources, etc).
-│   │       │
-│   │       ├── ConfirmModal.jsx        # Modal de confirmación genérico.
-│   │       │                           # Props: title, message, onConfirm, onCancel.
-│   │       │
-│   │       ├── ToastNotification.jsx   # Notificación flotante temporal (éxito/error/info).
-│   │       │                           # Props: message, type, duration.
-│   │       │
-│   │       ├── ProgressBar.jsx         # Barra de progreso lineal o circular.
-│   │       │                           # Props: value (0-100), mode ('linear'|'radial').
-│   │       │
-│   │       ├── ToggleSwitch.jsx        # Switch binario animado.
-│   │       │                           # Props: value, onChange, label.
-│   │       │
-│   │       ├── TabBar.jsx              # Barra de pestañas genérica.
-│   │       │                           # Props: tabs, activeTab, onChange.
-│   │       │
-│   │       └── DragHandle.jsx          # Handle de arrastre visual (icono + cursor).
-│   │                                   # Invocado por: FieldList, OperatorNode.
-│   │
-│   └── ── SHELL / LAYOUT ─────────────────────────────────────────────────────
+│   └── ── UTILITIES / MICRO-ENGINES ───────────────────────────────────────────
 │
-│       ├── shell/
-│       │   ├── CoreConnectionView.jsx  # Nivel 0: Acceso al Núcleo (HUD)
-│       │   ├── NexusView.jsx           # Nivel 1: Centro de Navegación y Servicios
-│       │   └── ServiceManager.jsx      # Panel de administración de Keys (Invocado por Nexus)
+│       ├── utilities/
+│       │   ├── ArtifactSelector.jsx   # Selector universal de átomos del workspace
+│       │   ├── SlotSelector.jsx       # Dropdown de variables disponibles en un contexto
+│       │   ├── IndraIcons.jsx         # Librería de iconos canónicos (27+ íconos)
+│       │   ├── IndraMacroHeader.jsx   # Cabecera canónica para Macro-Engines y Dashboard
+│       │   ├── IndraMicroHeader.jsx   # Cabecera canónica para Micro-Engines y Paneles
+│       │   ├── IndraActionTrigger.jsx # Gatillo universal de acción (con hold para destructivas)
+│       │   ├── GraphicDesignUtils/    # Controles de diseño visual desacoplados
+│       │   │   ├── ColorPicker.jsx
+│       │   │   ├── SpacingControl.jsx
+│       │   │   ├── TypographyControl.jsx
+│       │   │   └── BorderControl.jsx
+│       │   └── primitives/            # ── ÁTOMOS DE UI (Piezas de Lego) ──────────────
+│       │       ├── index.js           # Barrel de exportación canónico
+│       │       ├── Spinner.jsx        # Indicador de carga universal
+│       │       ├── EmptyState.jsx     # Pantalla de estado vacío universal
+│       │       ├── Badge.jsx          # Etiqueta de estado/tipo (variantes: default, outline, dot)
+│       │       ├── EditableLabel.jsx  # Texto inline editable con un clic
+│       │       ├── DragHandle.jsx     # Handle de arrastre canonizado
+│       │       └── ToastNotification.jsx # Sistema de notificaciones flotantes (+ ToastProvider, useToast)
 │       │
-│       └── App.jsx                     # Orquestador: decide la vista según hidratación
+│       └── App.jsx                   # Orquestador raíz. ToastProvider envuelve todo.
 ```
 
 ---
@@ -367,7 +357,35 @@ Estas primitivas son los **átomos indivisibles del sistema de diseño**. No hac
 
 ---
 
-## 7. REGLA DE ORO — JERARQUÍA DE DEPENDENCIAS
+---
+
+## 8. TAXONOMÍA DE MÓDULOS Y CABECERAS CANÓNICAS
+
+Para garantizar la coherencia visual, simetría y orden en toda la suite, se establece un **Contrato de Proyección Estandarizado**. La UI no se "dibuja" ad-hoc; se proyecta según el tipo de contenedor.
+
+### 8.1 IndraMacroHeader (Nivel 2 y 3)
+Utilizada por **Macro-Engines** (Engines) y el **Workspace Dashboard**.
+- **Identidad Proyectada**: Icono de Clase + Label del Átomo + Clase + ID Técnico.
+- **Acciones Globales**: `BACK/EXIT`, `SYNC_STATUS`, `UNDO/REDO`.
+- **Dharma**: Es el punto de anclaje de la soberanía del motor. Si el átomo permite `ATOM_UPDATE`, el label es un `EditableLabel`.
+- **Estética**: Glassmorphism de ancho completo (100vw), borde inferior 1px, tipografía `var(--font-mono)`.
+
+### 8.2 IndraMicroHeader (Paneles y Secciones)
+Utilizada por **Micro-Engines** funcionales y paneles laterales (Layers, Inspector, Palette).
+- **Identidad Proyectada**: Icono descriptivo + Nombre de la Herramienta.
+- **Acción Ejecutiva**: Botón canonizado "Execute" que proyecta el label inyectado por el payload (ej: "Crear Schema", "Testear Puente").
+- **Dharma**: Proporciona contexto de uso inmediato y Signifiers claros.
+- **Estética**: Caja "White-Bone Glass" (blanco hueso semi-mate), optimizada para Flexbox pequeña/mediana. Bordes suaves, header angosto.
+
+### 8.3 El "Botón Ejecutivo" (Canonical Action)
+Cada sub-panel puede declarar una acción principal en su metadata. El header micro la proyectará automáticamente:
+- `label`: Nombre de la acción (Humano).
+- `intent`: Código de la acción (Maquinístico).
+- `onExecute`: Callback vinculado.
+
+---
+
+## 9. JERARQUÍA DE DEPENDENCIAS (REVISADA)
 
 ```
 App.jsx
@@ -385,6 +403,54 @@ Un componente de nivel N puede importar de nivel N+1, N+2, etc. **Nunca de nivel
 > Un `Spinner` no puede importar un `BridgeDesigner`.  
 > Un `ArtifactSelector` no puede importar un `LogicCanvas`.  
 > Un `PortManager` no puede importar un `AEE_Dashboard`.
+
+---
+
+---
+
+## 7. SERVICIOS DE INDUSTRIALIZACIÓN
+
+### 7.1 EngineRegistry
+**Archivo:** `services/EngineRegistry.js`
+
+Registro global que mapea `atom.class → componente React`. Es la pieza central de industrialización del sistema.
+
+- `registry.register(atomClass, Component)` — registra un motor
+- `registry.get(atomClass)` — devuelve el componente registrado para esa clase
+
+Cuando `App.jsx` detecta un `activeArtifact`, llama a `registry.get(atom.class)` para obtener el componente motor. Si no hay motor registrado, muestra el fallback de `UNKNOWN_ENGINE`.
+
+### 7.2 Patrón `init.js` — Auto-registro de Motores
+
+Cada motor que debe ser invocado por el `EngineRegistry` exporta un `init.js`:
+
+```js
+// Estructura canónica de init.js
+import { registry } from '../../../services/EngineRegistry';
+import { BridgeDesigner } from './index';
+
+// Opcional: manifiesto de capacidades
+export const BRIDGE_MANIFEST = {
+    id: 'BRIDGE_DESIGNER',
+    name: 'LOGIC_BRIDGE',
+    icon: 'BRIDGE',
+    color: 'var(--color-cold)',
+    description: 'Pipeline de transformación lógica de datos.',
+};
+
+// Registro en el EngineRegistry
+registry.register('BRIDGE', BridgeDesigner);
+```
+
+`EngineBoot.js` importa todos los `init.js` en un único punto para activar el auto-registro al arrancar la app.
+
+### 7.3 DataProjector
+**Archivo:** `services/DataProjector.js`
+
+Transforma átomos crudos del backend en proyecciones UI normalizadas. Define:
+- `CLASS_THEMES` — color, ícono y label por clase de átomo
+- `projectArtifact(atom)` — proyección para tarjetas del Dashboard
+- `projectWorkspace(ws)` — proyección para tarjetas del Nexus
 
 ---
 

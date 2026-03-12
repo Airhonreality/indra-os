@@ -8,7 +8,7 @@
 import React from 'react';
 import { MicroSlot } from '../MicroSlot';
 
-export function MathConfig({ config, onUpdate, onOpenSelector }) {
+export function MathConfig({ config, onUpdate, focusedTarget, setFocusedTarget, opId }) {
 
     const updateOp = (opCode) => {
         onUpdate({ ...config, operation: opCode });
@@ -26,7 +26,8 @@ export function MathConfig({ config, onUpdate, onOpenSelector }) {
             <MicroSlot
                 value={config.input_a}
                 label={config.input_a_label}
-                onOpenSelector={() => onOpenSelector('input_a')}
+                isActive={focusedTarget?.id === opId && focusedTarget?.key === 'input_a'}
+                onActivate={() => setFocusedTarget({ mode: 'OPERATOR', id: opId, key: 'input_a' })}
                 placeholder="INPUT_A"
             />
 
@@ -46,7 +47,8 @@ export function MathConfig({ config, onUpdate, onOpenSelector }) {
             <MicroSlot
                 value={config.input_b}
                 label={config.input_b_label}
-                onOpenSelector={() => onOpenSelector('input_b')}
+                isActive={focusedTarget?.id === opId && focusedTarget?.key === 'input_b'}
+                onActivate={() => setFocusedTarget({ mode: 'OPERATOR', id: opId, key: 'input_b' })}
                 placeholder="INPUT_B"
             />
         </div>

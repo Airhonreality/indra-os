@@ -10,7 +10,7 @@ import { IndraIcon } from '../../../utilities/IndraIcons';
 
 import { DataProjector } from '../../../../services/DataProjector';
 
-export function TopRibbon({ label, onUpdateLabel, isSaving, onSave, onAddBlock, onClose, zoom, setZoom }) {
+export function TopRibbon({ label, onUpdateLabel, isSaving, onSave, onAddBlock, onClose, zoom, setZoom, undo, redo, canUndo, canRedo }) {
     const TOOLS = DataProjector.getDocumentTools();
 
     return (
@@ -132,7 +132,28 @@ export function TopRibbon({ label, onUpdateLabel, isSaving, onSave, onAddBlock, 
             </div>
 
             {/* RIGHT: Actions */}
-            <div className="shelf">
+            <div className="shelf--tight">
+                <div className="shelf--tight" style={{ marginRight: 'var(--space-2)' }}>
+                    <button
+                        className="btn btn--xs btn--ghost"
+                        onClick={undo}
+                        disabled={!canUndo}
+                        style={{ opacity: canUndo ? 1 : 0.3, border: 'none', padding: 'var(--space-2)' }}
+                        title="UNDO (Ctrl+Z)"
+                    >
+                        <IndraIcon name="ARROW_LEFT" size="14px" />
+                    </button>
+                    <button
+                        className="btn btn--xs btn--ghost"
+                        onClick={redo}
+                        disabled={!canRedo}
+                        style={{ opacity: canRedo ? 1 : 0.3, border: 'none', padding: 'var(--space-2)' }}
+                        title="REDO (Ctrl+Y)"
+                    >
+                        <IndraIcon name="ARROW_RIGHT" size="14px" />
+                    </button>
+                </div>
+
                 <button
                     className={`btn btn--sm ${isSaving ? 'btn--ghost' : 'btn--accent'}`}
                     onClick={onSave}

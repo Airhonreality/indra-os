@@ -164,13 +164,13 @@ src/components/utilities/
 
 Tras la primera incursión operativa, se han identificado los siguientes cuellos de botella que impiden una productividad profesional:
 
-1.  **Layout Contra-Natura:** El panel de capas a la izquierda rompe el flujo estándar (Figma/Webflow). Los paneles deben estar a la derecha.
+1.  **Layout Contra-Natura:** El panel de capas y el explorador de datos deben estar integrados en la columna de la derecha para optimizar el flujo visual del canvas central.
 2.  **Inspector Fantasma:** Si no hay un nodo seleccionado, el panel derecho queda vacío, dejando al usuario sin guía de acción.
 3.  **Lienzo Ciego (Blind Canvas):** Imposibilidad de editar texto directamente en el papel; dependencia de un `textarea` remoto.
 4.  **Bloqueo de Desplazamiento (Scroll-Lock):** El centrado CSS bloquea el desbordamiento; el documento de 1100px se vuelve inaccesible en pantallas pequeñas.
 5.  **Agnosticismo de Imagen Inútil:** Pedir una URL manual es ineficiente. Debe integrar el `ArtifactSelector` del Vault.
 6.  **Sin Paginación Real:** No hay distinción visual entre hojas; se percibe como una "tira infinita" sin estructura de impresión.
-7.  **Slots via Portapapeles:** El flujo de copiar `{{slot}}` es manual y arcaico. Falta un sistema de Drag & Drop de datos.
+7.  **Slots via Portapapeles:** El flujo de copiar `{{slot}}` es manual y arcaico. Falta un sistema de selección e inserción automática.
 8.  **Jerarquía Plana:** El árbol de capas carece de iconografía técnica para diferenciar tipos de bloques de un vistazo.
 9.  **Falta de Zoom / Pan:** Imposibilidad de alejarse para ver la composición general o acercarse para detalles finos.
 10. **Manejadores Invisibles:** No hay "handles" en los bordes para redimensionar bloques visualmente en el canvas.
@@ -186,13 +186,13 @@ Tras la primera incursión operativa, se han identificado los siguientes cuellos
 
 Para subsanar las falencias, se ejecutará el siguiente plan de acción táctico:
 
-1.  **Reingeniería de Layout (Right Hand Side):** Traslado de `LeftPanel` y `RightPanel` a una columna unificada a la derecha.
+1.  **Reingeniería de Layout (Right Hand Side):** Traslado de `NavigatorPanel` y `PropertiesInspector` a la columna derecha.
 2.  **Inspector Persistente:** Estado de "Global Props" o "Empty State" informativo cuando no hay selección.
 3.  **Edición Inline:** Implementación de inputs transparentes sobre el canvas para edición directa de texto.
 4.  **Fix de Visualización:** Cambio de `center` a `top` con `margin: auto` y `overflow-y: auto` para permitir scroll natural.
 5.  **Integración de Vault:** Enlace directo entre el bloque `IMAGE` y el `ArtifactSelector`.
 6.  **Paginador Visual:** Renderizado de sombras y divisores entre múltiples hojas físicas.
-7.  **Data Drag & Drop:** Menú flotante de Slots que permite arrastrarlos directamente al texto o etiquetas.
+7.  **Data Auto-Insertion:** Al seleccionar un Slot en el panel lateral, este se inyecta automáticamente en el bloque `TEXT` activo o se vincula al bloque seleccionado.
 8.  **Iconografía Técnica:** Adición de glifos específicos en `LayerTree` (Frame, Text, Image, Repeater).
 9.  **Utilidad de Zoom:** Implementación de `transform: scale()` en el contenedor del monitor.
 10. **Resizers Activos:** Añadir puntos de anclaje (handles) visuales en el bloque seleccionado.

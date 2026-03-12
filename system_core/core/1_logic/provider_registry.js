@@ -51,11 +51,11 @@ function _scanProviders() {
   // Intento 1: Iteración sobre el contexto global (Sincronía Glandular)
   // En GAS V8, 'this' o 'globalThis' pueden contener las funciones globales.
   const scope = globalThis || this;
-  
+
   // Lista de posibles nombres de funciones de configuración
   // GAS no siempre permite iterar sobre el scope global de forma fiable entre archivos.
   const possibleKeys = Object.keys(scope).filter(k => k.startsWith(SILO_MANIFEST_PREFIX));
-  
+
   // Si no se detectan llaves pero sabemos que hay providers, usamos la lista conocida (Defensa en Profundidad)
   const keysToTry = possibleKeys.length > 0 ? possibleKeys : knownPrefixes;
 
@@ -123,46 +123,44 @@ function buildManifest() {
       // Caso 1: Provider configurado pero sin cuentas específicas (o no requiere config)
       // Ojo: Si requiere config pero no tiene cuentas -> needs_setup: true
       manifestItems.push({
-        id:           conf.id,
+        id: conf.id,
         handle: {
           ns: `com.indra.system.silo`,
           alias: conf.id,
-          label: conf.handle?.label || conf.id.toUpperCase()
+          label: conf.handle?.label || conf.id
         },
-        class:        (conf.class || conf.archetype || 'SILO').toUpperCase(),
-        protocols:    Object.keys(conf.implements || {}).map(p => p.toUpperCase()),
-        capabilities: conf.capabilities || {}, 
-        provider:     conf.id,  
+        class: (conf.class || 'SILO').toUpperCase(),
+        protocols: Object.keys(conf.implements || {}).map(p => p.toUpperCase()),
+        capabilities: conf.capabilities || {},
+        provider: conf.id,
         provider_base: conf.id,
         protocol_meta: conf.protocol_meta || {},
         raw: {
           needs_setup: hasSchema,
-          accounts:    [],
+          accounts: [],
         },
       });
     } else {
-      // Caso 2: El provider tiene n cuentas. Emitimos un Átomo por cada cuenta.
-      // Esto permite que el VaultRibbon muestre múltiples íconos de Notion/Drive.
       accounts.forEach(acc => {
-        const accountLabel = acc.label || acc.name || acc.account_id;
+        const accountLabel = acc.label || acc.account_id;
         manifestItems.push({
-          id:           `${conf.id}:${acc.account_id}`,
+          id: `${conf.id}:${acc.account_id}`,
           handle: {
             ns: `com.indra.system.silo`,
             alias: `${conf.id}_${acc.account_id}`,
-            label: `${conf.handle?.label || conf.id.toUpperCase()} (${accountLabel})`
+            label: `${conf.handle?.label || conf.id} (${accountLabel})`
           },
-          class:        (conf.class || conf.archetype || 'SILO').toUpperCase(),
-          protocols:    Object.keys(conf.implements || {}).map(p => p.toUpperCase()),
-          capabilities: conf.capabilities || {}, 
-          provider:     `${conf.id}:${acc.account_id}`,
+          class: (conf.class || 'SILO').toUpperCase(),
+          protocols: Object.keys(conf.implements || {}).map(p => p.toUpperCase()),
+          capabilities: conf.capabilities || {},
+          provider: `${conf.id}:${acc.account_id}`,
           provider_base: conf.id,
           protocol_meta: conf.protocol_meta || {},
-          account_id:   acc.account_id,
+          account_id: acc.account_id,
           raw: {
             needs_setup: false,
-            account:     acc,
-            accounts:    accounts,
+            account: acc,
+            accounts: accounts,
           },
         });
       });
@@ -189,17 +187,17 @@ function buildConfigSchema() {
   const items = allConfigs
     .filter(conf => conf.config_schema && conf.config_schema.length > 0)
     .map(conf => ({
-      id:           conf.id,
+      id: conf.id,
       handle: {
         ns: 'com.indra.system.config',
         alias: `config_${conf.id}`,
         label: `Configuración de ${conf.name}`
       },
-      name:         conf.name,
-      class:        'CONFIG_SCHEMA',
-      provider:     'system',
-      protocols:    ['SYSTEM_CONFIG_WRITE'],
-      fields:       conf.config_schema, 
+      name: conf.name,
+      class: 'CONFIG_SCHEMA',
+      provider: 'system',
+      protocols: ['SYSTEM_CONFIG_WRITE'],
+      fields: conf.config_schema,
     }));
 
   logInfo(`[provider_registry] Config schema compilado. Providers con schema: ${items.length}`);

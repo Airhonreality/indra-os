@@ -35,7 +35,7 @@ ImageBlock.manifest = {
         {
             name: 'SOURCE',
             fields: [
-                { id: 'src', label: 'URL', type: 'text' }
+                { id: 'src', label: 'SOURCE_URL', type: 'vault_artifact' }
             ]
         },
         {
@@ -54,4 +54,5 @@ ImageBlock.manifest = {
         }
     ]
 };
+export default ImageBlock;
 

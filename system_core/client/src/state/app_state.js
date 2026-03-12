@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { executeDirective } from '../services/directive_executor';
+import { toastEmitter } from '../services/toastEmitter';
 
 /**
  * Indra App State
@@ -116,12 +117,19 @@ export const useAppState = create((set, get) => ({
     createArtifact: async (atomClass, label) => {
         const { coreUrl, sessionSecret, pinAtom, openArtifact } = get();
         try {
+            // ADR-008: Provisión de cuna para tipos estructurados
+            const initialPayload = {};
+            if (atomClass === 'DATA_SCHEMA') initialPayload.fields = [];
+            if (atomClass === 'BRIDGE') initialPayload.operators = [];
+            if (atomClass === 'WORKFLOW') initialPayload.stations = [];
+
             const result = await executeDirective({
                 provider: 'system',
                 protocol: 'ATOM_CREATE',
                 data: {
                     class: atomClass,
-                    handle: { label: label }
+                    handle: { label: label },
+                    payload: initialPayload
                 }
             }, coreUrl, sessionSecret);
 
@@ -129,9 +137,11 @@ export const useAppState = create((set, get) => ({
             if (newAtom) {
                 await pinAtom(newAtom);
                 openArtifact(newAtom);
+                toastEmitter.success(`${atomClass} creado correctamente`);
             }
         } catch (err) {
             console.error('[app_state] createArtifact failed:', err);
+            toastEmitter.error(`Error al crear ${atomClass}: ${err.message}`);
             throw err;
         }
     },
@@ -150,7 +160,19 @@ export const useAppState = create((set, get) => ({
                 protocol: 'SYSTEM_PINS_READ',
                 workspace_id: activeWorkspaceId
             }, coreUrl, sessionSecret);
-            set({ pins: result.items });
+
+            // AXIOMA: Mezcla Deep-over-Shallow para evitar degradación de átomos hidratados
+            const currentPins = get().pins;
+            const newPins = (result.items || []).map(newPin => {
+                const existing = currentPins.find(p => p.id === newPin.id && p.provider === newPin.provider);
+                if (existing && existing.payload && !newPin.payload) {
+                    // Mantener la hidratación profunda si ya existe
+                    return { ...newPin, payload: existing.payload, protocols: existing.protocols || newPin.protocols };
+                }
+                return newPin;
+            });
+
+            set({ pins: newPins });
         } catch (err) {
             console.error('[app_state] loadPins failed:', err);
         } finally {
@@ -178,10 +200,58 @@ export const useAppState = create((set, get) => ({
     },
 
     /**
+     * Elimina físicamente un átomo del core y purga sus pins.
+     * ADR-008: La eliminación es atómica: primero desancla, luego borra.
+     */
+    deleteArtifact: async (atomId, provider) => {
+        const { coreUrl, sessionSecret, activeWorkspaceId, pins } = get();
+
+        // ── 1. OPTIMISTIC: Quitar de la UI inmediatamente ──
+        const previousPins = [...pins];
+        set({ pins: pins.filter(p => !(p.id === atomId && p.provider === provider)) });
+
+        try {
+            // ── 2. SYSTEM_UNPIN: Limpiar referencia en el workspace (doble seguro) ──
+            try {
+                await executeDirective({
+                    provider: 'system',
+                    protocol: 'SYSTEM_UNPIN',
+                    workspace_id: activeWorkspaceId,
+                    data: { atom_id: atomId, provider }
+                }, coreUrl, sessionSecret);
+            } catch (unpinErr) {
+                console.warn('[app_state] SYSTEM_UNPIN pre-delete falló (no crítico):', unpinErr.message);
+            }
+
+            // ── 3. ATOM_DELETE: Eliminar el archivo y que el backend purgue el resto ──
+            await executeDirective({
+                provider: provider,
+                protocol: 'ATOM_DELETE',
+                context_id: atomId
+            }, coreUrl, sessionSecret);
+
+            // ── 4. Recargar pins para confirmar estado limpio ──
+            get().loadPins();
+            toastEmitter.success('Artefacto eliminado');
+        } catch (err) {
+            console.error('[app_state] deleteArtifact failed, reverting:', err);
+            set({ pins: previousPins });
+            toastEmitter.error(`Error al eliminar: ${err.message}`);
+            throw err;
+        }
+    },
+
+    /**
      * Desancla un átomo del workspace activo.
      */
     unpinAtom: async (atomId, provider) => {
-        const { coreUrl, sessionSecret, activeWorkspaceId } = get();
+        const { coreUrl, sessionSecret, activeWorkspaceId, pins } = get();
+
+        // ── OPTIMISTIC UNPIN ──
+        const previousPins = [...pins];
+        const filteredPins = pins.filter(p => !(p.id === atomId && p.provider === provider));
+        set({ pins: filteredPins });
+
         try {
             await executeDirective({
                 provider: 'system',
@@ -189,9 +259,79 @@ export const useAppState = create((set, get) => ({
                 workspace_id: activeWorkspaceId,
                 data: { atom_id: atomId, provider }
             }, coreUrl, sessionSecret);
+
             get().loadPins();
         } catch (err) {
-            console.error('[app_state] unpinAtom failed:', err);
+            console.error('[app_state] unpinAtom failed, reverting:', err);
+            set({ pins: previousPins });
+            throw err;
+        }
+    },
+
+    /**
+     * Renombra un Workspace actualizando el handle.label en el Core.
+     */
+    renameWorkspace: async (workspaceId, newLabel) => {
+        const { coreUrl, sessionSecret, workspaces } = get();
+        if (!newLabel.trim()) return;
+
+        const updatedWorkspaces = workspaces.map(w =>
+            w.id !== workspaceId ? w : { ...w, handle: { ...w.handle, label: newLabel } }
+        );
+        set({ workspaces: updatedWorkspaces });
+
+        try {
+            await executeDirective({
+                provider: 'system',
+                protocol: 'ATOM_UPDATE',
+                context_id: workspaceId,
+                data: { handle: { label: newLabel } }
+            }, coreUrl, sessionSecret);
+        } catch (err) {
+            console.error('[app_state] renameWorkspace failed, reverting:', err);
+            set({ workspaces });
+            toastEmitter.error('No se pudo guardar el nuevo nombre');
+        }
+    },
+
+    /**
+     * Elimina un Workspace completo.
+     * ADR-008: La eliminación es atómica. El backend purga sus pins via ATOM_DELETE.
+     * El frontend limpia optimistamente el estado local.
+     */
+    deleteWorkspace: async (workspaceId) => {
+        const { coreUrl, sessionSecret, workspaces, activeWorkspaceId } = get();
+        const previousWorkspaces = [...workspaces];
+
+        // ── 1. OPTIMISTIC: Quitar de la lista local ──
+        set({ workspaces: workspaces.filter(w => w.id !== workspaceId) });
+
+        // ── 2. Si era el workspace activo, desactivarlo ──
+        if (activeWorkspaceId === workspaceId) {
+            localStorage.removeItem('indra-active-workspace-id');
+            set({ activeWorkspaceId: null, pins: [] });
+        }
+
+        try {
+            // ── 3. ATOM_DELETE en el backend (incluye purga anti-pin-fantasma) ──
+            await executeDirective({
+                provider: 'system',
+                protocol: 'ATOM_DELETE',
+                context_id: workspaceId
+            }, coreUrl, sessionSecret);
+
+            // ── 4. Recargar lista de workspaces ──
+            const result = await executeDirective({
+                provider: 'system',
+                protocol: 'ATOM_READ',
+                context_id: 'workspaces'
+            }, coreUrl, sessionSecret);
+            set({ workspaces: result.items || [] });
+
+        } catch (err) {
+            console.error('[app_state] deleteWorkspace failed, reverting:', err);
+            set({ workspaces: previousWorkspaces });
+            toastEmitter.error(`Error al eliminar workspace: ${err.message}`);
             throw err;
         }
     },

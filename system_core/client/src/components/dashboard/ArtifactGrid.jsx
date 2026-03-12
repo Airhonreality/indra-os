@@ -20,8 +20,8 @@ import React from 'react';
 import { ArtifactCard } from './ArtifactCard';
 import { useLexicon } from '../../services/lexicon';
 import { useAppState } from '../../state/app_state';
-
 import { DataProjector } from '../../services/DataProjector';
+import { EmptyState } from '../utilities/primitives';
 
 export function ArtifactGrid({ pins }) {
     // 1. Filtrar solo artefactos operativos (Agnosticismo de Infraestructura)
@@ -33,11 +33,13 @@ export function ArtifactGrid({ pins }) {
     return (
         <div className="stack" style={{ gap: 'var(--space-12)' }}>
             {groups.length === 0 && (
-                <div className="center stack" style={{ padding: 'var(--space-16)', opacity: 0.3 }}>
-                    <div style={{ width: '40px', height: '1px', background: 'var(--color-accent)' }}></div>
-                    <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', marginTop: 'var(--space-4)' }}>
-                        EMPTY_WORKSPACE_WAITING_FOR_SEED
-                    </span>
+                <div style={{ padding: 'var(--space-16)' }}>
+                    <EmptyState
+                        icon="ATOM"
+                        title="WORKSPACE_AWAITING_SEED"
+                        description="Crea tu primer artefacto usando el ActionRail de arriba."
+                        size="lg"
+                    />
                 </div>
             )}
 

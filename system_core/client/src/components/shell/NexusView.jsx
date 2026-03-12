@@ -3,8 +3,11 @@ import { useProtocol } from '../../context/ProtocolContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import { useShell } from '../../context/ShellContext';
 import { IndraIcon } from '../utilities/IndraIcons';
+import { IndraActionTrigger } from '../utilities/IndraActionTrigger';
 import { useLexicon } from '../../services/lexicon';
 import { DataProjector } from '../../services/DataProjector';
+import { ServiceManager } from './ServiceManager/ServiceManager';
+import './NexusView.css';
 
 /**
  * NexusView (Nivel 1)
@@ -13,10 +16,12 @@ import { DataProjector } from '../../services/DataProjector';
 export function NexusView() {
     const { coreUrl } = useProtocol();
     const { lang } = useShell();
+    const [isServiceManagerOpen, setIsServiceManagerOpen] = useState(false);
     const {
         workspaces,
         services,
         setActiveWorkspace,
+        deleteWorkspace,
         hydrateManifest
     } = useWorkspace();
 
@@ -31,18 +36,18 @@ export function NexusView() {
     const projectedWorkspaces = workspaces.map(w => DataProjector.projectWorkspace(w)).filter(w => w !== null);
 
     return (
-        <div className="fill stack" style={{ padding: 'var(--space-8)', gap: 'var(--space-8)' }}>
+        <div className="fill stack nexus-view">
 
             {/* ── HEADER DE NAVEGACIÓN ── */}
-            <div className="spread">
-                <div className="shelf" style={{ gap: 'var(--space-4)' }}>
-                    <div style={{ position: 'relative' }}>
+            <div className="spread nexus-header">
+                <div className="shelf--loose">
+                    <div className="nexus-logo">
                         <IndraIcon name="WORKSPACE" size="32px" style={{ color: 'var(--color-accent)', filter: 'drop-shadow(0 0 8px var(--color-accent-dim))' }} />
-                        <div style={{ position: 'absolute', top: -5, left: -5, width: '10px', height: '10px', borderTop: '2px solid var(--color-accent)', borderLeft: '2px solid var(--color-accent)' }}></div>
+                        <div className="nexus-logo__accent"></div>
                     </div>
                     <div className="stack--tight">
-                        <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-lg)', letterSpacing: '0.2em', margin: 0, color: 'white' }}>{t('hud_nexus_control')}</h2>
-                        <span className="text-hint" style={{ fontSize: '9px', opacity: 0.5 }}>{t('id_core')}: {coreUrl?.split('/').slice(-1)[0].substring(0, 12)}...</span>
+                        <h2 className="nexus-title">{t('hud_nexus_control')}</h2>
+                        <span className="text-hint" style={{ opacity: 0.5 }}>{t('id_core')}: {coreUrl?.split('/').slice(-1)[0].substring(0, 12)}...</span>
                     </div>
                 </div>
                 <div className="shelf">
@@ -62,43 +67,41 @@ export function NexusView() {
                     {/* Status de Servicios */}
                     <div className="stack" style={{ gap: 'var(--space-5)' }}>
                         <div className="shelf--loose">
-                            <span style={{ fontSize: '10px', color: 'var(--color-accent)', opacity: 0.5 }}>01 //</span>
-                            <label className="text-label" style={{ opacity: 0.8, letterSpacing: '0.1em' }}>{t('hud_service_fabric')}</label>
+                            <span className="util-label">01 //</span>
+                            <label className="text-label" style={{ opacity: 0.8 }}>{t('hud_service_fabric')}</label>
                         </div>
                         <div className="stack--tight">
                             {projectedServices.map(svc => (
-                                <div key={svc.id} className="shelf split" style={{
-                                    padding: 'var(--space-2) 0',
-                                    borderBottom: '1px solid rgba(255,255,255,0.05)',
-                                    justifyContent: 'space-between'
-                                }}>
-                                    <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.7)' }}>{svc.label}</span>
-                                    <div className="shelf" style={{ gap: 'var(--space-2)' }}>
-                                        <div style={{
-                                            width: '5px', height: '5px',
-                                            borderRadius: '50%',
+                                <div key={svc.id} className="shelf service-status-row">
+                                    <span className="text-hint" style={{ color: 'white', opacity: 0.7 }}>{svc.label}</span>
+                                    <div className="shelf--tight">
+                                        <div className="service-dot" style={{
                                             background: svc.isReady ? 'var(--color-accent)' : 'var(--color-warm)',
                                             boxShadow: svc.isReady ? '0 0 5px var(--color-accent)' : '0 0 5px var(--color-warm)'
                                         }}></div>
-                                        <span style={{ fontSize: '8px', opacity: 0.5, letterSpacing: '0.05em' }}>
+                                        <span className="text-hint" style={{ fontSize: '8px', opacity: 0.5 }}>
                                             {t(svc.statusLabel.toLowerCase())}
                                         </span>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                        <button className="btn btn--ghost btn--full" style={{ fontSize: '9px', marginTop: 'var(--space-2)', borderStyle: 'dashed' }}>
+                        <button
+                            className="btn btn--ghost btn--full"
+                            style={{ fontSize: '9px', marginTop: 'var(--space-2)', borderStyle: 'dashed' }}
+                            onClick={() => setIsServiceManagerOpen(true)}
+                        >
                             <IndraIcon name="SERVICE" size="12px" />
                             {t('action_manage_services')}
                         </button>
                     </div>
 
-                    <div className="hud-line" style={{ width: '100%', opacity: 0.2 }}></div>
+                    <div className="hud-line fill opacity-20"></div>
 
                     {/* Metadata de Sistema */}
                     <div className="stack--tight">
-                        <label className="text-label" style={{ opacity: 0.6, fontSize: '10px' }}>02 // {t('hud_system_log')}</label>
-                        <div className="text-hint" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', opacity: 0.3, lineHeight: '1.6' }}>
+                        <label className="text-label opacity-60">02 // {t('hud_system_log')}</label>
+                        <div className="system-log-area">
                             {`[ ${new Date().toLocaleTimeString()} ] SESSION_RESTORED`}<br />
                             {`[ ${new Date().toLocaleTimeString()} ] MANIFEST_SYNC_OK`}<br />
                             {`[ ${new Date().toLocaleTimeString()} ] IDLE_WATCHDOG_ACTIVE`}
@@ -110,9 +113,9 @@ export function NexusView() {
                 {/* COLUMNA B: WORKSPACE SELECTION */}
                 <main className="stack" style={{ gap: 'var(--space-6)' }}>
                     <div className="shelf--loose">
-                        <span style={{ fontSize: '10px', color: 'var(--color-accent)', opacity: 0.5 }}>// EXPLORER</span>
+                        <span className="util-label">// EXPLORER</span>
                         <label className="text-label" style={{ letterSpacing: '0.2em' }}>{t('hud_active_workspaces')}</label>
-                        <div className="hud-line fill" style={{ opacity: 0.3 }}></div>
+                        <div className="hud-line fill opacity-30"></div>
                     </div>
 
                     <div className="grid-auto">
@@ -126,9 +129,9 @@ export function NexusView() {
                                 <div className="ws-card__deco-tl"></div>
                                 <div className="ws-card__deco-br"></div>
 
-                                <div className="spread" style={{ opacity: 0.4 }}>
-                                    <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>{t('hud_ws_identity')} // {ws.subtitle}</span>
-                                    <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)' }}>{new Date(ws.updatedAt).toLocaleDateString()}</span>
+                                <div className="spread opacity-40">
+                                    <span className="text-hint font-mono" style={{ fontSize: '8px' }}>{t('hud_ws_identity')} // {ws.subtitle}</span>
+                                    <span className="text-hint font-mono" style={{ fontSize: '8px' }}>{new Date(ws.updatedAt).toLocaleDateString()}</span>
                                 </div>
 
                                 <div className="fill center" style={{ padding: 'var(--space-4) 0' }}>
@@ -137,13 +140,25 @@ export function NexusView() {
 
                                 <div className="spread" style={{ marginTop: 'auto', alignItems: 'flex-end' }}>
                                     <div className="stack--tight">
-                                        <span style={{ fontSize: '9px', opacity: 0.5, fontFamily: 'var(--font-mono)' }}>{t('hud_pins')}: {ws.pinCount}</span>
+                                        <span className="text-hint font-mono" style={{ fontSize: '9px', opacity: 0.5 }}>{t('hud_pins')}: {ws.pinCount}</span>
                                         <div style={{ width: '40px', height: '2px', background: 'var(--color-accent)', opacity: 0.3 }}></div>
                                     </div>
 
-                                    <button className="btn btn--accent btn--mini" style={{ padding: '4px 12px', fontSize: '9px' }}>
-                                        {t('action_activate')}
-                                    </button>
+                                    <div className="shelf--tight" onClick={e => e.stopPropagation()}>
+                                        <IndraActionTrigger
+                                            variant="destructive"
+                                            label="DELETE_WORKSPACE"
+                                            onClick={() => deleteWorkspace(ws.id)}
+                                            size="10px"
+                                        />
+                                        <button
+                                            className="btn btn--accent btn--mini"
+                                            style={{ padding: '4px 12px', fontSize: '9px' }}
+                                            onClick={(e) => { e.stopPropagation(); setActiveWorkspace(ws.id); }}
+                                        >
+                                            {t('action_activate')}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -157,72 +172,17 @@ export function NexusView() {
                             }}>
                                 <IndraIcon name="PLUS" size="24px" />
                             </div>
-                            <span className="text-label" style={{ marginTop: 'var(--space-4)', fontSize: '10px', opacity: 0.5 }}>{t('action_generate_ws')}</span>
+                            <span className="text-label opacity-50" style={{ marginTop: 'var(--space-4)', fontSize: '10px' }}>{t('action_generate_ws')}</span>
                         </div>
                     </div>
                 </main>
 
             </div>
 
-            <style>{`
-                .ws-card {
-                    position: relative;
-                    min-height: 180px;
-                    padding: var(--space-5);
-                    cursor: pointer;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    border: 1px solid rgba(255,255,255,0.05);
-                    overflow: hidden;
-                    background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0) 100%);
-                }
-                .ws-card:hover {
-                    border-color: var(--color-accent-dim);
-                    background: rgba(var(--color-accent-rgb), 0.05);
-                    transform: translateY(-4px) scale(1.02);
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-                }
-                .ws-card__title {
-                    font-family: var(--font-mono);
-                    font-size: 28px;
-                    color: var(--color-accent);
-                    margin: 0;
-                    text-shadow: 0 0 15px var(--color-accent-dim);
-                    letter-spacing: -0.02em;
-                    transition: all 0.3s ease;
-                }
-                .ws-card:hover .ws-card__title {
-                    letter-spacing: 0.05em;
-                    color: white;
-                }
-                .ws-card__deco-tl {
-                    position: absolute;
-                    top: 0; left: 0;
-                    width: 20px; height: 20px;
-                    border-top: 1px solid var(--color-accent);
-                    border-left: 1px solid var(--color-accent);
-                    opacity: 0.3;
-                }
-                .ws-card__deco-br {
-                    position: absolute;
-                    bottom: 0; right: 0;
-                    width: 20px; height: 20px;
-                    border-bottom: 1px solid var(--color-accent);
-                    border-right: 1px solid var(--color-accent);
-                    opacity: 0.3;
-                }
-                .ws-card--new {
-                    border: 1px dashed var(--color-border-strong);
-                    background: transparent;
-                }
-                .ws-card--new:hover {
-                    border-style: solid;
-                    border-color: var(--color-accent);
-                }
-                .btn--mini {
-                    border-radius: 0;
-                    clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%, 0 30%);
-                }
-            `}</style>
+            {/* Renderizado Condicional del ServiceManager */}
+            {isServiceManagerOpen && (
+                <ServiceManager onClose={() => setIsServiceManagerOpen(false)} />
+            )}
         </div>
     );
 }

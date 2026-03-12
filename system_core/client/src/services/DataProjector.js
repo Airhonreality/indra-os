@@ -11,14 +11,13 @@
 
 import { registry } from './EngineRegistry';
 
-/**
- * Mapeo canónico de Clases a Temas Visuales (Dharma Visual).
- * Esto podría moverse a un EngineManifest en el futuro.
- */
 const CLASS_THEMES = {
     'DATA_SCHEMA': { color: 'var(--color-accent)', icon: 'SCHEMA', label: 'DATA_SCHEMA' },
     'BRIDGE': { color: 'var(--color-cold)', icon: 'BRIDGE', label: 'LOGIC_BRIDGE' },
     'DOCUMENT': { color: 'var(--color-warm)', icon: 'DOCUMENT', label: 'DOCUMENT_TEMPLATE' },
+    'WORKFLOW': { color: '#ff007c', icon: 'WORKFLOW', label: 'WORKFLOW' },
+    'VIDEO_PROJECT': { color: '#8B5CF6', icon: 'PLAY', label: 'VIDEO_PROJECT' },
+    'AEE_RUNNER': { color: 'var(--color-success)', icon: 'PLAY', label: 'OPERATIONAL_RUNNER' },
     'VIRTUAL_SERVICE': { color: 'var(--color-info)', icon: 'ATOM', label: 'VIRTUAL_SERVICE' },
     'FOLDER': { color: 'var(--color-text-tertiary)', icon: 'FOLDER', label: 'COLLECTION' }
 };
@@ -40,7 +39,8 @@ const FIELD_TYPES = {
  * Mapeo de Bloques de Documento.
  */
 const BLOCK_TYPES = {
-    'FRAME': { label: 'FRAME', icon: 'ATOM', color: 'var(--color-accent)' },
+    'PAGE': { label: 'NEW_PAGE', icon: 'DOCUMENT', color: 'var(--color-accent)' },
+    'FRAME': { label: 'FRAME', icon: 'FRAME', color: 'var(--color-accent)' },
     'TEXT': { label: 'TEXT_BOX', icon: 'TEXT', color: 'var(--color-text)' },
     'IMAGE': { label: 'IMAGE_ASSET', icon: 'IMAGE', color: 'var(--color-info)' },
     'ITERATOR': { label: 'ITERATOR', icon: 'REPEATER', color: 'var(--color-warm)' }
@@ -63,8 +63,8 @@ export class DataProjector {
             provider: atom.provider,
             class: atom.class,
 
-            // Proyeccion de Identidad
-            title: atom.handle?.label || atom.label || 'UNTITLED_ATOM',
+            // Proyección de Identidad (Sinceridad Radical ADR-008)
+            title: atom.handle?.label || 'UNTITLED_ATOM',
             subtitle: `${atom.class} // ${atom.id?.substring(0, 8)}`,
 
             // Proyeccion Visual
@@ -111,12 +111,18 @@ export class DataProjector {
      */
     static projectService(svc) {
         if (!svc) return null;
+        const raw = svc.raw || svc;
+        const needsSetup = raw.needs_setup || false;
+
         return {
             id: svc.id,
-            label: svc.handle?.label || svc.id,
-            isReady: !(svc.raw?.needs_setup || svc.needs_setup),
-            statusLabel: (svc.raw?.needs_setup || svc.needs_setup) ? 'STATUS_SETUP' : 'STATUS_READY',
-            raw: svc
+            label: svc.handle?.label || svc.label || svc.id,
+            icon: raw.icon || 'SERVICE',
+            isReady: !needsSetup,
+            error: raw.error || null,
+            statusLabel: needsSetup ? 'STATUS_SETUP' : 'STATUS_READY',
+            metadata: raw.metadata || {},
+            raw: raw
         };
     }
 
@@ -130,10 +136,10 @@ export class DataProjector {
         const typeKey = (field.type || 'TEXT').toUpperCase();
         const typeMeta = FIELD_TYPES[typeKey] || { label: typeKey, icon: 'ATOM', color: 'inherit' };
 
-        return {
-            id: field.id || field.name || field.key,
-            alias: field.alias || field.name || field.id,
-            label: field.label || field.name || field.id || 'UNTITLED_FIELD',
+        const projected = {
+            id: field.id || 'ERR: NO_ID',
+            alias: field.alias || 'ERR: NO_ALIAS',
+            label: field.label || 'UNTITLED_FIELD',
             type: typeKey,
             theme: {
                 color: typeMeta.color,
@@ -144,6 +150,13 @@ export class DataProjector {
             metadata: field.metadata || {},
             raw: field
         };
+
+        // RECURSION: Si tiene hijos (Frames/Repeaters), proyectarlos también
+        if (field.children && Array.isArray(field.children)) {
+            projected.children = field.children.map(c => this.projectFieldDefinition(c)).filter(f => f !== null);
+        }
+
+        return projected;
     }
 
     /**
@@ -190,18 +203,46 @@ export class DataProjector {
     static projectSchema(schemaSource) {
         if (!schemaSource) return { fields: [], label: 'UNKNOWN_SCHEMA' };
 
-        // ADR_001: Intentar extraer de metadata.schema
-        const metadataSchema = schemaSource.metadata?.schema;
-        const rawFields = metadataSchema?.columns || metadataSchema?.fields || schemaSource.payload?.fields || schemaSource.fields || [];
+        // ADR-008: El sistema es sincero. Buscamos en las dos fronteras legales.
+        let rawFields = [];
+        let label = 'UNTITLED_SCHEMA';
+        let id = null;
 
-        // Normalizar campos via proyeccion atomica
+        // Caso A: Es un Átomo persistido (ATOM_READ)
+        if (schemaSource.payload?.fields) {
+            rawFields = schemaSource.payload.fields;
+            label = schemaSource.handle?.label || 'ERR: NO_IDENTITY_LABEL';
+            id = schemaSource.id;
+        }
+        // Caso B: Es un Resultado de Stream (TABULAR_STREAM)
+        else if (schemaSource.metadata?.schema?.fields) {
+            rawFields = schemaSource.metadata.schema.fields;
+            label = schemaSource.handle?.label || schemaSource.metadata.context?.db_name || 'STREAM_PROJECTION';
+            id = schemaSource.id || schemaSource.metadata.context?.db_id;
+        }
+
+        // Proyección Recursiva
         const fields = rawFields.map(f => this.projectFieldDefinition(f)).filter(f => f !== null);
 
         return {
-            id: schemaSource.id,
-            label: schemaSource.handle?.label || schemaSource.label || 'UNTITLED_SCHEMA',
+            id: id,
+            label: label,
             fields: fields,
+            bridge_id: schemaSource.payload?.bridge_id || schemaSource.metadata?.bridge_id || null, // Sinceridad Centralizada
             raw: schemaSource
+        };
+    }
+
+    /**
+     * Proyecta un nodo de Workflow (Estación).
+     */
+    static projectStation(station) {
+        if (!station) return null;
+        return {
+            id: station.id || 'ERR: NO_STATION_ID',
+            label: station.config?.label || 'ERR: STATION_NO_LABEL',
+            type: station.type || 'PROTOCOL',
+            raw: station
         };
     }
 

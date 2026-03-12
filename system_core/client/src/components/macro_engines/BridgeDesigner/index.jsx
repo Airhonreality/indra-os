@@ -15,17 +15,89 @@ import { PortManager } from './PortManager';
 import { OperatorCard } from './OperatorCard';
 import { SandboxPanel } from './SandboxPanel';
 import ArtifactSelector from '../../utilities/ArtifactSelector';
-import { SlotSelector } from '../../utilities/SlotSelector';
 import { IndraIcon } from '../../utilities/IndraIcons';
-import { IndraActionTrigger } from '../../utilities/IndraActionTrigger';
+import { Spinner, EmptyState } from '../../utilities/primitives';
+import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
 
 export function BridgeDesigner({ atom, bridge }) {
     const [isSaving, setIsSaving] = useState(false);
     const [showSelector, setShowSelector] = useState(null); // 'SOURCE' | 'TARGET'
-    const [slotSelectorConfig, setSlotSelectorConfig] = useState(null); // { index, targetKey }
 
-    // 1. Hidratación y Alambrado Técnico (Usando Bridge)
+    // 1. Hidratación y Alambrado Técnico
     const { localAtom, setLocalAtom, schemas, isLoading } = useBridgeHydration(atom, bridge);
+
+    // 2. Historial (Undo/Redo)
+    const [history, setHistory] = useState([localAtom]);
+    const [pointer, setPointer] = useState(0);
+
+    const pushToHistory = (newState) => {
+        const newHistory = history.slice(0, pointer + 1);
+        newHistory.push(newState);
+        if (newHistory.length > 50) newHistory.shift();
+        else setPointer(newHistory.length - 1);
+        setHistory(newHistory);
+        setLocalAtom(newState);
+    };
+
+    const undo = () => {
+        if (pointer > 0) {
+            const prev = history[pointer - 1];
+            setPointer(pointer - 1);
+            setLocalAtom(prev);
+        }
+    };
+
+    const redo = () => {
+        if (pointer < history.length - 1) {
+            const next = history[pointer + 1];
+            setPointer(pointer + 1);
+            setLocalAtom(next);
+        }
+    };
+
+    // 3. Focussed Target (Select & Insert Axiom)
+    // { mode: 'OPERATOR' | 'TARGET', id, key, index? }
+    const [focusedTarget, setFocusedTarget] = useState(null);
+
+    const handleSelectInput = (slot) => {
+        if (!focusedTarget) return;
+
+        const { mode, id, key, index } = focusedTarget;
+
+        if (mode === 'OPERATOR') {
+            const operators = [...(localAtom.payload?.operators || [])];
+            const opIndex = operators.findIndex(o => o.id === id);
+            if (opIndex === -1) return;
+
+            const op = { ...operators[opIndex] };
+            op.config = {
+                ...op.config,
+                [key]: slot.path,
+                [key + '_label']: slot.label
+            };
+            operators[opIndex] = op;
+
+            pushToHistory({
+                ...localAtom,
+                payload: { ...localAtom.payload, operators }
+            });
+        } else if (mode === 'TARGET') {
+            const mappings = { ...(localAtom.payload?.mappings || {}) };
+            const targetMapping = { ...(mappings[id] || {}) };
+            targetMapping[key] = slot.path;
+            targetMapping[key + '_label'] = slot.label;
+            mappings[id] = targetMapping;
+
+            pushToHistory({
+                ...localAtom,
+                payload: { ...localAtom.payload, mappings }
+            });
+        }
+
+        // Auto-release focus after selection for fluidity
+        setFocusedTarget(null);
+    };
+
     const lastSavedRef = useRef(JSON.stringify(atom));
 
     // 2. Persistencia Silenciosa (Vía Bridge)
@@ -57,85 +129,53 @@ export function BridgeDesigner({ atom, bridge }) {
             alias: `operation_${operators.length + 1}`,
             config: {}
         };
-        setLocalAtom(prev => ({
-            ...prev,
-            payload: { ...prev.payload, operators: [...operators, newOp] }
-        }));
+        pushToHistory({
+            ...localAtom,
+            payload: { ...localAtom.payload, operators: [...operators, newOp] }
+        });
     };
 
     const updateOperator = (index, updatedOp) => {
         const operators = [...(localAtom.payload?.operators || [])];
         operators[index] = updatedOp;
-        setLocalAtom(prev => ({
-            ...prev,
-            payload: { ...prev.payload, operators: operators }
-        }));
+        pushToHistory({
+            ...localAtom,
+            payload: { ...localAtom.payload, operators: operators }
+        });
     };
 
     const removeOperator = (id) => {
-        setLocalAtom(prev => ({
-            ...prev,
-            payload: { ...prev.payload, operators: (prev.payload.operators || []).filter(o => o.id !== id) }
-        }));
+        pushToHistory({
+            ...localAtom,
+            payload: { ...localAtom.payload, operators: (localAtom.payload.operators || []).filter(o => o.id !== id) }
+        });
     };
 
-    // Cálculo del Contexto Acumulado (The Dharma of Flow)
+    // Cálculo del Contexto Acumulado
     const getContextAt = (index) => {
-        const context = {
-            sources: {},
-            ops: {}
-        };
+        const context = { sources: {}, ops: {} };
 
-        // 1. Añadir Sources
         (localAtom.payload?.sources || []).forEach(sid => {
             if (schemas[sid]) {
                 const config = localAtom.payload?.sourceConfigs?.[sid] || {};
                 const customAlias = config.alias || schemas[sid].handle?.label || schemas[sid].label || sid;
                 const alias = customAlias.toLowerCase().replace(/\s+/g, '_');
-
                 const activeFields = config.activeFields;
                 const filteredFields = activeFields ? schemas[sid].fields?.filter(f => activeFields.includes(f.id)) : schemas[sid].fields;
-
                 context.sources[alias] = { ...schemas[sid], fields: filteredFields };
             }
         });
 
-        // 2. Añadir Operadores anteriores
         (localAtom.payload?.operators || []).slice(0, index).forEach(op => {
             if (op.alias) {
-                context.ops[op.alias] = { type: 'UNKNOWN' }; // Simplificación inicial
+                context.ops[op.alias] = {
+                    type: op.type,
+                    res: `RESULT_OF_${op.alias.toUpperCase()}`
+                };
             }
         });
 
         return context;
-    };
-
-    const handleSlotSelect = (slot) => {
-        const { index, targetKey, mode, targetId } = slotSelectorConfig;
-
-        if (mode === 'OPERATOR') {
-            const operators = [...(localAtom.payload?.operators || [])];
-            operators[index].config[targetKey] = slot.path;
-            operators[index].config[targetKey + '_label'] = slot.label;
-
-            setLocalAtom(prev => ({
-                ...prev,
-                payload: { ...prev.payload, operators: operators }
-            }));
-        } else if (mode === 'TARGET') {
-            const mappings = { ...(localAtom.payload?.mappings || {}) };
-            const targetMapping = { ...(mappings[targetId] || {}) };
-            targetMapping[targetKey] = slot.path;
-            targetMapping[targetKey + '_label'] = slot.label;
-            mappings[targetId] = targetMapping;
-
-            setLocalAtom(prev => ({
-                ...prev,
-                payload: { ...prev.payload, mappings: mappings }
-            }));
-        }
-
-        setSlotSelectorConfig(null);
     };
 
     // Handlers de Puertos
@@ -144,36 +184,42 @@ export function BridgeDesigner({ atom, bridge }) {
         const currentList = localAtom.payload?.[key] || [];
         if (currentList.includes(id)) return;
 
-        setLocalAtom(prev => ({
-            ...prev,
-            payload: { ...prev.payload, [key]: [...currentList, id] }
-        }));
+        pushToHistory({
+            ...localAtom,
+            payload: { ...localAtom.payload, [key]: [...currentList, id] }
+        });
         setShowSelector(null);
     };
 
     const removePort = (id, type) => {
         const key = type === 'SOURCE' ? 'sources' : 'targets';
-        setLocalAtom(prev => ({
-            ...prev,
-            payload: { ...prev.payload, [key]: (prev.payload[key] || []).filter(item => item !== id) }
-        }));
+        pushToHistory({
+            ...localAtom,
+            payload: { ...localAtom.payload, [key]: (localAtom.payload[key] || []).filter(item => item !== id) }
+        });
     };
 
     const updatePortConfig = (id, newConfig, type) => {
         const key = type === 'SOURCE' ? 'sourceConfigs' : 'targetConfigs';
-        setLocalAtom(prev => ({
-            ...prev,
+        pushToHistory({
+            ...localAtom,
             payload: {
-                ...prev.payload,
+                ...localAtom.payload,
                 [key]: {
-                    ...(prev.payload[key] || {}),
-                    [id]: {
-                        ...(prev.payload[key]?.[id] || {}),
-                        ...newConfig
-                    }
+                    ...(localAtom.payload[key] || {}),
+                    [id]: { ...(localAtom.payload[key]?.[id] || {}), ...newConfig }
                 }
             }
-        }));
+        });
+    };
+
+    const updateMapping = (id, mapping) => {
+        const mappings = { ...(localAtom.payload?.mappings || {}) };
+        mappings[id] = mapping;
+        pushToHistory({
+            ...localAtom,
+            payload: { ...localAtom.payload, mappings }
+        });
     };
 
     const updateLabel = (newLabel) => {
@@ -183,87 +229,41 @@ export function BridgeDesigner({ atom, bridge }) {
         }));
     };
 
-    if (isLoading) return <div className="fill center">LOADING_BRIDGE_RESONANCE...</div>;
+    if (isLoading) return (
+        <div className="fill center">
+            <Spinner size="32px" label="LOADING_BRIDGE_RESONANCE" />
+        </div>
+    );
 
     return (
-        <div className="stack" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'var(--color-bg-void)', color: 'white', overflow: 'hidden', zIndex: 100 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden', background: 'var(--color-bg-void)', color: 'white' }}>
 
             {/* HUD HEADER */}
-            <header className="spread glass" style={{ padding: 'var(--space-2) var(--space-6)', borderBottom: '1px solid var(--color-border-strong)', zIndex: 100 }}>
-                <div className="shelf--loose fill">
-                    <IndraIcon name="LOGIC" size="18px" style={{ color: 'var(--color-accent)' }} />
-                    <div className="shelf--loose fill">
-                        <input
-                            type="text"
-                            value={localAtom.handle?.label || ''}
-                            onChange={(e) => updateLabel(e.target.value)}
-                            placeholder="BRIDGE_NAME_REQUIRED..."
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                borderBottom: '1px solid transparent',
-                                color: 'white',
-                                fontSize: 'var(--text-md)',
-                                fontFamily: 'var(--font-mono)',
-                                fontWeight: 'bold',
-                                width: '100%',
-                                maxWidth: '400px',
-                                outline: 'none',
-                                transition: 'all 0.3s'
-                            }}
-                            onFocus={(e) => e.target.style.borderBottomColor = 'var(--color-accent)'}
-                            onBlur={(e) => e.target.style.borderBottomColor = 'transparent'}
-                        />
-                        <span style={{ fontSize: '8px', opacity: 0.5, fontFamily: 'var(--font-mono)' }}>
-                            // BRIDGE_PIPELINE: {isSaving ? 'SYNCING...' : 'STABLE'} // ID: {atom.id}
-                        </span>
+            <IndraMacroHeader
+                atom={localAtom}
+                onClose={() => bridge.close()}
+                onUndo={undo}
+                onRedo={redo}
+                canUndo={pointer > 0}
+                canRedo={pointer < history.length - 1}
+                isSaving={isSaving}
+                onTitleChange={updateLabel}
+                rightSlot={
+                    <div className="shelf--tight glass" style={{ padding: 'var(--space-1) var(--space-4)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-pill)', background: 'rgba(0,0,0,0.3)' }}>
+                        <span className="text-hint font-mono" style={{ fontSize: '9px', opacity: 0.5, marginRight: 'var(--space-2)' }}>ADD_OP:</span>
+                        {['MATH', 'TEXT', 'RESOLVER', 'EXPRESSION'].map(type => (
+                            <button key={type} className="btn btn--xs btn--ghost" onClick={() => addOperator(type)} style={{ fontSize: '9px', padding: '2px 6px' }}>
+                                {type}
+                            </button>
+                        ))}
                     </div>
-                </div>
+                }
+            />
 
-                <div className="shelf">
-                    <IndraActionTrigger
-                        icon="CLOSE"
-                        label="EXIT_DESIGNER"
-                        onClick={() => bridge.close()}
-                        color="var(--color-danger)"
-                        activeColor="var(--color-danger)"
-                        requiresHold={false}
-                    />
-                </div>
-            </header>
-
-            {/* OPERATOR TOOLBAR (Top Bar) */}
-            <div className="shelf glass" style={{
-                padding: 'var(--space-1) var(--space-6)',
-                borderBottom: '1px solid var(--color-border)',
-                background: 'rgba(0,0,0,0.3)',
-                minHeight: '32px'
-            }}>
-                <div className="shelf--tight" style={{ opacity: 0.5, marginRight: 'var(--space-4)' }}>
-                    <IndraIcon name="PLUS" size="10px" />
-                    <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>ADD_OP:</span>
-                </div>
-                <div className="shelf--tight" style={{ gap: 'var(--space-2)' }}>
-                    <button className="shelf--tight btn btn--xs btn--ghost" onClick={() => addOperator('MATH')} style={{ borderRadius: 'var(--radius-pill)', fontSize: '10px', opacity: 0.8, padding: '2px 8px' }}>
-                        <IndraIcon name="PLUS" size="8px" /> MATH
-                    </button>
-                    <button className="shelf--tight btn btn--xs btn--ghost" onClick={() => addOperator('TEXT')} style={{ borderRadius: 'var(--radius-pill)', fontSize: '10px', opacity: 0.8, padding: '2px 8px' }}>
-                        <IndraIcon name="PLUS" size="8px" /> TEXT
-                    </button>
-                    <button className="shelf--tight btn btn--xs btn--ghost" onClick={() => addOperator('RESOLVER')} style={{ borderRadius: 'var(--radius-pill)', fontSize: '10px', opacity: 0.8, padding: '2px 8px' }}>
-                        <IndraIcon name="PLUS" size="8px" /> RESOLVER
-                    </button>
-                    <button className="shelf--tight btn btn--xs btn--ghost" onClick={() => addOperator('EXPRESSION')} style={{ borderRadius: 'var(--radius-pill)', fontSize: '10px', opacity: 0.8, padding: '2px 8px' }}>
-                        <IndraIcon name="PLUS" size="8px" /> EXPRESSION
-                    </button>
-                </div>
-            </div>
-
-            {/* MAIN WORKSPACE (3 Columnas + Sandbox Inferior) */}
+            {/* MAIN WORKSPACE */}
             <main className="fill stack" style={{ overflow: 'hidden' }}>
                 <div className="fill shelf" style={{ overflow: 'hidden' }}>
 
-                    {/* COLUMNA A: FUENTES */}
                     <PortManager
                         title="INPUT_SOURCES"
                         ids={localAtom.payload?.sources || []}
@@ -272,14 +272,12 @@ export function BridgeDesigner({ atom, bridge }) {
                         onAdd={() => setShowSelector('SOURCE')}
                         onRemove={(id) => removePort(id, 'SOURCE')}
                         onUpdateConfig={(id, conf) => updatePortConfig(id, conf, 'SOURCE')}
+                        onSelectField={handleSelectInput}
                         type="SOURCE"
                     />
 
-                    {/* COLUMNA B: PIPELINE (El Cerebro) */}
                     <section className="fill stack" style={{ overflowY: 'auto', padding: 'var(--space-8)' }}>
                         <div className="stack--loose" style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
-
-                            {/* Lista de Operadores */}
                             <div className="stack--loose">
                                 {(localAtom.payload?.operators || []).map((op, index) => (
                                     <OperatorCard
@@ -288,67 +286,47 @@ export function BridgeDesigner({ atom, bridge }) {
                                         onUpdate={(updated) => updateOperator(index, updated)}
                                         onRemove={() => removeOperator(op.id)}
                                         contextBefore={getContextAt(index)}
-                                        onOpenSelector={(targetKey) => setSlotSelectorConfig({ mode: 'OPERATOR', index, targetKey })}
+                                        focusedTarget={focusedTarget}
+                                        setFocusedTarget={setFocusedTarget}
+                                        onSelectOpResult={handleSelectInput}
                                     />
                                 ))}
                             </div>
 
-                            {/* Placeholder de Pipeline Vacía */}
                             {(localAtom.payload?.operators || []).length === 0 && (
-                                <div className="center stack" style={{ padding: '100px 0', opacity: 0.2 }}>
-                                    <IndraIcon name="LOGIC" size="48px" />
-                                    <span style={{ marginTop: 'var(--space-4)' }}>PIPELINE_EMPTY_AWAITING_RESONANCE</span>
-                                </div>
+                                <EmptyState
+                                    icon="BRIDGE"
+                                    title="PIPELINE_EMPTY"
+                                    description="Añade operadores para construir el pipeline de transformación."
+                                />
                             )}
-
                         </div>
                     </section>
 
-                    {/* COLUMNA C: DESTINOS */}
                     <PortManager
                         title="OUTPUT_TARGETS"
                         ids={localAtom.payload?.targets || []}
                         schemas={schemas}
+                        configs={localAtom.payload?.targetConfigs || {}}
                         mappings={localAtom.payload?.mappings || {}}
+                        focusedTarget={focusedTarget}
+                        setFocusedTarget={setFocusedTarget}
                         onAdd={() => setShowSelector('TARGET')}
                         onRemove={(id) => removePort(id, 'TARGET')}
-                        onOpenSelector={(targetId, fieldId) => setSlotSelectorConfig({
-                            mode: 'TARGET',
-                            targetId,
-                            targetKey: fieldId,
-                            index: (localAtom.payload?.operators || []).length
-                        })}
+                        onUpdateMapping={updateMapping}
+                        onUpdateConfig={(id, conf) => updatePortConfig(id, conf, 'TARGET')}
                         type="TARGET"
                     />
 
                 </div>
 
-                {/* LIVE SANDBOX (Panel Inferior) */}
                 <div style={{ borderTop: '1px solid var(--color-border-strong)', background: 'var(--color-bg-void)', zIndex: 50 }}>
-                    <SandboxPanel
-                        bridge={bridge}
-                        schemas={schemas}
-                        sources={localAtom.payload?.sources || []}
-                        sourceConfigs={localAtom.payload?.sourceConfigs || {}}
-                    />
+                    <SandboxPanel bridge={bridge} schemas={schemas} sources={localAtom.payload?.sources || []} sourceConfigs={localAtom.payload?.sourceConfigs || {}} />
                 </div>
             </main>
 
-            {/* Artifact Selector Modal */}
             {showSelector && (
-                <ArtifactSelector
-                    title={`SELECT_${showSelector}`}
-                    onSelect={(selectedAtom) => addPort(selectedAtom.id)}
-                    onCancel={() => setShowSelector(null)}
-                />
-            )}
-            {/* Slot Selector Modal */}
-            {slotSelectorConfig && (
-                <SlotSelector
-                    contextStack={getContextAt(slotSelectorConfig.index)}
-                    onSelect={handleSlotSelect}
-                    onCancel={() => setSlotSelectorConfig(null)}
-                />
+                <ArtifactSelector title={`SELECT_${showSelector}`} onSelect={(selectedAtom) => addPort(selectedAtom.id)} onCancel={() => setShowSelector(null)} />
             )}
         </div>
     );

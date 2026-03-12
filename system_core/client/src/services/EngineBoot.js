@@ -9,5 +9,8 @@
 import '../components/macro_engines/DocumentDesigner/init';
 import '../components/macro_engines/BridgeDesigner/init';
 import '../components/macro_engines/SchemaDesigner/init';
+import '../components/macro_engines/WorkflowDesigner/init';
+import '../components/macro_engines/AEEFormRunner/init';
+import '../components/macro_engines/VideoDesigner/init';
 
 console.log('[EngineBoot] All macro-engines bootstrapped.');

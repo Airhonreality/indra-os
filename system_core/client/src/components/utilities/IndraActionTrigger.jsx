@@ -25,8 +25,15 @@ export function IndraActionTrigger({
     color = 'var(--color-text-secondary)',
     activeColor = 'var(--color-accent)',
     size = '12px',
-    loading = false
+    loading = false,
+    variant = 'default' // 'default' | 'destructive'
 }) {
+    const isDestructive = variant === 'destructive';
+    const effectiveColor = isDestructive ? 'var(--color-danger)' : color;
+    const effectiveActiveColor = isDestructive ? 'var(--color-danger)' : activeColor;
+    const effectiveIcon = isDestructive ? 'DELETE' : icon;
+    const effectiveRequiresHold = isDestructive ? true : requiresHold;
+
     const [progress, setProgress] = useState(0);
     const [isHolding, setIsHolding] = useState(false);
     const timerRef = useRef(null);
@@ -34,7 +41,8 @@ export function IndraActionTrigger({
 
     const startHold = (e) => {
         e.stopPropagation();
-        if (!requiresHold) return;
+        e.preventDefault();
+        if (!effectiveRequiresHold) return; // FIX: debe usar effectiveRequiresHold, no requiresHold
 
         setIsHolding(true);
         startTimeRef.current = Date.now();
@@ -53,6 +61,7 @@ export function IndraActionTrigger({
 
     const stopHold = (e) => {
         e.stopPropagation();
+        e.preventDefault();
         setIsHolding(false);
         setProgress(0);
         if (timerRef.current) clearInterval(timerRef.current);
@@ -66,16 +75,22 @@ export function IndraActionTrigger({
 
     const handleClick = (e) => {
         e.stopPropagation();
-        if (!requiresHold) trigger();
+        e.preventDefault();
+        if (!effectiveRequiresHold) trigger();
     };
+
+    // Cleanup en unmount
+    useEffect(() => {
+        return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    }, []);
 
     return (
         <button
-            className={`indra-trigger ${loading ? 'indra-trigger--loading' : ''}`}
-            onMouseDown={requiresHold && !loading ? startHold : undefined}
-            onMouseUp={requiresHold && !loading ? stopHold : undefined}
-            onMouseLeave={requiresHold && !loading ? stopHold : undefined}
-            onClick={!loading ? handleClick : undefined}
+            className={`indra-trigger ${loading ? 'indra-trigger--loading' : ''} ${isDestructive ? 'indra-trigger--destructive' : ''}`}
+            onMouseDown={effectiveRequiresHold && !loading ? startHold : undefined}
+            onMouseUp={effectiveRequiresHold && !loading ? stopHold : undefined}
+            onMouseLeave={effectiveRequiresHold && !loading ? stopHold : undefined}
+            onClick={!loading ? (effectiveRequiresHold ? (e) => e.stopPropagation() : handleClick) : undefined}
             disabled={loading}
             title={label}
             style={{
@@ -92,21 +107,21 @@ export function IndraActionTrigger({
                 cursor: loading ? 'wait' : 'pointer',
                 transition: 'all var(--transition-fast)',
                 overflow: 'hidden',
-                color: (isHolding || loading) ? activeColor : color,
+                color: (isHolding || loading) ? effectiveActiveColor : effectiveColor,
                 opacity: loading ? 0.8 : 1
             }}
         >
             {/* Progress Bar Background (Hold) */}
-            {requiresHold && progress > 0 && !loading && (
+            {effectiveRequiresHold && progress > 0 && !loading && (
                 <div style={{
                     position: 'absolute',
                     bottom: 0,
                     left: 0,
                     height: '2px',
                     width: `${progress}%`,
-                    background: activeColor,
+                    background: effectiveActiveColor,
                     transition: 'width 16ms linear',
-                    boxShadow: `0 0 10px ${activeColor}`
+                    boxShadow: `0 0 10px ${effectiveActiveColor}`
                 }} />
             )}
 
@@ -114,13 +129,13 @@ export function IndraActionTrigger({
                 <div className="mini-spinner" style={{
                     width: '10px',
                     height: '10px',
-                    border: `2px solid ${activeColor}`,
+                    border: `2px solid ${effectiveActiveColor}`,
                     borderTopColor: 'transparent',
                     borderRadius: '50%',
                     animation: 'indra-spin 0.6s linear infinite'
                 }} />
             ) : (
-                <IndraIcon name={icon} size={size} />
+                <IndraIcon name={effectiveIcon} size={size} />
             )}
 
             <style>{`
@@ -128,15 +143,18 @@ export function IndraActionTrigger({
                     to { transform: rotate(360deg); }
                 }
                 .indra-trigger:hover:not(:disabled) {
-                    border-color: ${activeColor};
-                    box-shadow: 0 0 10px ${activeColor}33;
+                    border-color: ${effectiveActiveColor};
+                    box-shadow: 0 0 10px ${effectiveActiveColor}33;
                     transform: scale(1.05);
+                }
+                .indra-trigger--destructive:hover:not(:disabled) {
+                    background: rgba(var(--rgb-danger), 0.1) !important;
                 }
                 .indra-trigger:active:not(:disabled) {
                     transform: scale(0.95);
                 }
                 .indra-trigger--loading {
-                    border-color: ${activeColor}66 !important;
+                    border-color: ${effectiveActiveColor}66 !important;
                 }
             `}</style>
         </button>

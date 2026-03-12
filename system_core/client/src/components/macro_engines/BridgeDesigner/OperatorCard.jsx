@@ -12,38 +12,32 @@
 import React from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { IndraActionTrigger } from '../../utilities/IndraActionTrigger';
+import { EditableLabel } from '../../utilities/primitives';
 import { MathConfig } from './OperatorTypes/MathConfig';
 import { TextConfig } from './OperatorTypes/TextConfig';
 import { ResolverConfig } from './OperatorTypes/ResolverConfig';
 import { ExpressionConfig } from './OperatorTypes/ExpressionConfig';
 
-export function OperatorCard({ op, onUpdate, onRemove, contextBefore, onOpenSelector }) {
+export function OperatorCard({ op, onUpdate, onRemove, contextBefore, focusedTarget, setFocusedTarget, onSelectOpResult }) {
 
     const renderConfig = () => {
+        const props = {
+            config: op.config,
+            onUpdate: (cfg) => onUpdate({ ...op, config: cfg }),
+            focusedTarget,
+            setFocusedTarget,
+            opId: op.id
+        };
+
         switch (op.type) {
             case 'MATH':
-                return <MathConfig
-                    config={op.config}
-                    onUpdate={(cfg) => onUpdate({ ...op, config: cfg })}
-                    onOpenSelector={onOpenSelector}
-                />;
+                return <MathConfig {...props} />;
             case 'TEXT':
-                return <TextConfig
-                    config={op.config}
-                    onUpdate={(cfg) => onUpdate({ ...op, config: cfg })}
-                    onOpenSelector={onOpenSelector}
-                />;
+                return <TextConfig {...props} />;
             case 'RESOLVER':
-                return <ResolverConfig
-                    config={op.config}
-                    onUpdate={(cfg) => onUpdate({ ...op, config: cfg })}
-                    onOpenSelector={onOpenSelector}
-                />;
+                return <ResolverConfig {...props} />;
             case 'EXPRESSION':
-                return <ExpressionConfig
-                    config={op.config}
-                    onUpdate={(cfg) => onUpdate({ ...op, config: cfg })}
-                />;
+                return <ExpressionConfig {...props} />;
             default:
                 return (
                     <div style={{ fontSize: '10px', opacity: 0.3, fontFamily: 'var(--font-mono)' }}>
@@ -61,31 +55,20 @@ export function OperatorCard({ op, onUpdate, onRemove, contextBefore, onOpenSele
         <div className="stack--tight glass" style={{
             padding: 'var(--space-4)',
             borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--color-border)',
+            border: (focusedTarget?.id === op.id) ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
             position: 'relative',
-            background: 'rgba(255,255,255,0.02)'
+            background: 'rgba(255,255,255,0.02)',
+            transition: 'all 0.3s'
         }}>
             {/* Header: Tipo + Alias + Acciones */}
             <div className="spread">
-                <div className="shelf--tight">
+                <div className="shelf--tight clickable" onClick={() => onSelectOpResult({ path: `op.${op.alias}`, label: op.alias.toUpperCase() })}>
                     <div className="badge badge--ghost" style={{ fontSize: '9px', opacity: 0.6 }}>{op.type}</div>
-                    <input
-                        type="text"
+                    <EditableLabel
                         value={op.alias || ''}
-                        onChange={(e) => updateAlias(e.target.value)}
-                        placeholder="OP_ALIAS_REQUIRED..."
-                        style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--color-accent)',
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: '11px',
-                            fontWeight: 'bold',
-                            outline: 'none',
-                            borderBottom: '1px solid transparent'
-                        }}
-                        onFocus={(e) => e.target.style.borderBottomColor = 'var(--color-accent)'}
-                        onBlur={(e) => e.target.style.borderBottomColor = 'transparent'}
+                        onCommit={(val) => updateAlias(val)}
+                        placeholder="OP_ALIAS_REQUIRED"
+                        style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--color-accent)' }}
                     />
                 </div>
 

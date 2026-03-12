@@ -20,6 +20,8 @@ export function WorkspaceProvider({ children }) {
     const unpinAtom = useAppState(s => s.unpinAtom);
     const createArtifact = useAppState(s => s.createArtifact);
     const hydrateManifest = useAppState(s => s.hydrateManifest);
+    const renameWorkspace = useAppState(s => s.renameWorkspace);
+    const deleteWorkspace = useAppState(s => s.deleteWorkspace);
 
     const value = {
         workspaces,
@@ -31,6 +33,8 @@ export function WorkspaceProvider({ children }) {
         loadPins,
         pinAtom,
         unpinAtom,
+        deleteWorkspace,
+        renameWorkspace,
         createArtifact,
         hydrateManifest
     };

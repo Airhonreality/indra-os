@@ -10,10 +10,10 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { DataProjector } from '../../../services/DataProjector';
+import { useAppState } from '../../../state/app_state';
 
 export function useBridgeHydration(bridgeAtom, bridge) {
-    const pins = []; // Opcional: obtener de bridge si es necesario
-    const services = [];
+    const { pins, services } = useAppState();
     const [localAtom, setLocalAtom] = useState(bridgeAtom);
     const [schemas, setSchemas] = useState({}); // id -> { fields: [], label: '' }
     const [isLoading, setIsLoading] = useState(true);
@@ -60,29 +60,28 @@ export function useBridgeHydration(bridgeAtom, bridge) {
 
             const fetchSchema = async () => {
                 try {
-                    const provider = getProviderForId(id);
                     const result = await bridge.request({
                         protocol: 'TABULAR_STREAM',
                         context_id: id
                     });
 
-                    const projection = DataProjector.projectSchema(result);
-                    setSchemas(prev => ({ ...prev, [id]: projection }));
                     if (result.metadata?.status === 'ERROR') {
+                        // PORTAL DE SINCERIDAD: El schema no existe o no responde.
+                        // _orphan:true cierra el ciclo con el mismo semántico que ArtifactCard.
                         setSchemas(prev => ({
                             ...prev,
-                            [id]: {
-                                fields: [],
-                                label: 'LINK_BROKEN_OR_DENIED',
-                                error: true
-                            }
+                            [id]: { fields: [], label: 'MATERIA_DESAPARECIDA', error: true, _orphan: true }
                         }));
+                        return;
                     }
+
+                    const projection = DataProjector.projectSchema(result);
+                    setSchemas(prev => ({ ...prev, [id]: projection }));
                 } catch (err) {
                     console.error(`[BridgeHydration] Schema fetch failed for ${id}:`, err);
                     setSchemas(prev => ({
                         ...prev,
-                        [id]: { fields: [], label: 'FETCH_ERROR', error: true }
+                        [id]: { fields: [], label: 'FETCH_ERROR', error: true, _orphan: true }
                     }));
                 }
             };

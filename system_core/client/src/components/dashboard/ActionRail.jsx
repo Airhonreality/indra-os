@@ -4,28 +4,36 @@
  * RESPONSABILIDAD: El Hilo de Comandos (Tony Stark Hood).
  *
  * DHARMA:
- *   - Descubrimiento Automático: Se hidrata de ENGINE_MANIFESTS.
- *   - Simplicidad Stark: Una sola línea de acciones flotantes.
- * 
+ *   - Descubrimiento Automático (PA-17): Se hidrata de registry.getAll().
+ *     Ningún motor se lista aquí manualmente. Solo los motores con
+ *     manifest.canCreate:true aparecen como opción de creación.
+ *   - Un nuevo motor → actualizar su init.js → aparece aquí solo.
+ *
  * AXIOMAS:
  *   - El Rail no sabe qué hace cada botón, solo despacha el protocolo de creación.
  *   - Se posiciona siempre en el eje de control operativo.
- * 
- * RESTRICCIONES:
- *   - NO debe ocupar espacio visual si no hay interacción.
  * =============================================================================
  */
 
 import React from 'react';
-import { IndraIcon } from '../utilities/IndraIcons';
+import { registry } from '../../services/EngineRegistry';
+import { IndraActionTrigger } from '../utilities/IndraActionTrigger';
 import { useAppState } from '../../state/app_state';
 import { useLexicon } from '../../services/lexicon';
-import { IndraActionTrigger } from '../utilities/IndraActionTrigger';
+import { useToast } from '../utilities/primitives/ToastNotification';
 
 export function ActionRail() {
     const { lang, createArtifact } = useAppState();
     const t = useLexicon(lang);
+    const { toast } = useToast();
     const [creating, setCreating] = React.useState(null);
+
+    // ── DESCUBRIMIENTO DINÁMICO: Solo motores con canCreate:true ──
+    const creatableEngines = React.useMemo(() =>
+        registry.getAll().filter(e => e.manifest?.canCreate === true),
+        // Se evalúa una vez al montar — el registro es estático post-boot
+        []
+    );
 
     const handleCreate = async (atomClass) => {
         setCreating(atomClass);
@@ -33,16 +41,11 @@ export function ActionRail() {
             await createArtifact(atomClass, `NEW_${atomClass}`);
         } catch (err) {
             console.error('[ActionRail] Create failed:', err);
+            toast.error(`Error al crear ${atomClass}: ${err.message}`);
         } finally {
             setCreating(null);
         }
     };
-
-    const ENGINES = [
-        { class: 'DATA_SCHEMA', icon: 'SCHEMA', label: 'DATA_SCHEMA', color: 'var(--color-accent)' },
-        { class: 'BRIDGE', icon: 'BRIDGE', label: 'LOGIC_BRIDGE', color: 'var(--color-cold)' },
-        { class: 'DOCUMENT', icon: 'DOCUMENT', label: 'DOCUMENT_DESIGNER', color: 'var(--color-warm)' }
-    ];
 
     return (
         <div className="action-rail shelf" style={{
@@ -53,20 +56,27 @@ export function ActionRail() {
             borderRadius: 'var(--radius-pill)',
             gap: 'var(--space-2)'
         }}>
-            {/* El primer botón ya no es un mock, ahora es el Document Designer */}
             <div className="shelf" style={{ gap: 'var(--space-1)' }}>
-                {ENGINES.map(engine => (
-                    <div key={engine.class} className="stack--tight center" style={{ padding: '0 var(--space-2)' }}>
+                {creatableEngines.map(({ atomClass, manifest }) => (
+                    <div key={atomClass} className="stack--tight center" style={{ padding: '0 var(--space-2)' }}>
                         <IndraActionTrigger
-                            icon={engine.icon}
-                            label={t(engine.label)}
-                            onClick={() => handleCreate(engine.class)}
-                            color={engine.color}
-                            activeColor={engine.color}
+                            icon={manifest.icon}
+                            label={t(manifest.label) || manifest.label}
+                            onClick={() => handleCreate(atomClass)}
+                            color={manifest.color}
+                            activeColor={manifest.color}
                             size="18px"
-                            loading={creating === engine.class}
+                            loading={creating === atomClass}
                         />
-                        <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', opacity: 0.5 }}>{t(engine.label)}</span>
+                        <span style={{
+                            fontSize: '8px',
+                            fontFamily: 'var(--font-mono)',
+                            opacity: 0.5,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                        }}>
+                            {t(manifest.label) || manifest.label}
+                        </span>
                     </div>
                 ))}
             </div>

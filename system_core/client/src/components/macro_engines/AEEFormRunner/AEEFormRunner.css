@@ -1,0 +1,141 @@
+/**
+ * =============================================================================
+ * ESTILOS: AEEFormRunner.css (v2.0)
+ * ALINEADO CON: ADR-004 (DESIGN SYSTEM)
+ * =============================================================================
+ */
+
+.aee-dashboard {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--color-bg-void);
+    color: var(--color-text-primary);
+    position: relative;
+    overflow: hidden;
+}
+
+.aee-viewport {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-10) var(--space-4);
+    position: relative;
+    z-index: 1;
+}
+
+/* HUD BACKGROUND EFFECTS */
+.aee-dashboard::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: var(--hud-grid);
+    background-size: 30px 30px;
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.aee-dashboard::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--hud-scanline);
+    opacity: 0.02;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* FORM RUNNER INTERNAL STYLES */
+.aee-form-runner__form {
+    max-width: 600px;
+    width: 100%;
+}
+
+.form-header h2 {
+    color: var(--color-text-primary);
+}
+
+.form-grid {
+    width: 100%;
+}
+
+.form-item {
+    transition: all var(--transition-fast);
+}
+
+.form-item:hover {
+    border-color: var(--color-border-active);
+    background: var(--color-bg-hover);
+}
+
+/* RESULT PANEL STYLES */
+.aee-result-panel {
+    max-width: 700px;
+    width: 100%;
+    border-left: 2px solid var(--color-accent);
+}
+
+.result-item pre {
+    background: var(--color-bg-deep);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--text-xs);
+    overflow: auto;
+    color: var(--color-accent);
+}
+
+.danger-text {
+    color: var(--color-danger);
+}
+
+/* HUD OPERATIVO */
+.aee-hud {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-glass);
+    border: 1px solid var(--glass-border);
+}
+
+.led {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.led-danger {
+    background: var(--color-danger);
+    box-shadow: 0 0 10px var(--color-danger);
+}
+
+.pulse-cyan {
+    background: var(--color-accent);
+    box-shadow: 0 0 10px var(--color-accent);
+    animation: indra-pulse 2s infinite;
+}
+
+@keyframes indra-pulse {
+    0% {
+        opacity: 0.4;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.4;
+    }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}

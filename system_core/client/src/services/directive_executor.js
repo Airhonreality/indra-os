@@ -25,24 +25,31 @@ export async function executeDirective(uqo, coreUrl, password) {
             method: 'POST',
             mode: 'cors',
             headers: {
-                'Content-Type': 'text/plain;charset=utf-8', // GAS prefiere esto para evitar preflight complejo
+                'Content-Type': 'text/plain;charset=utf-8',
             },
             body: JSON.stringify(payload)
         });
 
+        const responseText = await response.text();
+
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`CORE_HTTP_ERROR: ${response.status} - ${errorText}`);
+            throw new Error(`CORE_HTTP_ERROR: ${response.status} - ${responseText.substring(0, 200)}`);
         }
 
-        const result = await response.json();
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('[directive_executor] Raw response (non-JSON):', responseText);
+            throw new Error(`CORE_PARSING_ERROR: La respuesta del servidor no es un JSON válido. Contenido: ${responseText.substring(0, 100)}...`);
+        }
 
         // Validar The Return Law
         if (!result || !result.metadata) {
             throw new Error('CONTRACT_VIOLATION: Missing metadata in response');
         }
 
-        if (result.metadata.status === 'ERROR') {
+        if (result.metadata.status === 'ERROR' || result.metadata.status === 'ERROR_FLOW') {
             const err = new Error(result.metadata.error || 'Unknown Core Error');
             err.code = result.metadata.code;
             throw err;

@@ -85,4 +85,5 @@ FrameBlock.manifest = {
         }
     ]
 };
+export default FrameBlock;
 

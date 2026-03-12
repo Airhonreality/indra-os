@@ -8,7 +8,7 @@
 import React from 'react';
 import { MicroSlot } from '../MicroSlot';
 
-export function TextConfig({ config, onUpdate, onOpenSelector }) {
+export function TextConfig({ config, onUpdate, focusedTarget, setFocusedTarget, opId }) {
 
     const updateOp = (opCode) => {
         onUpdate({ ...config, operation: opCode });
@@ -27,8 +27,9 @@ export function TextConfig({ config, onUpdate, onOpenSelector }) {
                 <MicroSlot
                     value={config.input_a}
                     label={config.input_a_label}
-                    onOpenSelector={() => onOpenSelector('input_a')}
                     placeholder="TEXT_A"
+                    isActive={focusedTarget?.id === opId && focusedTarget?.key === 'input_a'}
+                    onActivate={() => setFocusedTarget({ mode: 'OPERATOR', id: opId, key: 'input_a' })}
                 />
 
                 <div className="shelf--tight glass" style={{ padding: '2px', borderRadius: '4px' }}>
@@ -48,8 +49,9 @@ export function TextConfig({ config, onUpdate, onOpenSelector }) {
                     <MicroSlot
                         value={config.input_b}
                         label={config.input_b_label}
-                        onOpenSelector={() => onOpenSelector('input_b')}
                         placeholder="TEXT_B"
+                        isActive={focusedTarget?.id === opId && focusedTarget?.key === 'input_b'}
+                        onActivate={() => setFocusedTarget({ mode: 'OPERATOR', id: opId, key: 'input_b' })}
                     />
                 )}
             </div>

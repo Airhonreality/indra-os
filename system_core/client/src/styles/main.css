@@ -1,6 +1,7 @@
 @import './design_tokens.css';
 @import './layout.css';
 @import './component_styles.css';
+@import './headers.css';
 
 /* ── RESET BASE ── */
 * {

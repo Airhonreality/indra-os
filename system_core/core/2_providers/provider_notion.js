@@ -594,8 +594,8 @@ function _notion_notionObjectToAtom(notionObj, providerId) {
   }
 
   const protocols = atomClass === 'TABULAR'
-    ? ['TABULAR_STREAM', 'ATOM_READ', 'ATOM_CREATE']
-    : ['ATOM_READ', 'ATOM_CREATE'];
+    ? ['TABULAR_STREAM', 'ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE']
+    : ['ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE'];
 
   return {
     id,
@@ -608,6 +608,7 @@ function _notion_notionObjectToAtom(notionObj, providerId) {
     provider: providerId,
     protocols,
     system_hood: atomClass === 'TABULAR' ? 'STRUCTURE' : 'PHENOTYPE',
+    payload: {}, // Sinceridad estructural
     raw: {
       notion_type: objectType,
       notion_url: notionObj.url || null,
@@ -828,11 +829,10 @@ function _notion_schemaToFields(notionSchema) {
     return {
       id: key,
       handle: {
-        ns: 'com.indra.schema.field',
-        alias: (key || '').toLowerCase().replace(/[^\w\s]/gi, '').replace(/\s+/g, '_'),
+        ns: 'com.notion.schema.field',
+        alias: _system_slugify_(key) || 'notion_field',
         label: key
       },
-      label: key,
       type: canonicalType,
       options: (prop.select && prop.select.options ? prop.select.options.map(function (o) { return o.name; }) :
         (prop.multi_select && prop.multi_select.options ? prop.multi_select.options.map(function (o) { return o.name; }) : [])),

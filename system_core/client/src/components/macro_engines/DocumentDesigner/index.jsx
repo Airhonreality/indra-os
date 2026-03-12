@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { ASTProvider, useAST } from './context/ASTContext';
 import { SelectionProvider, useSelection } from './context/SelectionContext';
 import { RecursiveBlock } from './renderer/RecursiveBlock';
-import { TopRibbon } from './layout/TopRibbon';
 import { NavigatorPanel } from './layout/NavigatorPanel';
 import { PropertiesInspector } from './inspector/PropertiesInspector';
 import { IndraIcon } from '../../utilities/IndraIcons';
+import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
+import { DataProjector } from '../../../services/DataProjector';
 
 const PAGE_PRESETS = {
     A4: { width: '210mm', height: '297mm', label: 'ISO A4' },
@@ -46,8 +47,12 @@ const DEFAULT_BLOCKS = [
  * Encapsula el estado del documento en un ASTProvider neural.
  */
 export function DocumentDesigner({ atom, bridge }) {
+    // AXIOMA: Si el payload existe, aunque esté vacío, se respeta la voluntad del autor.
+    // Solo usamos DEFAULT_BLOCKS si el átomo es una "hoja en blanco" total (sin payload).
+    const initialBlocks = atom.payload?.blocks || (atom.payload ? [] : DEFAULT_BLOCKS);
+
     return (
-        <ASTProvider initialBlocks={atom.payload?.blocks || DEFAULT_BLOCKS}>
+        <ASTProvider initialBlocks={initialBlocks}>
             <SelectionProvider>
                 <DocumentDesignerShell atom={atom} bridge={bridge} />
             </SelectionProvider>
@@ -59,11 +64,13 @@ export function DocumentDesigner({ atom, bridge }) {
  * DocumentDesignerShell (UI)
  * Renderiza la interfaz y consume el ASTContext.
  */
+
 function DocumentDesignerShell({ atom, bridge }) {
-    const { blocks, findNode, addNode, updateNode } = useAST();
+    const { blocks, findNode, addNode, updateNode, undo, redo, canUndo, canRedo } = useAST();
     const { selectedId, selectNode } = useSelection();
 
-    const [localLabel, setLocalLabel] = useState(atom.handle?.label || 'UNTITLED_DOCUMENT');
+    const projection = DataProjector.projectArtifact(atom);
+    const [localLabel, setLocalLabel] = useState(projection.title);
     const [isSaving, setIsSaving] = useState(false);
     const [zoom, setZoom] = useState(0.8);
     const [toast, setToast] = useState(null);
@@ -103,72 +110,98 @@ function DocumentDesignerShell({ atom, bridge }) {
         }
     };
 
+    React.useEffect(() => {
+        const handleKeys = (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'z') {
+                    e.preventDefault();
+                    if (e.shiftKey) redo();
+                    else undo();
+                } else if (e.key === 'y') {
+                    e.preventDefault();
+                    redo();
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeys);
+        return () => window.removeEventListener('keydown', handleKeys);
+    }, [undo, redo]);
+
     return (
         <div
-            className="fill stack--tight"
             style={{
-                background: 'var(--color-bg-void)',
-                height: '100%', // Crucial para el scroll
-                maxHeight: '100vh',
                 display: 'flex',
                 flexDirection: 'column',
-                overflow: 'hidden'
-            }}
-        >
-            <TopRibbon
-                label={localLabel}
-                onUpdateLabel={setLocalLabel}
-                isSaving={isSaving}
-                onSave={saveDocument}
-                onAddBlock={(type) => {
-                    let targetId = selectedId;
-                    // Si no hay nada seleccionado, intentamos añadir al primer bloque contenedor (PAGE o FRAME)
-                    if (!targetId && blocks.length > 0) {
-                        const rootNode = blocks[0];
-                        if (rootNode.type === 'PAGE' || rootNode.type === 'FRAME' || rootNode.type === 'ITERATOR') {
-                            targetId = rootNode.id;
-                        }
-                    }
-                    const newId = addNode(type, targetId);
-                    selectNode(newId);
-                }}
-                onClose={() => bridge.close()}
-                zoom={zoom}
-                setZoom={setZoom}
-            />
-
-            <div className="fill" style={{
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'stretch',
+                width: '100%',
+                height: '100%',
                 overflow: 'hidden',
                 background: 'var(--color-bg-void)',
-                height: 'calc(100% - 40px)' // Descontamos el TopRibbon
-            }}>
-                {/* 2. STRUCTURE COLUMN (LEFT) */}
-                <div style={{
-                    width: '280px',
-                    background: 'var(--color-bg-surface)',
-                    borderRight: '1px solid var(--color-border-strong)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden', // El scroll lo maneja el NavigatorPanel
-                    height: '100%'
-                }}>
-                    <NavigatorPanel atom={atom} onNotify={showToast} />
-                </div>
+                color: 'white'
+            }}
+        >
+            <IndraMacroHeader
+                atom={atom}
+                onClose={() => bridge.close()}
+                isSaving={isSaving}
+                onTitleChange={setLocalLabel}
+                onUndo={undo}
+                onRedo={redo}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                rightSlot={
+                    <div className="shelf--loose">
+                        {/* INSERTERS */}
+                        <div className="shelf--tight glass--bone" style={{ padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>
+                            {DataProjector.getDocumentTools().map(tool => (
+                                <button
+                                    key={tool.type}
+                                    className="btn btn--xs btn--ghost"
+                                    onClick={() => {
+                                        let targetId = selectedId;
+                                        if (!targetId && blocks.length > 0) { targetId = blocks[0].id; }
+                                        const newId = addNode(tool.type, targetId);
+                                        selectNode(newId);
+                                    }}
+                                    title={`INSERT ${tool.label}`}
+                                >
+                                    <IndraIcon name={tool.icon} size="12px" />
+                                </button>
+                            ))}
+                        </div>
 
-                {/* 3. ADAPTIVE VIEWPORT (CENTER) */}
+                        {/* ZOOM */}
+                        <div className="shelf--tight glass--bone" style={{ padding: '2px 8px', borderRadius: 'var(--radius-pill)' }}>
+                            <button className="btn btn--xs btn--ghost" onClick={() => setZoom(z => Math.max(0.1, z - 0.1))}><IndraIcon name="MINUS" size="10px" /></button>
+                            <span className="font-mono" style={{ fontSize: '10px', width: '35px', textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
+                            <button className="btn btn--xs btn--ghost" onClick={() => setZoom(z => Math.min(2, z + 0.1))}><IndraIcon name="PLUS" size="10px" /></button>
+                        </div>
+
+                        <button className="btn btn--accent btn--sm" onClick={saveDocument} disabled={isSaving}>
+                            {isSaving ? 'SYNCING...' : 'SAVE_DOC'}
+                        </button>
+                    </div>
+                }
+            />
+
+            <div style={{
+                display: 'flex',
+                flexDirection: 'row',
+                flex: 1,
+                minHeight: 0,
+                overflow: 'hidden',
+                background: 'var(--color-bg-void)'
+            }}>
+                {/* 2. ADAPTIVE VIEWPORT (CENTER) */}
                 <main className="fill" style={{
                     overflow: 'auto', // Scroll real aquí
                     position: 'relative',
                     background: 'var(--color-bg-deep)',
                     minWidth: 0,
                     flex: 1,
-                    height: '100%'
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column'
                 }}>
-
-
                     {/* SCALABLE CANVAS CONTAINER (The Axiomatic Viewport) */}
                     <div style={{
                         display: 'flex',
@@ -176,8 +209,8 @@ function DocumentDesignerShell({ atom, bridge }) {
                         alignItems: 'center',
                         justifyContent: 'flex-start',
                         padding: '120px 80px',
-                        minWidth: 'fit-content',
-                        minHeight: 'fit-content',
+                        minHeight: '100%',
+                        minWidth: 'fit-content'
                     }}>
                         <div style={{
                             transform: `scale(${zoom})`,
@@ -198,16 +231,29 @@ function DocumentDesignerShell({ atom, bridge }) {
                     </div>
                 </main>
 
-                {/* 4. DESIGN COLUMN (RIGHT) */}
+                {/* 3. CONTROL COLUMN (RIGHT) */}
                 <div style={{
                     width: '320px',
                     background: 'var(--color-bg-surface)',
                     borderLeft: '1px solid var(--color-border-strong)',
                     display: 'flex',
                     flexDirection: 'column',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    height: '100%'
                 }}>
-                    <PropertiesInspector />
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                        <NavigatorPanel atom={atom} onNotify={showToast} />
+                    </div>
+                    <div style={{
+                        height: '400px',
+                        borderTop: '2px solid var(--color-border-strong)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                        background: 'rgba(0,0,0,0.2)'
+                    }}>
+                        <PropertiesInspector />
+                    </div>
                 </div>
             </div>
 

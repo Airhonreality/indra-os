@@ -18,7 +18,11 @@ export function BlueprintCanvas({ fields, selectedId, onSelect, previewMode }) {
         <main className="fill stack" style={{
             background: 'var(--color-bg-void)',
             padding: 'var(--space-12)',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column'
         }}>
             {/* Contenedor del Formulario */}
             <div className="stack" style={{
@@ -42,8 +46,8 @@ export function BlueprintCanvas({ fields, selectedId, onSelect, previewMode }) {
                         <BlueprintField
                             key={field.id}
                             field={field}
-                            isSelected={selectedId === field.id}
-                            onSelect={() => !previewMode && onSelect(field.id)}
+                            selectedId={selectedId}
+                            onSelect={onSelect}
                             previewMode={previewMode}
                         />
                     ))}
@@ -60,21 +64,29 @@ export function BlueprintCanvas({ fields, selectedId, onSelect, previewMode }) {
     );
 }
 
-function BlueprintField({ field, isSelected, onSelect, previewMode }) {
+function BlueprintField({ field, selectedId, onSelect, previewMode }) {
     const projection = DataProjector.projectFieldDefinition(field);
     if (!projection) return null;
 
     const isContainer = projection.type === 'FRAME' || projection.type === 'REPEATER';
+    const children = field.children || [];
+    const isSelected = selectedId === field.id;
+
+    const handleSelect = (e) => {
+        if (previewMode) return;
+        e.stopPropagation();
+        onSelect(field.id);
+    };
 
     return (
         <div
-            onClick={onSelect}
+            onClick={handleSelect}
             className={`stack--tight blueprint-field ${isSelected ? 'selected' : ''}`}
             style={{
                 padding: 'var(--space-4)',
                 borderRadius: 'var(--radius-md)',
-                border: isSelected ? `1px solid ${projection.theme.color}` : '1px solid transparent',
-                background: isSelected ? `${projection.theme.color}08` : 'transparent',
+                border: isSelected ? `2px solid ${projection.theme.color}` : '1px solid transparent',
+                background: isSelected ? `${projection.theme.color}12` : 'transparent',
                 cursor: previewMode ? 'default' : 'pointer',
                 transition: 'all var(--transition-fast)',
                 position: 'relative'
@@ -94,7 +106,7 @@ function BlueprintField({ field, isSelected, onSelect, previewMode }) {
                 <span style={{ fontSize: '8px', opacity: 0.3, fontFamily: 'var(--font-mono)' }}>{projection.type}</span>
             </div>
 
-            {/* Simulación del Input */}
+            {/* Simulación del Input o Contenedor */}
             {!isContainer ? (
                 <div style={{
                     height: '32px',
@@ -107,20 +119,33 @@ function BlueprintField({ field, isSelected, onSelect, previewMode }) {
                     fontSize: '11px',
                     opacity: 0.5
                 }}>
-                    {projection.config?.placeholder || 'Esperando entrada...'}
+                    {projection.config?.default_value || projection.config?.placeholder || 'Esperando entrada...'}
                 </div>
             ) : (
-                <div style={{
+                <div className="stack" style={{
                     padding: 'var(--space-4)',
                     border: '1px solid var(--color-border-strong)',
                     borderRadius: 'var(--radius-sm)',
                     background: 'rgba(255,255,255,0.02)',
-                    minHeight: '60px'
+                    minHeight: '60px',
+                    gap: 'var(--space-4)'
                 }}>
-                    <div className="center" style={{ opacity: 0.2 }}>
-                        <IndraIcon name={projection.theme.icon} size="20px" />
-                        <span style={{ fontSize: '9px', marginLeft: 'var(--space-2)' }}>{projection.type}_CONTAINER</span>
-                    </div>
+                    {children.length > 0 ? (
+                        children.map(child => (
+                            <BlueprintField
+                                key={child.id}
+                                field={child}
+                                selectedId={selectedId}
+                                onSelect={onSelect}
+                                previewMode={previewMode}
+                            />
+                        ))
+                    ) : (
+                        <div className="center" style={{ opacity: 0.2, padding: 'var(--space-4)' }}>
+                            <IndraIcon name={projection.theme.icon} size="20px" />
+                            <span style={{ fontSize: '9px', marginLeft: 'var(--space-2)' }}>{projection.type}_EMPTY_CONTAINER</span>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

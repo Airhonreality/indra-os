@@ -7,7 +7,7 @@
 
 import React from 'react';
 
-export default function PageBlock({ props, children, isSelected }) {
+export function PageBlock({ props, children, isSelected }) {
     const style = {
         width: props.width || '210mm',
         minHeight: props.minHeight || '297mm',
@@ -71,3 +71,4 @@ PageBlock.manifest = {
         }
     ]
 };
+export default PageBlock;

@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
+import { Spinner } from '../../../utilities/primitives';
 import { LayerTree } from './LayerTree';
 import { useAST } from '../context/ASTContext';
+import { useSelection } from '../context/SelectionContext';
 import { useDocumentHydration } from '../hooks/useDocumentHydration';
 
-export function NavigatorPanel({ atom }) {
-    const { blocks } = useAST();
+export function NavigatorPanel({ atom, onNotify }) {
+    const { blocks, findNode, updateNode } = useAST();
+    const { selectedId } = useSelection();
     const [tab, setTab] = useState('LAYERS'); // 'LAYERS' | 'DATA'
     const { slots, isLoading } = useDocumentHydration(atom);
 
@@ -57,7 +60,11 @@ export function NavigatorPanel({ atom }) {
                             <span style={{ fontSize: '9px', fontWeight: 'bold' }}>DATA_SLOTS_AVAILABLE</span>
                         </header>
 
-                        {isLoading && <div className="center" style={{ padding: 'var(--space-8)', opacity: 0.3, fontSize: '10px' }}>HYDRATING_CONTEXT...</div>}
+                        {isLoading && (
+                            <div className="center" style={{ padding: 'var(--space-8)' }}>
+                                <Spinner size="20px" label="HYDRATING_CONTEXT" />
+                            </div>
+                        )}
 
                         {!isLoading && slots.map(slot => (
                             <div
@@ -70,9 +77,24 @@ export function NavigatorPanel({ atom }) {
                                     borderBottom: '1px solid var(--color-border)'
                                 }}
                                 onClick={() => {
-                                    // Copiar al portapapeles
-                                    navigator.clipboard.writeText(`{{${slot.label}}}`);
-                                    if (onNotify) onNotify(`SLOT_COPIED: {{${slot.label}}}`);
+                                    const slotTag = `{{${slot.label}}}`;
+
+                                    // 1. Si hay un bloque seleccionado y es de texto, lo inyectamos
+                                    if (selectedId) {
+                                        const node = findNode(selectedId);
+                                        if (node && node.type === 'TEXT') {
+                                            const currentContent = node.props.content || '';
+                                            updateNode(selectedId, {
+                                                props: { ...node.props, content: currentContent + slotTag }
+                                            });
+                                            if (onNotify) onNotify(`SLOT_INSERTED: ${slotTag}`);
+                                            return;
+                                        }
+                                    }
+
+                                    // 2. Fallback: Copiar al portapapeles
+                                    navigator.clipboard.writeText(slotTag);
+                                    if (onNotify) onNotify(`SLOT_COPIED: ${slotTag}`);
                                 }}
                             >
                                 <IndraIcon name="LOGIC" size="10px" style={{ opacity: 0.5 }} />

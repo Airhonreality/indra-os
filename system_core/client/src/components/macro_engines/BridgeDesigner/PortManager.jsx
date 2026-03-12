@@ -12,9 +12,10 @@
 import React from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { IndraActionTrigger } from '../../utilities/IndraActionTrigger';
+import { IndraMicroHeader } from '../../utilities/IndraMicroHeader';
 import { FieldMapper } from './FieldMapper';
 
-export function PortManager({ title, ids, schemas, configs = {}, mappings = {}, onAdd, onRemove, onUpdateMapping, onUpdateConfig, onOpenSelector, type = 'SOURCE' }) {
+export function PortManager({ title, ids, schemas, configs = {}, mappings = {}, onAdd, onRemove, onUpdateMapping, onUpdateConfig, onSelectField, focusedTarget, setFocusedTarget, type = 'SOURCE' }) {
     return (
         <aside className="stack" style={{
             width: '320px',
@@ -24,13 +25,14 @@ export function PortManager({ title, ids, schemas, configs = {}, mappings = {}, 
             height: '100%',
             overflow: 'hidden'
         }}>
-            {/* Header del Puerto */}
-            <div className="spread" style={{ padding: 'var(--space-4) var(--space-6)', borderBottom: '1px solid var(--color-border)' }}>
-                <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 'bold', opacity: 0.6 }}>{title}</span>
-                <button className="btn btn--ghost btn--sm" onClick={onAdd}>
-                    <IndraIcon name="PLUS" size="12px" />
-                </button>
-            </div>
+            {/* Header del Puerto (Micro-HUD) */}
+            <IndraMicroHeader
+                label={title}
+                icon={type === 'SOURCE' ? 'LOGIC' : 'TARGET'}
+                onExecute={onAdd}
+                executeLabel="ADD"
+                metadata={`${ids.length} PIPES`}
+            />
 
             {/* Lista de Artefactos Conectados */}
             <div className="fill stack--tight" style={{ overflowY: 'auto', padding: 'var(--space-2)' }}>
@@ -44,14 +46,17 @@ export function PortManager({ title, ids, schemas, configs = {}, mappings = {}, 
                         onRemove={() => onRemove(id)}
                         onUpdateMapping={(m) => onUpdateMapping(id, m)}
                         onUpdateConfig={(c) => onUpdateConfig(id, c)}
-                        onOpenSelector={(fieldId) => onOpenSelector(id, fieldId)}
+                        onSelectField={onSelectField}
+                        focusedTarget={focusedTarget}
+                        setFocusedTarget={setFocusedTarget}
                         type={type}
                     />
                 ))}
 
                 {ids.length === 0 && (
-                    <div className="center stack" style={{ padding: 'var(--space-8)', opacity: 0.3 }}>
-                        <span style={{ fontSize: '10px' }}>NO_{type}S_CONNECTED</span>
+                    <div className="center fill stack" style={{ padding: 'var(--space-8)', opacity: 0.1 }}>
+                        <IndraIcon name={type === 'SOURCE' ? 'LOGIC' : 'TARGET'} size="32px" />
+                        <span style={{ fontSize: '10px', marginTop: 'var(--space-2)' }}>NO_{type}S_CONNECTED</span>
                     </div>
                 )}
             </div>
@@ -59,18 +64,16 @@ export function PortManager({ title, ids, schemas, configs = {}, mappings = {}, 
     );
 }
 
-function PortCard({ id, schema, mapping, config, onRemove, onUpdateMapping, onUpdateConfig, onOpenSelector, type }) {
-    const [expanded, setExpanded] = React.useState(type === 'TARGET');
+function PortCard({ id, schema, mapping, config, onRemove, onUpdateMapping, onUpdateConfig, onSelectField, focusedTarget, setFocusedTarget, type }) {
+    const [expanded, setExpanded] = React.useState(true);
     const [isEditingAlias, setIsEditingAlias] = React.useState(false);
 
-    const defaultAlias = schema?.label || id.split('/').pop() || 'LOADING...';
+    const defaultAlias = schema?.label || '...';
     const alias = config.alias || defaultAlias;
     const [tempAlias, setTempAlias] = React.useState(alias);
 
     const isBroken = schema?.error === true;
-
-    // By default all fields are active
-    const activeFields = config.activeFields || (schema?.fields ? schema.fields.map(f => f.id) : []);
+    const activeFields = config.activeFields || (schema?.fields?.map(f => f.id) || []);
 
     const toggleField = (fieldId) => {
         const next = activeFields.includes(fieldId)
@@ -92,10 +95,20 @@ function PortCard({ id, schema, mapping, config, onRemove, onUpdateMapping, onUp
         <div className="stack--tight glass" style={{
             padding: 'var(--space-3) var(--space-4)',
             borderRadius: 'var(--radius-md)',
-            border: isBroken ? '1px solid var(--color-danger)' : '1px solid var(--color-border)'
+            border: isBroken ? '1px solid var(--color-danger)' : '1px solid var(--color-border)',
+            marginBottom: 'var(--space-2)'
         }}>
             <div className="spread">
-                <div className="shelf--tight" onClick={() => !isEditingAlias && setExpanded(!expanded)} style={{ cursor: 'pointer', maxWidth: 'calc(100% - 24px)', overflow: 'hidden' }}>
+                <div
+                    className="shelf--tight fill clickable"
+                    onClick={() => !isEditingAlias && setExpanded(!expanded)}
+                    style={{ overflow: 'hidden' }}
+                >
+                    <IndraIcon
+                        name={expanded ? 'CHEVRON_DOWN' : 'CHEVRON_RIGHT'}
+                        size="10px"
+                        style={{ opacity: 0.5, marginRight: 'var(--space-1)' }}
+                    />
                     <IndraIcon
                         name={isBroken ? 'WARN' : (type === 'SOURCE' ? 'EYE' : 'TARGET')}
                         size="14px"
@@ -109,10 +122,7 @@ function PortCard({ id, schema, mapping, config, onRemove, onUpdateMapping, onUp
                                 onChange={e => setTempAlias(e.target.value)}
                                 onBlur={handleAliasCommit}
                                 onKeyDown={e => { if (e.key === 'Enter') handleAliasCommit(); }}
-                                style={{
-                                    background: 'var(--color-bg-void)', border: '1px solid var(--color-accent)',
-                                    color: 'white', fontSize: '11px', fontFamily: 'var(--font-mono)', width: '100%', outline: 'none'
-                                }}
+                                className="input-transparent-mono"
                             />
                         ) : (
                             <span
@@ -130,57 +140,141 @@ function PortCard({ id, schema, mapping, config, onRemove, onUpdateMapping, onUp
                                 {alias}
                             </span>
                         )}
-                        <span style={{ fontSize: '7px', opacity: 0.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {isBroken ? 'BROKEN_LINK' : `ID: ${id.split('/').pop().substring(0, 16)}...`}
+                        <span style={{ fontSize: '7px', opacity: 0.4, whiteSpace: 'nowrap' }}>
+                            {isBroken ? 'BROKEN_LINK' : `SCHEMA // ${id.substring(0, 16)}`}
                         </span>
                     </div>
                 </div>
 
                 <IndraActionTrigger
-                    icon="DELETE"
+                    variant="destructive"
                     size="10px"
-                    requiresHold={true}
-                    holdTime={800}
                     onClick={onRemove}
-                    color="var(--color-danger)"
+                    label="DISCONNECT_PIPE"
                 />
             </div>
 
-            {/* Preview de campos o Mapper */}
-            {expanded && schema && (
-                type === 'TARGET' ? (
-                    <FieldMapper
-                        targetId={id}
-                        config={config}
-                        schema={schema}
-                        mapping={mapping}
-                        onUpdateConfig={onUpdateConfig}
-                        onUpdateMapping={onUpdateMapping}
-                        onOpenSelector={onOpenSelector}
-                    />
-                ) : (
-                    <div className="stack--tight" style={{
-                        marginTop: 'var(--space-2)',
-                        paddingTop: 'var(--space-2)',
-                        borderTop: '1px solid rgba(255,255,255,0.05)'
+            {expanded && (
+                <div style={{
+                    marginTop: 'var(--space-2)',
+                    paddingTop: 'var(--space-2)',
+                    borderTop: '1px solid rgba(255,255,255,0.05)',
+                    paddingLeft: 'var(--space-4)'
+                }}>
+                    {!schema ? (
+                        <div className="center" style={{ padding: 'var(--space-4)', opacity: 0.3, fontSize: '9px' }}>
+                            FETCHING_SCHEMA_METADATA...
+                        </div>
+                    ) : (schema.fields && schema.fields.length > 0) ? (
+                        type === 'TARGET' ? (
+                            <FieldMapper
+                                targetId={id}
+                                config={config}
+                                schema={schema}
+                                mapping={mapping}
+                                focusedTarget={focusedTarget}
+                                setFocusedTarget={setFocusedTarget}
+                                onUpdateConfig={onUpdateConfig}
+                                onUpdateMapping={onUpdateMapping}
+                            />
+                        ) : (
+                            <div className="stack--tight">
+                                {schema.fields.map(f => (
+                                    <RecursiveFieldItem
+                                        key={f.id}
+                                        field={f}
+                                        alias={alias}
+                                        activeFields={activeFields}
+                                        toggleField={toggleField}
+                                        onSelectField={onSelectField}
+                                        level={0}
+                                    />
+                                ))}
+                            </div>
+                        )
+                    ) : (
+                        <div style={{ padding: 'var(--space-4)', opacity: 0.2, fontSize: '8px', fontFamily: 'var(--font-mono)' }}>
+                            // NO_ATOMS_IDENTIFIED_IN_MOLECULE
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function RecursiveFieldItem({ field, alias, activeFields, toggleField, onSelectField, level }) {
+    const [expanded, setExpanded] = React.useState(level < 1); // Expand first level by default
+    const hasChildren = field.children && field.children.length > 0;
+    const isActive = activeFields.includes(field.id);
+    const aliasPrefix = alias.toLowerCase().replace(/\s+/g, '_');
+
+    return (
+        <div className="stack--tight" style={{ marginLeft: level > 0 ? 'var(--space-3)' : 0 }}>
+            <div
+                className="spread glass-hover"
+                style={{
+                    opacity: isActive ? 1 : 0.4,
+                    cursor: 'pointer',
+                    padding: '4px',
+                    borderRadius: '4px',
+                    borderLeft: hasChildren ? '1px solid rgba(255,255,255,0.1)' : 'none'
+                }}
+                onClick={() => {
+                    if (hasChildren) {
+                        setExpanded(!expanded);
+                    } else {
+                        onSelectField({
+                            path: `source.${aliasPrefix}.${field.id}`,
+                            label: `${alias} > ${field.label || field.id}`
+                        });
+                    }
+                }}
+            >
+                <div className="shelf--tight">
+                    {hasChildren && (
+                        <IndraIcon
+                            name={expanded ? 'CHEVRON_DOWN' : 'CHEVRON_RIGHT'}
+                            size="8px"
+                            style={{ opacity: 0.4 }}
+                        />
+                    )}
+                    <div style={{
+                        width: '8px', height: '8px', borderRadius: '2px',
+                        border: `1px solid ${isActive ? 'var(--color-accent)' : 'var(--color-border-strong)'}`,
+                        background: isActive ? 'var(--color-accent)' : 'transparent',
+                        flexShrink: 0
+                    }} onClick={(e) => { e.stopPropagation(); toggleField(field.id); }} />
+                    <span style={{
+                        fontSize: '9px',
+                        fontFamily: 'var(--font-mono)',
+                        color: isActive ? 'white' : 'var(--color-text-secondary)',
+                        fontWeight: hasChildren ? 'bold' : 'normal'
                     }}>
-                        {schema.fields.map(f => {
-                            const isActive = activeFields.includes(f.id);
-                            return (
-                                <div key={f.id} className="shelf--tight" style={{ opacity: isActive ? 1 : 0.4, cursor: 'pointer' }} onClick={() => toggleField(f.id)}>
-                                    <div style={{
-                                        width: '8px', height: '8px', borderRadius: '2px',
-                                        border: `1px solid ${isActive ? 'var(--color-accent)' : 'var(--color-border-strong)'}`,
-                                        background: isActive ? 'var(--color-accent)' : 'transparent',
-                                        flexShrink: 0
-                                    }} />
-                                    <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: isActive ? 'white' : 'var(--color-text-secondary)' }}>{f.label || f.id}</span>
-                                    <span style={{ fontSize: '8px', opacity: 0.5 }}>({f.type})</span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )
+                        {field.label || field.id}
+                    </span>
+                </div>
+                <span style={{ fontSize: '7px', opacity: 0.3 }}>{field.type}</span>
+            </div>
+
+            {hasChildren && expanded && (
+                <div className="stack--tight" style={{
+                    marginTop: '2px',
+                    borderLeft: '1px solid rgba(255,255,255,0.05)',
+                    paddingLeft: 'var(--space-1)'
+                }}>
+                    {field.children.map(child => (
+                        <RecursiveFieldItem
+                            key={child.id}
+                            field={child}
+                            alias={alias}
+                            activeFields={activeFields}
+                            toggleField={toggleField}
+                            onSelectField={onSelectField}
+                            level={level + 1}
+                        />
+                    ))}
+                </div>
             )}
         </div>
     );

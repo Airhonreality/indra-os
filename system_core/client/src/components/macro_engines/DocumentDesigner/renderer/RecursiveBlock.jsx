@@ -57,8 +57,10 @@ export function RecursiveBlock({ block, depth = 0 }) {
     return (
         <div
             onClick={(e) => {
-                e.stopPropagation();
-                selectNode(block.id);
+                if (!isSelected) {
+                    if (block.type !== 'TEXT') e.stopPropagation();
+                    selectNode(block.id);
+                }
             }}
             onMouseEnter={() => setHover(block.id)}
             onMouseLeave={() => setHover(null)}

@@ -7,6 +7,7 @@
  */
 
 import { executeDirective } from './directive_executor';
+import { DataProjector } from './DataProjector';
 
 export class DesignerBridge {
     constructor(atom, shellActions, protocolData) {
@@ -19,21 +20,40 @@ export class DesignerBridge {
      * Persistir cambios en el Core (ATOM_UPDATE).
      */
     async save(data) {
+        // ADR-001: Purgar identidad inmutable antes de cruzar la frontera del ATOM_UPDATE
+        const { id, class: atomClass, ...mutableData } = data;
+
         return await this.request({
             protocol: 'ATOM_UPDATE',
             context_id: this.atom.id,
-            data: data
+            data: mutableData
         });
     }
 
     /**
      * Leer estado actual desde el Core (ATOM_READ).
+     * ADR-008: El Bridge proyecta automáticamente el átomo salvo que se pida crudo (raw:true).
      */
-    async read() {
-        return await this.request({
+    async read(options = {}) {
+        const result = await this.request({
             protocol: 'ATOM_READ',
             context_id: this.atom.id
         });
+
+        if (result.items && result.items[0]) {
+            const atom = result.items[0];
+
+            // Si se pide Raw (p.ej en un Designer), devolvemos el átomo sin proyectar
+            if (options.raw) return atom;
+
+            // Si el átomo es un esquema o tiene campos, lo proyectamos para uso en UI
+            if (atom.class === 'DATA_SCHEMA' || atom.payload?.fields) {
+                return DataProjector.projectSchema(atom);
+            }
+            return atom;
+        }
+
+        return null;
     }
 
     /**

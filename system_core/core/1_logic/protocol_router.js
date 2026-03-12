@@ -29,32 +29,7 @@
 
 // ─── VALIDACIÓN DE CONTRATO (AXIOMA DE DEFENSA) ────────────────────────────────
 
-/**
- * SHADOW IDENTITY PROTOCOL (v3.0)
- * Hidrata un átomo legacy con la estructura IUH (v3.0).
- * @private
- */
-function _hydrateIUH_(item, providerId) {
-  if (item.handle && item.handle.alias && item.handle.label) return item;
-
-  // Fallback de Label: Prioridad 1. name -> 2. label -> 3. account_id -> 4. id -> 5. "Recurso"
-  let label = item.name || item.label || item.account_id || item.id || 'Recurso';
-  
-  // Sanitización de IDs como labels (ej: 'notion' -> 'NOTION')
-  if (label === item.id && typeof label === 'string' && label.length < 20) {
-      label = label.toUpperCase();
-  }
-
-  const alias = item.alias || item.id || _system_slugify_(label);
-
-  item.handle = {
-    ns: item.handle?.ns || `com.indra.system.${item.class?.toLowerCase() || 'item'}`,
-    alias: alias || 'unnamed_slot',
-    label: label
-  };
-
-  return item;
-}
+// ─── VALIDACIÓN DE CONTRATO (AXIOMA DE DEFENSA) ────────────────────────────────
 
 /**
  * Valida que cada ítem del array retornado por el provider cumple el
@@ -63,10 +38,11 @@ function _hydrateIUH_(item, providerId) {
  *
  * @param {Array} items       - Array de ítems retornado por el provider.
  * @param {string} providerId - ID del provider que generó los ítems.
+ * @param {string} protocol   - El protocolo ejecutado (para modular rigor de validación).
  * @throws {Object} Error estructurado `CONTRACT_VIOLATION` si algún átomo es inválido.
  * @private
  */
-function _validateAtomContract_(items, providerId) {
+function _validateAtomContract_(items, providerId, protocol) {
   if (!items || !Array.isArray(items)) {
     throw createError(
       'CONTRACT_VIOLATION',
@@ -75,22 +51,110 @@ function _validateAtomContract_(items, providerId) {
     );
   }
 
-  const REQUIRED_FIELDS = ['id', 'class']; // 'name' ahora es opcional/deprecado, 'handle' es vital
+  // Lista de protocolos "ligeros" que devuelven punteros o vistas parciales (no átomos completos)
+  const LIGHTWEIGHT_PROTOCOLS = ['SYSTEM_PINS_READ', 'SCHEMA_FIELD_OPTIONS', 'HIERARCHY_TREE'];
+  const isFullDataProtocol = !LIGHTWEIGHT_PROTOCOLS.includes(protocol);
 
   items.forEach((item, index) => {
-    // 1. Aplicar Shadow Identity Protocol (Hidratación)
-    _hydrateIUH_(item, providerId);
+    // 1. SINCERIDAD DE IDENTIDAD (ADR-001): Zero Pity Validation
+    // El ítem debe venir con su handle completo desde el origen.
+    const handle = item.handle;
 
-    // 2. Validar campos estructurales
-    const missing = REQUIRED_FIELDS.filter(field => !item[field]);
-    if (missing.length > 0 || !item.handle) {
+    if (!handle || !handle.ns || !handle.alias || !handle.label) {
       throw createError(
         'CONTRACT_VIOLATION',
-        `ContractViolation v3.0: El provider "${providerId}" entregó materia no canónica. Faltan campos: [${missing.join(', ')}].`,
+        `LEY_DE_ADUANA: El provider "${providerId}" entregó materia sin identidad sincera (handle.ns/alias/label requeridos).`,
+        { providerId, atomId: item.id, proto: protocol, handle }
+      );
+    }
+
+    // 2. Validar campos estructurales obligatorios (Capa 2)
+    const REQUIRED_BASE = ['id', 'class'];
+    const missing = REQUIRED_BASE.filter(field => !item[field]);
+    if (missing.length > 0) {
+      throw createError(
+        'CONTRACT_VIOLATION',
+        `LEY_DE_ADUANA: El provider "${providerId}" entregó materia no canónica. Faltan campos base: [${missing.join(', ')}].`,
         { item_index: index, item }
       );
     }
+
+    // 3. ADR_008: VALIDACIÓN COERCITIVA ESTRUCTURAL (Capa 3 - Payload)
+    // Solo aplicamos si el protocolo está diseñado para retornar el átomo completo
+    if (isFullDataProtocol) {
+      if (item.class === 'DATA_SCHEMA') {
+        const fields = item.payload?.fields;
+        if (!fields || !Array.isArray(fields)) {
+          throw createError(
+            'CONTRACT_VIOLATION',
+            `LEY_DE_ADUANA: El provider "${providerId}" entregó un DATA_SCHEMA inválido (payload.fields es requerido y debe ser Array).`,
+            { providerId, atomId: item.id, proto: protocol }
+          );
+        }
+      }
+    }
   });
+}
+
+// ─── VALIDACIÓN DE ENTRADA (MEMBRANA CELULAR - ADR_008) ───────────────────────
+
+/**
+ * Define los requisitos mínimos de estructura por clase de Átomo.
+ * @const
+ */
+const INDRA_CLASS_INVARIANTS = {
+  'DATA_SCHEMA': ['payload.fields'],
+  'WORKFLOW': ['payload.stations'],
+  'BRIDGE': ['payload.operators']
+};
+
+/**
+ * Valida el UQO antes de que toque cualquier Provider.
+ * Este es el escudo frontal contra la Materia Oscura.
+ *
+ * @param {Object} uqo - El UQO de entrada.
+ * @private
+ */
+function _validateInputContract_(uqo) {
+  const protocol = (uqo.protocol || '').toUpperCase();
+  const data = uqo.data;
+
+  // ── AXIOMA 1: Sinceridad de Identidad en Nacimiento (ATOM_CREATE) ──
+  if (protocol === 'ATOM_CREATE') {
+    if (!data) throw createError('INPUT_CONTRACT_VIOLATION', 'ATOM_CREATE requiere objeto "data".');
+
+    // 1. Identidad Humana (Label)
+    if (!data.handle?.label || data.handle.label.trim() === '') {
+      throw createError('INPUT_CONTRACT_VIOLATION', 'LEY_DE_ADUANA: ATOM_CREATE requiere "handle.label" no vacío.');
+    }
+
+    // 2. Invariantes de Clase (ADR-008)
+    const invariants = INDRA_CLASS_INVARIANTS[data.class];
+    if (invariants) {
+      invariants.forEach(path => {
+        const parts = path.split('.');
+        let val = data;
+        for (const part of parts) { val = val ? val[part] : undefined; }
+
+        if (val === undefined || !Array.isArray(val)) {
+          throw createError(
+            'INPUT_CONTRACT_VIOLATION',
+            `Fallo de Invariante de Clase: "${data.class}" requiere que "${path}" sea un Array.`
+          );
+        }
+      });
+    }
+  }
+
+  // ── AXIOMA 2: Inmutabilidad de Identidad (ATOM_UPDATE) ──
+  if (protocol === 'ATOM_UPDATE') {
+    if (data && (data.class || data.id)) {
+      throw createError(
+        'SECURITY_VIOLATION',
+        'ADR-001: ATOM_UPDATE no permite modificar "class" ni "id". Identidad Soberana es Inmutable.'
+      );
+    }
+  }
 }
 
 /**
@@ -146,6 +210,9 @@ function _validateReturnLaw_(result, providerId) {
  * @throws {Object} Error estructurado de `error_handler.gs` en caso de fallo.
  */
 function route(uqo) {
+  // ── AXIOMA DE PERÍMETRO: Lo que entra debe ser sincero o no entra (ADR_008) ──
+  _validateInputContract_(uqo);
+
   const protocol = (uqo.protocol || '').toUpperCase();
 
   // ── DESPACHO ESPECIAL: WORKFLOW_EXECUTE ───────────────────────────────────
@@ -234,7 +301,7 @@ function route(uqo) {
     result = handlerFn(uqo);
   } catch (handlerError) {
     logError(`[protocol_router] Fallo crítico en provider "${providerId}" ejecutando "${protocol}".`, handlerError);
-    
+
     // Axioma de Visibilidad (Error-as-Data):
     // Convertimos la excepción física en un Átomo de Error proyectable.
     return {
@@ -255,7 +322,7 @@ function route(uqo) {
           protocol: protocol
         }
       }],
-      metadata: { 
+      metadata: {
         status: 'ERROR_FLOW',
         error: handlerError.message,
         update_type: 'SNAPSHOT',
@@ -266,7 +333,26 @@ function route(uqo) {
 
   // --- Validar retorno: The Return Law y contrato de átomo ---
   _validateReturnLaw_(result, providerId);
-  _validateAtomContract_(result.items, providerId);
+  _validateAtomContract_(result.items, providerId, protocol);
+
+  // ADR-008: VALIDACIÓN RADICAL DE SCHEMAS EN STREAMS
+  if (protocol === 'TABULAR_STREAM') {
+    const schema = result.metadata?.schema;
+    if (!schema || !schema.fields || !Array.isArray(schema.fields)) {
+      throw createError(
+        'CONTRACT_VIOLATION',
+        `LEY_DE_ADUANA: El provider "${providerId}" violó el contrato TABULAR_STREAM. Se requiere metadata.schema.fields (Array).`,
+        { providerId, proto: protocol }
+      );
+    }
+    // PROHIBICIÓN DE LEGACY
+    if (schema.columns) {
+      throw createError(
+        'CONTRACT_VIOLATION',
+        `LEY_DE_ADUANA_LEGACY: El provider "${providerId}" intentó cruzar la aduana con "columns". Bloqueado.`
+      );
+    }
+  }
 
   // Garantizar que metadata siempre tiene al menos { status }
   result.metadata = result.metadata || {};

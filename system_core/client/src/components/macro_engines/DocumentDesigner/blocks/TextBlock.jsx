@@ -7,19 +7,33 @@
 
 import React from 'react';
 
-export function TextBlock({ props, onUpdate }) {
-    // Por ahora, render básico. La interpolación de {{slots}} se implementará en Fase 3.
+export function TextBlock({ props, onUpdate, isSelected }) {
+    const textRef = React.useRef(null);
+    const [isFocused, setIsFocused] = React.useState(false);
+
+    React.useEffect(() => {
+        if (isSelected && textRef.current && !isFocused) {
+            // textRef.current.focus(); // Opcional: auto-focus al seleccionar
+        }
+    }, [isSelected]);
+
     const style = {
         color: props.color || 'var(--color-text-primary)',
         fontSize: props.fontSize || 'var(--text-base)',
         fontFamily: props.fontFamily || 'var(--font-sans)',
+        minWidth: '50px',
+        minHeight: '1em',
+        outline: 'none',
         lineHeight: '1.5',
         margin: 0,
         // Blindaje MDO
         overflow: 'hidden',
         textOverflow: 'ellipsis',
-        whiteSpace: props.multiLine ? 'pre-wrap' : 'nowrap'
+        whiteSpace: props.multiLine ? 'pre-wrap' : 'nowrap',
+        opacity: (props.content || isFocused) ? 1 : 0.3
     };
+
+    // ... (renderContent stays same)
 
     // Interpolación: busca {{clave}} y resalta como "píldora"
     const renderContent = () => {
@@ -55,10 +69,15 @@ export function TextBlock({ props, onUpdate }) {
 
     return (
         <div
+            ref={textRef}
             style={style}
             contentEditable
             suppressContentEditableWarning
-            onBlur={(e) => onUpdate({ content: e.target.innerText })}
+            onFocus={() => setIsFocused(true)}
+            onBlur={(e) => {
+                setIsFocused(false);
+                onUpdate({ content: e.target.innerText });
+            }}
             onKeyDown={(e) => {
                 if (e.key === 'Enter' && !props.multiLine) {
                     e.preventDefault();
@@ -66,7 +85,7 @@ export function TextBlock({ props, onUpdate }) {
                 }
             }}
         >
-            {renderContent()}
+            {isFocused ? (props.content || '') : renderContent()}
         </div>
     );
 }
@@ -91,4 +110,5 @@ TextBlock.manifest = {
         }
     ]
 };
+export default TextBlock;
 

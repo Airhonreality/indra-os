@@ -9,6 +9,36 @@ import { useState, useCallback } from 'react';
 
 export function useDocumentAST(initialBlocks = []) {
     const [blocks, setBlocks] = useState(initialBlocks);
+    const [history, setHistory] = useState([JSON.parse(JSON.stringify(initialBlocks))]);
+    const [pointer, setPointer] = useState(0);
+
+    const pushToHistory = (newBlocks) => {
+        const cleanBlocks = JSON.parse(JSON.stringify(newBlocks));
+        const newHistory = history.slice(0, pointer + 1);
+        newHistory.push(cleanBlocks);
+
+        // Limit history to 50 steps
+        if (newHistory.length > 50) newHistory.shift();
+
+        setHistory(newHistory);
+        setPointer(newHistory.length - 1);
+    };
+
+    const undo = useCallback(() => {
+        if (pointer > 0) {
+            const prevPointer = pointer - 1;
+            setPointer(prevPointer);
+            setBlocks(JSON.parse(JSON.stringify(history[prevPointer])));
+        }
+    }, [history, pointer]);
+
+    const redo = useCallback(() => {
+        if (pointer < history.length - 1) {
+            const nextPointer = pointer + 1;
+            setPointer(nextPointer);
+            setBlocks(JSON.parse(JSON.stringify(history[nextPointer])));
+        }
+    }, [history, pointer]);
 
     // Búsqueda recursiva de un nodo
     const findNode = (nodes, id) => {
@@ -21,8 +51,6 @@ export function useDocumentAST(initialBlocks = []) {
         }
         return null;
     };
-
-    // ... (logic for updateNodeInTree, removeNodeFromTree remains same)
 
     // Actualización recursiva inmutable
     const updateNodeInTree = (nodes, id, newData) => {
@@ -41,8 +69,9 @@ export function useDocumentAST(initialBlocks = []) {
     const removeNodeFromTree = (nodes, id) => {
         return nodes.filter(node => {
             if (node.id === id) return false;
-            if (node.children) {
-                node.children = removeNodeFromTree(node.children, id);
+            let newNode = { ...node };
+            if (newNode.children) {
+                newNode.children = removeNodeFromTree(newNode.children, id);
             }
             return true;
         });
@@ -57,43 +86,47 @@ export function useDocumentAST(initialBlocks = []) {
             children: (type === 'FRAME' || type === 'ITERATOR' || type === 'PAGE') ? [] : undefined
         };
 
+        let newTree = [];
         setBlocks(prev => {
             let actualParentId = parentId;
 
             // Axioma ontológico: PAGE siempre es nivel raíz
             if (type === 'PAGE') {
-                return [...prev, newNode];
-            }
+                newTree = [...prev, newNode];
+            } else {
+                // Verificamos si el padre es un contenedor válido
+                if (actualParentId) {
+                    const parentNode = findNode(prev, actualParentId);
+                    if (parentNode && parentNode.type !== 'FRAME' && parentNode.type !== 'ITERATOR' && parentNode.type !== 'PAGE') {
+                        actualParentId = prev[0]?.id || 'root';
+                    }
+                }
 
-            // Verificamos si el padre es un contenedor válido
-            if (actualParentId) {
-                const parentNode = findNode(prev, actualParentId);
-                // Si el padre no es un contenedor, forzamos al root o la primera página
-                if (parentNode && parentNode.type !== 'FRAME' && parentNode.type !== 'ITERATOR' && parentNode.type !== 'PAGE') {
-                    actualParentId = prev[0]?.id || 'root';
+                const targetId = actualParentId || (prev[0]?.id || 'root');
+                const rootExists = findNode(prev, targetId);
+
+                if (rootExists) {
+                    newTree = updateNodeInTree(prev, targetId, {
+                        children: [...(findNode(prev, targetId)?.children || []), newNode]
+                    });
+                } else {
+                    newTree = [...prev, newNode];
                 }
             }
-
-            // Si no hay padre o decidimos ir al root
-            const targetId = actualParentId || 'root';
-            const rootExists = findNode(prev, 'root');
-
-            if (rootExists) {
-                return updateNodeInTree(prev, targetId, {
-                    children: [...(findNode(prev, targetId)?.children || []), newNode]
-                });
-            } else {
-                // Si por alguna razón no hay root, simplemente añadimos al nivel superior
-                return [...prev, newNode];
-            }
+            pushToHistory(newTree);
+            return newTree;
         });
 
         return newNode.id;
-    }, []);
+    }, [history, pointer]);
 
     const updateNode = useCallback((id, newData) => {
-        setBlocks(prev => updateNodeInTree(prev, id, newData));
-    }, []);
+        setBlocks(prev => {
+            const newTree = updateNodeInTree(prev, id, newData);
+            pushToHistory(newTree);
+            return newTree;
+        });
+    }, [history, pointer]);
 
     const moveNode = useCallback((id, direction) => {
         setBlocks(prev => {
@@ -113,17 +146,99 @@ export function useDocumentAST(initialBlocks = []) {
                     return node;
                 });
             };
-            return findAndMove(prev);
+            const newTree = findAndMove(prev);
+            pushToHistory(newTree);
+            return newTree;
         });
-    }, []);
+    }, [history, pointer]);
 
     const removeNode = useCallback((id) => {
         if (id === 'root') {
             console.warn('[useAST] Cannot remove root node (Axiomatic Protection)');
             return;
         }
-        setBlocks(prev => removeNodeFromTree(prev, id));
-    }, []);
+        setBlocks(prev => {
+            const newTree = removeNodeFromTree(prev, id);
+            pushToHistory(newTree);
+            return newTree;
+        });
+    }, [history, pointer]);
+
+    // Mover nodo un nivel hacia ADENTRO (al hermano anterior si es contenedor)
+    const indentNode = useCallback((id) => {
+        setBlocks(prev => {
+            let nodeToIndent = null;
+            let prevSibling = null;
+
+            const findContext = (nodes, targetId) => {
+                const index = nodes.findIndex(n => n.id === targetId);
+                if (index !== -1) {
+                    nodeToIndent = nodes[index];
+                    prevSibling = index > 0 ? nodes[index - 1] : null;
+                    return true;
+                }
+                for (let n of nodes) {
+                    if (n.children && findContext(n.children, targetId)) return true;
+                }
+                return false;
+            };
+
+            findContext(prev, id);
+
+            if (nodeToIndent && prevSibling && (prevSibling.type === 'FRAME' || prevSibling.type === 'ITERATOR')) {
+                const cleanTree = removeNodeFromTree(prev, id);
+                const newTree = updateNodeInTree(cleanTree, prevSibling.id, {
+                    children: [...(prevSibling.children || []), nodeToIndent]
+                });
+                pushToHistory(newTree);
+                return newTree;
+            }
+            return prev;
+        });
+    }, [history, pointer]);
+
+    const outdentNode = useCallback((id) => {
+        setBlocks(prev => {
+            let nodeToMove = null;
+            let parentOfNode = null;
+            let grandparentOfNode = null;
+
+            const findContext = (nodes, targetId, parent = null, grandparent = null) => {
+                const index = nodes.findIndex(n => n.id === targetId);
+                if (index !== -1) {
+                    nodeToMove = nodes[index];
+                    parentOfNode = parent;
+                    grandparentOfNode = grandparent;
+                    return true;
+                }
+                for (let n of nodes) {
+                    if (n.children && findContext(n.children, targetId, n, parent)) return true;
+                }
+                return false;
+            };
+
+            findContext(prev, id);
+
+            if (nodeToMove && parentOfNode) {
+                const cleanTree = removeNodeFromTree(prev, id);
+                let newTree;
+                if (grandparentOfNode) {
+                    const children = grandparentOfNode.children || [];
+                    const parentIndex = children.findIndex(n => n.id === parentOfNode.id);
+                    const newChildren = [...children];
+                    newChildren.splice(parentIndex + 1, 0, nodeToMove);
+                    newTree = updateNodeInTree(cleanTree, grandparentOfNode.id, { children: newChildren });
+                } else {
+                    const parentIndex = cleanTree.findIndex(n => n.id === parentOfNode.id);
+                    newTree = [...cleanTree];
+                    newTree.splice(parentIndex + 1, 0, nodeToMove);
+                }
+                pushToHistory(newTree);
+                return newTree;
+            }
+            return prev;
+        });
+    }, [history, pointer]);
 
     return {
         blocks,
@@ -132,7 +247,13 @@ export function useDocumentAST(initialBlocks = []) {
         addNode,
         updateNode,
         moveNode,
-        removeNode
+        indentNode,
+        outdentNode,
+        removeNode,
+        undo,
+        redo,
+        canUndo: pointer > 0,
+        canRedo: pointer < history.length - 1
     };
 }
 

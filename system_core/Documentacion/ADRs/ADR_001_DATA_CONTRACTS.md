@@ -207,14 +207,17 @@ El campo `query` se pasa sin modificar al provider. El router es ciego a su cont
 ### A4 — Inmutabilidad de Clase e ID (§5.1)
 `id` y `class` de un átomo nunca cambian después de su creación (`ATOM_CREATE`).
 
-### A5 — Propagación de Identidad
-Cuando cambia el `handle.label` o `handle.alias` de un átomo, el backend propaga el cambio a todos los workspaces que lo tengan anclado (Ghost Pin Prevention).
+### A5 — Eventual Consistency de Identidad Propagada
+Cuando cambia el `handle.label` de un átomo, el backend intenta propagar el cambio a los pines de los workspaces (`_system_propagateNameChange`). Esta propagación es **best-effort**: si falla parcialmente, los pines mostrarán el label anterior hasta que el workspace sea recargado. No es un axioma de garantía atómica. (Ver ADR_008 §4.D3).
 
 ### A6 — Error-as-Data (Visibilidad Forzada)
 Los errores de ejecución de providers se convierten en un Átomo de clase `ERROR_REPORT` proyectable por el frontend. El sistema nunca silencia fallos.
 
 ### A7 — Agnosticismo de Provider
 El frontend nunca contiene lógica específica de un provider. Solo conoce `class`, `protocols`, y la estructura del Átomo Universal. Cualquier provider que cumpla el contrato es intercambiable.
+
+### A8 — Borrado Físico Determinista (ADR_008 §3.3)
+`ATOM_DELETE` elimina solo la materia física. No propaga ni escanea referencias. La integridad referencial se resuelve en tiempo de lectura mediante el **Portal de Sinceridad** (`SYSTEM_PINS_READ`). Las referencias huérfanas son un estado transitorio visible, no un estado de error.
 
 ---
 

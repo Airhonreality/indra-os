@@ -9,6 +9,7 @@ import { IndraIcon } from './components/utilities/IndraIcons';
 import { registry } from './services/EngineRegistry';
 import './services/EngineBoot';
 import { DesignerBridge } from './services/CapabilityBridge';
+import { ToastProvider } from './components/utilities/primitives/ToastNotification';
 
 /**
  * App Orchestrator
@@ -42,7 +43,11 @@ function App() {
                 { close: closeArtifact },
                 { url: coreUrl, secret: sessionSecret, lang: lang || 'es' }
             );
-            return <Engine atom={activeArtifact} bridge={bridge} />;
+            return (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', overflow: 'hidden', zIndex: 100 }}>
+                    <Engine atom={activeArtifact} bridge={bridge} />
+                </div>
+            );
         }
 
         // Fallback para clases sin motor asignado (Sinceridad Radical)
@@ -59,4 +64,11 @@ function App() {
     return <WorkspaceDashboard />;
 }
 
-export default App;
+// ToastProvider envuelve toda la app para que useToast() esté disponible globalmente
+export default function AppWithProviders() {
+    return (
+        <ToastProvider>
+            <App />
+        </ToastProvider>
+    );
+}

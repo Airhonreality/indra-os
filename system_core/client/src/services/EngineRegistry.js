@@ -1,42 +1,78 @@
 /**
  * =============================================================================
  * SERVICIO: EngineRegistry.js
- * RESPONSABILIDAD: Registro dinámico de Macro-Motores (Agisticidad).
+ * RESPONSABILIDAD: Registro dinámico de Macro-Motores.
+ *
+ * INDUSTRIALIZACIÓN (PA-17):
+ *   - Cada motor registra su componente + manifiesto visual.
+ *   - ActionRail y otros consumidores llaman getAll() para
+ *     descubrir motores sin ningún hardcoding.
  * =============================================================================
  */
 
 class EngineRegistry {
     constructor() {
-        this.engines = new Map();
+        this._entries = new Map(); // atomClass → { component, manifest }
     }
 
     /**
-     * Registra un motor para una clase específica de átomo.
-     * @param {string} atomClass - Ej: 'DOCUMENT', 'BRIDGE', 'SCHEMA'
-     * @param {React.Component} component - El componente del motor.
+     * Registra un motor con su componente React.
+     * Forma simple: sin manifiesto explícito (compatibilidad hacia atrás).
+     * @param {string} atomClass
+     * @param {React.Component} component
+     * @param {Object} [manifest] - Opcional: { icon, label, color, canCreate }
      */
-    register(atomClass, component) {
-        if (this.engines.has(atomClass) && this.engines.get(atomClass) !== component) {
-            console.warn(`[EngineRegistry] Overwriting engine for class: ${atomClass} with a DIFFERENT component.`);
+    register(atomClass, component, manifest = null) {
+        if (this._entries.has(atomClass)) {
+            const existing = this._entries.get(atomClass);
+            if (existing.component !== component) {
+                console.warn(`[EngineRegistry] Overwriting engine for class: ${atomClass}`);
+            }
         }
-        this.engines.set(atomClass, component);
-        // console.log(`[EngineRegistry] Registered engine for: ${atomClass}`); 
+        this._entries.set(atomClass, {
+            component,
+            manifest: manifest || this._entries.get(atomClass)?.manifest || null
+        });
     }
 
     /**
-     * Recupera el motor para una clase.
-     * @param {string} atomClass 
+     * Registra un motor con manifiesto completo de capacidades.
+     * @param {string} atomClass
+     * @param {React.Component} component
+     * @param {Object} manifest - { icon, label, color, canCreate, description }
+     */
+    registerWithManifest(atomClass, component, manifest) {
+        this._entries.set(atomClass, { component, manifest });
+    }
+
+    /**
+     * Recupera el componente motor para una clase de átomo.
+     * @param {string} atomClass
      * @returns {React.Component|null}
      */
     get(atomClass) {
-        return this.engines.get(atomClass) || null;
+        return this._entries.get(atomClass)?.component || null;
     }
 
     /**
-     * Lista todas las clases registradas.
+     * Devuelve todos los motores registrados con sus manifiestos.
+     * Usado por ActionRail para descubrimiento dinámico.
+     * @returns {Array<{ atomClass, component, manifest }>}
+     */
+    getAll() {
+        return Array.from(this._entries.entries()).map(([atomClass, entry]) => ({
+            atomClass,
+            component: entry.component,
+            manifest: entry.manifest,
+        }));
+    }
+
+    /**
+     * Lista todas las clases de átomos con motor registrado.
+     * @returns {string[]}
      */
     getSupportedClasses() {
-        return Array.from(this.engines.keys());
+        return Array.from(this._entries.keys());
     }
 }
 

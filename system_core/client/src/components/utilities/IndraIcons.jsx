@@ -38,6 +38,7 @@ const ICON_MAP = {
     'DOCUMENT': <path d="M3 2h7l3 3v9H3zm7 0v3h3" />,
     'SERVICE': <path d="M8 2l6 3.5v7L8 14 2 10.5v-7L8 2zm0 3.5v5M5 6.5l6 3m0-3l-6 3" />,
     'FOLDER': <path d="M1 3h5l2 2h7v9H1V3z" />,
+    'VAULT': <><rect x="2" y="4" width="12" height="10" rx="1" /><circle cx="8" cy="9" r="2" /><path d="M8 7v1" /></>,
 
     // ── ACCIONES ──
     'PLUS': <path d="M8 3v10M3 8h10" />,
@@ -58,6 +59,8 @@ const ICON_MAP = {
     'BACK': <path d="M11 3L6 8l5 5" />,
     'ARROW_UP': <path d="M8 13V3m-4 4l4-4 4 4" />,
     'ARROW_DOWN': <path d="M8 3v10m-4-4l4 4 4-4" />,
+    'ARROW_LEFT': <path d="M11 8H3m4-4L3 8l4 4" />,
+    'ARROW_RIGHT': <path d="M5 8h8m-4-4l4 4-4 4" />,
     'CHEVRON_RIGHT': <path d="M6 3l5 5-5 5" />,
     'EYE': <><path d="M1 8s3-5 7-5 7 5 7 5-3 5-7 5-7-5-7-5z" /><circle cx="8" cy="8" r="2" /></>,
     'DELETE': <path d="M3 3h10v11H3zm1-3h8m-6 3v8m4-8v8" />,
@@ -74,4 +77,14 @@ const ICON_MAP = {
 
     // ── MEDIA ──
     'PLAY': <path d="M4 3l9 5-9 5V3z" />,
+    'TERMINAL': <path d="M2 3l4 5-4 5m4 0h8" />,
+
+    // ── HISTORIAL ──
+    'UNDO': <path d="M4 8a5 5 0 015-5h4M4 8L1 5m3 3L1 11m9-3h4" />,
+    'REDO': <path d="M12 8a5 5 0 00-5-5H3m9 0l3-3m-3 3l3 3M3 8H7" />,
+
+    // ── ALIASES DE CLASE (para atom.class → icono) ──
+    'DATA_SCHEMA': <path d="M2 2h12v12H2zm3 4h6m-6 3h6m-6 3h3" />,
+    'WORKFLOW': <path d="M2 4h4v4H2zm8 0h4v4h-4zM4 8v4h8V8" />,
+    'EXPRESSION': <path d="M2 8h2m2-4l4 8m0-8l-4 8m5-4h2" />,
 };

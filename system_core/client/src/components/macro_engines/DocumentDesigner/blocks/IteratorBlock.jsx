@@ -39,3 +39,4 @@ export function IteratorBlock({ props, children }) {
         </div>
     );
 }
+export default IteratorBlock;

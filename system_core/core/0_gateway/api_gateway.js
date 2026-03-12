@@ -59,11 +59,11 @@ function doGet(e) {
     return _buildResponse_(200, {
       items: [],
       metadata: {
-        status:        'ALIVE',
-        bootstrapped:  isBootstrapped(),
-        timestamp:     new Date().toISOString(),
-        version:       'universal-core-system/1.0',
-        logs:          [],
+        status: 'ALIVE',
+        bootstrapped: isBootstrapped(),
+        timestamp: new Date().toISOString(),
+        version: 'universal-core-system/1.0',
+        logs: [],
       },
     });
   }
@@ -72,10 +72,10 @@ function doGet(e) {
   return _buildResponse_(200, {
     items: [],
     metadata: {
-      status:    isBootstrapped() ? 'OK' : 'BOOTSTRAP',
-      message:   'Universal Core System activo. Usa POST para interactuar.',
+      status: isBootstrapped() ? 'OK' : 'BOOTSTRAP',
+      message: 'Universal Core System activo. Usa POST para interactuar.',
       timestamp: new Date().toISOString(),
-      logs:      [],
+      logs: [],
     },
   });
 }
@@ -98,8 +98,8 @@ function doPost(e) {
         items: [],
         metadata: {
           status: 'ERROR',
-          error:  'Request body inválido. Se esperaba JSON.',
-          logs:   flushLogs(),
+          error: 'Request body inválido. Se esperaba JSON.',
+          logs: flushLogs(),
         },
       });
     }
@@ -118,8 +118,8 @@ function doPost(e) {
         items: [],
         metadata: {
           status: 'UNAUTHORIZED',
-          error:  'Credencial de acceso inválida.',
-          logs:   flushLogs(),
+          error: 'Credencial de acceso inválida.',
+          logs: flushLogs(),
         },
       });
     }
@@ -139,15 +139,15 @@ function doPost(e) {
         items: [],
         metadata: {
           status: 'ERROR',
-          error:  isKnownError ? routingError.message : 'Error interno del servidor.',
-          code:   isKnownError ? routingError.code : 'SYSTEM_FAILURE',
+          error: isKnownError ? routingError.message : 'Error interno del servidor.',
+          code: isKnownError ? routingError.code : 'SYSTEM_FAILURE',
         },
       };
     }
 
     // --- 5. Inyectar logs del ciclo ---
-    result.metadata        = result.metadata || {};
-    result.metadata.logs   = flushLogs();
+    result.metadata = result.metadata || {};
+    result.metadata.logs = flushLogs();
     result.metadata.status = result.metadata.status || 'OK';
 
     // --- 6. Inyectar Header de Actualización (Indra v4.0 Deltas) ---
@@ -161,7 +161,7 @@ function doPost(e) {
       result.metadata.logs = flushLogs();
     }
 
-    return _buildResponse_(200, result, { 
+    return _buildResponse_(200, result, {
       'X-Indra-Update-Type': updateType,
       'X-Indra-Trace': JSON.stringify(_sanitizeTrace_(payload))
     });
@@ -174,9 +174,9 @@ function doPost(e) {
       items: [],
       metadata: {
         status: 'ERROR',
-        error:  'Falla catastrófica en el Gateway: ' + fatalError.message,
-        code:   'FATAL_SERVER_ERROR',
-        logs:   []
+        error: 'Falla catastrófica en el Gateway: ' + fatalError.message,
+        code: 'FATAL_SERVER_ERROR',
+        logs: []
       }
     });
   }
@@ -222,14 +222,14 @@ function _enforceAtomContract_(result, providerId, protocol) {
       // Prioridad de Identidad: handle.label -> name -> label -> account_id -> id -> default
       const label = atom.handle?.label || atom.name || atom.label || atom.account_id || atom.id || 'Recurso';
       const alias = atom.handle?.alias || _system_slugify_(label) || 'slot_unnamed';
-      
+
       atom.handle = {
         ns: atom.handle?.ns || `com.indra.gateway.${atom.class?.toLowerCase() || 'item'}`,
         alias: alias,
         label: label
       };
     }
-    
+
     // Eliminación Axiomática: una vez hidratado el handle, se remueve .name
     // para forzar al frontend a usar handle.label (DATA_CONTRACTS v4.0)
     if (atom.name) delete atom.name;
@@ -284,11 +284,11 @@ function _handleBootstrap_(payload) {
       logInfo('[gateway] Servidor bootstrapped exitosamente.');
       return _buildResponse_(200, {
         items: [],
-        metadata: { 
-          status: 'OK', 
+        metadata: {
+          status: 'OK',
           message: 'Pacto de Ignición completado. El Núcleo ha despertado.',
           intent_type: 'SUCCESS',
-          logs: flushLogs() 
+          logs: flushLogs()
         },
       });
     } catch (bootstrapError) {
@@ -305,9 +305,9 @@ function _handleBootstrap_(payload) {
   return _buildResponse_(200, {
     items: [],
     metadata: {
-      status:  'BOOTSTRAP',
+      status: 'BOOTSTRAP',
       message: 'Servidor no inicializado. Define tu contraseña de acceso.',
-      logs:    flushLogs(),
+      logs: flushLogs(),
     },
   });
 }
@@ -394,13 +394,13 @@ function handleConfigWrite_(payload) {
   storeProviderAccount(providerId, accId, apiKey, finalLabel);
 
   logInfo(`[gateway] Cuenta guardada: ${providerId}:${accId} as "${finalLabel}"`);
-  return { 
-    items: [], 
-    metadata: { 
-      status: 'OK', 
+  return {
+    items: [],
+    metadata: {
+      status: 'OK',
       message: `Cuenta "${finalLabel}" linealizada exitosamente en ${providerId}.`,
       intent_type: 'SUCCESS'
-    } 
+    }
   };
 }
 
@@ -418,20 +418,20 @@ function handleConfigDelete_(payload) {
     return { items: [], metadata: { status: 'ERROR', error: err.message } };
   }
 
-  const keyKey  = `ACCOUNT_${providerId}_${accountId}_KEY`;
+  const keyKey = `ACCOUNT_${providerId}_${accountId}_KEY`;
   const metaKey = `ACCOUNT_${providerId}_${accountId}_META`;
 
   deleteConfig(keyKey);  // → system_config.gs
   deleteConfig(metaKey); // → system_config.gs
 
   logInfo(`[gateway] Cuenta eliminada: ${providerId}:${accountId}`);
-  return { 
-    items: [], 
-    metadata: { 
-      status: 'OK', 
+  return {
+    items: [],
+    metadata: {
+      status: 'OK',
       message: `La cuenta "${accountId}" ha sido purgada de ${providerId}.`,
       intent_type: 'SUCCESS'
-    } 
+    }
   };
 }
 
@@ -462,7 +462,7 @@ function _parseBody_(e) {
 function _buildResponse_(_statusCode, body, headers = {}) {
   // Nota: GAS siempre retorna HTTP 200 en doPost. El status real
   // se comunica en metadata.status del body JSON.
-  
+
   body.metadata = body.metadata || {};
 
   // 1. Inyección de Meta-Headers Indra v4.0 (Deltas)
@@ -490,8 +490,8 @@ function _sanitizeTrace_(uqo) {
   delete trace.password;
   delete trace.api_key;
   if (trace.data) {
-      delete trace.data.api_key;
-      delete trace.data.password;
+    delete trace.data.api_key;
+    delete trace.data.password;
   }
   return trace;
 }
@@ -502,15 +502,4 @@ function _sanitizeTrace_(uqo) {
  * @param {string} text
  * @returns {string}
  */
-function _system_slugify_(text) {
-  if (!text) return '';
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '_')           // Reemplazar espacios por _
-    .replace(/[^\w-]+/g, '')       // Eliminar caracteres no alfanuméricos (excepto _)
-    .replace(/--+/g, '_')          // Reemplazar múltiples _ por uno solo
-    .replace(/^-+/, '')            // Eliminar _ al inicio
-    .replace(/-+$/, '');           // Eliminar _ al final
-}
+// _system_slugify_ ha sido movido a 0_utils/indra_utils.gs

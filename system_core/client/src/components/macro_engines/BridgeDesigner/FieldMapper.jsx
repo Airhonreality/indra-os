@@ -8,7 +8,7 @@
 import React from 'react';
 import { MicroSlot } from './MicroSlot';
 
-export function FieldMapper({ targetId, config = {}, schema, mapping = {}, onUpdateConfig, onUpdateMapping, onOpenSelector }) {
+export function FieldMapper({ targetId, config = {}, schema, mapping = {}, focusedTarget, setFocusedTarget, onUpdateConfig, onUpdateMapping }) {
     if (!schema) return <div style={{ opacity: 0.3 }}>LOADING_TARGET_SCHEMA...</div>;
 
     const action = config.action || 'APPEND';
@@ -26,10 +26,7 @@ export function FieldMapper({ targetId, config = {}, schema, mapping = {}, onUpd
                 <select
                     value={action}
                     onChange={(e) => onUpdateConfig({ action: e.target.value, match_key: null })}
-                    style={{
-                        background: 'var(--color-bg-void)', border: '1px solid var(--color-border)', color: 'var(--color-accent)',
-                        fontSize: '9px', padding: '2px 4px', borderRadius: 'var(--radius-sm)', outline: 'none', cursor: 'pointer'
-                    }}
+                    className="select-transparent-accent"
                 >
                     <option value="APPEND">INSERT (APPEND_ROW)</option>
                     <option value="UPDATE">MUTATE (UPDATE_ROW)</option>
@@ -42,10 +39,8 @@ export function FieldMapper({ targetId, config = {}, schema, mapping = {}, onUpd
                     <select
                         value={config.match_key || ''}
                         onChange={(e) => onUpdateConfig({ match_key: e.target.value })}
-                        style={{
-                            background: 'var(--color-bg-void)', border: '1px solid var(--color-danger)', color: 'white',
-                            fontSize: '9px', padding: '2px 4px', borderRadius: 'var(--radius-sm)', outline: 'none', flex: 1
-                        }}
+                        className="select-transparent-danger"
+                        style={{ flex: 1 }}
                     >
                         <option value="">-- SELECT PRIMARY KEY --</option>
                         {schema.fields.map(f => (
@@ -63,6 +58,7 @@ export function FieldMapper({ targetId, config = {}, schema, mapping = {}, onUpd
             {schema.fields.map(field => {
                 const mappedValue = mapping[field.id];
                 const mappedLabel = mapping[field.id + '_label'];
+                const isActive = focusedTarget?.mode === 'TARGET' && focusedTarget?.id === targetId && focusedTarget?.key === field.id;
 
                 return (
                     <div key={field.id} className="spread" style={{ padding: 'var(--space-1) 0' }}>
@@ -74,7 +70,8 @@ export function FieldMapper({ targetId, config = {}, schema, mapping = {}, onUpd
                         <MicroSlot
                             value={mappedValue}
                             label={mappedLabel}
-                            onOpenSelector={() => onOpenSelector(field.id)}
+                            isActive={isActive}
+                            onActivate={() => setFocusedTarget({ mode: 'TARGET', id: targetId, key: field.id })}
                             placeholder="BIND_SLOT..."
                         />
                     </div>

@@ -36,28 +36,28 @@
  */
 function CONF_DRIVE() {
   return Object.freeze({
-    id:        'drive',
+    id: 'drive',
     handle: {
       ns: 'com.indra.system.silo',
       alias: 'drive',
       label: 'Google Drive'
     },
-    class:     'FOLDER',         // class del átomo-silo en el manifest
-    version:   '1.0',
+    class: 'FOLDER',         // class del átomo-silo en el manifest
+    version: '1.0',
     protocols: ['HIERARCHY_TREE', 'ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 'SEARCH_DEEP'],
     implements: {
       HIERARCHY_TREE: 'handleDrive',
-      ATOM_READ:      'handleDrive',
-      ATOM_CREATE:    'handleDrive',
-      ATOM_UPDATE:    'handleDrive',
-      ATOM_DELETE:    'handleDrive',
-      SEARCH_DEEP:    'handleDrive',
+      ATOM_READ: 'handleDrive',
+      ATOM_CREATE: 'handleDrive',
+      ATOM_UPDATE: 'handleDrive',
+      ATOM_DELETE: 'handleDrive',
+      SEARCH_DEEP: 'handleDrive',
     },
     config_schema: [],
     capabilities: {
-      ATOM_CREATE:  { sync: 'BLOCKING', purge: 'ALL' },
-      ATOM_UPDATE:  { sync: 'BLOCKING', purge: 'ID' },
-      ATOM_DELETE:  { sync: 'BLOCKING', purge: 'ALL' },
+      ATOM_CREATE: { sync: 'BLOCKING', purge: 'ALL' },
+      ATOM_UPDATE: { sync: 'BLOCKING', purge: 'ID' },
+      ATOM_DELETE: { sync: 'BLOCKING', purge: 'ALL' },
       HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE' }
     }
   });
@@ -72,17 +72,17 @@ function CONF_DRIVE() {
  * @const {Object}
  */
 const MIME_TO_CLASS_ = Object.freeze({
-  'application/vnd.google-apps.folder':       'FOLDER',
-  'application/vnd.google-apps.spreadsheet':  'TABULAR',
-  'application/vnd.google-apps.document':     'DOCUMENT',
+  'application/vnd.google-apps.folder': 'FOLDER',
+  'application/vnd.google-apps.spreadsheet': 'TABULAR',
+  'application/vnd.google-apps.document': 'DOCUMENT',
   'application/vnd.google-apps.presentation': 'DOCUMENT',
-  'application/vnd.google-apps.form':         'DOCUMENT',
-  'application/vnd.google-apps.drawing':      'DOCUMENT',
-  'application/pdf':                          'DOCUMENT',
-  'image/jpeg':                               'DOCUMENT',
-  'image/png':                                'DOCUMENT',
-  'text/plain':                               'DOCUMENT',
-  'application/json':                         'DOCUMENT',
+  'application/vnd.google-apps.form': 'DOCUMENT',
+  'application/vnd.google-apps.drawing': 'DOCUMENT',
+  'application/pdf': 'DOCUMENT',
+  'image/jpeg': 'DOCUMENT',
+  'image/png': 'DOCUMENT',
+  'text/plain': 'DOCUMENT',
+  'application/json': 'DOCUMENT',
 });
 
 /**
@@ -92,9 +92,9 @@ const MIME_TO_CLASS_ = Object.freeze({
  * @const {Object}
  */
 const MIME_TO_PROTOCOLS_ = Object.freeze({
-  'application/vnd.google-apps.folder':      ['HIERARCHY_TREE', 'ATOM_CREATE'],
+  'application/vnd.google-apps.folder': ['HIERARCHY_TREE', 'ATOM_CREATE'],
   'application/vnd.google-apps.spreadsheet': ['TABULAR_STREAM', 'ATOM_READ'],
-  'application/vnd.google-apps.document':    ['ATOM_READ'],
+  'application/vnd.google-apps.document': ['ATOM_READ'],
 });
 
 /** Máximo de ítems por página para evitar timeouts en GAS (límite: 6 min). */
@@ -112,7 +112,7 @@ const DRIVE_PAGE_SIZE_ = 50;
 function handleDrive(uqo) {
   const protocol = (uqo.protocol || '').toUpperCase();
 
-  const providerStr = uqo.provider || 'drive'; 
+  const providerStr = uqo.provider || 'drive';
   const baseId = providerStr.split(':')[0];
   if (baseId !== 'drive') {
     const err = createError('SYSTEM_FAILURE', `El handler de Drive recibió un provider inesperado: ${uqo.provider}`);
@@ -122,11 +122,11 @@ function handleDrive(uqo) {
   logInfo(`[provider_drive] Dispatching: ${protocol}`, { context_id: uqo.context_id });
 
   if (protocol === 'HIERARCHY_TREE') return _drive_handleHierarchyTree(uqo);
-  if (protocol === 'ATOM_READ')      return _drive_handleAtomRead(uqo);
-  if (protocol === 'ATOM_CREATE')    return _drive_handleAtomCreate(uqo);
-  if (protocol === 'ATOM_UPDATE')    return _drive_handleAtomUpdate(uqo);
-  if (protocol === 'ATOM_DELETE')    return _drive_handleAtomDelete(uqo);
-  if (protocol === 'SEARCH_DEEP')    return _drive_handleSearchDeep(uqo);
+  if (protocol === 'ATOM_READ') return _drive_handleAtomRead(uqo);
+  if (protocol === 'ATOM_CREATE') return _drive_handleAtomCreate(uqo);
+  if (protocol === 'ATOM_UPDATE') return _drive_handleAtomUpdate(uqo);
+  if (protocol === 'ATOM_DELETE') return _drive_handleAtomDelete(uqo);
+  if (protocol === 'SEARCH_DEEP') return _drive_handleSearchDeep(uqo);
 
   const err = createError('PROTOCOL_NOT_FOUND',
     `El Silo "Drive" no soporta el protocolo: "${protocol}".`
@@ -146,15 +146,15 @@ function handleDrive(uqo) {
 function _drive_handleHierarchyTree(uqo) {
   try {
     const contextId = uqo.context_id || 'ROOT';
-    const folder    = _drive_resolveFolder(contextId);
+    const folder = _drive_resolveFolder(contextId);
 
     if (!folder) {
       const err = createError('NOT_FOUND', `Carpeta "${contextId}" no encontrada.`);
       return { items: [], metadata: { status: 'ERROR', error: err.message } };
     }
 
-    const items   = [];
-    const cursor  = uqo.query && uqo.query.cursor ? uqo.query.cursor : null;
+    const items = [];
+    const cursor = uqo.query && uqo.query.cursor ? uqo.query.cursor : null;
     const providerId = uqo.provider;
 
     // ── Listar subcarpetas primero (convención de explorador de archivos)
@@ -182,12 +182,12 @@ function _drive_handleHierarchyTree(uqo) {
       }
     }
 
-    const hasMore    = foldersIter.hasNext() || filesIter.hasNext();
+    const hasMore = foldersIter.hasNext() || filesIter.hasNext();
     const nextCursor = hasMore ? _drive_extractCursor(foldersIter, filesIter) : null;
 
     // ── Calculate Hood Categorization
     const hoodCounts = {
-      ROUTES:    items.filter(i => i.system_hood === 'ROUTES').length,
+      ROUTES: items.filter(i => i.system_hood === 'ROUTES').length,
       STRUCTURE: items.filter(i => i.system_hood === 'STRUCTURE').length,
       PHENOTYPE: items.filter(i => i.system_hood === 'PHENOTYPE').length
     };
@@ -195,12 +195,12 @@ function _drive_handleHierarchyTree(uqo) {
     return {
       items,
       metadata: {
-        status:      'OK',
-        has_more:    hasMore,
+        status: 'OK',
+        has_more: hasMore,
         next_cursor: nextCursor,
         sync_status: hasMore ? 'RESONATING' : 'COMPLETE',
         hood_counts: hoodCounts,
-        context:     { folder_id: contextId, folder_name: folder.getName() },
+        context: { folder_id: contextId, folder_name: folder.getName() },
       },
     };
 
@@ -270,7 +270,7 @@ function _drive_handleAtomCreate(uqo) {
     }
 
     const newFolder = parentFolder.createFolder(label.trim());
-    const atom      = _drive_folderToAtom(newFolder, uqo.provider);
+    const atom = _drive_folderToAtom(newFolder, uqo.provider);
 
     logInfo(`[provider_drive] Carpeta creada: "${label}" en "${parentFolder.getName()}"`);
     return { items: [atom], metadata: { status: 'OK' } };
@@ -296,7 +296,7 @@ function _drive_handleAtomUpdate(uqo) {
   }
 
   const data = uqo.data || {};
-  
+
   try {
     let element = null;
     try {
@@ -310,7 +310,7 @@ function _drive_handleAtomUpdate(uqo) {
       logInfo(`[provider_drive] Renombrando ${uqo.context_id} a "${label}"`);
       element.setName(label);
     }
-    
+
     if (data.description !== undefined) {
       element.setDescription(data.description);
     }
@@ -372,8 +372,8 @@ function _drive_handleSearchDeep(uqo) {
 
     // Google Drive search query syntax: title contains 'term'
     const driveQuery = `title contains '${searchTerm.replace(/'/g, "\\'")}' and trashed = false`;
-    const filesIter  = DriveApp.searchFiles(driveQuery);
-    
+    const filesIter = DriveApp.searchFiles(driveQuery);
+
     const items = [];
     let count = 0;
     while (filesIter.hasNext() && count < 50) {
@@ -388,8 +388,8 @@ function _drive_handleSearchDeep(uqo) {
     return {
       items,
       metadata: {
-        status:      'OK',
-        has_more:    filesIter.hasNext(),
+        status: 'OK',
+        has_more: filesIter.hasNext(),
         sync_status: filesIter.hasNext() ? 'RESONATING' : 'COMPLETE',
         total_objects: items.length // DriveApp no da total count fácilmente sin iterar todo
       },
@@ -414,21 +414,22 @@ function _drive_handleSearchDeep(uqo) {
 function _drive_folderToAtom(folder, providerId) {
   const name = folder.getName();
   return {
-    id:           folder.getId(),
+    id: folder.getId(),
     handle: {
       ns: 'com.drive.folder',
       alias: _system_slugify_(name) || 'folder_unnamed',
       label: name
     },
-    class:        'FOLDER',
-    provider:     providerId,
-    protocols:    ['HIERARCHY_TREE', 'ATOM_CREATE'],
-    system_hood:  'ROUTES',
-    modified_at:  folder.getLastUpdated().toISOString(),
-    description:  folder.getDescription() || '',
-    mime_type:    'application/vnd.google-apps.folder',
+    class: 'FOLDER',
+    provider: providerId,
+    protocols: ['HIERARCHY_TREE', 'ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE'],
+    system_hood: 'ROUTES',
+    modified_at: folder.getLastUpdated().toISOString(),
+    description: folder.getDescription() || '',
+    mime_type: 'application/vnd.google-apps.folder',
+    payload: {},
     raw: {
-      folder_id:    folder.getId(),
+      folder_id: folder.getId(),
     },
   };
 }
@@ -457,27 +458,28 @@ function _drive_fileToAtom(file, providerId) {
   if (EXCLUDED_MIMES.includes(mimeType)) return null;
 
   // class determinista. Si el mimeType no está en el mapa → DOCUMENT (safe default).
-  const atomClass      = MIME_TO_CLASS_[mimeType] || 'DOCUMENT';
-  const atomProtos     = MIME_TO_PROTOCOLS_[mimeType] || ['ATOM_READ'];
-  const name           = file.getName();
+  const atomClass = MIME_TO_CLASS_[mimeType] || 'DOCUMENT';
+  const atomProtos = MIME_TO_PROTOCOLS_[mimeType] || ['ATOM_READ'];
+  const name = file.getName();
 
   return {
-    id:           file.getId(),
+    id: file.getId(),
     handle: {
       ns: `com.drive.${atomClass.toLowerCase()}`,
       alias: _system_slugify_(name) || 'file_unnamed',
       label: name
     },
-    class:        atomClass,
-    provider:     providerId,
-    protocols:    atomProtos,
-    system_hood:  mimeType === 'application/vnd.google-apps.spreadsheet' ? 'STRUCTURE' : 'PHENOTYPE',
-    modified_at:  file.getLastUpdated().toISOString(),
-    size:         mimeType.startsWith('application/vnd.google-apps') ? 0 : file.getSize(),
-    mime_type:    mimeType,
-    description:  file.getDescription() || '',
+    class: atomClass,
+    provider: providerId,
+    protocols: atomProtos,
+    system_hood: mimeType === 'application/vnd.google-apps.spreadsheet' ? 'STRUCTURE' : 'PHENOTYPE',
+    modified_at: file.getLastUpdated().toISOString(),
+    size: mimeType.startsWith('application/vnd.google-apps') ? 0 : file.getSize(),
+    mime_type: mimeType,
+    description: file.getDescription() || '',
+    payload: {},
     raw: {
-      url:          file.getUrl(),
+      url: file.getUrl(),
     },
   };
 }

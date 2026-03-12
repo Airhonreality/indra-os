@@ -13,8 +13,11 @@ import { FrameBlock } from '../blocks/FrameBlock';
 import { TextBlock } from '../blocks/TextBlock';
 import { ImageBlock } from '../blocks/ImageBlock';
 import { IteratorBlock } from '../blocks/IteratorBlock';
+import { PageBlock } from '../blocks/PageBlock';
+import ArtifactSelector from '../../../utilities/ArtifactSelector';
 
 const BLOCK_COMPONENTS = {
+    'PAGE': PageBlock,
     'FRAME': FrameBlock,
     'TEXT': TextBlock,
     'IMAGE': ImageBlock,
@@ -22,7 +25,37 @@ const BLOCK_COMPONENTS = {
 };
 
 const FieldRenderer = ({ field, value, onChange }) => {
+    const [showSelector, setShowSelector] = React.useState(false);
+
     switch (field.type) {
+        case 'vault_artifact':
+            return (
+                <>
+                    <div className="shelf--tight" style={{ width: '100%' }}>
+                        <div className="util-input--sm fill shelf--tight" style={{ opacity: value ? 1 : 0.4 }}>
+                            <IndraIcon name="VAULT" size="10px" />
+                            <span style={{ fontSize: '9px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {value || 'SELECT_FROM_VAULT...'}
+                            </span>
+                        </div>
+                        <button className="btn btn--xs btn--accent" onClick={() => setShowSelector(true)} style={{ padding: '4px 8px' }}>
+                            PICK
+                        </button>
+                    </div>
+                    {showSelector && (
+                        <ArtifactSelector
+                            onSelect={(artifact) => {
+                                // Buscamos si tiene un blob o URL de imagen
+                                const src = artifact.payload?.url || artifact.payload?.src || artifact.id;
+                                onChange(src);
+                                setShowSelector(false);
+                            }}
+                            onCancel={() => setShowSelector(false)}
+                            filter={field.filter || {}}
+                        />
+                    )}
+                </>
+            );
         case 'text':
             return field.multiLine ? (
                 <textarea
@@ -203,16 +236,7 @@ export function PropertiesInspector() {
                 ))}
 
                 <div className="fill" />
-
-                <button
-                    className="btn btn--xs btn--ghost"
-                    style={{ color: 'var(--color-danger)', borderColor: 'rgba(255, 70, 85, 0.2)', marginTop: 'var(--space-4)' }}
-                    onClick={() => { if (confirm('DELETE_BLOCK?')) onRemove(); }}
-                >
-                    <IndraIcon name="DELETE" size="10px" /> DELETE_BLOCK
-                </button>
             </div>
         </aside>
     );
 }
-

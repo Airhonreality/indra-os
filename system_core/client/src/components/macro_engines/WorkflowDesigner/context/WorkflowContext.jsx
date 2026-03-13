@@ -84,7 +84,8 @@ export function WorkflowProvider({ children, initialData = {} }) {
             moveStation,
             updateTrigger,
             selectedStationId,
-            setSelectedStationId
+            setSelectedStationId,
+            setWorkflow
         }}>
             {children}
         </WorkflowContext.Provider>

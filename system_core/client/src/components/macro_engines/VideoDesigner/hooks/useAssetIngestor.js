@@ -4,7 +4,7 @@ import { OPFSManager } from '../../../../services/video_core/opfs_manager.js';
  * Hook para manejar la ingesta de archivos locales hacia la OPFS.
  * Actúa como puente entre el explorador de archivos del SO y el core de video local.
  */
-export function useAssetIngestor(engineActions) {
+export function useAssetIngestor(engineActions, currentTime) {
     const opfsRef = new OPFSManager(); // Instancia local para uso temporal antes de pasar al engine
 
     const ingestLocalFile = async (file) => {
@@ -40,8 +40,12 @@ export function useAssetIngestor(engineActions) {
 
             console.log(`[AssetIngestor] Aduana superada. Cacheando en OPFS...`, transcodeResult);
 
-            // 3. Cachear en OPFS (El Blob optimizado)
+            // 3. Cachear en OPFS (El Blob optimizado y su Identity Map)
             const success = await opfsRef.cacheVaultFile(localId, transcodeResult.resultBlob);
+            
+            if (success && transcodeResult.metadata.identityMap) {
+                await opfsRef.cacheIdentityMap(localId, transcodeResult.metadata.identityMap);
+            }
 
             if (success) {
                 // 4. Crear el objeto clip para el AST con metadatos reales o simulados
@@ -49,7 +53,7 @@ export function useAssetIngestor(engineActions) {
                     id: `clip_${Date.now()}`,
                     vault_id: localId,
                     type: 'video',
-                    start_at_ms: engineActions.currentTime || 0,
+                    start_at_ms: currentTime || 0,
                     duration_ms: transcodeResult.metadata?.duration_ms || 5000,
                     offset_ms: 0,
                     source: 'LOCAL'

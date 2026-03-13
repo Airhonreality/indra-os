@@ -10,6 +10,12 @@ export function useVideoEngine(projectData) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isReady, setIsReady] = useState(false);
     const [duration, setDuration] = useState(0);
+    
+    // Inicialización Sincera: Asegurar que el proyecto tenga estructura desde el inicio
+    const [project, setProject] = useState(() => {
+        if (projectData && projectData.timeline) return projectData;
+        return { settings: { duration_ms: 0, fps: 30 }, timeline: { tracks: [] } };
+    });
 
     useEffect(() => {
         // Ejecutado en mount (y en unmount de Strict Mode)
@@ -18,11 +24,20 @@ export function useVideoEngine(projectData) {
         engineRef.current = engine;
 
         engine.setCallbacks({
-            onTimeUpdate: (ms) => setCurrentTime(ms),
+            onTimeUpdate: (ms) => {
+                if (engine.externalTimeCallback) {
+                    engine.externalTimeCallback(ms);
+                } else {
+                    setCurrentTime(ms); 
+                }
+            },
             onStateChange: (state) => {
                 setIsPlaying(state.isPlaying);
                 setIsReady(state.isReady);
-                if (state.duration) setDuration(state.duration);
+                if (state.duration !== undefined) setDuration(state.duration);
+                if (state.project && state.project.timeline) {
+                    setProject({ ...state.project }); 
+                }
             }
         });
 
@@ -42,12 +57,20 @@ export function useVideoEngine(projectData) {
         if (!engineRef.current) return;
         const engine = engineRef.current;
 
-        // Hidratar con datos (si no hay proyecto, inyectamos esqueleto mínimo)
-        const skeleton = projectData && Object.keys(projectData).length > 0
-            ? projectData
-            : { settings: { duration_ms: 0, fps: 30 }, timeline: { tracks: [] } };
+        // LEY DE SINCERIDAD: Solo hidratar desde props si el motor está vacío 
+        // o si el ID del átomo ha cambiado (Evolución de Identidad).
+        const hasClips = engine.project?.timeline?.tracks?.some(t => t.clips?.length > 0);
+        
+        if (!hasClips) {
+            const skeleton = projectData && Object.keys(projectData).length > 0
+                ? projectData
+                : { settings: { duration_ms: 0, fps: 30 }, timeline: { tracks: [] } };
 
-        engine.hydrateProject(skeleton);
+            console.log("[useVideoEngine] Hidratando proyecto desde props.");
+            engine.hydrateProject(skeleton);
+        } else {
+            console.log("[useVideoEngine] Manteniendo estado interno mutado (Ignorando props).");
+        }
     }, [projectData]);
 
     const play = () => engineRef.current?.play();
@@ -99,14 +122,17 @@ export function useVideoEngine(projectData) {
         isPlaying,
         isReady,
         duration,
-        project: engineRef.current?.project,
+        project,
         actions: {
             play,
             pause,
             seek,
             initRenderer,
             mutateProject,
-            exportVideo
+            exportVideo,
+            setExternalTimeCallback: (cb) => {
+                if (engineRef.current) engineRef.current.externalTimeCallback = cb;
+            }
         }
     };
 }

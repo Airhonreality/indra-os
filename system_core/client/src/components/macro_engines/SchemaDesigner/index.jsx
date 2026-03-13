@@ -18,9 +18,12 @@ import { LayersPanel } from './LayersPanel';
 import { BlueprintCanvas } from './BlueprintCanvas';
 import { DNAInspector } from './DNAInspector';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
+import { IndraEngineHood } from '../../utilities/IndraEngineHood';
 import { useLexicon } from '../../../services/lexicon';
+import { useWorkspace } from '../../../context/WorkspaceContext';
 
 export function SchemaDesigner({ atom, bridge }) {
+    const { updatePinIdentity } = useWorkspace();
     const [localAtom, setLocalAtom] = useState(atom);
     const [selectedFieldId, setSelectedFieldId] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -105,44 +108,32 @@ export function SchemaDesigner({ atom, bridge }) {
         return () => window.removeEventListener('keydown', handleKeys);
     }, [historyIndex, history]);
 
-    // 3. Persistencia Silenciosa
-    useEffect(() => {
-        const currentData = JSON.stringify(localAtom);
+    // 3. Guardado Manual Explícito
+    const handleManualSave = async (overrideAtom = null) => {
+        const atomToSave = overrideAtom || localAtom;
+        const currentData = JSON.stringify(atomToSave);
         if (currentData === lastSavedRef.current) return;
 
-        const timer = setTimeout(async () => {
-            setIsSaving(true);
-            try {
-                const result = await bridge.save(localAtom);
-
-                if (result.items?.[0]) {
-                    lastSavedRef.current = JSON.stringify(result.items[0]);
-                }
-            } catch (err) {
-                console.error('[SchemaDesigner] Auto-save failed:', err);
-            } finally {
-                setIsSaving(false);
+        setIsSaving(true);
+        try {
+            const result = await bridge.save(atomToSave);
+            if (result.items?.[0]) {
+                lastSavedRef.current = JSON.stringify(result.items[0]);
             }
-        }, 2000); // 2s para mayor estabilidad al escribir
+        } catch (err) {
+            console.error('[SchemaDesigner] Save failed:', err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
-        return () => clearTimeout(timer);
-    }, [localAtom, atom.id, bridge]);
-
-    // 4. Garantía de Persistencia (Auto-Flush)
+    // 4. Garantía de Persistencia al Desmontar (Capa de Sinceridad)
     useEffect(() => {
-        const handleBeforeUnload = (e) => {
-            if (JSON.stringify(localAtom) !== lastSavedRef.current) {
-                // Notificar al bridge que debe hacer un flush final
-                bridge.save(localAtom);
-            }
-        };
-
-        window.addEventListener('beforeunload', handleBeforeUnload);
         return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-            // Flush al desmontar el componente (navegación interna)
-            if (JSON.stringify(localAtom) !== lastSavedRef.current) {
-                bridge.save(localAtom);
+            const currentData = JSON.stringify(localAtom);
+            if (currentData !== lastSavedRef.current) {
+                // Notificar al bridge que debe hacer un flush final
+                bridge.save(localAtom).catch(() => {});
             }
         };
     }, [localAtom, bridge]);
@@ -330,12 +321,19 @@ export function SchemaDesigner({ atom, bridge }) {
     };
 
     const updateLabel = (newLabel) => {
+        const cleanLabel = newLabel === '' ? 'UNTITLED_SCHEMA' : newLabel;
         const newAtom = {
             ...localAtom,
-            handle: { ...localAtom.handle, label: newLabel }
+            handle: { ...localAtom.handle, label: cleanLabel }
         };
         setLocalAtom(newAtom);
         pushToHistory(newAtom);
+        
+        // Sincronización proactiva con el Dashboard (Cierre de circuito)
+        updatePinIdentity(localAtom.id, localAtom.provider, { label: cleanLabel });
+        
+        // Guardado persistente inmediato al renombrar
+        handleManualSave(newAtom);
     };
 
     // Helperes Recursivos
@@ -365,17 +363,46 @@ export function SchemaDesigner({ atom, bridge }) {
             <IndraMacroHeader
                 atom={localAtom}
                 onClose={() => bridge.close()}
+                isSaving={isSaving}
+                isLive={isLive}
+                onTitleChange={updateLabel}
+            />
+
+            <IndraEngineHood
                 onUndo={undo}
                 onRedo={redo}
                 canUndo={historyIndex > 0}
                 canRedo={historyIndex < history.length - 1}
-                isSaving={isSaving}
-                isLive={isLive}
-                onUpdateStatus={updateStatus}
-                onTitleChange={updateLabel}
-                previewMode={previewMode}
-                onTogglePreview={() => setPreviewMode(!previewMode)}
+                leftSlot={
+                    <div className="shelf--tight">
+                        <button
+                            className={`btn btn--xs ${previewMode ? 'btn--accent' : 'btn--ghost'}`}
+                            onClick={() => setPreviewMode(!previewMode)}
+                        >
+                            {previewMode ? 'BACK_TO_EDIT' : 'LIVE_PREVIEW'}
+                        </button>
+                    </div>
+                }
+                centerSlot={
+                    <div className="shelf--tight macro-header__status-toggle" style={{ background: 'rgba(255,255,255,0.03)', padding: '2px', borderRadius: '4px' }}>
+                        <button
+                            className={`btn btn--xs ${!isLive ? 'btn--accent' : 'btn--ghost'}`}
+                            onClick={() => updateStatus('DRAFT')}
+                        >DRAFT</button>
+                        <button
+                            className={`btn btn--xs ${isLive ? 'btn--danger' : 'btn--ghost'}`}
+                            onClick={() => updateStatus('LIVE')}
+                        >LIVE</button>
+                    </div>
+                }
+                rightSlot={
+                    <button className="btn btn--accent btn--sm" onClick={() => handleManualSave()}>
+                        <IndraIcon name="SAVE" size="14px" />
+                        <span style={{ marginLeft: "4px" }}>GUARDAR</span>
+                    </button>
+                }
             />
+
 
             {/* ── MAIN DESIGN WORKSPACE ── */}
             <main className="fill shelf" style={{ overflow: 'hidden', flex: 1, minHeight: 0, alignItems: 'stretch', gap: 0 }}>

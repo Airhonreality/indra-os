@@ -6,7 +6,9 @@ import { NavigatorPanel } from './layout/NavigatorPanel';
 import { PropertiesInspector } from './inspector/PropertiesInspector';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
+import { IndraEngineHood } from '../../utilities/IndraEngineHood';
 import { DataProjector } from '../../../services/DataProjector';
+import { useWorkspace } from '../../../context/WorkspaceContext';
 
 const PAGE_PRESETS = {
     A4: { width: '210mm', height: '297mm', label: 'ISO A4' },
@@ -66,6 +68,7 @@ export function DocumentDesigner({ atom, bridge }) {
  */
 
 function DocumentDesignerShell({ atom, bridge }) {
+    const { updatePinIdentity } = useWorkspace();
     const { blocks, findNode, addNode, updateNode, undo, redo, canUndo, canRedo } = useAST();
     const { selectedId, selectNode } = useSelection();
 
@@ -75,17 +78,24 @@ function DocumentDesignerShell({ atom, bridge }) {
     const [zoom, setZoom] = useState(0.8);
     const [toast, setToast] = useState(null);
 
+    const handleTitleChange = (newLabel) => {
+        const cleanLabel = newLabel === '' ? 'UNTITLED_DOCUMENT' : newLabel;
+        setLocalLabel(cleanLabel);
+        updatePinIdentity(atom.id, atom.provider, { label: cleanLabel });
+        saveDocument(cleanLabel);
+    };
+
     const showToast = (message) => {
         setToast(message);
         setTimeout(() => setToast(null), 3000);
     };
 
-    const saveDocument = async () => {
+    const saveDocument = async (overrideLabel = null) => {
         setIsSaving(true);
         try {
             await bridge.save({
                 ...atom,
-                handle: { ...atom.handle, label: localLabel },
+                handle: { ...atom.handle, label: overrideLabel || localLabel },
                 payload: { ...atom.payload, blocks: blocks }
             });
             showToast('DOCUMENT_SAVED_SUCCESSFULLY');
@@ -143,32 +153,35 @@ function DocumentDesignerShell({ atom, bridge }) {
                 atom={atom}
                 onClose={() => bridge.close()}
                 isSaving={isSaving}
-                onTitleChange={setLocalLabel}
+                onTitleChange={handleTitleChange}
+            />
+
+            <IndraEngineHood
                 onUndo={undo}
                 onRedo={redo}
                 canUndo={canUndo}
                 canRedo={canRedo}
+                leftSlot={
+                    <div className="shelf--tight glass--bone" style={{ padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>
+                        {DataProjector.getDocumentTools().map(tool => (
+                            <button
+                                key={tool.type}
+                                className="btn btn--xs btn--ghost"
+                                onClick={() => {
+                                    let targetId = selectedId;
+                                    if (!targetId && blocks.length > 0) { targetId = blocks[0].id; }
+                                    const newId = addNode(tool.type, targetId);
+                                    selectNode(newId);
+                                }}
+                                title={`INSERT ${tool.label}`}
+                            >
+                                <IndraIcon name={tool.icon} size="12px" />
+                            </button>
+                        ))}
+                    </div>
+                }
                 rightSlot={
                     <div className="shelf--loose">
-                        {/* INSERTERS */}
-                        <div className="shelf--tight glass--bone" style={{ padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>
-                            {DataProjector.getDocumentTools().map(tool => (
-                                <button
-                                    key={tool.type}
-                                    className="btn btn--xs btn--ghost"
-                                    onClick={() => {
-                                        let targetId = selectedId;
-                                        if (!targetId && blocks.length > 0) { targetId = blocks[0].id; }
-                                        const newId = addNode(tool.type, targetId);
-                                        selectNode(newId);
-                                    }}
-                                    title={`INSERT ${tool.label}`}
-                                >
-                                    <IndraIcon name={tool.icon} size="12px" />
-                                </button>
-                            ))}
-                        </div>
-
                         {/* ZOOM */}
                         <div className="shelf--tight glass--bone" style={{ padding: '2px 8px', borderRadius: 'var(--radius-pill)' }}>
                             <button className="btn btn--xs btn--ghost" onClick={() => setZoom(z => Math.max(0.1, z - 0.1))}><IndraIcon name="MINUS" size="10px" /></button>
@@ -182,6 +195,7 @@ function DocumentDesignerShell({ atom, bridge }) {
                     </div>
                 }
             />
+
 
             <div style={{
                 display: 'flex',

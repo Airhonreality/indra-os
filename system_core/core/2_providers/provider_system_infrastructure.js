@@ -202,18 +202,23 @@ function _system_batchVerifyExistence_(ids) {
 function _system_updateAtom(atomId, updates, providerId) {
     try {
         const file = _system_findAtomFile(atomId);
-        const current = JSON.parse(file.getBlob().getDataAsString());
+        const rawContent = file.getBlob().getDataAsString();
+        if (!rawContent) throw createError('NOT_FOUND', '[infra] El archivo está vacío.');
+        
+        const current = JSON.parse(rawContent);
 
+        // ADR-001: Purgar campos inmutables
         const { id, class: atomClass, provider, raw, ...pureUpdates } = updates;
         const updated = JSON.parse(JSON.stringify(current));
 
-        // deepMerge from indra_utils
+        // deepMerge para el payload
         if (pureUpdates.payload) {
             updated.payload = updated.payload || {};
             _indra_deepMerge_(updated.payload, pureUpdates.payload);
             delete pureUpdates.payload;
         }
 
+        // Merge para la identidad (Handle) - La Verdad Central
         if (pureUpdates.handle) {
             updated.handle = { ...(updated.handle || {}), ...pureUpdates.handle };
             delete pureUpdates.handle;
@@ -222,17 +227,19 @@ function _system_updateAtom(atomId, updates, providerId) {
         Object.assign(updated, pureUpdates);
         updated.updated_at = new Date().toISOString();
 
+        // Sincronización física de nombre de archivo (Opcional, para humanos en Drive)
         const newLabel = updated.handle?.label;
         if (newLabel && newLabel !== (current.handle?.label || current.name)) {
             const cleanName = newLabel.replace(/[^\w\s]/gi, '').replace(/\s+/g, '_');
             file.setName(`${cleanName}.json`);
-            // ADR-008: No propagamos proactivamente (D3). El frontend hidrata en caliente.
-            // _system_propagateNameChange(atomId, newLabel, providerId);
         }
 
         file.setContent(JSON.stringify(updated, null, 2));
+        
         return { items: [_system_toAtom(updated, file.getId(), providerId)], metadata: { status: 'OK' } };
+
     } catch (err) {
+        logError(`[infrastructure] ATOM_UPDATE_FAILED: ${atomId}`, err);
         return { items: [], metadata: { status: 'ERROR', error: err.message, code: err.code || 'NOT_FOUND' } };
     }
 }
@@ -297,6 +304,13 @@ function _system_toAtom(doc, fileId, providerId) {
     }
     const payload = doc.payload || {};
 
+    // ── GESTIÓN DE IDENTIDAD SINCERA (DEFENSA ANTE LEGADO) ──
+    const safeHandle = {
+        ns: doc.handle?.ns || `com.indra.system.${(doc.class || 'unknown').toLowerCase()}`,
+        alias: doc.handle?.alias || _system_slugify_(doc.handle?.label || doc.name || 'unnamed'),
+        label: doc.handle?.label || doc.name || 'ARTEFACTO_SIN_NOMBRE'
+    };
+
     // ADR-008: Blindaje de Salida (Aduana Interna del Provider)
     if (doc.class === DATA_SCHEMA_CLASS_ && !Array.isArray(payload.fields)) {
         payload.fields = [];
@@ -310,8 +324,8 @@ function _system_toAtom(doc, fileId, providerId) {
 
     return {
         id: fileId || doc.id,
-        handle: doc.handle,
-        class: doc.class,
+        handle: safeHandle,
+        class: doc.class || 'UNKNOWN',
         protocols: Array.isArray(doc.protocols) ? doc.protocols : [],
         provider: providerId || 'system',
         created_at: doc.created_at,

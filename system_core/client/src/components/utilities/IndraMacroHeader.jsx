@@ -30,14 +30,6 @@ export function IndraMacroHeader({
     onTitleChange,
     isSaving = false,
     isLive = false,
-    onUpdateStatus,
-    onUndo,
-    onRedo,
-    canUndo = false,
-    canRedo = false,
-    onTogglePreview,
-    previewMode,
-    rightSlot,
 }) {
     const handle = atom?.handle || {};
     const label = handle.label || 'UNTITLED';
@@ -66,13 +58,9 @@ export function IndraMacroHeader({
                 {/* TITLE BLOCK */}
                 <div className="macro-header__title-block">
                     {onTitleChange ? (
-                        <input
-                            type="text"
-                            className="macro-header__title-input"
-                            value={label}
-                            onChange={(e) => onTitleChange(e.target.value)}
-                            placeholder="UNTITLED..."
-                            spellCheck={false}
+                        <TitleInput 
+                            initialLabel={label} 
+                            onCommit={onTitleChange} 
                         />
                     ) : (
                         <h2 className="macro-header__title-static">{label}</h2>
@@ -93,56 +81,9 @@ export function IndraMacroHeader({
                 </div>
             </div>
 
-            {/* ── LADO B: COMANDOS (solo lógica canónica del header) ── */}
+            {/* ── LADO B: COMANDOS (Clean & Agnostic) ── */}
             <div className="macro-header__controls">
-
-                {/* Status Toggle DRAFT/LIVE */}
-                {onUpdateStatus && (
-                    <div className="shelf--tight macro-header__status-toggle">
-                        <button
-                            className={`btn btn--xs ${!isLive ? 'btn--accent' : 'btn--ghost'}`}
-                            onClick={() => onUpdateStatus('DRAFT')}
-                        >DRAFT</button>
-                        <button
-                            className={`btn btn--xs ${isLive ? 'btn--danger' : 'btn--ghost'}`}
-                            onClick={() => onUpdateStatus('LIVE')}
-                        >LIVE</button>
-                    </div>
-                )}
-
-                {/* Undo/Redo */}
-                {(onUndo || onRedo) && (
-                    <div className="shelf--tight">
-                        <button className="btn btn--ghost btn--sm" onClick={onUndo}
-                            disabled={!canUndo} style={{ opacity: canUndo ? 1 : 0.2 }}>
-                            <IndraIcon name="UNDO" size="13px" />
-                        </button>
-                        <button className="btn btn--ghost btn--sm" onClick={onRedo}
-                            disabled={!canRedo} style={{ opacity: canRedo ? 1 : 0.2 }}>
-                            <IndraIcon name="REDO" size="13px" />
-                        </button>
-                    </div>
-                )}
-
-                {/* Preview Toggle */}
-                {onTogglePreview && (
-                    <button
-                        className={`btn btn--sm ${previewMode ? 'btn--accent' : 'btn--ghost'}`}
-                        onClick={onTogglePreview}
-                        style={{ fontSize: '10px', letterSpacing: '0.05em' }}
-                    >
-                        {previewMode ? 'BACK_TO_EDIT' : 'PREVIEW'}
-                    </button>
-                )}
-
-                {/* RIGHT SLOT: Herramientas del engine (opcional, agnóstico) */}
-                {rightSlot && (
-                    <>
-                        <div className="macro-header__divider" />
-                        {rightSlot}
-                    </>
-                )}
-
+                
                 {/* EXIT */}
                 <div className="macro-header__divider" />
                 <IndraActionTrigger
@@ -158,3 +99,41 @@ export function IndraMacroHeader({
         </header>
     );
 }
+
+// Subcomponente de Aislamiento de Red
+// Resuelve el Anti-Patrón de DDOS por re-renderizado
+function TitleInput({ initialLabel, onCommit }) {
+    const [localValue, setLocalValue] = React.useState(initialLabel);
+
+    // Resonancia: Si un proceso de fondo cambia o cura el nombre,
+    // debemos absorberlo, pero *solo* si el usuario no tiene la caja seleccionada.
+    React.useEffect(() => {
+        setLocalValue(initialLabel);
+    }, [initialLabel]);
+
+    const handleBlur = () => {
+        if (localValue !== initialLabel) {
+            onCommit(localValue);
+        }
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.target.blur(); // Dispara onBlur automáticamente
+        }
+    };
+
+    return (
+        <input
+            type="text"
+            className="macro-header__title-input"
+            value={localValue}
+            onChange={(e) => setLocalValue(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            placeholder="UNTITLED..."
+            spellCheck={false}
+        />
+    );
+}
+

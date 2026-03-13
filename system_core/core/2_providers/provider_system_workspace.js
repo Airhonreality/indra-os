@@ -76,14 +76,45 @@ function _system_handlePinsRead(uqo) {
         const doc = JSON.parse(file.getBlob().getDataAsString());
         const pins = Array.isArray(doc.pins) ? doc.pins : [];
 
-        // ─── PORTAL DE SINCERIDAD: Verificación de Existencia Física ─────────
-        const pinIds = pins.map(p => p.id);
-        const existenceMap = _system_batchVerifyExistence_(pinIds);
+        let needsWorkspaceSync = false;
 
-        const sincerePins = pins.map(pin => ({
-            ...pin,
-            _orphan: !existenceMap[pin.id] // Flag de desincronización física
-        }));
+        // ─── PORTAL DE SINCERIDAD: Homeostasis de Identidad ─────────
+        const sincerePins = pins.map(pin => {
+            try {
+                // Sincronización Proactiva: Le preguntamos a Drive por la identidad física
+                // El ID de Drive es inmutable, el nombre NO.
+                const atomFile = DriveApp.getFileById(pin.id);
+                
+                if (atomFile.isTrashed()) return { ...pin, _orphan: true };
+
+                // El nombre del archivo en Drive es el "Handle Externo".
+                // Las extensiones .json se limpian.
+                const physicalLabel = atomFile.getName().replace(/\.json$/i, '').replace(/_/g, ' ');
+
+                // Si el label del Pin es distinto al físico, hay una asincronía (Entropía)
+                if (pin.handle?.label !== physicalLabel) {
+                    needsWorkspaceSync = true;
+                    return { 
+                        ...pin, 
+                        handle: { ...pin.handle, label: physicalLabel },
+                        _reconciled: true 
+                    };
+                }
+
+                return { ...pin, _orphan: false };
+
+            } catch (e) {
+                // Si el archivo no existe, es un huérfano real
+                return { ...pin, _orphan: true };
+            }
+        });
+
+        // Axioma de Curación: Si detectamos desincronía, re-escribimos el Workspace
+        if (needsWorkspaceSync) {
+            doc.pins = sincerePins.map(({ _orphan, _reconciled, ...p }) => p); // Limpiar flags
+            file.setContent(JSON.stringify(doc, null, 2));
+            logInfo(`[homeostasis] Workspace ${workspaceId} curado automáticamente. Punteros sincronizados.`);
+        }
 
         return {
             items: sincerePins,
@@ -91,10 +122,11 @@ function _system_handlePinsRead(uqo) {
                 status: 'OK',
                 count: sincerePins.length,
                 bridges: doc.bridges || [],
-                integrity_alerts: sincerePins.some(p => p._orphan)
+                reconciled: needsWorkspaceSync
             }
         };
     } catch (err) {
+        logError(`[infrastructure] Fallo en PINS_READ: ${workspaceId}`, err);
         return { items: [], metadata: { status: 'ERROR', error: err.message } };
     }
 }

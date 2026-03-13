@@ -18,8 +18,11 @@ import ArtifactSelector from '../../utilities/ArtifactSelector';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { Spinner, EmptyState } from '../../utilities/primitives';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
+import { IndraEngineHood } from '../../utilities/IndraEngineHood';
+import { useWorkspace } from '../../../context/WorkspaceContext';
 
 export function BridgeDesigner({ atom, bridge }) {
+    const { updatePinIdentity } = useWorkspace();
     const [isSaving, setIsSaving] = useState(false);
     const [showSelector, setShowSelector] = useState(null); // 'SOURCE' | 'TARGET'
 
@@ -100,25 +103,22 @@ export function BridgeDesigner({ atom, bridge }) {
 
     const lastSavedRef = useRef(JSON.stringify(atom));
 
-    // 2. Persistencia Silenciosa (Vía Bridge)
-    useEffect(() => {
-        const currentData = JSON.stringify(localAtom);
+    // 2. Guardado Manual Explícito
+    const handleManualSave = async (overrideAtom = null) => {
+        const atomToSave = overrideAtom || localAtom;
+        const currentData = JSON.stringify(atomToSave);
         if (currentData === lastSavedRef.current) return;
 
-        const timer = setTimeout(async () => {
-            setIsSaving(true);
-            try {
-                await bridge.save(localAtom);
-                lastSavedRef.current = currentData;
-            } catch (err) {
-                console.error('[BridgeDesigner] Auto-save failed:', err);
-            } finally {
-                setIsSaving(false);
-            }
-        }, 2000);
-
-        return () => clearTimeout(timer);
-    }, [localAtom, atom.id, bridge]);
+        setIsSaving(true);
+        try {
+            await bridge.save(atomToSave);
+            lastSavedRef.current = currentData;
+        } catch (err) {
+            console.error('[BridgeDesigner] Save failed:', err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     // Handlers de Operadores
     const addOperator = (type) => {
@@ -223,10 +223,14 @@ export function BridgeDesigner({ atom, bridge }) {
     };
 
     const updateLabel = (newLabel) => {
-        setLocalAtom(prev => ({
-            ...prev,
-            handle: { ...prev.handle, label: newLabel }
-        }));
+        const cleanLabel = newLabel === '' ? 'UNTITLED_BRIDGE' : newLabel;
+        const newAtom = {
+            ...localAtom,
+            handle: { ...localAtom.handle, label: cleanLabel }
+        };
+        setLocalAtom(newAtom);
+        updatePinIdentity(localAtom.id, localAtom.provider, { label: cleanLabel });
+        handleManualSave(newAtom);
     };
 
     if (isLoading) return (
@@ -242,13 +246,16 @@ export function BridgeDesigner({ atom, bridge }) {
             <IndraMacroHeader
                 atom={localAtom}
                 onClose={() => bridge.close()}
+                isSaving={isSaving}
+                onTitleChange={updateLabel}
+            />
+
+            <IndraEngineHood
                 onUndo={undo}
                 onRedo={redo}
                 canUndo={pointer > 0}
                 canRedo={pointer < history.length - 1}
-                isSaving={isSaving}
-                onTitleChange={updateLabel}
-                rightSlot={
+                leftSlot={
                     <div className="shelf--tight glass" style={{ padding: 'var(--space-1) var(--space-4)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-pill)', background: 'rgba(0,0,0,0.3)' }}>
                         <span className="text-hint font-mono" style={{ fontSize: '9px', opacity: 0.5, marginRight: 'var(--space-2)' }}>ADD_OP:</span>
                         {['MATH', 'TEXT', 'RESOLVER', 'EXPRESSION'].map(type => (
@@ -258,7 +265,14 @@ export function BridgeDesigner({ atom, bridge }) {
                         ))}
                     </div>
                 }
+                rightSlot={
+                    <button className="btn btn--accent btn--sm" onClick={() => handleManualSave()}>
+                        <IndraIcon name="SAVE" size="14px" />
+                        <span style={{ marginLeft: "4px" }}>GUARDAR</span>
+                    </button>
+                }
             />
+
 
             {/* MAIN WORKSPACE */}
             <main className="fill stack" style={{ overflow: 'hidden' }}>

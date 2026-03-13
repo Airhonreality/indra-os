@@ -1,4 +1,34 @@
 /* VideoDesigner.css */
-.video-designer {
-    /* La estructura principal usa las utilidades .fill y .stack de INDRA */
+
+.v-mixer-panel {
+    background-color: #111115; /* Un tono un poco más oscuro que el fondo normal */
+}
+
+/* Efecto Grid para la cinta de tiempo móvil */
+.v-kinetic-timeline {
+    background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 50px 100%, 10px 100%;
+    background-position: left bottom;
+}
+
+.moving-tape {
+    /* La transición la reactiva el JSX cuando isPlaying es false */
+    will-change: left; 
+}
+
+/* Rediseño del Track individual */
+.timeline-track {
+    background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(0,0,0,0) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.clip-block {
+    transition: background-color 0.2s, border-color 0.2s;
+    border-radius: 4px; /* Bordes suaves estilo Logic/FL */
+}
+
+.clip-block:hover {
+    filter: brightness(1.2);
 }

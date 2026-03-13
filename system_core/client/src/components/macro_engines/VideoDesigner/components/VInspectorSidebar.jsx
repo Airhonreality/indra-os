@@ -15,7 +15,7 @@ export function VInspectorSidebar({ selectedClip, mutateProject, onClose }) {
 
     if (!selectedClip) {
         return (
-            <div className="v-inspector mca-surface p-4 text-hint" style={{ width: 280, borderLeft: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-base)' }}>
+            <div className="v-inspector mca-surface p-4 text-hint stack fill" style={{ backgroundColor: 'transparent' }}>
                 <p>No clip selected.</p>
             </div>
         );
@@ -51,7 +51,7 @@ export function VInspectorSidebar({ selectedClip, mutateProject, onClose }) {
     };
 
     return (
-        <div className="v-inspector mca-surface stack" style={{ width: 300, borderLeft: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-elevated)', height: '100%', overflowY: 'auto' }}>
+        <div className="v-inspector mca-surface stack fill" style={{ backgroundColor: 'transparent', height: '100%', overflowY: 'auto' }}>
             <div className="shelf--between p-2" style={{ borderBottom: '1px solid var(--color-border)' }}>
                 <div className="shelf--tight text-hint">
                     <IndraIcon name="SETTINGS" size="14px" />

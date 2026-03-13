@@ -14,7 +14,9 @@ import { WorkflowSandbox } from './WorkflowSandbox';
 import { useWorkflowExecution } from './useWorkflowExecution';
 import { useWorkflowHydration } from './useWorkflowHydration';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
+import { IndraEngineHood } from '../../utilities/IndraEngineHood';
 import { DataProjector } from '../../../services/DataProjector';
+import { useWorkspace } from '../../../context/WorkspaceContext';
 import './WorkflowDesigner.css';
 
 export function WorkflowDesigner({ atom, onUpdate }) {
@@ -26,7 +28,8 @@ export function WorkflowDesigner({ atom, onUpdate }) {
 }
 
 function WorkflowLayout({ onUpdate }) {
-    const { workflow, addStation, selectedStationId, setSelectedStationId } = useWorkflow();
+    const { updatePinIdentity } = useWorkspace();
+    const { workflow, addStation, selectedStationId, setSelectedStationId, setWorkflow } = useWorkflow();
     const { status, traceLogs, currentStepId, runTrace } = useWorkflowExecution(workflow);
     const { integrityMap, isLoading } = useWorkflowHydration(workflow);
 
@@ -39,8 +42,29 @@ function WorkflowLayout({ onUpdate }) {
                 atom={workflow}
                 onClose={() => window.history.back()}
                 isSaving={status === 'EXECUTING'}
-                onUpdateStatus={(newStatus) => onUpdate({ ...workflow, status: newStatus })}
                 isLive={workflow.status === 'LIVE'}
+                onTitleChange={(newLabel) => {
+                    const cleanLabel = newLabel === '' ? 'UNTITLED_WORKFLOW' : newLabel;
+                    const newWorkflow = { ...workflow, handle: { ...workflow.handle, label: cleanLabel } };
+                    setWorkflow(newWorkflow);
+                    updatePinIdentity(workflow.id, workflow.provider, { label: cleanLabel });
+                    onUpdate(newWorkflow);
+                }}
+            />
+
+            <IndraEngineHood
+                leftSlot={
+                    <div className="shelf--tight macro-header__status-toggle" style={{ background: 'rgba(255,255,255,0.03)', padding: '2px', borderRadius: '4px' }}>
+                        <button
+                            className={`btn btn--xs ${workflow.status !== 'LIVE' ? 'btn--accent' : 'btn--ghost'}`}
+                            onClick={() => onUpdate({ ...workflow, status: 'DRAFT' })}
+                        >DRAFT</button>
+                        <button
+                            className={`btn btn--xs ${workflow.status === 'LIVE' ? 'btn--danger' : 'btn--ghost'}`}
+                            onClick={() => onUpdate({ ...workflow, status: 'LIVE' })}
+                        >LIVE</button>
+                    </div>
+                }
                 rightSlot={
                     <button
                         className="btn btn--accent btn--sm"
@@ -50,6 +74,7 @@ function WorkflowLayout({ onUpdate }) {
                     </button>
                 }
             />
+
 
             {/* ── VIEWPORT OPERATIVO (3 columnas) ── */}
             <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>

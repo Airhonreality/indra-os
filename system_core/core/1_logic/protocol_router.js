@@ -52,7 +52,7 @@ function _validateAtomContract_(items, providerId, protocol) {
   }
 
   // Lista de protocolos "ligeros" que devuelven punteros o vistas parciales (no átomos completos)
-  const LIGHTWEIGHT_PROTOCOLS = ['SYSTEM_PINS_READ', 'SCHEMA_FIELD_OPTIONS', 'HIERARCHY_TREE'];
+  const LIGHTWEIGHT_PROTOCOLS = ['SYSTEM_PINS_READ', 'SYSTEM_PIN', 'ATOM_CREATE', 'SCHEMA_FIELD_OPTIONS', 'HIERARCHY_TREE', 'REVISIONS_LIST'];
   const isFullDataProtocol = !LIGHTWEIGHT_PROTOCOLS.includes(protocol);
 
   items.forEach((item, index) => {
@@ -80,18 +80,26 @@ function _validateAtomContract_(items, providerId, protocol) {
     }
 
     // 3. ADR_008: VALIDACIÓN COERCITIVA ESTRUCTURAL (Capa 3 - Payload)
-    // Solo aplicamos si el protocolo está diseñado para retornar el átomo completo
     if (isFullDataProtocol) {
-      if (item.class === 'DATA_SCHEMA') {
+      if (item.class === 'DATA_SCHEMA' || item.class === 'TABULAR') {
         const fields = item.payload?.fields;
         if (!fields || !Array.isArray(fields)) {
           throw createError(
             'CONTRACT_VIOLATION',
-            `LEY_DE_ADUANA: El provider "${providerId}" entregó un DATA_SCHEMA inválido (payload.fields es requerido y debe ser Array).`,
+            `LEY_DE_ADUANA: El provider "${providerId}" entregó un ${item.class} inválido (payload.fields es requerido).`,
             { providerId, atomId: item.id, proto: protocol }
           );
         }
       }
+    }
+
+    // 4. PROHIBICIÓN DE MATERIA OSCURA (LEGACY)
+    if (item.columns || (item.payload && item.payload.columns)) {
+      throw createError(
+        'CONTRACT_VIOLATION',
+        `LEY_DE_ADUANA_LEGACY: El provider "${providerId}" intentó cruzar la aduana con "columns". Materia contaminada.`,
+        { atomId: item.id }
+      );
     }
   });
 }

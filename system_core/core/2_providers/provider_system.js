@@ -21,7 +21,8 @@ function CONF_SYSTEM() {
       'ATOM_READ', 'ATOM_CREATE', 'ATOM_DELETE', 'ATOM_UPDATE', 'ATOM_EXISTS',
       'SYSTEM_PIN', 'SYSTEM_UNPIN', 'SYSTEM_PINS_READ', 'SYSTEM_WORKSPACE_REPAIR',
       'TABULAR_STREAM', 'FORMULA_EVAL', 'SCHEMA_SUBMIT', 'SCHEMA_FIELD_OPTIONS',
-      'ACCOUNT_RESOLVE', 'SYSTEM_AUDIT'
+      'ACCOUNT_RESOLVE', 'SYSTEM_AUDIT', 'REVISIONS_LIST', 'ATOM_ROLLBACK',
+      'GETMCEPMANIFEST', 'INTELLIGENCE_CHAT'
     ],
     implements: {
       ATOM_READ: 'handleSystem',
@@ -39,7 +40,12 @@ function CONF_SYSTEM() {
       SCHEMA_FIELD_OPTIONS: 'handleSystem',
       ACCOUNT_RESOLVE: 'handleSystem',
       SYSTEM_AUDIT: 'handleSystem',
+      REVISIONS_LIST: 'handleSystem',
+      ATOM_ROLLBACK: 'handleSystem',
+      GETMCEPMANIFEST: 'handleSystem',
+      INTELLIGENCE_CHAT: 'handleSystem',
     },
+
     capabilities: {
       ATOM_READ: { sync: 'BLOCKING', purge: 'NONE' },
       ATOM_CREATE: { sync: 'BLOCKING', purge: 'ALL' },
@@ -50,7 +56,24 @@ function CONF_SYSTEM() {
       SYSTEM_UNPIN: { sync: 'BLOCKING', purge: 'ALL' },
       SYSTEM_PINS_READ: { sync: 'BLOCKING', purge: 'NONE' },
       SYSTEM_WORKSPACE_REPAIR: { sync: 'BLOCKING', purge: 'ALL' },
-      TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE' }
+      TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE' },
+      GETMCEPMANIFEST: { sync: 'BLOCKING', exposure: 'public' },
+      INTELLIGENCE_CHAT: { sync: 'BLOCKING', exposure: 'public' }
+    },
+
+    protocol_meta: {
+      SYSTEM_PINS_READ: {
+        desc: "Obtiene la lista de todos los átomos anclados al workspace activo (Estado del entorno).",
+        inputs: {}
+      },
+      GETMCEPMANIFEST: {
+        desc: "Realiza un sensado profundo de todas las capacidades y herramientas disponibles en Indra.",
+        inputs: { mode: { type: 'string', desc: 'RAW_MAP para introspección técnica' } }
+      },
+      ATOM_READ: {
+        desc: "Lee la metadata y contenido de un átomo/archivo específico del sistema.",
+        inputs: { context_id: { type: 'string', required: true } }
+      }
     }
   });
 }
@@ -84,6 +107,13 @@ function handleSystem(uqo) {
   if (protocol === 'SYSTEM_WORKSPACE_REPAIR') return _system_handleWorkspaceRepair(uqo);
   if (protocol === 'ACCOUNT_RESOLVE') return _system_handleAccountResolve(uqo);
   if (protocol === 'SYSTEM_AUDIT') return _system_handleAudit(uqo);
+  if (protocol === 'REVISIONS_LIST') return _system_handleRevisionsList(uqo);
+  if (protocol === 'ATOM_ROLLBACK') return _system_handleRollback(uqo);
+  
+  // ─── HANDLER DE INTELIGENCIA / MCEP (provider_intelligence.js)
+  if (protocol === 'GETMCEPMANIFEST') return _ai_handleDiscovery(uqo);
+  if (protocol === 'INTELLIGENCE_CHAT') return _ai_handleChat(uqo);
+
 
   const err = createError('PROTOCOL_NOT_FOUND', `System no soporta: ${protocol}`);
   return { items: [], metadata: { status: 'ERROR', error: err.message, code: err.code } };

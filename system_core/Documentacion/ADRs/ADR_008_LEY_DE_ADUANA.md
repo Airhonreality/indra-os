@@ -1,86 +1,46 @@
-# ADR_008 — LEY DE ADUANA Y SINCERIDAD INFRAESTRUCTURAL
+# ADR_008 — LEY DE ADUANA: Sinceridad Atómica y Normalización de Frontera
 
-> **Versión:** 3.0 — Blindaje Perimetral
-> **Estado:** VIGENTE — Mandato Radical
-> **Alcance:** Todo Provider, Protocolo, Orquestador y componente de UI en Indra.
-> **Reemplaza:** v2.0 (Sinceridad Referencial - Portal de Sinceridad)
+## 1. Contexto y Problema
+Históricamente, el sistema INDRA permitía cierta "tolerancia" en la nomenclatura de esquemas tabulares. Algunos proveedores (Notion, Drive) devolvían metadatos bajo la clave `columns`, mientras que el estándar de Workflows y Schemas usaba `fields`. 
 
----
+Esta asincronía generaba:
+1.  **Materia Oscura**: Átomos que existían pero cuyos campos eran invisibles para otros motores (Bridge Designer, Logic Engine).
+2.  **Fugas de Abstracción**: El Frontend y el Logic Engine tenían código "parche" para intentar adivinar si venían `columns` o `fields`.
+3.  **Inestabilidad**: Cualquier cambio en un proveedor externo rompía la cadena de valor si la "traducción" manual fallaba.
 
-## 1. PROPÓSITO
+## 2. Decisión Arquitectónica
+Se establece la **Ley de Aduana Coercitiva**:
 
-Este ADR establece tres leyes complementarias que garantizan la **negentropía radical** del sistema:
+1.  **Unificacción de Nomenclatura**: Se prohíbe terminantemente el uso del término `columns` en cualquier nivel del sistema (Frontend y Backend). El único estándar legal es `payload.fields`.
+2.  **Responsabilidad en el Origen (Sinceridad)**: Es deber absoluto del **Provider** entregar la materia procesada y plana. Ningún motor intermedio (Logic Engine) ni el Cliente (Frontend) debe realizar "unrolling" o "aplanamiento" de datos crudos.
+3.  **Validación en la Frontera (Protocol Router)**: El `protocol_router.js` actuará como el único oficial de aduana. Si un provider entrega un átomo `TABULAR` o `DATA_SCHEMA` sin `payload.fields` (o con `columns`), el router rechazará la carga con una excepción `CONTRACT_VIOLATION`.
+4.  **Eliminación de la Tolerancia**: Se retira toda lógica de "perdón" o "auto-corrección" en el frontend (`directive_executor`, `DataProjector`) para forzar un comportamiento determinista y ruidoso ante el error.
 
-1. **Ley de Aduana (Membrana Coercitiva):** Lo que entra al sistema debe ser canónico o es rechazado en la frontera.
-2. **Ley de Sinceridad Referencial (Portal de Sinceridad):** Lo que existe en el sistema debe reflejar la realidad física.
-3. **Ley de Inmutabilidad de Identidad:** La esencia de un átomo (`id`, `class`) es eterna tras su nacimiento.
+## 3. Justificación Axiomática
+- **Axioma de Sinceridad**: INDRA no adivina. Los datos deben ser explícitos.
+- **Dharma de Fractalidad**: Cada capa debe ser autosuficiente. Si el provider no es sincero, la fractalidad se rompe porque la capa superior debe "saber" demasiado sobre la inferior.
 
----
-
-## 2. LEY DE ADUANA v3.0 — EL BLINDAJE DEL UMBRAL
-
-### 2.1 La Membrana Celular de Entrada
-A partir de v3.0, la Aduana (`protocol_router.js`) intercepta toda petición antes de que llegue a los Providers. 
-
-> **Axioma:** Ningún Provider debe sospechar de sus datos. Si el Router le entrega un UQO, el Router garantiza que el dato es sincero.
-
-### 2.2 Invariantes de Clase en Nacimiento (`ATOM_CREATE`)
-El sistema prohíbe el nacimiento de materia incompleta. El `protocol_router` valida:
-
-| `class` | Invariante de Estructura Requerido |
-|---------|------------------------------------|
-| **Cualquiera** | `handle.label` (String no vacío) |
-| `DATA_SCHEMA`  | `payload.fields` (Array) |
-| `WORKFLOW`     | `payload.stations` (Array) |
-| `BRIDGE`       | `payload.operators` (Array) |
-
-Si no se cumple, se lanza una `INPUT_CONTRACT_VIOLATION`.
-
-### 2.3 Blindaje de Actualización (`ATOM_UPDATE`)
-Para garantizar la integridad del tejido de datos, el Router prohíbe explícitamente modificar el `id` o la `class` de un átomo existente. Un `ATOM_UPDATE` que intente cambiar su esencia será rechazado con `SECURITY_VIOLATION`.
+## 4. Consecuencias
+- **Positivas**: Reducción drástica de líneas de código en el Frontend y Logic Engine. Eliminación de bugs "fantasma" donde los campos no aparecían.
+- **Negativas**: Mayor rigurosidad requerida al crear nuevos proveedores. Necesidad de refactorizar proveedores antiguos (Drive, Notion) para cumplir la ley.
 
 ---
 
-## 3. LEY DE SINCERIDAD REFERENCIAL — PORTAL DE SINCERIDAD
+# DOFA / SWOT: Estrategia de Sinceridad de Datos
 
-### 3.1 El Principio de Acceso
-> **La Sinceridad vive en el momento del acceso, no en el momento del borrado.**
+## Fortalezas (Strengths)
+- **Determinismo Absoluto**: El Bridge Designer y los motores de lógica siempre reciben el mismo formato.
+- **Código Limpio**: Se eliminan "if/else" infinitos en el frontend.
+- **Fácil Depuración**: Errores localizados en la frontera (`protocol_router`).
 
-El `ATOM_DELETE` es puramente físico y determinista ($O(1)$). No propaga, no escanea. La integridad se verifica en tiempo real durante la lectura (`SYSTEM_PINS_READ`) mediante el mecanismo de **Batch Verify Existence**.
+## Oportunidades (Opportunities)
+- **Escalabilidad de Providers**: Crear un nuevo provider es más rápido porque el contrato es binario y claro.
+- **Interoperabilidad**: Facilita la creación de un "Meta-Provider" (Pipeline).
 
-### 3.2 El Protocolo `ATOM_EXISTS` (Portal Multi-Provider)
-Para extender la sinceridad a silos externos, se establece el protocolo ligero `ATOM_EXISTS`. El Portal de Sinceridad delega en cada provider la consulta de su realidad física, manteniendo el agnosticismo total de la infraestructura.
+## Debilidades (Weaknesses)
+- **Rigidez Inicial**: Componentes antiguos pueden fallar si no se actualizan.
+- **Costo de Inspección**: Costo de tiempo de ejecución en GAS (mitigado mediante inspección selectiva).
 
----
-
-## 4. ESTADO DE LAS DEBILIDADES Y DEUDA
-
-| ID | Debilidad anterior | Estado v3.0 | Mecanismo de Cierre |
-|----|-------------------|-------------|---------------------|
-| **D1** | Workflow/Bridge sin detección | **CERRADA** | Implementación de `useWorkflowHydration` y `useBridgeHydration` con señalización `MATERIA_DESAPARECIDA`. |
-| **D2** | Batch Verify solo en `system` | **CERRADA** | Protocolo unificado `ATOM_EXISTS` ahora disponible en el Router para todos los providers. |
-| **D3** | Propagación O(n) en Update | **CERRADA** | Eliminación del escaneo O(n). Se adopta **Eventual Consistency** y Hot Hydration de labels en UI. |
-| **D4** | `identity_evolution.js` vivo | **CERRADA** | Código archivado en `core/0_legacy/`. El nacimiento es ahora forzosamente íntegro. |
-
----
-
-## 5. CONTRATO CANÓNICO (Axioma de Estructura)
-
-Cualquier átomo que resida en Indra debe ser un **Acompañamiento Sincero** de su handle y su clase. Los campos base: `id`, `class`, `handle.ns`, `handle.alias`, `handle.label` son la materia mínima e indivisible de la arquitectura.
-
----
-
-## 6. JERARQUÍA DE OPERACIONES DETERMINISTAS
-
-```
-ATOM_CREATE    → Validación Coercitiva en la frontera (Router). Nace íntegro.
-ATOM_READ      → Proyección de la Realidad.
-ATOM_UPDATE    → Modificación de Propiedades. Identidad Inmutable.
-ATOM_DELETE    → Destrucción Física Determinista.
-```
-
----
-
-*La arquitectura Indra no es una herramienta; es un conjunto de leyes físicas para la materia digital.*
-*No permitas que la basura entre y nunca tendrás que limpiar.*
-*El Soberano confía en la Aduana.*
+## Amenazas (Threats)
+- **Desbordamiento de GAS**: Riesgo de timeouts (mitigado).
+- **Esquizofrenia Técnica**: Si se permite un solo componente permisivo, el estándar perderá su soberanía.

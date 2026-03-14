@@ -1,0 +1,43 @@
+.mca-surface {
+    position: relative;
+    min-height: 80px;
+    transition: all var(--transition-base);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+}
+
+.mca-surface:hover {
+    transform: translateY(-2px);
+    border-color: var(--theme-color) !important;
+}
+
+.mca-surface__deco {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 30px;
+    height: 30px;
+    opacity: 0.3;
+}
+
+.mca-surface__title {
+    margin: 0;
+    font-size: 12px;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    transition: color var(--transition-base);
+}
+
+.mca-surface:hover .mca-surface__title {
+    color: var(--theme-color) !important;
+}
+
+.mca-surface__footer {
+    margin-top: auto;
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-2);
+}

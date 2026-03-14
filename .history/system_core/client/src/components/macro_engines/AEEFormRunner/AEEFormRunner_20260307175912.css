@@ -1,0 +1,142 @@
+/**
+ * =============================================================================
+ * ESTILOS: AEEFormRunner.css
+ * DOGMA: Minimalismo Operacional y Foco Cognitivo.
+ * =============================================================================
+ */
+
+.aee-form-runner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--color-bg-deep);
+    color: var(--color-text-main);
+    overflow: hidden;
+    position: relative;
+}
+
+.form-viewport {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-10) var(--space-6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.form-header {
+    text-align: center;
+    max-width: 600px;
+    margin-bottom: var(--space-10);
+}
+
+.form-header .badge {
+    background: rgba(0, 210, 211, 0.1);
+    color: var(--color-accent);
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 0.7rem;
+    font-weight: bold;
+    border: 1px solid var(--color-accent);
+}
+
+.form-grid {
+    width: 100%;
+    max-width: 600px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.form-field label {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+}
+
+.form-field input {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    color: var(--color-text-main);
+    font-size: 1.1rem;
+    transition: all 0.2s ease;
+}
+
+.form-field input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 20px rgba(0, 210, 211, 0.1);
+}
+
+.aee-hud {
+    background: var(--color-glass);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--color-border);
+    padding: var(--space-4) var(--space-8);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+}
+
+.status-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: 0.8rem;
+    font-family: var(--font-mono);
+    opacity: 0.8;
+}
+
+.led {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.pulse-cyan {
+    background: var(--color-accent);
+    box-shadow: 0 0 10px var(--color-accent);
+    animation: indra-pulse 2s infinite;
+}
+
+@keyframes indra-pulse {
+    0% {
+        opacity: 0.4;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.4;
+    }
+}
+
+.execute-btn {
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
+    color: #000;
+    border: none;
+    padding: var(--space-3) var(--space-8);
+    border-radius: var(--radius-pill);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0, 210, 211, 0.3);
+}
+
+.execute-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 210, 211, 0.4);
+}

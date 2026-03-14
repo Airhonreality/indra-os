@@ -38,18 +38,38 @@ export function ResolverConfig({ config, onUpdate, focusedTarget, setFocusedTarg
         setLoadingSchema(true);
         try {
             const provider = getProviderForId(siloId);
-            const result = await executeDirective({
-                provider: provider,
-                protocol: 'TABULAR_STREAM',
-                context_id: siloId
-            }, coreUrl, sessionSecret);
+            
+            // INTENTO DE SINCERIDAD MÁXIMA (ATOM_READ)
+            const isLocal = provider === 'system' || pins?.some(p => p.id === siloId);
+            let result = null;
 
-            const columns = result.metadata?.schema?.columns || result.metadata?.schema?.fields || result.fields || [];
-            if (columns.length > 0) {
-                setFields(columns);
+            if (isLocal) {
+                try {
+                    result = await executeDirective({
+                        provider: provider,
+                        protocol: 'ATOM_READ',
+                        context_id: siloId
+                    }, coreUrl, sessionSecret);
+                } catch (e) {
+                    console.warn(`[ResolverConfig] ATOM_READ falló, reintentando con STREAM...`);
+                }
+            }
+
+            // DETERMINISMO DINÁMICO (TABULAR_STREAM)
+            if (!result || !result.payload?.fields) {
+                result = await executeDirective({
+                    provider: provider,
+                    protocol: 'TABULAR_STREAM',
+                    context_id: siloId
+                }, coreUrl, sessionSecret);
+            }
+
+            const fields = result.payload?.fields || [];
+            if (fields.length > 0) {
+                setFields(fields);
             }
         } catch (err) {
-            console.error('[ResolverConfig] Failed to fetch schema:', err);
+            console.error('[ResolverConfig] Error de Sinceridad:', err);
             setFields([]);
         } finally {
             setLoadingSchema(false);

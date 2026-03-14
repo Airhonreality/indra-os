@@ -74,11 +74,11 @@ export function LayersPanel({ fields, selectedId, onSelect, onAdd, onRemove, onM
         }}>
             {/* Header del Panel (Micro-HUD) */}
             <IndraMicroHeader
-                label="DNA_LAYERS"
+                label="CAPAS DEL ESQUEMA"
                 icon="LAYERS"
                 onExecute={() => onAdd('TEXT')}
-                executeLabel="ADD_ATOM"
-                metadata={`${fields.length} ATOMS`}
+                executeLabel="AÑADIR CAMPO"
+                metadata={`${fields.length} CAMPOS`}
             />
 
             {/* Búsqueda de Capas */}
@@ -92,7 +92,7 @@ export function LayersPanel({ fields, selectedId, onSelect, onAdd, onRemove, onM
                     <IndraIcon name="EYE" size="10px" style={{ opacity: 0.3 }} />
                     <input
                         type="text"
-                        placeholder="FILTER_LAYERS..."
+                        placeholder="FILTRAR CAPAS..."
                         value={layersSearch}
                         onChange={e => setLayersSearch(e.target.value)}
                         style={{
@@ -123,9 +123,9 @@ export function LayersPanel({ fields, selectedId, onSelect, onAdd, onRemove, onM
                             depth={0}
                             isSelected={selectedId === field.id}
                             onSelect={() => onSelect(field.id)}
-                            onMoveUp={() => moveField(field.id, -1)}
-                            onMoveDown={() => moveField(field.id, 1)}
-                            onRemove={() => removeField(field.id)}
+                            onMoveUp={() => onMove(field.id, -1)}
+                            onMoveDown={() => onMove(field.id, 1)}
+                            onRemove={() => onRemove(field.id)}
                         />
                     ))
                 ) : (
@@ -134,7 +134,7 @@ export function LayersPanel({ fields, selectedId, onSelect, onAdd, onRemove, onM
 
                 {fields.length === 0 && (
                     <div className="center stack" style={{ padding: 'var(--space-8)', opacity: 0.3 }}>
-                        <span style={{ fontSize: '10px' }}>NO_ATOMS_FOUND</span>
+                        <span style={{ fontSize: '10px' }}>SIN CAMPOS DEFINIDOS</span>
                     </div>
                 )}
             </div>
@@ -215,12 +215,12 @@ function LayerItem({ field, depth = 0, isSelected, canDemote, canPromote, onSele
                 <div className="shelf--tight" onClick={e => e.stopPropagation()}>
                     {/* Botones de Jerarquía (Meter/Sacar) */}
                     {canDemote && (
-                        <button className="btn btn--ghost btn--xs" onClick={onDemote} title="Meter en contenedor superior" style={{ border: 'none' }}>
+                        <button className="btn btn--ghost btn--xs" onClick={onDemote} title="Mover adentro" style={{ border: 'none' }}>
                             <IndraIcon name="FLOW" size="10px" style={{ transform: 'rotate(90deg)' }} />
                         </button>
                     )}
                     {canPromote && (
-                        <button className="btn btn--ghost btn--xs" onClick={onPromote} title="Sacar del contenedor" style={{ border: 'none' }}>
+                        <button className="btn btn--ghost btn--xs" onClick={onPromote} title="Mover afuera" style={{ border: 'none' }}>
                             <IndraIcon name="FLOW" size="10px" style={{ transform: 'rotate(-90deg)' }} />
                         </button>
                     )}
@@ -234,7 +234,7 @@ function LayerItem({ field, depth = 0, isSelected, canDemote, canPromote, onSele
                         <IndraIcon name="ARROW_DOWN" size="10px" />
                     </button>
 
-                    <button className="btn btn--ghost btn--xs" onClick={onClone} style={{ border: 'none' }} title="Clonar Campo">
+                    <button className="btn btn--ghost btn--xs" onClick={onClone} style={{ border: 'none' }} title="Duplicar">
                         <IndraIcon name="COPY" size="10px" />
                     </button>
 
@@ -244,7 +244,7 @@ function LayerItem({ field, depth = 0, isSelected, canDemote, canPromote, onSele
                         variant="destructive"
                         size="10px"
                         onClick={onRemove}
-                        label="REMOVE_DNA_FIELD"
+                        label="ELIMINAR"
                     />
                 </div>
             )}

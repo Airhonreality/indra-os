@@ -22,8 +22,11 @@ export function NexusView() {
         services,
         setActiveWorkspace,
         deleteWorkspace,
+        createWorkspace,
         hydrateManifest
     } = useWorkspace();
+
+    const [isCreating, setIsCreating] = useState(false);
 
     const t = useLexicon(lang);
 
@@ -163,17 +166,42 @@ export function NexusView() {
                             </div>
                         ))}
 
-                        {/* Botón de nuevo Workspace */}
-                        <div className="ws-card ws-card--new center stack" style={{ minHeight: '160px' }}>
-                            <div className="center" style={{
-                                width: '48px', height: '48px',
-                                borderRadius: '50%', border: '1px dashed var(--color-border-strong)',
-                                color: 'var(--color-border-strong)'
-                            }}>
-                                <IndraIcon name="PLUS" size="24px" />
+                        {/* Botón de nuevo Workspace o Spinner de Materialización */}
+                        {isCreating ? (
+                            <div className="ws-card center stack" style={{ minHeight: '160px', border: '1px solid var(--color-accent)', background: 'rgba(0, 255, 200, 0.05)' }}>
+                                <div className="ast-resonance--syncing" style={{ fontSize: '24px', marginBottom: 'var(--space-4)' }}>
+                                    <IndraIcon name="SYNC" size="32px" />
+                                </div>
+                                <span className="text-label" style={{ color: 'var(--color-accent)', letterSpacing: '0.2em' }}>
+                                    MATERIALIZING...
+                                </span>
                             </div>
-                            <span className="text-label opacity-50" style={{ marginTop: 'var(--space-4)', fontSize: '10px' }}>{t('action_generate_ws')}</span>
-                        </div>
+                        ) : (
+                            <div 
+                                className="ws-card ws-card--new center stack ripple" 
+                                style={{ minHeight: '160px', cursor: 'pointer' }}
+                                onClick={async () => {
+                                    setIsCreating(true);
+                                    try {
+                                        const newWS = await createWorkspace();
+                                        if (newWS) setActiveWorkspace(newWS.id);
+                                    } catch (err) {
+                                        // app_state already toasted the error
+                                    } finally {
+                                        setIsCreating(false);
+                                    }
+                                }}
+                            >
+                                <div className="center" style={{
+                                    width: '48px', height: '48px',
+                                    borderRadius: '50%', border: '1px dashed var(--color-border-strong)',
+                                    color: 'var(--color-border-strong)'
+                                }}>
+                                    <IndraIcon name="PLUS" size="24px" />
+                                </div>
+                                <span className="text-label opacity-50" style={{ marginTop: 'var(--space-4)', fontSize: '10px' }}>{t('action_generate_ws')}</span>
+                            </div>
+                        )}
                     </div>
                 </main>
 

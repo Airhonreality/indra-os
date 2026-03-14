@@ -1,0 +1,187 @@
+/**
+ * =============================================================================
+ * ESTILOS: headers.css
+ * RESPONSABILIDAD: Tipología y diagramación de cabeceras canónicas (ADR-002 §8).
+ * =============================================================================
+ */
+
+/* 1. IndraMacroHeader (Nivel 2 y 3) */
+.macro-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    flex-shrink: 0;
+    padding: var(--space-4) var(--space-8);
+    border-bottom: 1px solid var(--color-border-strong);
+    background: var(--color-bg-void-glass);
+    box-shadow: 0 1px 20px rgba(0, 0, 0, 0.4);
+}
+
+.macro-header__identity {
+    flex: 1;
+    min-width: 0;
+}
+
+.macro-header__title-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
+    color: white;
+    font-size: var(--text-lg);
+    font-family: var(--font-mono);
+    width: 100%;
+    outline: none;
+    transition: all 0.3s;
+    padding: 0;
+}
+
+.macro-header__title-input:focus {
+    border-bottom-color: var(--color-accent);
+}
+
+.macro-header__metadata {
+    font-size: 9px;
+    opacity: 0.5;
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.macro-header__status-toggle {
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+}
+
+.macro-header__divider {
+    width: 1px;
+    height: 24px;
+    background: var(--color-border);
+    margin: 0 var(--space-4);
+}
+
+/* 2. IndraMicroHeader (Nivel Panel / Micro-Engine) */
+.micro-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-white-bone-glass);
+    border-bottom: 1px solid var(--color-border);
+    gap: var(--space-4);
+    min-height: 48px;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.micro-header__title {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-dim);
+    margin: 0;
+}
+
+.micro-header__description {
+    font-size: 9px;
+    opacity: 0.4;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+}
+
+.micro-header__meta {
+    font-size: 8px;
+    background: var(--color-bg-void);
+    color: var(--color-accent);
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+}
+
+.btn--white {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    font-weight: bold;
+    font-size: 9px;
+}
+
+.btn--white:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: white;
+}
+
+/* 3. White Bone Glass Token */
+:root {
+    --color-white-bone-glass: rgba(240, 240, 240, 0.05);
+    /* Blanco hueso muy sutil para HUD */
+}
+
+/* Glass bone style utility */
+.glass--bone {
+    backdrop-filter: blur(8px);
+    background: var(--color-white-bone-glass);
+}
+
+/* 4. Resonancia AST Animations */
+@keyframes ast-sync-pulse {
+    0% {
+        opacity: 0.4;
+        text-shadow: 0 0 0px transparent;
+    }
+
+    50% {
+        opacity: 1;
+        text-shadow: 0 0 10px var(--color-accent);
+    }
+
+    100% {
+        opacity: 0.4;
+        text-shadow: 0 0 0px transparent;
+    }
+}
+
+.ast-resonance--syncing {
+    animation: ast-sync-pulse 1.5s infinite ease-in-out;
+    color: var(--color-accent) !important;
+}
+
+.ast-resonance--stable {
+    color: var(--color-success);
+    opacity: 0.8;
+}
+
+.resonance-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.resonance-dot--active {
+    background: var(--color-danger);
+    box-shadow: 0 0 8px var(--color-danger);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 78, 80, 0.7);
+    }
+
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(255, 78, 80, 0);
+    }
+
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 78, 80, 0);
+    }
+}

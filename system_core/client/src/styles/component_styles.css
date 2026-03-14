@@ -199,3 +199,60 @@
         linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
     background-size: 20px 20px, 100px 100px, 100px 100px;
 }
+
+/* ── INDUSTRIAL HARDWARE SYSTEM (AXIOMÁTICO) ── */
+.macro-designer-wrapper {
+    padding: var(--indra-ui-margin);
+    background-color: var(--color-bg-void);
+    display: flex;
+    flex-direction: column;
+    gap: var(--indra-ui-gap);
+    overflow: hidden;
+}
+
+.indra-container {
+    border: 1px solid var(--indra-dynamic-border);
+    background-color: var(--color-bg-deep);
+    position: relative;
+    border-radius: var(--indra-ui-radius);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all var(--transition-base);
+}
+
+.indra-container:hover {
+    border-color: var(--indra-dynamic-accent);
+    box-shadow: 0 0 15px var(--indra-dynamic-bg);
+}
+
+.indra-header-label {
+    background-color: var(--indra-dynamic-border);
+    color: var(--indra-dynamic-accent);
+    font-family: var(--font-mono);
+    font-size: 8px;
+    padding: 2px 8px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    width: fit-content;
+    border-bottom-right-radius: 4px;
+    z-index: 10;
+    pointer-events: none;
+    line-height: 1;
+}
+
+.indra-tab {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--color-text-secondary);
+    border-bottom: 1px solid transparent;
+    transition: all var(--transition-fast);
+}
+
+.indra-tab.active {
+    color: var(--indra-dynamic-accent);
+    background-color: var(--indra-dynamic-bg);
+    border-bottom-color: var(--indra-dynamic-accent);
+}

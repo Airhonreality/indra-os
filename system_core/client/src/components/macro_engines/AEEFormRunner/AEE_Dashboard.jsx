@@ -23,35 +23,58 @@ export function AEEDashboard({ atom }) {
         reset
     } = useAEESession(atom);
 
+    const accentColor = atom?.color || '#00f5d4';
+    const dynamicStyles = {
+        '--indra-dynamic-accent': accentColor,
+        '--indra-dynamic-border': `${accentColor}26`,
+        '--indra-dynamic-bg': `${accentColor}08`,
+    };
+
     return (
-        <div className="indra-macro-engine aee-dashboard stack" style={{ height: '100vh', width: '100vw', background: 'var(--color-bg-void)', overflow: 'hidden' }}>
+        <div className="macro-designer-wrapper fill" style={dynamicStyles}>
             <IndraMacroHeader
                 atom={atom}
-                onClose={() => bridge.close()}
+                onClose={() => window.parent.postMessage({ type: 'CLOSE_MACRO' }, '*')} // AEE often runs in isolation, fallback closing logic
                 isSaving={status === 'EXECUTING'}
+                rightSlot={
+                    <div className="shelf--tight">
+                        {status !== 'IDLE' && (
+                            <button 
+                                className="btn btn--ghost btn--xs" 
+                                onClick={reset}
+                                style={{ borderRadius: 'var(--indra-ui-radius)' }}
+                            >
+                                <IndraIcon name="SYNC" size="12px" />
+                                <span style={{ fontSize: '9px' }}>RESET_SESSION</span>
+                            </button>
+                        )}
+                    </div>
+                }
             />
-            {/* Si no hay resultado todavía, mostramos el Formulario */}
-            {status !== 'SUCCESS' && status !== 'ERROR' && status !== 'EXECUTING' ? (
-                <main className="aee-viewport center fill">
-                    <FormRunner
-                        schema={atom}
-                        formData={formData}
-                        onFieldChange={updateField}
-                        onExecute={executeLogic}
-                        status={status}
-                    />
-                </main>
-            ) : (
-                <main className="aee-viewport center fill">
-                    <ResultPanel
-                        result={result}
-                        status={status}
-                        error={error}
-                        onReset={reset}
-                    />
-                </main>
-            )}
 
+            <div className="designer-body fill center relative overflow-hidden">
+                <div className="indra-container" style={{ width: '100%', maxWidth: '800px', height: 'fit-content', maxHeight: '100%' }}>
+                    <div className="indra-header-label">EXECUTION_ENGINE_PROJECTION</div>
+                    <main className="fill overflow-auto" style={{ padding: 'var(--space-8)' }}>
+                        {status !== 'SUCCESS' && status !== 'ERROR' && status !== 'EXECUTING' ? (
+                            <FormRunner
+                                schema={atom}
+                                formData={formData}
+                                onFieldChange={updateField}
+                                onExecute={executeLogic}
+                                status={status}
+                            />
+                        ) : (
+                            <ResultPanel
+                                result={result}
+                                status={status}
+                                error={error}
+                                onReset={reset}
+                            />
+                        )}
+                    </main>
+                </div>
+            </div>
         </div>
     );
 }

@@ -22,6 +22,8 @@ export function WorkspaceProvider({ children }) {
     const hydrateManifest = useAppState(s => s.hydrateManifest);
     const renameWorkspace = useAppState(s => s.renameWorkspace);
     const deleteWorkspace = useAppState(s => s.deleteWorkspace);
+    const createWorkspace = useAppState(s => s.createWorkspace);
+    const updatePinIdentity = useAppState(s => s.updatePinIdentity);
 
     const value = {
         workspaces,
@@ -36,7 +38,9 @@ export function WorkspaceProvider({ children }) {
         deleteWorkspace,
         renameWorkspace,
         createArtifact,
-        hydrateManifest
+        hydrateManifest,
+        createWorkspace,
+        updatePinIdentity
     };
 
     return (

@@ -17,7 +17,7 @@ async function initWebGPU(offscreenCanvas) {
     canvas = offscreenCanvas;
 
     if (!navigator.gpu) {
-        console.error("[RendererWorker] WebGPU no está soportado en este navegador.");
+        console.warn("[RendererWorker] WebGPU no está soportado en este navegador. Cayendo a fallback 2D.");
         // Fallback a WebGL2 o 2D podría implementarse aquí según Axioma de Independencia
         context = canvas.getContext('2d');
         return;
@@ -47,6 +47,14 @@ async function initWebGPU(offscreenCanvas) {
         @location(0) uv : vec2<f32>,
       }
 
+      struct RenderParams {
+        opacity : f32,
+      }
+
+      @group(0) @binding(1) var mySampler: sampler;
+      @group(0) @binding(2) var myTexture: texture_external;
+      @group(0) @binding(3) var<uniform> params : RenderParams;
+
       @vertex
       fn vert_main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
         var pos = array<vec2<f32>, 6>(
@@ -71,12 +79,10 @@ async function initWebGPU(offscreenCanvas) {
         return output;
       }
 
-      @group(0) @binding(1) var mySampler: sampler;
-      @group(0) @binding(2) var myTexture: texture_external;
-
       @fragment
       fn frag_main(in: VertexOutput) -> @location(0) vec4<f32> {
-        return textureSampleBaseClampToEdge(myTexture, mySampler, in.uv);
+        let color = textureSampleBaseClampToEdge(myTexture, mySampler, in.uv);
+        return vec4<f32>(color.rgb, color.a * params.opacity);
       }
     `;
 
@@ -91,7 +97,21 @@ async function initWebGPU(offscreenCanvas) {
         fragment: {
             module,
             entryPoint: 'frag_main',
-            targets: [{ format: presentationFormat }],
+            targets: [{ 
+                format: presentationFormat,
+                blend: {
+                    color: {
+                        operation: 'add',
+                        srcFactor: 'src-alpha',
+                        dstFactor: 'one-minus-src-alpha',
+                    },
+                    alpha: {
+                        operation: 'add',
+                        srcFactor: 'one',
+                        dstFactor: 'one-minus-src-alpha',
+                    },
+                }
+            }],
         },
         primitive: {
             topology: 'triangle-list',
@@ -102,38 +122,30 @@ async function initWebGPU(offscreenCanvas) {
 }
 
 /**
- * Pinta un VideoFrame en el canvas y libera la memoria.
+ * Pinta múltiples VideoFrames en el canvas (Composición Multicapa)
  */
-function renderFrame(videoFrame) {
-    if (!canvas) {
-        videoFrame.close();
+function renderFrames(framesData) {
+    if (!canvas || !framesData || framesData.length === 0) {
+        if (framesData) framesData.forEach(d => d.frame && d.frame.close());
         return;
     }
 
-    // Adaptar tamaño del canvas si el video cambia
-    if (canvas.width !== videoFrame.displayWidth || canvas.height !== videoFrame.displayHeight) {
-        canvas.width = videoFrame.displayWidth;
-        canvas.height = videoFrame.displayHeight;
+    const mainFrame = framesData[0].frame;
+
+    // Adaptar tamaño del canvas al frame dominante
+    if (canvas.width !== mainFrame.displayWidth || canvas.height !== mainFrame.displayHeight) {
+        canvas.width = mainFrame.displayWidth;
+        canvas.height = mainFrame.displayHeight;
     }
 
     if (context instanceof OffscreenCanvasRenderingContext2D) {
-        // Fallback rápido o pipeline 2D
-        context.drawImage(videoFrame, 0, 0, canvas.width, canvas.height);
+        // Fallback 2D: Dibujar secuencialmente (Alpha por defecto en 2D)
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        for (const { frame } of framesData) {
+            context.drawImage(frame, 0, 0, canvas.width, canvas.height);
+            frame.close();
+        }
     } else if (device && pipeline) {
-        // Pipeline WebGPU de ultra-bajo nivel
-        const sampler = device.createSampler({
-            magFilter: 'linear',
-            minFilter: 'linear',
-        });
-
-        const uniformBindGroup = device.createBindGroup({
-            layout: pipeline.getBindGroupLayout(0),
-            entries: [
-                { binding: 1, resource: sampler },
-                { binding: 2, resource: device.importExternalTexture({ source: videoFrame }) },
-            ],
-        });
-
         const commandEncoder = device.createCommandEncoder();
         const textureView = context.getCurrentTexture().createView();
 
@@ -150,17 +162,50 @@ function renderFrame(videoFrame) {
 
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(pipeline);
-        passEncoder.setBindGroup(0, uniformBindGroup);
-        passEncoder.draw(6, 1, 0, 0);
-        passEncoder.end();
 
+        const sampler = device.createSampler({
+            magFilter: 'linear',
+            minFilter: 'linear',
+        });
+
+        // Iterar sobre todos los frames activos (Capas)
+        for (const frameObj of framesData) {
+            const frame = frameObj.frame;
+            const params = frameObj.renderParams || { opacity: 1.0 };
+
+            // Uniform Buffer para Opacidad
+            const uniformArray = new Float32Array([params.opacity]);
+            const uniformBuffer = device.createBuffer({
+                size: 16, // Alineación de 16 bytes mínima para uniform
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+            device.queue.writeBuffer(uniformBuffer, 0, uniformArray);
+
+            const bindGroup = device.createBindGroup({
+                layout: pipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 1, resource: sampler },
+                    { binding: 2, resource: device.importExternalTexture({ source: frame }) },
+                    { binding: 3, resource: { buffer: uniformBuffer } },
+                ],
+            });
+
+            passEncoder.setPipeline(pipeline);
+            passEncoder.setBindGroup(0, bindGroup);
+            passEncoder.draw(6, 1, 0, 0);
+            
+            // LEY DE MEMORIA: Cerrar frame inmediatamente tras el draw command
+            frame.close();
+        }
+
+        passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
     }
 
-    // LEY DE SINCERIDAD Y MANEJO DE MEMORIA (Descrito en la investigación)
-    // El recolector de basura de JS no es suficientemente rápido para video.
-    videoFrame.close();
+    frameCount++;
 }
+
+let frameCount = 0;
 
 self.onmessage = async (e) => {
     const { type, data } = e.data;
@@ -172,9 +217,12 @@ self.onmessage = async (e) => {
             break;
 
         case 'RENDER_FRAME':
-            // Recibimos el VideoFrame transferido con Zero-Copy
-            if (data.frame) {
-                renderFrame(data.frame);
+            // Recibimos un Array de VideoFrames para composición simultánea
+            if (data.frames && Array.isArray(data.frames)) {
+                renderFrames(data.frames);
+            } else if (data.frame) {
+                // Fallback para un solo frame
+                renderFrames([{ frame: data.frame }]);
             }
             break;
 

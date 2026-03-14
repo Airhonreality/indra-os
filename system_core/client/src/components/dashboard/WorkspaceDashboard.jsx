@@ -76,6 +76,43 @@ export function WorkspaceDashboard() {
                 {activeWS && <ArtifactGrid pins={pins} />}
             </div>
 
+            {/* ── 4. AGENTE AXIOMÁTICO (MCEP) ── */}
+            <AgentTrigger />
+
         </div>
     );
 }
+
+function AgentTrigger() {
+    const [isOpen, setIsOpen] = React.useState(false);
+    
+    return (
+        <>
+            <button 
+                className="btn-agent-trigger shadow-glow"
+                onClick={() => setIsOpen(!isOpen)}
+                style={{
+                    position: 'fixed',
+                    bottom: 'var(--space-6)',
+                    right: 'var(--space-6)',
+                    width: '50px',
+                    height: '50px',
+                    borderRadius: '50%',
+                    background: isOpen ? 'var(--color-danger)' : 'var(--color-accent)',
+                    color: 'black',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1100,
+                    transition: 'all 0.3s ease'
+                }}
+            >
+                <IndraIcon name={isOpen ? "CLOSE" : "COGNITIVE"} size="24px" />
+            </button>
+            <AxiomAgent isOpen={isOpen} onClose={() => setIsOpen(false)} />
+        </>
+    );
+}
+
+import { AxiomAgent } from './AxiomAgent';
+

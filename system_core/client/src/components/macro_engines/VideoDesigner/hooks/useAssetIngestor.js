@@ -7,12 +7,14 @@ import { OPFSManager } from '../../../../services/video_core/opfs_manager.js';
 export function useAssetIngestor(engineActions, currentTime) {
     const opfsRef = new OPFSManager(); // Instancia local para uso temporal antes de pasar al engine
 
-    const ingestLocalFile = async (file) => {
+    const ingestLocalFile = async (file, remoteMeta = null) => {
         if (!file) return null;
 
         try {
-            // 1. Generar un local_id único
-            const localId = `local_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            // 1. Generar un local_id único. 
+            // Si viene de silo, mantenemos el ID para trazabilidad de soberanía
+            const prefix = remoteMeta ? `silo_${remoteMeta.remoteProvider}_` : `local_${Date.now()}_`;
+            const localId = `${prefix}${remoteMeta?.remoteId || file.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
             // 2. LEY DE ADUANA - Enviar al Universal Transcoder Pipeline
             console.log(`[AssetIngestor] Enviando archivo ${file.name} a la Aduana de Transcodificación...`);

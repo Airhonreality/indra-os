@@ -4,7 +4,7 @@ import React from 'react';
  * IndraIcon — Componente de icono universal.
  * Estética: Tony Stark × Solar Punk (Lines, Square Cap, Industrial)
  */
-export function IndraIcon({ name, size = '1em', className = '', style = {} }) {
+export function IndraIcon({ name, size = '1em', color, className = '', style = {} }) {
     const normalizedName = name?.toUpperCase();
     const iconContent = ICON_MAP[normalizedName];
 
@@ -22,7 +22,7 @@ export function IndraIcon({ name, size = '1em', className = '', style = {} }) {
             strokeLinecap="square"
             strokeLinejoin="miter"
             className={`indra-icon ${className}`}
-            style={{ flexShrink: 0, ...style }}
+            style={{ flexShrink: 0, color: color, ...style }}
         >
             {iconContent}
         </svg>
@@ -44,6 +44,10 @@ const ICON_MAP = {
     'PLUS': <path d="M8 3v10M3 8h10" />,
     'MINUS': <path d="M3 8h10" />,
     'CLOSE': <path d="M3 3l10 10m0-10L3 13" />,
+    'SAVE': <><path d="M3 2h8l2 2v10H3V2z" /><path d="M5 2v4h6V2" /><path d="M5 10h6v4H5z" /></>,
+    'COPY': <path d="M4 4h9v9H4V4zm-2-2h9v9H2V2z" />,
+    'LAYERS': <path d="M2 5l6 3 6-3-6-3-6 3zm0 3l6 3 6-3m-12 3l6 3 6-3" />,
+    'DNA': <path d="M4 2c2 2 8 10 8 12M12 2C10 4 4 12 4 14M4 5h8M4 8h8M4 11h8" />,
     'SYNC': <path d="M1 8a7 7 0 0113-4m1 4a7 7 0 01-13 4m0-4l3-3m10 7l-3 3" />,
     'LINK': <path d="M6 10l4-4M5 5a2.1 2.1 0 013 3M8 8a2.1 2.1 0 013 3" />,
     'DRAG': <><circle cx="6" cy="4" r="1" /><circle cx="10" cy="4" r="1" /><circle cx="6" cy="8" r="1" /><circle cx="10" cy="8" r="1" /><circle cx="6" cy="12" r="1" /><circle cx="10" cy="12" r="1" /></>,
@@ -52,8 +56,12 @@ const ICON_MAP = {
 
     // ── ESTADO ──
     'OK': <path d="M3 8l3 3 7-7" />,
+    'CHECK': <path d="M3 8l3 3 7-7" />,
     'ERROR': <path d="M8 1v7m0 4v1m7-5a7 7 0 11-14 0 7 7 0 0114 0z" />,
     'LOCK': <><rect x="3" y="7" width="10" height="7" rx="1" /><path d="M5 7V4a3 3 0 016 0v3" /></>,
+    'INFO': <><circle cx="8" cy="8" r="7" /><path d="M8 11V7m0-2v.01" /></>,
+    'RELOAD': <path d="M1 8a7 7 0 0113-4m1 4a7 7 0 01-13 4m0-4l3-3m10 7l-3 3" />,
+
 
     // ── NAVEGACIÓN ──
     'BACK': <path d="M11 3L6 8l5 5" />,
@@ -77,7 +85,9 @@ const ICON_MAP = {
 
     // ── MEDIA ──
     'PLAY': <path d="M4 3l9 5-9 5V3z" />,
+    'PAUSE': <path d="M4 3h3v10H4V3zm5 0h3v10H9V3z" />,
     'TERMINAL': <path d="M2 3l4 5-4 5m4 0h8" />,
+    'LOAD': <path d="M8 1a7 7 0 017 7" />,
 
     // ── HISTORIAL ──
     'UNDO': <path d="M4 8a5 5 0 015-5h4M4 8L1 5m3 3L1 11m9-3h4" />,
@@ -87,4 +97,10 @@ const ICON_MAP = {
     'DATA_SCHEMA': <path d="M2 2h12v12H2zm3 4h6m-6 3h6m-6 3h3" />,
     'WORKFLOW': <path d="M2 4h4v4H2zm8 0h4v4h-4zM4 8v4h8V8" />,
     'EXPRESSION': <path d="M2 8h2m2-4l4 8m0-8l-4 8m5-4h2" />,
+    'VIDEO_PROJECT': <><path d="M2 3h8l4 3v7H2V3z" /><path d="M10 3v3h4" /><circle cx="6" cy="9" r="2" /></>,
+    'TIMELINE': <path d="M1 13h14M3 13V9m3 4V7m3 6V10m3 3V6m3 7V11" />,
+    'SCISSORS': <><circle cx="5" cy="5" r="2" /><circle cx="5" cy="11" r="2" /><path d="M7 6l6 7M7 10l6-7" /></>,
+    'FILE': <path d="M3 2h7l3 3v9H3zm7 0v3h3" />,
+    'COGNITIVE': <><path d="M8 2a5 5 0 015 5c0 2-1 4-3 5l-2 2-2-2c-2-1-3-3-3-5a5 5 0 015-5z" /><path d="M6 7h4M7 9h2" /></>,
 };
+

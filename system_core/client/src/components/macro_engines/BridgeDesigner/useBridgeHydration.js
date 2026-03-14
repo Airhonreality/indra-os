@@ -60,28 +60,39 @@ export function useBridgeHydration(bridgeAtom, bridge) {
 
             const fetchSchema = async () => {
                 try {
-                    const result = await bridge.request({
-                        protocol: 'TABULAR_STREAM',
-                        context_id: id
-                    });
+                    // 1. INTENTO DE SINCERIDAD MÁXIMA (ATOM_READ)
+                    const isLocalAtom = pins?.some(p => p.id === id) || provider === 'system';
 
-                    if (result.metadata?.status === 'ERROR') {
-                        // PORTAL DE SINCERIDAD: El schema no existe o no responde.
-                        // _orphan:true cierra el ciclo con el mismo semántico que ArtifactCard.
-                        setSchemas(prev => ({
-                            ...prev,
-                            [id]: { fields: [], label: 'MATERIA_DESAPARECIDA', error: true, _orphan: true }
-                        }));
-                        return;
+                    if (isLocalAtom) {
+                        try {
+                            const atomResult = await bridge.request({ protocol: 'ATOM_READ', context_id: id });
+                            if (atomResult?.payload?.fields) {
+                                projection = DataProjector.projectSchema(atomResult);
+                            }
+                        } catch (e) {
+                            console.warn(`[BridgeHydration] ATOM_READ falló para ${id}, saltando a STREAM.`);
+                        }
                     }
 
-                    const projection = DataProjector.projectSchema(result);
+                    // 2. DETERMINISMO DINÁMICO (TABULAR_STREAM)
+                    if (!projection) {
+                        const streamResult = await bridge.request({ protocol: 'TABULAR_STREAM', context_id: id });
+                        if (streamResult.metadata?.status === 'ERROR') {
+                            setSchemas(prev => ({
+                                ...prev,
+                                [id]: { fields: [], label: 'MATERIA_DESAPARECIDA', error: true, _orphan: true }
+                            }));
+                            return;
+                        }
+                        projection = DataProjector.projectSchema(streamResult);
+                    }
+
                     setSchemas(prev => ({ ...prev, [id]: projection }));
                 } catch (err) {
-                    console.error(`[BridgeHydration] Schema fetch failed for ${id}:`, err);
+                    console.error(`[BridgeHydration] Error fatal hidratando ${id}:`, err);
                     setSchemas(prev => ({
                         ...prev,
-                        [id]: { fields: [], label: 'FETCH_ERROR', error: true, _orphan: true }
+                        [id]: { fields: [], label: 'ERROR_DE_SINCERIDAD', error: true, _orphan: true }
                     }));
                 }
             };
@@ -89,10 +100,5 @@ export function useBridgeHydration(bridgeAtom, bridge) {
         });
     }, [localAtom.payload?.sources, localAtom.payload?.targets, bridge, schemas]);
 
-    return {
-        localAtom,
-        setLocalAtom,
-        schemas,
-        isLoading
-    };
+    return { localAtom, setLocalAtom, schemas, isLoading };
 }

@@ -1,34 +1,138 @@
-/* VideoDesigner.css */
+/* VideoDesigner.css - Industrial Axiomatic Edition */
 
-.v-mixer-panel {
-    background-color: #111115; /* Un tono un poco más oscuro que el fondo normal */
+:root {
+    /* AXIOMAS DE ESPACIO (Global variables to be used by the assembler) */
+    --indra-ui-margin: 12px;     /* Margen exterior canónico */
+    --indra-ui-gap: 2px;        /* Distancia entre módulos (gap de 2px) */
+    --indra-ui-radius: 2px;
+    
+    /* AXIOMAS DE COLOR (Sinceridad Cromática) */
+    --indra-dynamic-accent: #0096ff; /* Default, will be overridden by JS inline style */
+    --indra-dynamic-bg: rgba(0, 150, 255, 0.03);
+    --indra-dynamic-border: rgba(0, 150, 255, 0.15);
+    
+    --indra-bg-stage: #080809;
+    --indra-bg-deep: #0e0e0f;
 }
 
-/* Efecto Grid para la cinta de tiempo móvil */
-.v-kinetic-timeline {
+.macro-designer {
+    user-select: none;
+    overflow: hidden;
+    background-color: var(--color-bg-void);
+    /* Aplicar margen canónico exterior */
+    padding: var(--indra-ui-margin);
+}
+
+/* INDUSTRIAL BOX SYSTEM (Agnotic Container) */
+.indra-container {
+    border: 1px solid var(--indra-dynamic-border);
+    background-color: var(--indra-bg-deep);
+    position: relative;
+    border-radius: var(--indra-ui-radius);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.indra-container:hover {
+    border-color: var(--indra-dynamic-accent);
+    box-shadow: 0 0 15px rgba(var(--indra-dynamic-accent), 0.05);
+}
+
+.indra-header-label {
+    background-color: var(--indra-dynamic-border);
+    color: var(--indra-dynamic-accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    padding: 2px 8px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    width: fit-content;
+    border-bottom-right-radius: 4px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* ASSEMBLER LAYOUT RULES */
+.designer-body {
+    display: flex;
+    gap: var(--indra-ui-gap);
+    min-height: 0; /* Important for flex-grow in nested boxes */
+}
+
+/* MICRO-HEADERS INDUSTRIALES */
+.indra-engine-hood {
+    border-bottom: 2px solid var(--indra-dynamic-border);
+    background-color: var(--color-bg-void);
+}
+
+/* FUENTES */
+.font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+    font-size: 10px;
+}
+
+/* CINEMA VIEWPORT */
+.cinema-stream {
+    background-color: #000;
+    box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
+}
+
+/* TIMELINE GRID */
+.kinetic-timeline {
     background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-    background-size: 50px 100%, 10px 100%;
-    background-position: left bottom;
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+    background-size: 100px 100%, 100% 40px;
 }
 
-.moving-tape {
-    /* La transición la reactiva el JSX cuando isPlaying es false */
-    will-change: left; 
-}
-
-/* Rediseño del Track individual */
-.timeline-track {
-    background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(0,0,0,0) 100%);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
-}
-
+/* CLIPS */
 .clip-block {
-    transition: background-color 0.2s, border-color 0.2s;
-    border-radius: 4px; /* Bordes suaves estilo Logic/FL */
+    border-radius: 1px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    transition: transform 0.1s;
 }
 
-.clip-block:hover {
-    filter: brightness(1.2);
+.clip-block.is-selected {
+    box-shadow: 0 0 0 2px var(--indra-dynamic-accent), 0 0 25px rgba(var(--indra-dynamic-accent), 0.3);
+    z-index: 50;
+    transform: scaleY(1.02);
+}
+
+/* TRIM HANDLES */
+.trim-handle {
+    position: absolute;
+    top: 0; bottom: 0; width: 4px;
+    background-color: rgba(255, 255, 255, 0.05);
+    cursor: col-resize;
+    z-index: 5;
+}
+
+.trim-handle:hover {
+    background-color: var(--indra-dynamic-accent);
+}
+
+/* BOTONES INDUSTRIALES */
+.btn--xs {
+    height: 18px !important;
+    padding: 0 8px !important;
+    font-size: 8px !important;
+    text-transform: uppercase;
+}
+
+/* TABS SYSTEM */
+.indra-tab {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: rgba(255,255,255,0.3);
+    border-bottom: 1px solid transparent;
+}
+
+.indra-tab.active {
+    color: var(--indra-dynamic-accent);
+    background-color: var(--indra-dynamic-bg);
+    border-bottom-color: var(--indra-dynamic-accent);
 }

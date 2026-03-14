@@ -44,10 +44,11 @@ function CONF_DRIVE() {
     },
     class: 'FOLDER',         // class del átomo-silo en el manifest
     version: '1.0',
-    protocols: ['HIERARCHY_TREE', 'ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 'SEARCH_DEEP'],
+    protocols: ['HIERARCHY_TREE', 'ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 'SEARCH_DEEP', 'TABULAR_STREAM'],
     implements: {
       HIERARCHY_TREE: 'handleDrive',
       ATOM_READ: 'handleDrive',
+      TABULAR_STREAM: 'handleDrive',
       ATOM_CREATE: 'handleDrive',
       ATOM_UPDATE: 'handleDrive',
       ATOM_DELETE: 'handleDrive',
@@ -59,6 +60,16 @@ function CONF_DRIVE() {
       ATOM_UPDATE: { sync: 'BLOCKING', purge: 'ID' },
       ATOM_DELETE: { sync: 'BLOCKING', purge: 'ALL' },
       HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE' }
+    },
+    protocol_meta: {
+      SEARCH_DEEP: {
+        desc: "Busca archivos o carpetas en todo el Google Drive por nombre o contenido.",
+        inputs: { search_term: { type: 'string', required: true } }
+      },
+      ATOM_READ: {
+        desc: "Lee la metadata detallada de un archivo o carpeta de Drive.",
+        inputs: { context_id: { type: 'string', required: true } }
+      }
     }
   });
 }
@@ -123,6 +134,7 @@ function handleDrive(uqo) {
 
   if (protocol === 'HIERARCHY_TREE') return _drive_handleHierarchyTree(uqo);
   if (protocol === 'ATOM_READ') return _drive_handleAtomRead(uqo);
+  if (protocol === 'TABULAR_STREAM') return _drive_handleTabularStream(uqo);
   if (protocol === 'ATOM_CREATE') return _drive_handleAtomCreate(uqo);
   if (protocol === 'ATOM_UPDATE') return _drive_handleAtomUpdate(uqo);
   if (protocol === 'ATOM_DELETE') return _drive_handleAtomDelete(uqo);
@@ -175,7 +187,7 @@ function _drive_handleHierarchyTree(uqo) {
     const filesIter = folder.getFiles();
     while (filesIter.hasNext() && count < DRIVE_PAGE_SIZE_) {
       const file = filesIter.next();
-      const atom = _drive_fileToAtom(file, providerId);
+      const atom = _drive_fileToAtom(file, providerId, false);
       if (atom) {
         items.push(atom);
         count++;
@@ -227,7 +239,7 @@ function _drive_handleAtomRead(uqo) {
     let atom = null;
     try {
       const file = DriveApp.getFileById(uqo.context_id);
-      atom = _drive_fileToAtom(file, uqo.provider);
+      atom = _drive_fileToAtom(file, uqo.provider, true);
     } catch (e) {
       // No es un archivo — intentar como carpeta
       try {
@@ -378,7 +390,7 @@ function _drive_handleSearchDeep(uqo) {
     let count = 0;
     while (filesIter.hasNext() && count < 50) {
       const file = filesIter.next();
-      const atom = _drive_fileToAtom(file, providerId);
+      const atom = _drive_fileToAtom(file, providerId, false);
       if (atom) {
         items.push(atom);
         count++;
@@ -436,31 +448,38 @@ function _drive_folderToAtom(folder, providerId) {
 
 /**
  * Convierte un archivo de Drive a Átomo Universal canónico.
- * La clasificación por class es determinista: viene del MIME_TO_CLASS_ map.
- *
- * Decisión: Los archivos de Google Apps Script (.gs) y otros tipos de sistema
- * son excluidos silenciosamente (retornan null). El iterator los filtra.
- *
  * @param {DriveApp.File} file
- * @returns {Object|null} Átomo Universal o null si el archivo debe ignorarse.
+ * @param {string} providerId
+ * @param {boolean} [includeFields=false] - Si es true, abre el archivo para extraer esquema (Lento).
+ * @returns {Object|null}
  * @private
  */
-function _drive_fileToAtom(file, providerId) {
+function _drive_fileToAtom(file, providerId, includeFields) {
   const mimeType = file.getMimeType();
 
   // Excluir archivos de sistema que no son útiles para el usuario
   const EXCLUDED_MIMES = [
-    'application/vnd.google-apps.script',     // Apps Script
-    'application/vnd.google-apps.site',       // Sites
-    'application/vnd.google-apps.fusiontable',// Fusion Tables (deprecado)
-    'application/vnd.google-apps.map',        // Maps
+    'application/vnd.google-apps.script',     
+    'application/vnd.google-apps.site',       
+    'application/vnd.google-apps.fusiontable',
+    'application/vnd.google-apps.map',        
   ];
   if (EXCLUDED_MIMES.includes(mimeType)) return null;
 
-  // class determinista. Si el mimeType no está en el mapa → DOCUMENT (safe default).
   const atomClass = MIME_TO_CLASS_[mimeType] || 'DOCUMENT';
   const atomProtos = MIME_TO_PROTOCOLS_[mimeType] || ['ATOM_READ'];
   const name = file.getName();
+
+  const payload = {};
+  // ADR-008: Solo extraemos esquema si se solicita (ATOM_READ) para evitar lentitud en listados.
+  if (includeFields && atomClass === 'TABULAR' && mimeType === 'application/vnd.google-apps.spreadsheet') {
+    try {
+      payload.fields = _drive_spreadsheetToFields(file);
+    } catch (e) {
+      logWarn(`[provider_drive] Error extrayendo esquema de Sheet ${file.getId()}: ${e.message}`);
+      payload.fields = [];
+    }
+  }
 
   return {
     id: file.getId(),
@@ -477,7 +496,7 @@ function _drive_fileToAtom(file, providerId) {
     size: mimeType.startsWith('application/vnd.google-apps') ? 0 : file.getSize(),
     mime_type: mimeType,
     description: file.getDescription() || '',
-    payload: {},
+    payload: payload,
     raw: {
       url: file.getUrl(),
     },
@@ -522,4 +541,67 @@ function _drive_extractCursor(foldersIter, filesIter) {
   // La paginación en HIERARCHY_TREE está limitada a DRIVE_PAGE_SIZE_ por request.
   // Implementar paginación manual requeriría almacenar offset en UQO.query.
   return null;
+}
+
+/**
+ * TABULAR_STREAM: Transforma una Google Sheet en un flujo de átomos.
+ * context_id = ID de la Google Sheet.
+ * @private
+ */
+function _drive_handleTabularStream(uqo) {
+  try {
+    const fileId = uqo.context_id;
+    const ss = SpreadsheetApp.openById(fileId);
+    const sheet = ss.getSheets()[0]; // Tomamos la primera pestaña por defecto
+    const data = sheet.getDataRange().getValues();
+    const headers = data.shift() || [];
+    const fields = headers.map(h => ({
+      id: _system_slugify_(h),
+      handle: { ns: 'com.drive.field', alias: _system_slugify_(h), label: h },
+      type: 'STRING'
+    }));
+
+    const items = data.map((row, idx) => {
+      const rowObj = {};
+      headers.forEach((h, i) => { rowObj[_system_slugify_(h)] = row[i]; });
+      return {
+        ...rowObj,
+        id: `${fileId}_row_${idx}`,
+        handle: { ns: 'com.drive.row', alias: `row_${idx}`, label: `Fila ${idx + 1}` },
+        class: 'TABULAR'
+      };
+    });
+
+    return {
+      items,
+      metadata: {
+        status: 'OK',
+        schema: { fields },
+        context: { file_id: fileId, sheet_name: sheet.getName() }
+      }
+    };
+  } catch (err) {
+    logError('[provider_drive] Error en TABULAR_STREAM.', err);
+    return { items: [], metadata: { status: 'ERROR', error: err.message } };
+  }
+}
+
+/**
+ * Inspecciona una Google Sheet para extraer sus cabeceras como campos.
+ * @private
+ */
+function _drive_spreadsheetToFields(file) {
+  const ss = SpreadsheetApp.openById(file.getId());
+  const sheet = ss.getSheets()[0];
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  
+  return headers.filter(h => !!h).map(h => ({
+    id: _system_slugify_(h),
+    handle: {
+      ns: 'com.drive.schema.field',
+      alias: _system_slugify_(h),
+      label: String(h)
+    },
+    type: 'STRING' // Default para Drive, ya que no hay metadata rica
+  }));
 }

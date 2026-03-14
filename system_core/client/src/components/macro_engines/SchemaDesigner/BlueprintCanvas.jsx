@@ -37,8 +37,8 @@ export function BlueprintCanvas({ fields, selectedId, onSelect, previewMode }) {
                 minHeight: '80vh'
             }}>
                 <div className="stack--tight" style={{ marginBottom: 'var(--space-8)', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-4)' }}>
-                    <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', opacity: 0.5 }}>BLUEPRINT_MODULE // CAPTURE_INTERFACE</span>
-                    <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)' }}>PREVISUALIZACIÓN_VIVA</h1>
+                    <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', opacity: 0.5 }}>MÓDULO DE DISEÑO // VISTA PREVIA</span>
+                    <h1 style={{ margin: 0, fontSize: 'var(--text-2xl)' }}>PREVISUALIZACIÓN EN VIVO</h1>
                 </div>
 
                 <div className="stack" style={{ gap: 'var(--space-6)' }}>
@@ -55,7 +55,7 @@ export function BlueprintCanvas({ fields, selectedId, onSelect, previewMode }) {
                     {fields.length === 0 && (
                         <div className="center stack" style={{ padding: 'var(--space-20)', border: '2px dashed var(--color-border)', borderRadius: 'var(--radius-md)', opacity: 0.4 }}>
                             <IndraIcon name="PLUS" size="32px" />
-                            <p style={{ marginTop: 'var(--space-4)', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>ESPERANDO_SEMENTAL_DNA...</p>
+                            <p style={{ marginTop: 'var(--space-4)', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>ESPERANDO DEFINICIÓN DE CAMPOS...</p>
                         </div>
                     )}
                 </div>
@@ -85,7 +85,8 @@ function BlueprintField({ field, selectedId, onSelect, previewMode }) {
             style={{
                 padding: 'var(--space-4)',
                 borderRadius: 'var(--radius-md)',
-                border: isSelected ? `2px solid ${projection.theme.color}` : '1px solid transparent',
+                outline: isSelected ? `2px solid ${projection.theme.color}` : '1px solid transparent',
+                outlineOffset: '-2px',
                 background: isSelected ? `${projection.theme.color}12` : 'transparent',
                 cursor: previewMode ? 'default' : 'pointer',
                 transition: 'all var(--transition-fast)',
@@ -103,13 +104,13 @@ function BlueprintField({ field, selectedId, onSelect, previewMode }) {
                     {projection.label}
                     {projection.config?.required && <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>}
                 </label>
-                <span style={{ fontSize: '8px', opacity: 0.3, fontFamily: 'var(--font-mono)' }}>{projection.type}</span>
+                <span style={{ fontSize: '8px', opacity: 0.3, fontFamily: 'var(--font-mono)' }}>{projection.theme.label.toUpperCase()}</span>
             </div>
 
             {/* Simulación del Input o Contenedor */}
             {!isContainer ? (
                 <div style={{
-                    height: '32px',
+                    height: '36px',
                     background: 'var(--color-bg-void)',
                     border: '1px solid var(--color-border-strong)',
                     borderRadius: 'var(--radius-sm)',
@@ -123,12 +124,13 @@ function BlueprintField({ field, selectedId, onSelect, previewMode }) {
                 </div>
             ) : (
                 <div className="stack" style={{
-                    padding: 'var(--space-4)',
+                    padding: 'var(--space-6)',
                     border: '1px solid var(--color-border-strong)',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'rgba(255,255,255,0.02)',
-                    minHeight: '60px',
-                    gap: 'var(--space-4)'
+                    borderRadius: 'var(--radius-md)',
+                    background: 'rgba(255,255,255,0.03)',
+                    minHeight: '80px',
+                    gap: 'var(--space-4)',
+                    marginTop: 'var(--space-2)'
                 }}>
                     {children.length > 0 ? (
                         children.map(child => (
@@ -143,7 +145,7 @@ function BlueprintField({ field, selectedId, onSelect, previewMode }) {
                     ) : (
                         <div className="center" style={{ opacity: 0.2, padding: 'var(--space-4)' }}>
                             <IndraIcon name={projection.theme.icon} size="20px" />
-                            <span style={{ fontSize: '9px', marginLeft: 'var(--space-2)' }}>{projection.type}_EMPTY_CONTAINER</span>
+                            <span style={{ fontSize: '9px', marginLeft: 'var(--space-2)' }}>Contenedor Vacío</span>
                         </div>
                     )}
                 </div>

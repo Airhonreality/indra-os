@@ -1,0 +1,196 @@
+/**
+ * STARK-PUNK CALENDAR ENGINE STYLES - INDUSTRIAL EDITION
+ * Basado en el canon de VideoDesigner y ADR_015.
+ */
+
+:root {
+    /* AXIOMAS DE ESPACIO */
+    --indra-ui-margin: 16px;
+    --indra-ui-gap: 6px;
+    --indra-ui-radius: 2px; /* Radios más rectos, industriales */
+
+    /* AXIOMAS DE COLOR */
+    --indra-dynamic-accent: #00d2d3; /* Cyan-Stark */
+    --indra-dynamic-border: rgba(0, 210, 211, 0.15);
+    --indra-dynamic-bg: rgba(0, 210, 211, 0.03);
+    
+    --indra-bg-stage: #050506; /* Negro casi absoluto */
+    --indra-bg-deep: #0c0c0d;
+    --indra-bg-void: #000000;
+}
+
+.calendar-engine {
+    height: 100%;
+    padding: var(--indra-ui-margin);
+    background-color: var(--indra-bg-void);
+    color: var(--color-text-main);
+    display: flex;
+    flex-direction: column;
+    gap: var(--indra-ui-gap);
+    overflow: hidden;
+    user-select: none;
+}
+
+/* INDUSTRIAL BOX SYSTEM */
+.calendar-engine .indra-container {
+    background: var(--indra-bg-deep);
+    border: 1px solid var(--indra-dynamic-border);
+    position: relative;
+    border-radius: var(--indra-ui-radius);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.calendar-engine .indra-container:hover {
+    border-color: var(--indra-dynamic-accent);
+}
+
+/* HUD LABELS */
+.calendar-engine .indra-header-label {
+    background: var(--indra-dynamic-accent);
+    color: var(--indra-bg-void);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    font-weight: 900;
+    padding: 2px 8px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    width: fit-content;
+    border-bottom-right-radius: 4px;
+    z-index: 50;
+    position: absolute;
+    top: 0; left: 0;
+}
+
+/* ENGINE HOOD */
+.calendar-engine .engine-hood {
+    background: var(--indra-bg-deep);
+    border-bottom: 2px solid var(--indra-dynamic-border);
+    z-index: 10;
+}
+
+/* DESIGNER BODY */
+.calendar-engine .designer-body {
+    display: flex;
+    gap: var(--indra-ui-gap);
+    flex: 1;
+    min-height: 0;
+}
+
+/* REALITY VIEWPORT */
+.calendar-engine .reality-viewport {
+    background: var(--indra-bg-stage);
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+/* TIMELINE GRID */
+.timeline-grid {
+    user-select: none;
+}
+
+.kinetic-timeline-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: calc((100% - 60px) / 7) 100%, 100% 60px;
+    margin-left: 60px;
+}
+
+.timeline-header-cell {
+    background-color: #0c0c0d;
+    border-right: 1px solid var(--indra-dynamic-border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--indra-dynamic-accent);
+    letter-spacing: 1px;
+}
+
+.hour-row {
+    display: flex;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    transition: background 0.1s;
+}
+
+.hour-label {
+    width: 60px;
+    height: 60px;
+    background: rgba(0, 0, 0, 0.4);
+    border-right: 1px solid var(--indra-dynamic-border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    color: var(--indra-dynamic-accent);
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.day-cell {
+    flex: 1;
+    border-right: 1px solid rgba(255, 255, 255, 0.03);
+    position: relative;
+}
+
+.day-cell:hover {
+    background: rgba(var(--indra-dynamic-accent-rgb), 0.02);
+}
+
+/* SILO CARDS */
+.silo-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid transparent;
+    padding: 10px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.silo-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--indra-dynamic-border);
+}
+
+.silo-card.active {
+    border-left: 3px solid var(--indra-dynamic-accent);
+}
+
+/* EVENT ATOMS */
+.event-atom-ui {
+    background: var(--indra-bg-deep);
+    border: 1px solid var(--indra-dynamic-border);
+    transition: transform 0.1s;
+}
+
+.event-atom-ui:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    border-color: var(--indra-dynamic-accent);
+}
+
+/* SCROLLBARS */
+.scroll-minimal::-webkit-scrollbar {
+    width: 3px;
+}
+.scroll-minimal::-webkit-scrollbar-thumb {
+    background: var(--indra-dynamic-border);
+    border-radius: 0;
+}
+
+/* FOOTER */
+.calendar-engine .indra-footer {
+    border-top: 1px solid var(--indra-dynamic-border);
+    background: var(--indra-bg-deep);
+    padding: 6px 16px;
+    font-family: 'JetBrains Mono', monospace;
+}

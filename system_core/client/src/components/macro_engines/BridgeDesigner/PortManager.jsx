@@ -27,11 +27,11 @@ export function PortManager({ title, ids, schemas, configs = {}, mappings = {}, 
         }}>
             {/* Header del Puerto (Micro-HUD) */}
             <IndraMicroHeader
-                label={title}
+                label={type === 'SOURCE' ? 'FUENTES DE ENTRADA' : 'DESTINOS DE SALIDA'}
                 icon={type === 'SOURCE' ? 'LOGIC' : 'TARGET'}
                 onExecute={onAdd}
-                executeLabel="ADD"
-                metadata={`${ids.length} PIPES`}
+                executeLabel="AÑADIR"
+                metadata={`${ids.length} CONEXIONES`}
             />
 
             {/* Lista de Artefactos Conectados */}
@@ -54,9 +54,9 @@ export function PortManager({ title, ids, schemas, configs = {}, mappings = {}, 
                 ))}
 
                 {ids.length === 0 && (
-                    <div className="center fill stack" style={{ padding: 'var(--space-8)', opacity: 0.1 }}>
+                    <div className="center fill stack" style={{ padding: 'var(--space-4)', opacity: 0.1 }}>
                         <IndraIcon name={type === 'SOURCE' ? 'LOGIC' : 'TARGET'} size="32px" />
-                        <span style={{ fontSize: '10px', marginTop: 'var(--space-2)' }}>NO_{type}S_CONNECTED</span>
+                        <span style={{ fontSize: '10px', marginTop: 'var(--space-2)' }}>SIN {type === 'SOURCE' ? 'ENTRADAS' : 'SALIDAS'} CONECTADAS</span>
                     </div>
                 )}
             </div>
@@ -141,7 +141,7 @@ function PortCard({ id, schema, mapping, config, onRemove, onUpdateMapping, onUp
                             </span>
                         )}
                         <span style={{ fontSize: '7px', opacity: 0.4, whiteSpace: 'nowrap' }}>
-                            {isBroken ? 'BROKEN_LINK' : `SCHEMA // ${id.substring(0, 16)}`}
+                            {isBroken ? 'VÍNCULO ROTO' : `ESQUEMA // ${id.substring(0, 16)}`}
                         </span>
                     </div>
                 </div>
@@ -150,7 +150,7 @@ function PortCard({ id, schema, mapping, config, onRemove, onUpdateMapping, onUp
                     variant="destructive"
                     size="10px"
                     onClick={onRemove}
-                    label="DISCONNECT_PIPE"
+                    label="DESCONECTAR"
                 />
             </div>
 
@@ -163,7 +163,7 @@ function PortCard({ id, schema, mapping, config, onRemove, onUpdateMapping, onUp
                 }}>
                     {!schema ? (
                         <div className="center" style={{ padding: 'var(--space-4)', opacity: 0.3, fontSize: '9px' }}>
-                            FETCHING_SCHEMA_METADATA...
+                            OBTENIENDO DATOS DEL ESQUEMA...
                         </div>
                     ) : (schema.fields && schema.fields.length > 0) ? (
                         type === 'TARGET' ? (
@@ -194,7 +194,7 @@ function PortCard({ id, schema, mapping, config, onRemove, onUpdateMapping, onUp
                         )
                     ) : (
                         <div style={{ padding: 'var(--space-4)', opacity: 0.2, fontSize: '8px', fontFamily: 'var(--font-mono)' }}>
-                            // NO_ATOMS_IDENTIFIED_IN_MOLECULE
+                            // NO SE ENCONTRARON CAMPOS EN ESTA FUENTE
                         </div>
                     )}
                 </div>

@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Indra Video Project AST (Universal)",
+  "description": "Contrato de Realidad Agnóstica - Traductor de Materia",
+  "type": "object",
+  "version": {
+    "type": "integer",
+    "minimum": 3
+  },
+  "required": ["version", "settings", "timeline"],
+  "properties": {
+    "version": { "type": "integer" },
+    "settings": {
+      "type": "object",
+      "required": ["width", "height", "fps", "duration_ms"],
+      "properties": {
+        "width": { "type": "integer" },
+        "height": { "type": "integer" },
+        "fps": { "type": "integer" },
+        "duration_ms": { "type": "integer" }
+      }
+    },
+    "timeline": {
+      "type": "object",
+      "required": ["lanes"],
+      "properties": {
+        "lanes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "clips"],
+            "properties": {
+              "id": { "type": "string" },
+              "activeDimension": { "enum": ["visual", "sound", "time"], "default": "visual" },
+              "clips": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["id", "vault_id", "start_at_ms", "duration_ms"],
+                  "properties": {
+                    "id": { "type": "string" },
+                    "vault_id": { "type": "string" },
+                    "start_at_ms": { "type": "number" },
+                    "duration_ms": { "type": "number" },
+                    "offset_ms": { "type": "number", "default": 0 },
+                    "automation": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^[a-z_]+$": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["timeMs", "value"],
+                            "properties": {
+                              "timeMs": { "type": "number" },
+                              "value": { "type": "number" },
+                              "easing": { "enum": ["linear", "step", "bezier"], "default": "linear" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "vault_registry": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

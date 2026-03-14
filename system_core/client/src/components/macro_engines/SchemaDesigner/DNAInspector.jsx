@@ -82,7 +82,7 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
         }}>
             {/* Header del Panel (Micro-HUD) */}
             <IndraMicroHeader
-                label="DNA_INSPECTOR"
+                label="INSPECTOR DE CAMPO"
                 icon="DNA"
                 metadata={projection.type}
             />
@@ -97,7 +97,7 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
 
                 {/* ── IDENTIDAD ── */}
                 <div className="stack--tight">
-                    <label className="dna-label">FIELD_LABEL</label>
+                    <label className="dna-label">Etiqueta del Campo</label>
                     <input
                         type="text"
                         className="dna-input"
@@ -108,7 +108,7 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
                 </div>
 
                 <div className="stack--tight">
-                    <label className="dna-label">FIELD_ALIAS (SLUG)</label>
+                    <label className="dna-label">Alias del Campo (Slug / ID)</label>
                     <input
                         type="text"
                         className="dna-input mono"
@@ -119,7 +119,7 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
                 </div>
 
                 <div className="stack--tight">
-                    <label className="dna-label">FIELD_TYPE</label>
+                    <label className="dna-label">Tipo de Campo</label>
                     <select
                         className="dna-input"
                         value={field.type}
@@ -133,13 +133,13 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
 
                 {/* ── JERARQUÍA (Reparenting) ── */}
                 <div className="stack--tight">
-                    <label className="dna-label">PARENT_CONTAINER</label>
+                    <label className="dna-label">Ubicación (Contenedor Padre)</label>
                     <select
                         className="dna-input mono"
                         value={getParentId(field.id)}
                         onChange={e => onReparent(field.id, e.target.value)}
                     >
-                        <option value="ROOT">ROOT_LEVEL</option>
+                        <option value="ROOT">Nivel Principal (Raíz)</option>
                         {getAvailableParents(allFields, field.id).map(p => (
                             <option key={p.id} value={p.id}>{p.label.toUpperCase()} ({p.type})</option>
                         ))}
@@ -150,33 +150,33 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
 
                 {/* ── VALORES Y VALIDACIONES ── */}
                 <div className="stack--tight">
-                    <label className="dna-label">DEFAULT_VALUE</label>
+                    <label className="dna-label">Valor por Defecto</label>
                     <input
                         type="text"
                         className="dna-input"
                         value={field.config?.default_value || ''}
                         onChange={e => updateConfig('default_value', e.target.value)}
-                        placeholder="VALOR_POR_DEFECTO..."
+                        placeholder="Escribe el valor inicial..."
                     />
                 </div>
 
                 {field.type === 'TEXT' && (
                     <div className="stack--tight">
-                        <label className="dna-label">VALIDATION_REGEX (PATTERN)</label>
+                        <label className="dna-label">Patrón de Validación (Regex)</label>
                         <input
                             type="text"
                             className="dna-input mono"
                             value={field.config?.pattern || ''}
                             onChange={e => updateConfig('pattern', e.target.value)}
-                            placeholder="^[A-Z0-9...]"
+                            placeholder="Ej: ^[A-Z0-9...]"
                         />
                         <div className="shelf--tight" style={{ marginTop: 'var(--space-2)' }}>
                             <div className="stack--tight fill">
-                                <label className="dna-label">MIN_LEN</label>
+                                <label className="dna-label">Caract. Mínimos</label>
                                 <input type="number" className="dna-input" value={field.config?.min_length || ''} onChange={e => updateConfig('min_length', e.target.value)} />
                             </div>
                             <div className="stack--tight fill">
-                                <label className="dna-label">MAX_LEN</label>
+                                <label className="dna-label">Caract. Máximos</label>
                                 <input type="number" className="dna-input" value={field.config?.max_length || ''} onChange={e => updateConfig('max_length', e.target.value)} />
                             </div>
                         </div>
@@ -186,15 +186,15 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
                 {field.type === 'NUMBER' && (
                     <div className="shelf--tight">
                         <div className="stack--tight fill">
-                            <label className="dna-label">MIN</label>
+                            <label className="dna-label">Mínimo</label>
                             <input type="number" className="dna-input" value={field.config?.min_value || ''} onChange={e => updateConfig('min_value', e.target.value)} />
                         </div>
                         <div className="stack--tight fill">
-                            <label className="dna-label">MAX</label>
+                            <label className="dna-label">Máximo</label>
                             <input type="number" className="dna-input" value={field.config?.max_value || ''} onChange={e => updateConfig('max_value', e.target.value)} />
                         </div>
                         <div className="stack--tight fill">
-                            <label className="dna-label">STEP</label>
+                            <label className="dna-label">Paso (Step)</label>
                             <input type="number" className="dna-input" step="0.01" value={field.config?.step || ''} onChange={e => updateConfig('step', e.target.value)} />
                         </div>
                     </div>
@@ -203,7 +203,7 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
                 {/* ── CONFIGURACIÓN SEGÚN TIPO ── */}
                 {field.type === 'RELATION_SELECT' && (
                     <div className="stack--tight">
-                        <label className="dna-label">RELATION_SOURCE</label>
+                        <label className="dna-label">Origen de la Relación (Silo)</label>
                         <div
                             onClick={() => setShowArtifactSelector(true)}
                             className="shelf glass-hover"
@@ -216,13 +216,13 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
                         >
                             <IndraIcon name="FOLDER" size="14px" color="var(--color-accent)" />
                             <span style={{ fontSize: '11px', flex: 1, marginLeft: 'var(--space-2)' }}>
-                                {field.config?.relation_silo_label || 'VINCULAR_SILO_DESTINO...'}
+                                {field.config?.relation_silo_label || 'Seleccionar base de datos...'}
                             </span>
                         </div>
 
                         {field.config?.relation_silo_id && (
                             <div className="stack--tight" style={{ marginTop: 'var(--space-4)' }}>
-                                <label className="dna-label">DISPLAY_LABEL_FIELD</label>
+                                <label className="dna-label">Campo a mostrar (Etiqueta)</label>
                                 <RemoteFieldSelector
                                     siloId={field.config.relation_silo_id}
                                     value={field.config.relation_label_field}
@@ -241,11 +241,11 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
                         checked={field.config?.required || false}
                         onChange={e => updateConfig('required', e.target.checked)}
                     />
-                    <label htmlFor="chk-required" className="dna-label" style={{ margin: 0, cursor: 'pointer' }}>MANDATORY_FIELD</label>
+                    <label htmlFor="chk-required" className="dna-label" style={{ margin: 0, cursor: 'pointer' }}>Campo Obligatorio (Requerido)</label>
                 </div>
 
                 <div className="stack--tight">
-                    <label className="dna-label">PLACEHOLDER_TEXT</label>
+                    <label className="dna-label">Texto de Sugerencia (Placeholder)</label>
                     <input
                         type="text"
                         className="dna-input"
@@ -258,13 +258,13 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
 
                 {/* ── LÓGICA AVANZADA ── */}
                 <div className="stack--tight">
-                    <label className="dna-label" title="Ej: tipo_solicitud == 'VENTA'">VISIBILITY_CONDITION (SHOW_IF)</label>
+                    <label className="dna-label" title="Ej: tipo_solicitud == 'VENTA'">Condición de Visibilidad (Mostrar si...)</label>
                     <input
                         type="text"
                         className="dna-input mono"
                         value={field.config?.show_if || ''}
                         onChange={e => updateConfig('show_if', e.target.value)}
-                        placeholder="EXPRESIÓN_LÓGICA..."
+                        placeholder="Ej: total > 500"
                         style={{ borderColor: field.config?.show_if ? 'var(--color-info)' : 'inherit' }}
                     />
                 </div>

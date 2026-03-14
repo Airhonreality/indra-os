@@ -31,5 +31,8 @@ const LEXICON = {
 };
 
 export const useLexicon = (lang = 'es') => {
-    return (key) => LEXICON[lang]?.[key] || key.toUpperCase();
+    return (key) => {
+        if (!key) return '';
+        return LEXICON[lang]?.[key] || key.toUpperCase();
+    };
 };

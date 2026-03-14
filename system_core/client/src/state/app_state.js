@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { executeDirective } from '../services/directive_executor';
 import { toastEmitter } from '../services/toastEmitter';
+import { DataProjector } from '../services/DataProjector';
 
 /**
  * Indra App State
@@ -79,7 +80,11 @@ export const useAppState = create((set, get) => ({
             const result = await executeDirective({
                 protocol: 'SYSTEM_MANIFEST'
             }, coreUrl, sessionSecret);
-            set({ services: result.items });
+            
+            // Proyectar para que la UI (ServiceManager) entienda isReady, label, etc.
+            const projected = (result.items || []).map(svc => DataProjector.projectService(svc));
+            set({ services: projected });
+            
         } catch (err) {
             console.error('[app_state] Failed to hydrate manifest:', err);
         }

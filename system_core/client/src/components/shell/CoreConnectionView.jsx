@@ -13,8 +13,8 @@ export function CoreConnectionView() {
     const clearError = useAppState((s) => s.clearError);
 
     // Cargar persistencia del Link desde localStorage
-    const [alias, setAlias] = useState(() => localStorage.getItem('indra_core_alias') || '');
-    const [url, setUrl] = useState(() => localStorage.getItem('indra_core_url') || '');
+    const [alias, setAlias] = useState(() => localStorage.getItem('indra-core-alias') || '');
+    const [url, setUrl] = useState(() => localStorage.getItem('indra-core-url') || '');
     const [password, setPassword] = useState('');
 
     const onInputChange = (setter, storageKey) => (e) => {
@@ -29,8 +29,8 @@ export function CoreConnectionView() {
         if (!url || !password) return;
         try {
             // Asegurar persistencia al momento de conectar
-            localStorage.setItem('indra_core_alias', alias);
-            localStorage.setItem('indra_core_url', url);
+            localStorage.setItem('indra-core-alias', alias);
+            localStorage.setItem('indra-core-url', url);
             await setCoreConnection(url, password);
         } catch (err) {
             console.error('Connection failed:', err);
@@ -99,7 +99,7 @@ export function CoreConnectionView() {
                                 style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)' }}
                                 placeholder="PRIMARY_INTERFACE_ID"
                                 value={alias}
-                                onChange={onInputChange(setAlias, 'indra_core_alias')}
+                                onChange={onInputChange(setAlias, 'indra-core-alias')}
                             />
                         </div>
                     </div>
@@ -119,7 +119,7 @@ export function CoreConnectionView() {
                                 placeholder="https://script.google.com/macros/s/..."
                                 required
                                 value={url}
-                                onChange={onInputChange(setUrl, 'indra_core_url')}
+                                onChange={onInputChange(setUrl, 'indra-core-url')}
                             />
                         </div>
                     </div>

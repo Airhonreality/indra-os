@@ -19,6 +19,7 @@ import { BlueprintCanvas } from './BlueprintCanvas';
 import { DNAInspector } from './DNAInspector';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
 import { IndraEngineHood } from '../../utilities/IndraEngineHood';
+import { IndraIcon } from '../../utilities/IndraIcons';
 import { useLexicon } from '../../../services/lexicon';
 import { useWorkspace } from '../../../context/WorkspaceContext';
 
@@ -37,27 +38,6 @@ export function SchemaDesigner({ atom, bridge }) {
     const hasHydrated = React.useRef(false);
     const isInternalUpdate = React.useRef(false);
 
-    // 1. Hidratación Única
-    useEffect(() => {
-        if (hasHydrated.current && localAtom.id === atom.id) return;
-
-        const hydrate = async () => {
-            try {
-                const result = await bridge.read({ raw: true });
-                if (result) {
-                    const fullAtom = result;
-                    setLocalAtom(fullAtom);
-                    setHistory([fullAtom]);
-                    setHistoryIndex(0);
-                    lastSavedRef.current = JSON.stringify(fullAtom);
-                    hasHydrated.current = true;
-                }
-            } catch (err) {
-                console.error('[SchemaDesigner] Hydration failed:', err);
-            }
-        };
-        hydrate();
-    }, [atom.id, bridge]);
 
     // 2. Manejo de Historial (Undo/Redo)
     const pushToHistory = (newAtom) => {
@@ -92,22 +72,6 @@ export function SchemaDesigner({ atom, bridge }) {
         }
     };
 
-    // Hotkeys
-    useEffect(() => {
-        const handleKeys = (e) => {
-            if (e.ctrlKey && e.key === 'z') {
-                e.preventDefault();
-                undo();
-            }
-            if (e.ctrlKey && e.key === 'y') {
-                e.preventDefault();
-                redo();
-            }
-        };
-        window.addEventListener('keydown', handleKeys);
-        return () => window.removeEventListener('keydown', handleKeys);
-    }, [historyIndex, history]);
-
     // 3. Guardado Manual Explícito
     const handleManualSave = async (overrideAtom = null) => {
         const atomToSave = overrideAtom || localAtom;
@@ -127,16 +91,53 @@ export function SchemaDesigner({ atom, bridge }) {
         }
     };
 
+    const localAtomRef = React.useRef(localAtom);
+    useEffect(() => { localAtomRef.current = localAtom; }, [localAtom]);
+
     // 4. Garantía de Persistencia al Desmontar (Capa de Sinceridad)
     useEffect(() => {
         return () => {
-            const currentData = JSON.stringify(localAtom);
+            const latestAtom = localAtomRef.current;
+            const currentData = JSON.stringify(latestAtom);
             if (currentData !== lastSavedRef.current) {
-                // Notificar al bridge que debe hacer un flush final
-                bridge.save(localAtom).catch(() => {});
+                // Flush final solo al salir si hay cambios pendientes
+                bridge.save(latestAtom).catch(() => {});
             }
         };
-    }, [localAtom, bridge]);
+    }, [bridge]); // Solo al desmontar o si el bridge cambia
+
+    // 1. Hidratación con Deduplicación
+    useEffect(() => {
+        if (hasHydrated.current && localAtom.id === atom.id) return;
+
+        const hydrate = async () => {
+            try {
+                const result = await bridge.read({ raw: true });
+                if (result) {
+                    let fullAtom = result;
+                    
+                    // SEGURIDAD: Deduplicar campos raíz por ID (Evitar triplicación de carga)
+                    if (fullAtom.payload?.fields) {
+                        const seen = new Set();
+                        fullAtom.payload.fields = fullAtom.payload.fields.filter(f => {
+                            if (seen.has(f.id)) return false;
+                            seen.add(f.id);
+                            return true;
+                        });
+                    }
+
+                    setLocalAtom(fullAtom);
+                    setHistory([fullAtom]);
+                    setHistoryIndex(0);
+                    lastSavedRef.current = JSON.stringify(fullAtom);
+                    hasHydrated.current = true;
+                }
+            } catch (err) {
+                console.error('[SchemaDesigner] Hydration failed:', err);
+            }
+        };
+        hydrate();
+    }, [atom.id, bridge]);
 
     const status = localAtom.payload?.status || 'DRAFT';
     const isLive = status === 'LIVE';
@@ -150,7 +151,7 @@ export function SchemaDesigner({ atom, bridge }) {
         pushToHistory(newAtom);
     };
 
-    // Hotkeys Expandidos
+    // Hotkeys
     useEffect(() => {
         const handleKeys = (e) => {
             // Undo/Redo
@@ -166,8 +167,7 @@ export function SchemaDesigner({ atom, bridge }) {
             // Save manual (forzar sync)
             if (e.ctrlKey && e.key === 's') {
                 e.preventDefault();
-                setIsSaving(true);
-                bridge.save(localAtom).finally(() => setIsSaving(false));
+                handleManualSave();
             }
 
             // Duplicar seleccionado (Ctrl+D)
@@ -178,7 +178,7 @@ export function SchemaDesigner({ atom, bridge }) {
         };
         window.addEventListener('keydown', handleKeys);
         return () => window.removeEventListener('keydown', handleKeys);
-    }, [historyIndex, history, selectedFieldId, localAtom, bridge]); // Asegurar que dependencias estén actualizadas
+    }, [historyIndex, history, selectedFieldId, localAtom, bridge]);
 
     const fields = localAtom.payload?.fields || [];
 
@@ -186,23 +186,19 @@ export function SchemaDesigner({ atom, bridge }) {
     const checkAliasCollisions = (list) => {
         const aliases = new Set();
         const duplicates = [];
-
         const traverse = (l) => {
             l.forEach(f => {
-                if (aliases.has(f.alias)) {
-                    duplicates.push(f.alias);
-                }
+                if (aliases.has(f.alias)) duplicates.push(f.alias);
                 aliases.add(f.alias);
                 if (f.children) traverse(f.children);
             });
         };
-
         traverse(list);
         return duplicates;
     };
 
     const duplicateAliases = checkAliasCollisions(fields);
-    const hasCollisions = duplicateAliases.length > 0;
+    const _hasCollisions = duplicateAliases.length > 0;
 
     const updateFields = (newFields) => {
         const newAtom = {
@@ -328,15 +324,10 @@ export function SchemaDesigner({ atom, bridge }) {
         };
         setLocalAtom(newAtom);
         pushToHistory(newAtom);
-        
-        // Sincronización proactiva con el Dashboard (Cierre de circuito)
         updatePinIdentity(localAtom.id, localAtom.provider, { label: cleanLabel });
-        
-        // Guardado persistente inmediato al renombrar
         handleManualSave(newAtom);
     };
 
-    // Helperes Recursivos
     function findFieldById(list, id) {
         for (const item of list) {
             if (item.id === id) return item;
@@ -356,10 +347,16 @@ export function SchemaDesigner({ atom, bridge }) {
         });
     };
 
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden', background: 'var(--color-bg-void)', color: 'white' }}>
+    const accentColor = localAtom?.color || '#00f5d4';
+    const dynamicStyles = {
+        '--indra-dynamic-accent': accentColor,
+        '--indra-dynamic-border': `${accentColor}26`,
+        '--indra-dynamic-bg': `${accentColor}08`,
+    };
 
-            {/* ── HEADER HUD (Resonancia) ── */}
+    return (
+        <div className="macro-designer-wrapper fill" style={dynamicStyles}>
+            {/* 0. INDRA MACRO HEADER */}
             <IndraMacroHeader
                 atom={localAtom}
                 onClose={() => bridge.close()}
@@ -368,120 +365,150 @@ export function SchemaDesigner({ atom, bridge }) {
                 onTitleChange={updateLabel}
             />
 
-            <IndraEngineHood
-                onUndo={undo}
-                onRedo={redo}
-                canUndo={historyIndex > 0}
-                canRedo={historyIndex < history.length - 1}
-                leftSlot={
-                    <div className="shelf--tight">
-                        <button
-                            className={`btn btn--xs ${previewMode ? 'btn--accent' : 'btn--ghost'}`}
-                            onClick={() => setPreviewMode(!previewMode)}
+            {/* 1. TOP HOOD: ENGINE FUNCTIONS */}
+            <div className="indra-container">
+                <div className="indra-header-label">ENGINE_CONTROL_SYSTEM</div>
+                <IndraEngineHood
+                    onUndo={undo}
+                    onRedo={redo}
+                    canUndo={historyIndex > 0}
+                    canRedo={historyIndex < history.length - 1}
+                    leftSlot={
+                        <div className="engine-hood__capsule">
+                            <button
+                                className={`engine-hood__btn ${previewMode ? 'engine-hood__btn--active' : ''}`}
+                                onClick={() => setPreviewMode(!previewMode)}
+                                title={previewMode ? 'VOLVER A EDICIÓN' : 'VISTA PREVIA'}
+                                style={{ width: 'auto', padding: '0 10px', gap: '6px' }}
+                            >
+                                <IndraIcon 
+                                    name={previewMode ? "EDIT" : "EYE"} 
+                                    size="12px" 
+                                    color={previewMode ? "var(--indra-dynamic-accent)" : "var(--color-text-secondary)"} 
+                                />
+                                <span style={{ fontSize: '9px', fontWeight: 'bold' }}>
+                                    {previewMode ? 'EDITAR' : 'VISTA PREVIA'}
+                                </span>
+                            </button>
+                        </div>
+                    }
+                    centerSlot={
+                        <div className="engine-hood__capsule" style={{ gap: 0, padding: '1px' }}>
+                            <button
+                                className={`btn btn--xs ${!isLive ? 'active' : ''}`}
+                                onClick={() => updateStatus('DRAFT')}
+                                style={{ 
+                                    fontSize: '8px', padding: '2px 10px', borderRadius: 'var(--indra-ui-radius)', border: 'none', 
+                                    background: !isLive ? 'var(--indra-dynamic-bg)' : 'transparent', 
+                                    color: !isLive ? 'var(--indra-dynamic-accent)' : 'var(--color-text-secondary)',
+                                    border: !isLive ? '1px solid var(--indra-dynamic-accent)' : 'none'
+                                }}
+                            >BORRADOR</button>
+                            <button
+                                className={`btn btn--xs ${isLive ? 'active' : ''}`}
+                                onClick={() => updateStatus('LIVE')}
+                                style={{ 
+                                    fontSize: '8px', padding: '2px 10px', borderRadius: 'var(--indra-ui-radius)', border: 'none', 
+                                    background: isLive ? 'rgba(255, 70, 85, 0.1)' : 'transparent', 
+                                    color: isLive ? '#ff4655' : 'var(--color-text-secondary)',
+                                    border: isLive ? '1px solid #ff4655' : 'none'
+                                }}
+                            >PUBLICADO</button>
+                        </div>
+                    }
+                    rightSlot={
+                        <button 
+                            className="btn btn--xs" 
+                            onClick={() => handleManualSave()}
+                            style={{ 
+                                borderRadius: 'var(--indra-ui-radius)', 
+                                padding: '2px 12px', 
+                                backgroundColor: 'var(--indra-dynamic-bg)',
+                                border: '1px solid var(--indra-dynamic-accent)',
+                                color: 'var(--indra-dynamic-accent)'
+                            }}
                         >
-                            {previewMode ? 'BACK_TO_EDIT' : 'LIVE_PREVIEW'}
+                            <IndraIcon name="SAVE" size="10px" color="var(--indra-dynamic-accent)" />
+                            <span style={{ marginLeft: "6px" }}>GUARDAR CAMBIOS</span>
                         </button>
-                    </div>
-                }
-                centerSlot={
-                    <div className="shelf--tight macro-header__status-toggle" style={{ background: 'rgba(255,255,255,0.03)', padding: '2px', borderRadius: '4px' }}>
-                        <button
-                            className={`btn btn--xs ${!isLive ? 'btn--accent' : 'btn--ghost'}`}
-                            onClick={() => updateStatus('DRAFT')}
-                        >DRAFT</button>
-                        <button
-                            className={`btn btn--xs ${isLive ? 'btn--danger' : 'btn--ghost'}`}
-                            onClick={() => updateStatus('LIVE')}
-                        >LIVE</button>
-                    </div>
-                }
-                rightSlot={
-                    <button className="btn btn--accent btn--sm" onClick={() => handleManualSave()}>
-                        <IndraIcon name="SAVE" size="14px" />
-                        <span style={{ marginLeft: "4px" }}>GUARDAR</span>
-                    </button>
-                }
-            />
+                    }
+                />
+            </div>
 
-
-            {/* ── MAIN DESIGN WORKSPACE ── */}
-            <main className="fill shelf" style={{ overflow: 'hidden', flex: 1, minHeight: 0, alignItems: 'stretch', gap: 0 }}>
-
-                {/* 1. LAYERS PANEL (Navegación Jerárquica) */}
+            {/* 2. MAIN CANVAS AREA */}
+            <div className="designer-body fill shelf overflow-hidden" style={{ gap: 'var(--indra-ui-gap)' }}>
                 {!previewMode && (
-                    <LayersPanel
+                    <div className="indra-container" style={{ width: '260px' }}>
+                        <div className="indra-header-label">DNA_LAYERS_ARCHITECTURE</div>
+                        <LayersPanel
+                            fields={fields}
+                            selectedId={selectedFieldId}
+                            onSelect={setSelectedFieldId}
+                            onAdd={addField}
+                            onRemove={removeField}
+                            onMove={moveField}
+                            onClone={cloneField}
+                            onDemote={demoteField}
+                            onPromote={promoteField}
+                        />
+                    </div>
+                )}
+
+                <div className="indra-container fill relative overflow-hidden box-shadow-none">
+                    <div className="indra-header-label">BLUEPRINT_CANVAS_VIEW</div>
+                    <BlueprintCanvas
                         fields={fields}
                         selectedId={selectedFieldId}
                         onSelect={setSelectedFieldId}
-                        onAdd={addField}
-                        onRemove={removeField}
-                        onMove={moveField}
-                        onClone={cloneField}
-                        onDemote={demoteField}
-                        onPromote={promoteField}
+                        previewMode={previewMode}
                     />
-                )}
+                </div>
 
-                {/* 2. BLUEPRINT CANVAS (Previsualización Viva) */}
-                <BlueprintCanvas
-                    fields={fields}
-                    selectedId={selectedFieldId}
-                    onSelect={setSelectedFieldId}
-                    previewMode={previewMode}
-                />
-
-                {/* 3. DNA INSPECTOR (Propiedades Atómicas) */}
                 {!previewMode && selectedFieldId && (
-                    <DNAInspector
-                        field={findFieldById(fields, selectedFieldId)}
-                        allFields={fields}
-                        bridge={bridge} // Prop crucial para el RemoteFieldSelector
-                        onUpdate={(updatedField) => {
-                            const newFields = recursiveUpdate(fields, selectedFieldId, updatedField);
-                            updateFields(newFields);
-                        }}
-                        onReparent={(fieldId, newParentId) => {
-                            // Lógica de reparenting (más compleja)
-                            const moveNode = (list, id, targetParentId) => {
-                                let nodeToMove = null;
-
-                                // 1. Extraer el nodo
-                                const removeNode = (l) => {
-                                    return l.filter(f => {
-                                        if (f.id === id) {
-                                            nodeToMove = f;
-                                            return false;
-                                        }
-                                        if (f.children) f.children = removeNode(f.children);
-                                        return true;
-                                    });
+                    <div className="indra-container" style={{ width: '320px' }}>
+                        <div className="indra-header-label">DNA_INSPECTOR_FIELD</div>
+                        <DNAInspector
+                            field={findFieldById(fields, selectedFieldId)}
+                            allFields={fields}
+                            bridge={bridge}
+                            onUpdate={(updatedField) => {
+                                const newFields = recursiveUpdate(fields, selectedFieldId, updatedField);
+                                updateFields(newFields);
+                            }}
+                            onReparent={(fieldId, newParentId) => {
+                                const moveNode = (list, id, targetParentId) => {
+                                    let nodeToMove = null;
+                                    const removeNode = (l) => {
+                                        return l.filter(f => {
+                                            if (f.id === id) {
+                                                nodeToMove = f;
+                                                return false;
+                                            }
+                                            if (f.children) f.children = removeNode(f.children);
+                                            return true;
+                                        });
+                                    };
+                                    const listWithoutNode = removeNode(JSON.parse(JSON.stringify(list)));
+                                    if (!targetParentId || targetParentId === 'ROOT') {
+                                        return [...listWithoutNode, nodeToMove];
+                                    }
+                                    const insertNode = (l) => {
+                                        return l.map(f => {
+                                            if (f.id === targetParentId) {
+                                                return { ...f, children: [...(f.children || []), nodeToMove] };
+                                            }
+                                            if (f.children) return { ...f, children: insertNode(f.children) };
+                                            return f;
+                                        });
+                                    };
+                                    return insertNode(listWithoutNode);
                                 };
-
-                                const listWithoutNode = removeNode(JSON.parse(JSON.stringify(list)));
-
-                                // 2. Insertar el nodo
-                                if (!targetParentId || targetParentId === 'ROOT') {
-                                    return [...listWithoutNode, nodeToMove];
-                                }
-
-                                const insertNode = (l) => {
-                                    return l.map(f => {
-                                        if (f.id === targetParentId) {
-                                            return { ...f, children: [...(f.children || []), nodeToMove] };
-                                        }
-                                        if (f.children) return { ...f, children: insertNode(f.children) };
-                                        return f;
-                                    });
-                                };
-
-                                return insertNode(listWithoutNode);
-                            };
-
-                            updateFields(moveNode(fields, fieldId, newParentId));
-                        }}
-                    />
+                                updateFields(moveNode(fields, fieldId, newParentId));
+                            }}
+                        />
+                    </div>
                 )}
-            </main>
+            </div>
         </div>
     );
 }

@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAppState } from '../state/app_state';
 
 const ShellContext = createContext();
@@ -13,11 +13,24 @@ export function ShellProvider({ children }) {
     const closeArtifact = useAppState(s => s.closeArtifact);
     const lang = useAppState(s => s.lang);
 
+    // Global Style Engine State
+    const [isStyleEngineOpen, setIsStyleEngineOpen] = useState(false);
+    const [theme, setTheme] = useState(localStorage.getItem('indra-theme') || 'dark');
+
+    useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('indra-theme', theme);
+    }, [theme]);
+
     const value = {
         activeArtifact,
         openArtifact,
         closeArtifact,
-        lang
+        lang,
+        isStyleEngineOpen,
+        setIsStyleEngineOpen,
+        theme,
+        setTheme
     };
 
     return (

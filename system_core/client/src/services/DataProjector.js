@@ -19,31 +19,34 @@ const CLASS_THEMES = {
     'VIDEO_PROJECT': { color: '#8B5CF6', icon: 'PLAY', label: 'VIDEO_PROJECT' },
     'AEE_RUNNER': { color: 'var(--color-success)', icon: 'PLAY', label: 'OPERATIONAL_RUNNER' },
     'VIRTUAL_SERVICE': { color: 'var(--color-info)', icon: 'ATOM', label: 'VIRTUAL_SERVICE' },
-    'FOLDER': { color: 'var(--color-text-tertiary)', icon: 'FOLDER', label: 'COLLECTION' }
+    'FOLDER': { color: 'var(--color-text-tertiary)', icon: 'FOLDER', label: 'COLLECTION' },
+    'CALENDAR_HIVE': { color: 'var(--color-accent-blue)', icon: 'CALENDAR', label: 'CALENDAR_HIVE' },
+    'CALENDAR_EVENT': { color: 'var(--color-accent-blue)', icon: 'CALENDAR', label: 'CALENDAR_EVENT' }
 };
+
 
 /**
  * Mapeo de Tipos de Campo (DNA Atómico).
  */
 const FIELD_TYPES = {
-    'TEXT': { label: 'TEXT_STRING', icon: 'SCHEMA', color: 'var(--color-text)' },
-    'NUMBER': { label: 'NUMERIC_VALUE', icon: 'SCHEMA', color: 'var(--color-accent)' },
-    'DATE': { label: 'TEMPORAL_MARK', icon: 'SCHEMA', color: 'var(--color-info)' },
-    'BOOLEAN': { label: 'BINARY_SWITCH', icon: 'SCHEMA', color: 'var(--color-cold)' },
-    'RELATION_SELECT': { label: 'EXTERNAL_PORTAL', icon: 'BRIDGE', color: 'var(--color-accent)' },
-    'REPEATER': { label: 'RECURSIVE_VECTOR', icon: 'FRAME', color: 'var(--color-warm)' },
-    'FRAME': { label: 'STRUCTURAL_FRAME', icon: 'FRAME', color: 'var(--color-text-tertiary)' }
+    'TEXT': { label: 'Texto', icon: 'SCHEMA', color: 'var(--color-text-primary)' },
+    'NUMBER': { label: 'Número', icon: 'SCHEMA', color: 'var(--color-accent)' },
+    'DATE': { label: 'Fecha', icon: 'SCHEMA', color: 'var(--color-info)' },
+    'BOOLEAN': { label: 'Interruptor (Sí/No)', icon: 'SCHEMA', color: 'var(--color-cold)' },
+    'RELATION_SELECT': { label: 'Relación (Buscador)', icon: 'BRIDGE', color: 'var(--color-accent)' },
+    'REPEATER': { label: 'Repetidor (Lista)', icon: 'FRAME', color: 'var(--color-warm)' },
+    'FRAME': { label: 'Grupo (Contenedor)', icon: 'FRAME', color: 'var(--color-text-secondary)' }
 };
 
 /**
  * Mapeo de Bloques de Documento.
  */
 const BLOCK_TYPES = {
-    'PAGE': { label: 'NEW_PAGE', icon: 'DOCUMENT', color: 'var(--color-accent)' },
-    'FRAME': { label: 'FRAME', icon: 'FRAME', color: 'var(--color-accent)' },
-    'TEXT': { label: 'TEXT_BOX', icon: 'TEXT', color: 'var(--color-text)' },
-    'IMAGE': { label: 'IMAGE_ASSET', icon: 'IMAGE', color: 'var(--color-info)' },
-    'ITERATOR': { label: 'ITERATOR', icon: 'REPEATER', color: 'var(--color-warm)' }
+    'PAGE': { label: 'Página', icon: 'DOCUMENT', color: 'var(--color-accent)' },
+    'FRAME': { label: 'Caja / Marco', icon: 'FRAME', color: 'var(--color-cold)' },
+    'TEXT': { label: 'Bloque de Texto', icon: 'TEXT', color: 'var(--color-text-primary)' },
+    'IMAGE': { label: 'Imagen', icon: 'IMAGE', color: 'var(--color-info)' },
+    'ITERATOR': { label: 'Bucle (Lista)', icon: 'REPEATER', color: 'var(--color-warm)' }
 };
 
 export class DataProjector {
@@ -113,11 +116,23 @@ export class DataProjector {
         if (!svc) return null;
         const raw = svc.raw || svc;
         const needsSetup = raw.needs_setup || false;
+        
+        // Mapeo inteligente de iconos fallbacks
+        const iconMap = {
+            'system': 'VAULT',
+            'calendar_universal': 'CALENDAR',
+            'drive': 'FOLDER',
+            'notion': 'DATABASE',
+            'email': 'MAIL',
+            'llm': 'ATOM_VIRTUAL'
+        };
+
+        const baseId = svc.provider_base || svc.id?.split(':')[0] || 'unknown';
 
         return {
             id: svc.id,
-            label: svc.handle?.label || svc.label || svc.id,
-            icon: raw.icon || 'SERVICE',
+            label: svc.handle?.label || svc.label || svc.id || 'GENERIC_PROVIDER',
+            icon: svc.icon || raw.icon || iconMap[baseId] || 'SERVICE',
             isReady: !needsSetup,
             error: raw.error || null,
             statusLabel: needsSetup ? 'STATUS_SETUP' : 'STATUS_READY',
@@ -201,34 +216,34 @@ export class DataProjector {
      * @param {Object} schemaSource - El objeto crudo (resultado de ATOM_READ o TABULAR_STREAM).
      */
     static projectSchema(schemaSource) {
-        if (!schemaSource) return { fields: [], label: 'UNKNOWN_SCHEMA' };
+        if (!schemaSource) return { fields: [], label: 'ESQUEMA_DESCONOCIDO' };
 
-        // ADR-008: El sistema es sincero. Buscamos en las dos fronteras legales.
+        // ADR-008: Sinceridad Total en las dos Fronteras Legales.
         let rawFields = [];
-        let label = 'UNTITLED_SCHEMA';
+        let label = 'ESQUEMA_SIN_TÍTULO';
         let id = null;
 
-        // Caso A: Es un Átomo persistido (ATOM_READ)
+        // Caso A: Átomo completo (ATOM_READ) -> payload.fields es ley.
         if (schemaSource.payload?.fields) {
             rawFields = schemaSource.payload.fields;
-            label = schemaSource.handle?.label || 'ERR: NO_IDENTITY_LABEL';
+            label = schemaSource.handle?.label || 'ERROR: SIN_IDENTIDAD';
             id = schemaSource.id;
         }
-        // Caso B: Es un Resultado de Stream (TABULAR_STREAM)
+        // Caso B: Proyección Dinámica (TABULAR_STREAM) -> metadata.schema.fields es ley.
         else if (schemaSource.metadata?.schema?.fields) {
             rawFields = schemaSource.metadata.schema.fields;
-            label = schemaSource.handle?.label || schemaSource.metadata.context?.db_name || 'STREAM_PROJECTION';
+            label = schemaSource.handle?.label || schemaSource.metadata.context?.db_name || 'PROYECCIÓN_DE_DATOS';
             id = schemaSource.id || schemaSource.metadata.context?.db_id;
         }
 
-        // Proyección Recursiva
+        // Proyección Recursiva (Estándar INDRA)
         const fields = rawFields.map(f => this.projectFieldDefinition(f)).filter(f => f !== null);
 
         return {
             id: id,
             label: label,
             fields: fields,
-            bridge_id: schemaSource.payload?.bridge_id || schemaSource.metadata?.bridge_id || null, // Sinceridad Centralizada
+            bridge_id: schemaSource.payload?.bridge_id || schemaSource.metadata?.bridge_id || null, 
             raw: schemaSource
         };
     }

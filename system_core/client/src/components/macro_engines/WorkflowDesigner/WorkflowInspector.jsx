@@ -134,8 +134,23 @@ export function WorkflowInspector() {
                     <section className="stack">
                         <label className="text-label" style={{ marginBottom: 'var(--space-4)' }}>02 // DATA_MAPPING</label>
                         <div className="stack--tight">
-                            {renderMappingRow('message_body', 'MESSAGE_BODY')}
-                            {renderMappingRow('recipient', 'RECIPIENT_ID')}
+                            {/* Proyección dinámica básica (Sinceridad ADR-008) */}
+                            {station.provider === 'notion' ? (
+                                <>
+                                    {renderMappingRow('database_id', 'NOTION_DATABASE_ID')}
+                                    {renderMappingRow('filter_query', 'FILTER_CRITERIA')}
+                                </>
+                            ) : station.provider === 'pipeline' ? (
+                                <>
+                                    {renderMappingRow('input_data', 'INPUT_STREAM')}
+                                    {renderMappingRow('operations', 'TRANSFORM_LOGIC')}
+                                </>
+                            ) : (
+                                <>
+                                    {renderMappingRow('message_body', 'MESSAGE_BODY')}
+                                    {renderMappingRow('recipient', 'RECIPIENT_ID')}
+                                </>
+                            )}
                         </div>
                     </section>
                 )}

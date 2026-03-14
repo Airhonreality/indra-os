@@ -1,0 +1,275 @@
+/**
+ * =============================================================================
+ * ESTILOS: headers.css
+ * RESPONSABILIDAD: Tipología y diagramación de cabeceras canónicas (ADR-002 §8).
+ * =============================================================================
+ */
+
+/* 1. IndraMacroHeader — Layout Canónico */
+.macro-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 64px;
+    /* Altura soberana mínima — nunca colapsa */
+    flex-shrink: 0;
+    padding: var(--space-4) var(--space-8);
+    background: rgba(0, 0, 0, 0.6);
+    border-bottom: 1px solid var(--color-border-strong);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 2px 24px rgba(0, 0, 0, 0.5);
+    gap: var(--space-8);
+}
+
+/* LADO A: Identidad */
+.macro-header__identity {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    flex: 1;
+    min-width: 0;
+}
+
+/* Logo enmarcado (igual que Nexus) */
+.macro-header__logo {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    background: rgba(0, 255, 200, 0.04);
+    border: 1px solid rgba(0, 255, 200, 0.15);
+    border-radius: 6px;
+}
+
+/* Bloque de título */
+.macro-header__title-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+/* Título editable (input) — estética Nexus */
+.macro-header__title-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
+    color: white;
+    font-size: var(--text-xl);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    width: 100%;
+    max-width: 480px;
+    outline: none;
+    padding: 0;
+    transition: border-color 0.2s ease;
+}
+
+.macro-header__title-input:focus {
+    border-bottom-color: var(--color-accent);
+}
+
+/* Título estático (no editable) — igual look */
+.macro-header__title-static {
+    font-size: var(--text-xl);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: white;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Metadatos HUD debajo del título */
+.macro-header__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.macro-header__meta-text {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+    white-space: nowrap;
+}
+
+.macro-header__meta-sep {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    color: var(--color-text-dim);
+}
+
+/* Badge LIVE */
+.macro-header__live-badge {
+    font-size: 8px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--color-danger);
+    background: rgba(255, 78, 80, 0.12);
+    border: 1px solid rgba(255, 78, 80, 0.3);
+    border-radius: 3px;
+    padding: 1px 5px;
+    animation: ast-sync-pulse 2s infinite;
+}
+
+/* LADO B: Controles */
+.macro-header__controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-shrink: 0;
+}
+
+.macro-header__status-toggle {
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.macro-header__divider {
+    width: 1px;
+    height: 22px;
+    background: var(--color-border);
+    flex-shrink: 0;
+}
+
+
+/* 2. IndraMicroHeader (Nivel Panel / Micro-Engine) */
+.micro-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-white-bone-glass);
+    border-bottom: 1px solid var(--color-border);
+    gap: var(--space-4);
+    min-height: 48px;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.micro-header__title {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-dim);
+    margin: 0;
+}
+
+.micro-header__description {
+    font-size: 9px;
+    opacity: 0.4;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+}
+
+.micro-header__meta {
+    font-size: 8px;
+    background: var(--color-bg-void);
+    color: var(--color-accent);
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+}
+
+.btn--white {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    font-weight: bold;
+    font-size: 9px;
+}
+
+.btn--white:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: white;
+}
+
+/* 3. White Bone Glass Token */
+:root {
+    --color-white-bone-glass: rgba(240, 240, 240, 0.05);
+    /* Blanco hueso muy sutil para HUD */
+}
+
+/* Glass bone style utility */
+.glass--bone {
+    backdrop-filter: blur(8px);
+    background: var(--color-white-bone-glass);
+}
+
+/* 4. Resonancia AST Animations */
+@keyframes ast-sync-pulse {
+    0% {
+        opacity: 0.4;
+        text-shadow: 0 0 0px transparent;
+    }
+
+    50% {
+        opacity: 1;
+        text-shadow: 0 0 10px var(--color-accent);
+    }
+
+    100% {
+        opacity: 0.4;
+        text-shadow: 0 0 0px transparent;
+    }
+}
+
+.ast-resonance--syncing {
+    animation: ast-sync-pulse 1.5s infinite ease-in-out;
+    color: var(--color-accent) !important;
+}
+
+.ast-resonance--stable {
+    color: var(--color-success);
+    opacity: 0.8;
+}
+
+.resonance-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.resonance-dot--active {
+    background: var(--color-danger);
+    box-shadow: 0 0 8px var(--color-danger);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 78, 80, 0.7);
+    }
+
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(255, 78, 80, 0);
+    }
+
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 78, 80, 0);
+    }
+}

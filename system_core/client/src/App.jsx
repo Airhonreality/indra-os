@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useProtocol } from './context/ProtocolContext';
 import { useWorkspace } from './context/WorkspaceContext';
 import { useShell } from './context/ShellContext';
@@ -12,17 +12,17 @@ import { DesignerBridge } from './services/CapabilityBridge';
 import { ToastProvider } from './components/utilities/primitives/ToastNotification';
 
 /**
- * App Orchestrator
- * Decide qué vista mostrar según el nivel de hidratación del estado.
+ * IndraAppContent
+ * Punto de entrada operacional del orquestador.
  */
-function App() {
+function IndraAppContent() {
     const { isConnected, bootstrap, coreUrl, sessionSecret } = useProtocol();
     const { activeWorkspaceId } = useWorkspace();
     const { activeArtifact, closeArtifact, lang } = useShell();
 
-    React.useEffect(() => {
-        bootstrap();
-    }, [bootstrap]);
+    useEffect(() => {
+        if (isConnected) bootstrap();
+    }, [isConnected, bootstrap]);
 
     // NIVEL 0: Sin conexión al Core
     if (!isConnected) {
@@ -34,7 +34,7 @@ function App() {
         return <NexusView />;
     }
 
-    // NIVEL 3: Macro Engine Activo (Montaje Dinámico Determinista por Registro + Inyección de Bridge)
+    // NIVEL 3: Macro Engine Activo
     if (activeArtifact) {
         const Engine = registry.get(activeArtifact.class);
         if (Engine) {
@@ -50,7 +50,6 @@ function App() {
             );
         }
 
-        // Fallback para clases sin motor asignado (Sinceridad Radical)
         return (
             <div className="fill center stack" style={{ background: 'var(--color-bg-void)', color: 'white' }}>
                 <IndraIcon name="ATOM" size="64px" style={{ opacity: 0.1, marginBottom: 'var(--space-8)' }} />
@@ -64,11 +63,14 @@ function App() {
     return <WorkspaceDashboard />;
 }
 
-// ToastProvider envuelve toda la app para que useToast() esté disponible globalmente
-export default function AppWithProviders() {
+/**
+ * App (Entry Point)
+ * Proveedor de servicios transversales (Toast, etc.)
+ */
+export default function App() {
     return (
         <ToastProvider>
-            <App />
+            <IndraAppContent />
         </ToastProvider>
     );
 }

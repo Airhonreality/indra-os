@@ -1,6 +1,8 @@
 import React from 'react';
 import { IndraIcon } from './IndraIcons';
 import { IndraActionTrigger } from './IndraActionTrigger';
+import { useShell } from '../../context/ShellContext';
+import { StyleEngineSidebar } from './StyleEngineSidebar';
 
 /**
  * =============================================================================
@@ -30,24 +32,68 @@ export function IndraMacroHeader({
     onTitleChange,
     isSaving = false,
     isLive = false,
+    rightSlot
 }) {
+    const { setIsStyleEngineOpen, theme, setTheme } = useShell();
+    const [isPulsing, setIsPulsing] = React.useState(false);
+
+    const handleThemeToggle = () => {
+        // Cycling between dark, light, indra-vapor
+        const nextThemes = {
+            'dark': 'light',
+            'light': 'indra-vapor',
+            'indra-vapor': 'dark'
+        };
+        setTheme(nextThemes[theme] || 'dark');
+    };
+
+    React.useEffect(() => {
+        const handler = (e) => {
+            if (e.detail.type === 'OUT') {
+                setIsPulsing(true);
+                setTimeout(() => setIsPulsing(false), 400);
+            }
+        };
+        window.addEventListener('indra-pulse', handler);
+        return () => window.removeEventListener('indra-pulse', handler);
+    }, []);
+
+    // AXIOMA: Universe Injection (Inyectar color local al DOM Global)
+    React.useEffect(() => {
+        const color = atom?.color;
+        if (color) {
+            document.documentElement.style.setProperty('--indra-dynamic-accent', color);
+            document.documentElement.style.setProperty('--indra-dynamic-border', `${color}26`);
+            document.documentElement.style.setProperty('--indra-dynamic-bg', `${color}08`);
+        }
+        return () => {
+            document.documentElement.style.removeProperty('--indra-dynamic-accent');
+            document.documentElement.style.removeProperty('--indra-dynamic-border');
+            document.documentElement.style.removeProperty('--indra-dynamic-bg');
+        };
+    }, [atom?.color]);
+
     const handle = atom?.handle || {};
     const label = handle.label || 'UNTITLED';
     const atomClass = atom?.class || 'ATOM';
     const atomId = atom?.id ? atom.id.substring(0, 20) : '...';
 
     return (
+        <>
         <header className="macro-header glass">
 
             {/* ── LADO A: IDENTIDAD ── */}
             <div className="macro-header__identity">
 
                 {/* LOGO ICON */}
-                <div className="macro-header__logo">
+                <div className={`macro-header__logo ${isPulsing ? 'macro-header__logo--pulse' : ''}`}>
                     <IndraIcon
                         name={atomClass}
-                        size="26px"
-                        style={{ color: isLive ? 'var(--color-danger)' : 'var(--color-accent)' }}
+                        size="18px"
+                        style={{ 
+                            color: isLive ? 'var(--color-danger)' : 'var(--indra-dynamic-accent, var(--color-accent))',
+                            filter: isPulsing ? 'drop-shadow(0 0 10px var(--indra-dynamic-accent, var(--color-accent)))' : 'none'
+                        }}
                     />
                     {isLive && (
                         <div className="resonance-dot resonance-dot--active"
@@ -84,19 +130,50 @@ export function IndraMacroHeader({
             {/* ── LADO B: COMANDOS (Clean & Agnostic) ── */}
             <div className="macro-header__controls">
                 
+                {/* ── THE MINI HOOD (Global Kinetics) ── */}
+                <div className="macro-header__mini-hood shelf--tight">
+                    <button 
+                        className="btn btn--ghost btn--mini"
+                        style={{ padding: '0 8px', height: '22px' }}
+                        onClick={handleThemeToggle}
+                        title={`Current Theme: ${theme.toUpperCase()}`}
+                    >
+                        <IndraIcon name="EYE" size="10px" />
+                        <span style={{ fontSize: '8px', marginLeft: '4px' }}>THEME</span>
+                    </button>
+                    
+                    <button 
+                        className="btn btn--ghost btn--mini"
+                        style={{ padding: '0 8px', height: '22px' }}
+                        onClick={() => setIsStyleEngineOpen(true)}
+                        title="UI Config Engine"
+                    >
+                        <IndraIcon name="LAYERS" size="10px" />
+                        <span style={{ fontSize: '8px', marginLeft: '4px' }}>KINETICS</span>
+                    </button>
+                </div>
+                
+                <div className="macro-header__divider" />
+
+                {rightSlot}
+
                 {/* EXIT */}
                 <div className="macro-header__divider" />
                 <IndraActionTrigger
-                    icon="CLOSE"
-                    label="EXIT_ENGINE"
+                    icon="MINUS"
+                    label="UNFOCUS_ENGINE"
                     onClick={onClose}
-                    color="var(--color-text-dim)"
-                    activeColor="var(--color-danger)"
+                    color="var(--color-text-secondary)"
+                    activeColor="var(--indra-dynamic-accent, var(--color-accent))"
                     size="13px"
                 />
 
             </div>
         </header>
+        
+        {/* The Sidebar is globally accessible inside the macro header's portal/sibling scope */}
+        <StyleEngineSidebar />
+        </>
     );
 }
 

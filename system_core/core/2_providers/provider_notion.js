@@ -597,6 +597,11 @@ function _notion_notionObjectToAtom(notionObj, providerId) {
     ? ['TABULAR_STREAM', 'ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE']
     : ['ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE'];
 
+  const payload = {};
+  if (objectType === 'database' && notionObj.properties) {
+    payload.fields = _notion_schemaToFields(notionObj.properties);
+  }
+
   return {
     id,
     handle: {
@@ -608,7 +613,7 @@ function _notion_notionObjectToAtom(notionObj, providerId) {
     provider: providerId,
     protocols,
     system_hood: atomClass === 'TABULAR' ? 'STRUCTURE' : 'PHENOTYPE',
-    payload: {}, // Sinceridad estructural
+    payload: payload, 
     raw: {
       notion_type: objectType,
       notion_url: notionObj.url || null,

@@ -2,6 +2,7 @@
 @import './layout.css';
 @import './component_styles.css';
 @import './headers.css';
+@import './indra_print.css';
 
 /* ── RESET BASE ── */
 * {

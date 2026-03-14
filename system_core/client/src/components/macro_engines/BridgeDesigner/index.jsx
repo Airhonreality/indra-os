@@ -24,7 +24,7 @@ import { useWorkspace } from '../../../context/WorkspaceContext';
 export function BridgeDesigner({ atom, bridge }) {
     const { updatePinIdentity } = useWorkspace();
     const [isSaving, setIsSaving] = useState(false);
-    const [showSelector, setShowSelector] = useState(null); // 'SOURCE' | 'TARGET'
+    const [showSelector, setShowSelector] = useState(null); // 'FUENTE' | 'DESTINO'
 
     // 1. Hidratación y Alambrado Técnico
     const { localAtom, setLocalAtom, schemas, isLoading } = useBridgeHydration(atom, bridge);
@@ -59,13 +59,12 @@ export function BridgeDesigner({ atom, bridge }) {
     };
 
     // 3. Focussed Target (Select & Insert Axiom)
-    // { mode: 'OPERATOR' | 'TARGET', id, key, index? }
     const [focusedTarget, setFocusedTarget] = useState(null);
 
     const handleSelectInput = (slot) => {
         if (!focusedTarget) return;
 
-        const { mode, id, key, index } = focusedTarget;
+        const { mode, id, key } = focusedTarget;
 
         if (mode === 'OPERATOR') {
             const operators = [...(localAtom.payload?.operators || [])];
@@ -97,13 +96,11 @@ export function BridgeDesigner({ atom, bridge }) {
             });
         }
 
-        // Auto-release focus after selection for fluidity
         setFocusedTarget(null);
     };
 
     const lastSavedRef = useRef(JSON.stringify(atom));
 
-    // 2. Guardado Manual Explícito
     const handleManualSave = async (overrideAtom = null) => {
         const atomToSave = overrideAtom || localAtom;
         const currentData = JSON.stringify(atomToSave);
@@ -126,7 +123,7 @@ export function BridgeDesigner({ atom, bridge }) {
         const newOp = {
             id: 'op_' + Date.now(),
             type: type,
-            alias: `operation_${operators.length + 1}`,
+            alias: `operacion_${operators.length + 1}`,
             config: {}
         };
         pushToHistory({
@@ -151,7 +148,6 @@ export function BridgeDesigner({ atom, bridge }) {
         });
     };
 
-    // Cálculo del Contexto Acumulado
     const getContextAt = (index) => {
         const context = { sources: {}, ops: {} };
 
@@ -170,7 +166,7 @@ export function BridgeDesigner({ atom, bridge }) {
             if (op.alias) {
                 context.ops[op.alias] = {
                     type: op.type,
-                    res: `RESULT_OF_${op.alias.toUpperCase()}`
+                    res: `RESULTADO_DE_${op.alias.toUpperCase()}`
                 };
             }
         });
@@ -178,9 +174,8 @@ export function BridgeDesigner({ atom, bridge }) {
         return context;
     };
 
-    // Handlers de Puertos
     const addPort = (id) => {
-        const key = showSelector === 'SOURCE' ? 'sources' : 'targets';
+        const key = (showSelector === 'FUENTE' || showSelector === 'SOURCE') ? 'sources' : 'targets';
         const currentList = localAtom.payload?.[key] || [];
         if (currentList.includes(id)) return;
 
@@ -223,7 +218,7 @@ export function BridgeDesigner({ atom, bridge }) {
     };
 
     const updateLabel = (newLabel) => {
-        const cleanLabel = newLabel === '' ? 'UNTITLED_BRIDGE' : newLabel;
+        const cleanLabel = newLabel === '' ? 'PUENTE SIN TÍTULO' : newLabel;
         const newAtom = {
             ...localAtom,
             handle: { ...localAtom.handle, label: cleanLabel }
@@ -235,14 +230,13 @@ export function BridgeDesigner({ atom, bridge }) {
 
     if (isLoading) return (
         <div className="fill center">
-            <Spinner size="32px" label="LOADING_BRIDGE_RESONANCE" />
+            <Spinner size="32px" label="INICIALIZANDO LÓGICA DEL PUENTE..." />
         </div>
     );
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden', background: 'var(--color-bg-void)', color: 'white' }}>
-
-            {/* HUD HEADER */}
+        <div className="fill stack" style={{ backgroundColor: 'var(--color-bg-void)', overflow: 'hidden' }}>
+            {/* 0. INDRA MACRO HEADER */}
             <IndraMacroHeader
                 atom={localAtom}
                 onClose={() => bridge.close()}
@@ -250,49 +244,79 @@ export function BridgeDesigner({ atom, bridge }) {
                 onTitleChange={updateLabel}
             />
 
-            <IndraEngineHood
-                onUndo={undo}
-                onRedo={redo}
-                canUndo={pointer > 0}
-                canRedo={pointer < history.length - 1}
-                leftSlot={
-                    <div className="shelf--tight glass" style={{ padding: 'var(--space-1) var(--space-4)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-pill)', background: 'rgba(0,0,0,0.3)' }}>
-                        <span className="text-hint font-mono" style={{ fontSize: '9px', opacity: 0.5, marginRight: 'var(--space-2)' }}>ADD_OP:</span>
-                        {['MATH', 'TEXT', 'RESOLVER', 'EXPRESSION'].map(type => (
-                            <button key={type} className="btn btn--xs btn--ghost" onClick={() => addOperator(type)} style={{ fontSize: '9px', padding: '2px 6px' }}>
-                                {type}
-                            </button>
-                        ))}
-                    </div>
-                }
-                rightSlot={
-                    <button className="btn btn--accent btn--sm" onClick={() => handleManualSave()}>
-                        <IndraIcon name="SAVE" size="14px" />
-                        <span style={{ marginLeft: "4px" }}>GUARDAR</span>
-                    </button>
-                }
-            />
+            {/* ENVOLTURA TOPOLÓGICA DEL MOTOR */}
+            <div className="fill stack overflow-hidden" style={{ padding: 'var(--indra-ui-margin)', gap: 'var(--indra-ui-gap)' }}>
+                {/* 1. TOP HOOD: ENGINE FUNCTIONS */}
+                <div className="indra-container" style={{ flexShrink: 0 }}>
+                <div className="indra-header-label">LOGIC_PIPELINE_ENGINE</div>
+                <IndraEngineHood
+                    onUndo={undo}
+                    onRedo={redo}
+                    canUndo={pointer > 0}
+                    canRedo={pointer < history.length - 1}
+                    leftSlot={
+                        <div className="engine-hood__capsule">
+                            <span className="text-hint font-mono" style={{ fontSize: '8px', opacity: 0.5, margin: '0 var(--space-2)' }}>AÑADIR_OP:</span>
+                            {[
+                                { type: 'MATH', color: 'var(--color-accent)', label: 'MATH' },
+                                { type: 'TEXT', color: 'var(--color-text-primary)', label: 'STRING' },
+                                { type: 'RESOLVER', color: 'var(--color-success)', label: 'VAULT' },
+                                { type: 'EXPRESSION', color: 'var(--color-cold)', label: 'EXPR' }
+                            ].map(op => (
+                                <button 
+                                    key={op.type} 
+                                    className="engine-hood__btn" 
+                                    onClick={() => addOperator(op.type)} 
+                                    style={{ width: 'auto', padding: '0 8px', fontSize: '9px', fontWeight: 'bold', color: op.color }}
+                                >
+                                    {op.label}
+                                </button>
+                            ))}
+                        </div>
+                    }
+                    rightSlot={
+                        <button 
+                            className="btn btn--xs" 
+                            onClick={() => handleManualSave()}
+                            style={{ 
+                                borderRadius: 'var(--indra-ui-radius)', 
+                                padding: '2px 12px', 
+                                backgroundColor: 'var(--indra-dynamic-bg)',
+                                border: '1px solid var(--indra-dynamic-accent)',
+                                color: 'var(--indra-dynamic-accent)'
+                            }}
+                        >
+                            <IndraIcon name="SAVE" size="10px" color="var(--indra-dynamic-accent)" />
+                            <span style={{ marginLeft: "6px" }}>MEMORIZE_SYNC</span>
+                        </button>
+                    }
+                />
+                </div>
 
-
-            {/* MAIN WORKSPACE */}
-            <main className="fill stack" style={{ overflow: 'hidden' }}>
-                <div className="fill shelf" style={{ overflow: 'hidden' }}>
-
+                {/* 2. MAIN WORKSPACE */}
+                <div className="fill shelf overflow-hidden" style={{ gap: 'var(--indra-ui-gap)', alignItems: 'stretch' }}>
+                    {/* LEFT: INPUT PORTS */}
+                <div className="indra-container" style={{ width: '280px' }}>
+                    <div className="indra-header-label">INPUT_PORT_SYSTEM</div>
                     <PortManager
-                        title="INPUT_SOURCES"
+                        title="FUENTES DE ENTRADA"
                         ids={localAtom.payload?.sources || []}
                         configs={localAtom.payload?.sourceConfigs || {}}
                         schemas={schemas}
-                        onAdd={() => setShowSelector('SOURCE')}
+                        onAdd={() => setShowSelector('FUENTE')}
                         onRemove={(id) => removePort(id, 'SOURCE')}
                         onUpdateConfig={(id, conf) => updatePortConfig(id, conf, 'SOURCE')}
                         onSelectField={handleSelectInput}
                         type="SOURCE"
                     />
+                </div>
 
-                    <section className="fill stack" style={{ overflowY: 'auto', padding: 'var(--space-8)' }}>
-                        <div className="stack--loose" style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
-                            <div className="stack--loose">
+                {/* MIDDLE: PIPELINE CANVAS */}
+                <div className="indra-container fill stack bg-black-soft relative overflow-hidden" style={{ borderLeft: 'none', borderRight: 'none' }}>
+                    <div className="indra-header-label">OPERATOR_PIPELINE_FABRIC</div>
+                    <section className="fill stack" style={{ overflowY: 'auto', padding: 'var(--space-4)' }}>
+                        <div className="stack--loose" style={{ maxWidth: '800px', margin: '0 auto', width: '100%', alignItems: 'stretch' }}>
+                            <div className="stack--loose" style={{ flex: 1 }}>
                                 {(localAtom.payload?.operators || []).map((op, index) => (
                                     <OperatorCard
                                         key={op.id}
@@ -310,37 +334,47 @@ export function BridgeDesigner({ atom, bridge }) {
                             {(localAtom.payload?.operators || []).length === 0 && (
                                 <EmptyState
                                     icon="BRIDGE"
-                                    title="PIPELINE_EMPTY"
-                                    description="Añade operadores para construir el pipeline de transformación."
+                                    title="FLUJO DE LÓGICA VACÍO"
+                                    description="Añade operadores matemáticos, de texto o resolutores para construir el pipeline de transformación."
                                 />
                             )}
                         </div>
                     </section>
+                </div>
 
+                {/* RIGHT: OUTPUT PORTS */}
+                <div className="indra-container" style={{ width: '280px' }}>
+                    <div className="indra-header-label">OUTPUT_PORT_SYSTEM</div>
                     <PortManager
-                        title="OUTPUT_TARGETS"
+                        title="SALIDAS DE DATOS"
                         ids={localAtom.payload?.targets || []}
                         schemas={schemas}
                         configs={localAtom.payload?.targetConfigs || {}}
                         mappings={localAtom.payload?.mappings || {}}
                         focusedTarget={focusedTarget}
                         setFocusedTarget={setFocusedTarget}
-                        onAdd={() => setShowSelector('TARGET')}
+                        onAdd={() => setShowSelector('DESTINO')}
                         onRemove={(id) => removePort(id, 'TARGET')}
                         onUpdateMapping={updateMapping}
                         onUpdateConfig={(id, conf) => updatePortConfig(id, conf, 'TARGET')}
                         type="TARGET"
                     />
-
+                    </div>
                 </div>
 
-                <div style={{ borderTop: '1px solid var(--color-border-strong)', background: 'var(--color-bg-void)', zIndex: 50 }}>
+                {/* 3. LOWER SANDBOX */}
+                <div className="indra-container" style={{ flexShrink: 0, height: '220px' }}>
+                    <div className="indra-header-label">REALTIME_SANDBOX_STATION</div>
                     <SandboxPanel bridge={bridge} schemas={schemas} sources={localAtom.payload?.sources || []} sourceConfigs={localAtom.payload?.sourceConfigs || {}} />
                 </div>
-            </main>
+            </div>
 
             {showSelector && (
-                <ArtifactSelector title={`SELECT_${showSelector}`} onSelect={(selectedAtom) => addPort(selectedAtom.id)} onCancel={() => setShowSelector(null)} />
+                <ArtifactSelector 
+                    title={`SELECCIONAR ${showSelector}`} 
+                    onSelect={(selectedAtom) => addPort(selectedAtom.id)} 
+                    onCancel={() => setShowSelector(null)} 
+                />
             )}
         </div>
     );

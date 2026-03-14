@@ -14,7 +14,7 @@ export function useVideoEngine(projectData) {
     // Inicialización Sincera: Asegurar que el proyecto tenga estructura desde el inicio
     const [project, setProject] = useState(() => {
         if (projectData && projectData.timeline) return projectData;
-        return { settings: { duration_ms: 0, fps: 30 }, timeline: { tracks: [] } };
+        return { settings: { duration_ms: 0, fps: 30 }, timeline: { lanes: [] } };
     });
 
     useEffect(() => {
@@ -59,12 +59,12 @@ export function useVideoEngine(projectData) {
 
         // LEY DE SINCERIDAD: Solo hidratar desde props si el motor está vacío 
         // o si el ID del átomo ha cambiado (Evolución de Identidad).
-        const hasClips = engine.project?.timeline?.tracks?.some(t => t.clips?.length > 0);
+        const hasClips = engine.project?.timeline?.lanes?.some(l => l.clips?.length > 0);
         
         if (!hasClips) {
             const skeleton = projectData && Object.keys(projectData).length > 0
                 ? projectData
-                : { settings: { duration_ms: 0, fps: 30 }, timeline: { tracks: [] } };
+                : { settings: { duration_ms: 0, fps: 30 }, timeline: { lanes: [] } };
 
             console.log("[useVideoEngine] Hidratando proyecto desde props.");
             engine.hydrateProject(skeleton);
@@ -111,8 +111,13 @@ export function useVideoEngine(projectData) {
     };
 
     const mutateProject = (mutationFn) => {
-        if (!engineRef.current || !engineRef.current.project) return;
-        const currentProject = JSON.parse(JSON.stringify(engineRef.current.project));
+        if (!engineRef.current) return;
+        
+        // SINCERIDAD: Si no hay proyecto, iniciamos con un esqueleto base v3
+        const currentProject = engineRef.current.project 
+            ? JSON.parse(JSON.stringify(engineRef.current.project))
+            : { version: 3, settings: { duration_ms: 0, fps: 30 }, timeline: { lanes: [] } };
+            
         const nextProject = mutationFn(currentProject);
         engineRef.current.hydrateProject(nextProject);
     };
@@ -132,7 +137,8 @@ export function useVideoEngine(projectData) {
             exportVideo,
             setExternalTimeCallback: (cb) => {
                 if (engineRef.current) engineRef.current.externalTimeCallback = cb;
-            }
+            },
+            getOpfsManager: () => engineRef.current?.opfsManager
         }
     };
 }

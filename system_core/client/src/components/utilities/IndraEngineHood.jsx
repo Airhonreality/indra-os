@@ -29,24 +29,24 @@ export function IndraEngineHood({
             <div className="engine-hood__section">
                 {/* Standard History Controls in the Hood */}
                 {(onUndo || onRedo) && (
-                    <div className="shelf--tight" style={{ marginRight: 'var(--space-4)' }}>
+                    <div className="engine-hood__capsule" style={{ marginRight: 'var(--space-2)' }}>
                         <button 
-                            className="btn btn--ghost btn--xs" 
+                            className="engine-hood__btn" 
                             onClick={onUndo}
                             disabled={!canUndo} 
-                            style={{ opacity: canUndo ? 1 : 0.2 }}
+                            style={{ opacity: canUndo ? 1 : 0.3 }}
                             title="UNDO (Ctrl+Z)"
                         >
-                            <IndraIcon name="UNDO" size="12px" />
+                            <IndraIcon name="UNDO" size="10px" color={canUndo ? "white" : "var(--color-text-tertiary)"} />
                         </button>
                         <button 
-                            className="btn btn--ghost btn--xs" 
+                            className="engine-hood__btn" 
                             onClick={onRedo}
                             disabled={!canRedo} 
-                            style={{ opacity: canRedo ? 1 : 0.2 }}
+                            style={{ opacity: canRedo ? 1 : 0.3 }}
                             title="REDO (Ctrl+Y)"
                         >
-                            <IndraIcon name="REDO" size="12px" />
+                            <IndraIcon name="REDO" size="10px" color={canRedo ? "white" : "var(--color-text-tertiary)"} />
                         </button>
                     </div>
                 )}

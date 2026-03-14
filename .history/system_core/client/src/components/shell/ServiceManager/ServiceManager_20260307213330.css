@@ -1,0 +1,184 @@
+/**
+ * =============================================================================
+ * ESTILOS: ServiceManager.css
+ * DOGMA: Inmersión en la Infraestructura (Vault & GAS).
+ * =============================================================================
+ */
+
+.service-manager-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(20px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8);
+}
+
+.service-manager-content {
+    width: 100%;
+    max-width: 1100px;
+    height: 85vh;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+
+/* Identidad HUD */
+.service-manager__header {
+    border-bottom: 2px solid var(--color-border);
+    padding-bottom: var(--space-4);
+}
+
+.vault-status {
+    padding: var(--space-2) var(--space-4);
+    background: rgba(0, 210, 211, 0.1);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-pill);
+    font-size: 10px;
+    font-weight: bold;
+    color: var(--color-accent);
+    letter-spacing: 0.2em;
+}
+
+/* Grid de Servicios */
+.service-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-6);
+    overflow-y: auto;
+    padding: var(--space-2);
+}
+
+/* Card de Servicio */
+.service-card {
+    position: relative;
+    padding: var(--space-6);
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 100%);
+    overflow: hidden;
+}
+
+.service-card:hover {
+    border-color: rgba(0, 210, 211, 0.4);
+    background: rgba(0, 210, 211, 0.03);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.service-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--color-accent), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.service-card:hover::before {
+    opacity: 1;
+}
+
+.service-card.is-paired {
+    border-color: rgba(0, 210, 211, 0.2);
+    background: linear-gradient(135deg, rgba(0, 210, 211, 0.05) 0%, transparent 100%);
+}
+
+.service-card.is-error {
+    border-color: var(--color-danger);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.service-card__icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: var(--space-4);
+    opacity: 0.5;
+    transition: all 0.3s ease;
+}
+
+.service-card:hover .service-card__icon,
+.service-card.is-paired .service-card__icon {
+    opacity: 1;
+    color: var(--color-accent);
+}
+
+.service-card__status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-text-dim);
+}
+
+.is-paired .service-card__status-dot {
+    background: var(--color-accent);
+    box-shadow: 0 0 8px var(--color-accent);
+}
+
+.is-error .service-card__status-dot {
+    background: var(--color-danger);
+    box-shadow: 0 0 8px var(--color-danger);
+    animation: palse-red 2s infinite;
+}
+
+@keyframes palse-red {
+    0% {
+        opacity: 0.4;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.4;
+    }
+}
+
+/* Pairing Panel (Modal Interior) */
+.pairing-panel {
+    position: absolute;
+    inset: 0;
+    background: var(--color-bg-void);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-8);
+}
+
+.pairing-panel__header {
+    border-bottom: 2px solid var(--color-border);
+    margin-bottom: var(--space-8);
+}
+
+/* Decoración HUD Base */
+.hud-deco-corners::before,
+.hud-deco-corners::after {
+    content: "";
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    border: 1px solid var(--color-accent);
+    opacity: 0.2;
+}
+
+.hud-deco-corners::before {
+    top: 0;
+    left: 0;
+    border-right: none;
+    border-bottom: none;
+}
+
+.hud-deco-corners::after {
+    bottom: 0;
+    right: 0;
+    border-left: none;
+    border-top: none;
+}

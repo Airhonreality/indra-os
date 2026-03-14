@@ -1,0 +1,206 @@
+/**
+ * =============================================================================
+ * ESTILOS: WorkflowDesigner.css
+ * DOGMA: CSS Axiomático - Sin hardcoding de colores o fuentes.
+ * =============================================================================
+ */
+
+.workflow-designer {
+    display: grid;
+    grid-template-columns: 300px 1fr 320px;
+    height: 100%;
+    background: var(--color-bg-deep);
+    color: var(--color-text-main);
+    overflow: hidden;
+}
+
+.engine-sidebar {
+    background: var(--color-glass);
+    backdrop-filter: blur(15px);
+    border-right: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+}
+
+.inspector-panel {
+    border-right: none;
+    border-left: 1px solid var(--color-border);
+}
+
+.panel-header {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.panel-header h3 {
+    font-size: 0.8rem;
+    letter-spacing: 0.1rem;
+    opacity: 0.7;
+    margin: 0;
+}
+
+.panel-body {
+    padding: var(--space-4);
+    flex: 1;
+    overflow-y: auto;
+}
+
+.trigger-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.trigger-card.active {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 15px rgba(0, 210, 211, 0.2);
+}
+
+.engine-canvas {
+    padding: var(--space-6);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
+    background-size: 30px 30px;
+}
+
+.station-stack {
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    position: relative;
+}
+
+/* Línea de flujo vertical */
+.station-stack::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(to bottom, var(--color-accent), transparent);
+    z-index: 0;
+}
+
+.station-node {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    display: flex;
+    gap: var(--space-4);
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.station-node:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-accent-glow);
+}
+
+.node-index {
+    width: 32px;
+    height: 32px;
+    background: var(--color-accent);
+    color: #000;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.add-station-btn {
+    align-self: center;
+    background: var(--color-glass);
+    border: 2px dashed var(--color-border);
+    color: var(--color-text-dim);
+    padding: var(--space-3) var(--space-6);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+.add-station-btn:hover {
+    border-color: var(--color-accent);
+    color: var(--color-text-main);
+    transform: scale(1.05);
+}
+
+.station-node.type-protocol {
+    border-left: 4px solid #00D2D3;
+}
+
+.station-node.type-router {
+    border-left: 4px solid #FF9F43;
+}
+
+.station-node.type-map {
+    border-left: 4px solid #54A0FF;
+}
+
+.type-badge {
+    font-size: 0.6rem;
+    font-family: var(--font-mono);
+    opacity: 0.5;
+    letter-spacing: 1px;
+}
+
+.node-content p {
+    margin: 4px 0 0 0;
+    font-size: 0.8rem;
+    opacity: 0.6;
+}
+
+.node-actions {
+    margin-left: auto;
+    display: flex;
+    gap: var(--space-2);
+}
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-main);
+    opacity: 0.4;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: opacity 0.2s;
+}
+
+.icon-btn:hover {
+    opacity: 1;
+}
+
+.icon-btn.danger:hover {
+    color: #FF6B6B;
+}
+
+.add-station-group {
+    display: flex;
+    gap: var(--space-4);
+    z-index: 10;
+}
+
+.empty-state {
+    text-align: center;
+    opacity: 0.5;
+    margin-top: var(--space-8);
+    font-size: 0.9rem;
+}

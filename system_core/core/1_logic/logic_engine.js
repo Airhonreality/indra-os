@@ -90,20 +90,9 @@ var LogicEngine = {
                 provider: providerId, protocol: 'ATOM_READ', context_id: idStr
             });
             if (resp && resp.items && resp.items.length > 0) {
-                const fetchedAtom = resp.items[0];
-                let ex = { ...fetchedAtom };
-                if (fetchedAtom.raw) {
-                    Object.keys(fetchedAtom.raw).forEach(k => {
-                        let val = fetchedAtom.raw[k];
-                        if (val && typeof val === 'object') {
-                            if (val.type === 'number') val = val.number;
-                            else if (val.type === 'rich_text') val = val.rich_text?.map(t => t.plain_text).join('');
-                            else if (val.type === 'select') val = val.select?.name;
-                        }
-                        ex[k] = val;
-                    });
-                }
-                return ex;
+                // SINCERIDAD TOTAL: Simplemente retornamos el átomo tal cual.
+                // El provider se encargó de poner los datos en la raíz.
+                return resp.items[0];
             }
          } catch(e) {
             logWarn("[LogicEngine] RESOLVER Node error al hidratar " + idStr + ": " + e.message);

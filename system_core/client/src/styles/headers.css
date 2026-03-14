@@ -11,17 +11,96 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    min-height: 64px;
-    /* Altura soberana mínima — nunca colapsa */
+    height: 44px; /* Slimmer header */
     flex-shrink: 0;
-    padding: var(--space-4) var(--space-8);
-    background: rgba(0, 0, 0, 0.6);
+    padding: 0 var(--space-6);
+    background: rgba(0, 0, 0, 0.4);
     border-bottom: 1px solid var(--color-border-strong);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 2px 24px rgba(0, 0, 0, 0.5);
-    gap: var(--space-8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+    gap: var(--space-4);
+    z-index: 100;
 }
+
+/* 1.1 IndraEngineHood — The Specific Actions Bar (Compact & Discrete) */
+.engine-hood {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 38px; /* Compact height */
+    flex-shrink: 0;
+    padding: 0 var(--space-8);
+    background: rgba(5, 8, 16, 0.4);
+    border-bottom: 1px solid var(--color-border);
+    backdrop-filter: blur(12px);
+    z-index: 90;
+    animation: hood-slide-down 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes hood-slide-down {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.engine-hood__section {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* Vibrant & Legible Hood Buttons */
+.engine-hood__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.12); /* Stronger border */
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    padding: 0;
+}
+
+.engine-hood__btn:hover {
+    background: rgba(255, 255, 255, 0.08); /* More visible background */
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+}
+
+.engine-hood__btn--active, 
+.engine-hood__btn:active {
+    background: var(--indra-dynamic-bg, var(--color-accent-dim));
+    border-color: var(--indra-dynamic-accent, var(--color-accent));
+    color: var(--indra-dynamic-accent, var(--color-accent));
+    box-shadow: 0 0 15px var(--indra-dynamic-glow, var(--color-accent-glow));
+    transform: scale(0.95);
+}
+
+.engine-hood__capsule {
+    display: flex;
+    align-items: center;
+    background: rgba(5, 8, 16, 0.6); /* More opaque background for contrast */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-pill);
+    padding: 2px 4px;
+    gap: var(--space-1);
+    backdrop-filter: blur(8px);
+}
+
+.engine-hood__divider {
+    width: 1px;
+    height: 14px;
+    background: var(--color-border);
+    opacity: 0.3;
+    margin: 0 var(--space-1);
+}
+
 
 /* LADO A: Identidad */
 .macro-header__identity {
@@ -38,12 +117,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
+    width: 32px; /* Smaller logo box */
+    height: 32px;
     flex-shrink: 0;
     background: rgba(0, 255, 200, 0.04);
     border: 1px solid rgba(0, 255, 200, 0.15);
     border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.macro-header__logo--pulse {
+    animation: macro-logo-pulse 0.4s ease-out;
+    border-color: var(--indra-dynamic-accent, var(--color-accent)) !important;
+    background: var(--indra-dynamic-bg, rgba(0, 255, 200, 0.1)) !important;
+}
+
+@keyframes macro-logo-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
 }
 
 /* Bloque de título */
@@ -60,7 +152,7 @@
     border: none;
     border-bottom: 1px solid transparent;
     color: white;
-    font-size: var(--text-xl);
+    font-size: var(--text-base); /* Reduced from XL */
     font-family: var(--font-mono);
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -73,12 +165,12 @@
 }
 
 .macro-header__title-input:focus {
-    border-bottom-color: var(--color-accent);
+    border-bottom-color: var(--indra-dynamic-accent, var(--color-accent));
 }
 
 /* Título estático (no editable) — igual look */
 .macro-header__title-static {
-    font-size: var(--text-xl);
+    font-size: var(--text-base); /* Reduced from XL */
     font-family: var(--font-mono);
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -185,7 +277,7 @@
 .micro-header__meta {
     font-size: 8px;
     background: var(--color-bg-void);
-    color: var(--color-accent);
+    color: var(--indra-dynamic-accent, var(--color-accent));
     padding: 1px 4px;
     border-radius: 4px;
     font-family: var(--font-mono);
@@ -225,7 +317,7 @@
 
     50% {
         opacity: 1;
-        text-shadow: 0 0 10px var(--color-accent);
+        text-shadow: 0 0 10px var(--indra-dynamic-accent, var(--color-accent));
     }
 
     100% {
@@ -236,7 +328,7 @@
 
 .ast-resonance--syncing {
     animation: ast-sync-pulse 1.5s infinite ease-in-out;
-    color: var(--color-accent) !important;
+    color: var(--indra-dynamic-accent, var(--color-accent)) !important;
 }
 
 .ast-resonance--stable {

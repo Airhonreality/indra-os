@@ -62,6 +62,105 @@ function _system_handleUpdate(uqo) {
 }
 
 /**
+ * SERVICE_PAIR: Vincula una cuenta a un proveedor específico.
+ * Soporta 'SYSTEM_NATIVE' para autodescubrimiento en Google Apps Script.
+ */
+function _system_handleServicePair(uqo) {
+    const providerId = uqo.context_id || uqo.data?.provider_id;
+    const credentials = uqo.data?.credentials || uqo.data || {};
+    
+    if (!providerId) throw createError('INVALID_INPUT', 'SERVICE_PAIR requiere provider_id.');
+
+    let accountId = 'default';
+    let label = `Cuenta ${providerId}`;
+
+    // AXIOMA: Si el token es NATIVO, detectamos la identidad del usuario actual
+    const isNative = Object.values(credentials).some(v => v === 'SYSTEM_NATIVE');
+    if (isNative) {
+        const userEmail = Session.getActiveUser().getEmail();
+        accountId = userEmail.split('@')[0].replace(/[^\w]/g, '_');
+        label = `Indra Cloud (${userEmail})`;
+    }
+
+    try {
+        storeProviderAccount(providerId, accountId, credentials, label);
+        logInfo(`[infrastructure] Servicio vinculado: ${providerId}:${accountId}`);
+        return { items: [{ id: accountId, label }], metadata: { status: 'OK' } };
+    } catch (err) {
+        logError(`[infrastructure] Fallo al vincular servicio ${providerId}`, err);
+        return { items: [], metadata: { status: 'ERROR', error: err.message } };
+    }
+}
+
+function _system_handleServiceUnpair(uqo) {
+    const providerId = uqo.context_id;
+    const accountId = uqo.query?.account_id || 'default';
+    if (!providerId) throw createError('INVALID_INPUT', 'SERVICE_UNPAIR requiere provider_id.');
+
+    try {
+        // Suponiendo que system_config tiene una forma de borrar (o guardar vacío)
+        storeProviderAccount(providerId, accountId, null, null);
+        return { items: [], metadata: { status: 'OK' } };
+    } catch (err) {
+        return { items: [], metadata: { status: 'ERROR', error: err.message } };
+    }
+}
+
+
+/**
+ * REVISIONS_LIST: Obtiene el historial de versiones nativo de Google Drive.
+ */
+function _system_handleRevisionsList(uqo) {
+    if (!uqo.context_id) throw createError('INVALID_INPUT', 'REVISIONS_LIST requiere context_id.');
+    const fileId = uqo.context_id.includes(':') ? uqo.context_id.split(':').pop() : uqo.context_id;
+
+    try {
+        const revisions = Drive.Revisions.list(fileId);
+        const items = (revisions.revisions || []).map(rev => ({
+            id: rev.id,
+            modified_at: rev.modifiedTime,
+            size: rev.size,
+            author: rev.lastModifyingUser?.displayName || 'Sistema',
+            class: 'REVISION_POINTER'
+        })).reverse(); // Los más recientes primero
+
+        return { items, metadata: { status: 'OK', total: items.length } };
+    } catch (err) {
+        logError(`[infra] Error al listar revisiones de ${fileId}`, err);
+        return { items: [], metadata: { status: 'ERROR', error: 'Para usar esta función, la API de Drive debe estar habilitada en el Core.' } };
+    }
+}
+
+/**
+ * ATOM_ROLLBACK: Restaura un estado anterior del archivo JSON.
+ */
+function _system_handleRollback(uqo) {
+    const fileId = uqo.context_id.includes(':') ? uqo.context_id.split(':').pop() : uqo.context_id;
+    const revisionId = uqo.data?.revision_id;
+
+    if (!fileId || !revisionId) throw createError('INVALID_INPUT', 'ATOM_ROLLBACK requiere context_id y data.revision_id.');
+
+    try {
+        // 1. Obtener el contenido de la revisión (Apps Script Drive API v3)
+        // Nota: revisions.get con alt=media devuelve el contenido binario/texto
+        const revisionContent = Drive.Revisions.get(fileId, revisionId, { alt: 'media' });
+        
+        // 2. Sobrescribir el archivo actual con este contenido
+        const file = DriveApp.getFileById(fileId);
+        file.setContent(revisionContent);
+        
+        logInfo(`[infra] ROLLBACK exitoso en ${fileId} a versión ${revisionId}`);
+
+        // 3. Retornar el átomo restaurado
+        const updated = JSON.parse(revisionContent);
+        return { items: [_system_toAtom(updated, fileId, uqo.provider)], metadata: { status: 'OK', restored_revision: revisionId } };
+    } catch (err) {
+        logError(`[infra] Fallo en ATOM_ROLLBACK para ${fileId}`, err);
+        return { items: [], metadata: { status: 'ERROR', error: err.message } };
+    }
+}
+
+/**
  * ATOM_EXISTS: Verifica la existencia física de uno o varios átomos.
  * @private
  */
@@ -208,13 +307,17 @@ function _system_updateAtom(atomId, updates, providerId) {
         const current = JSON.parse(rawContent);
 
         // ADR-001: Purgar campos inmutables
-        const { id, class: atomClass, provider, raw, ...pureUpdates } = updates;
+        const { id, class: atomClass, provider, raw, strategy, ...pureUpdates } = updates;
         const updated = JSON.parse(JSON.stringify(current));
 
-        // deepMerge para el payload
+        // Gestión del Payload según Estrategia
         if (pureUpdates.payload) {
             updated.payload = updated.payload || {};
-            _indra_deepMerge_(updated.payload, pureUpdates.payload);
+            if (strategy === 'OVERWRITE') {
+                updated.payload = pureUpdates.payload;
+            } else {
+                _indra_deepMerge_(updated.payload, pureUpdates.payload);
+            }
             delete pureUpdates.payload;
         }
 

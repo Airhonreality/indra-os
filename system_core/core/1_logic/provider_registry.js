@@ -46,7 +46,7 @@ const SILO_MANIFEST_PREFIX = 'CONF_';
  */
 function _scanProviders() {
   const configs = [];
-  const knownPrefixes = ['CONF_SYSTEM', 'CONF_DRIVE', 'CONF_NOTION', 'CONF_EMAIL', 'CONF_LLM'];
+  const knownPrefixes = ['CONF_SYSTEM', 'CONF_DRIVE', 'CONF_NOTION', 'CONF_EMAIL', 'CONF_LLM', 'CONF_INTELLIGENCE'];
 
   // Intento 1: Iteración sobre el contexto global (Sincronía Glandular)
   // En GAS V8, 'this' o 'globalThis' pueden contener las funciones globales.

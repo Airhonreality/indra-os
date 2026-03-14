@@ -1,0 +1,129 @@
+/**
+ * =============================================================================
+ * ESTILOS: indra_print.css (v3.0 - DOCUMENT_CENTRIC)
+ * RESPONSABILIDAD: Motor de paginación física para entidades DOCUMENT.
+ * ESTRATEGIA: CSS Paged Media (ISO A4 / US Letter).
+ * =============================================================================
+ */
+
+@media print {
+    /* 1. Reset Sistémico Indra */
+    * {
+        transition: none !important;
+        animation: none !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+
+    /* Ocultar todo el andamiaje del Shell y Macro-Engines */
+    .nexus-shell__sidebar,
+    .action-rail,
+    .macro-header,
+    .engine-hood,
+    .inspector-panel,
+    .engine-sidebar,
+    .navigator-panel,
+    .properties-inspector,
+    .hud-line,
+    .ast-resonance--syncing,
+    .ws-card,
+    .btn,
+    .page-label-indicator,
+    .block-wrapper::after,
+    .block-wrapper::before,
+    .indra-engine-hood {
+        display: none !important;
+    }
+
+    /* 2. Configuración de Lienzo Físico */
+    body, html {
+        background: white !important;
+        color: black !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    #root {
+        height: auto !important;
+        display: block !important;
+    }
+
+    main {
+        overflow: visible !important;
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: white !important;
+    }
+
+    /* 3. Definición de Página (The Axiomatic Page) */
+    @page {
+        margin: 0;
+        size: auto;
+    }
+
+    .page-block {
+        margin: 0 !important;
+        padding: 20mm !important; /* Respetar sangría de diseño */
+        width: 100% !important;
+        min-height: 297mm !important; /* A4 por defecto */
+        height: 297mm !important;
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
+        position: relative !important;
+        background: white !important;
+        box-shadow: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+        border: none !important;
+    }
+
+    /* Ocultar decoraciones de editor en la página */
+    .page-block::after, .page-block > div[style*="position: absolute"] {
+        display: none !important;
+    }
+
+    /* 4. Tipografía y Escala */
+    .text-block {
+        font-family: "Inter", "Segoe UI", sans-serif !important;
+        line-height: 1.5 !important;
+        color: black !important;
+    }
+
+    h1, h2, h3, h4, strong {
+        color: black !important;
+    }
+
+    /* 5. Contenedores y Tablas (Iterators) */
+    .iterator-block, .frame-block {
+        width: 100% !important;
+        page-break-inside: auto !important;
+    }
+
+    .iterator-item {
+        page-break-inside: avoid !important;
+    }
+
+    /* 6. Utilidades de Impresión */
+    .print-only {
+        display: block !important;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+}
+
+/* UI Helper: Modo visualización en el editor */
+.page-block {
+    transition: box-shadow 0.3s ease;
+}
+
+.page-block:hover {
+    box-shadow: 0 15px 50px rgba(0,0,0,0.5) !important;
+}

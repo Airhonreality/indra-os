@@ -77,12 +77,13 @@ function DocumentDesignerShell({ atom, bridge }) {
     const [isSaving, setIsSaving] = useState(false);
     const [zoom, setZoom] = useState(0.8);
     const [toast, setToast] = useState(null);
+    const [previewMode, setPreviewMode] = useState(false);
 
     const handleTitleChange = (newLabel) => {
         const cleanLabel = newLabel === '' ? 'UNTITLED_DOCUMENT' : newLabel;
         setLocalLabel(cleanLabel);
         updatePinIdentity(atom.id, atom.provider, { label: cleanLabel });
-        saveDocument(cleanLabel);
+        handleManualSave(cleanLabel);
     };
 
     const showToast = (message) => {
@@ -90,7 +91,16 @@ function DocumentDesignerShell({ atom, bridge }) {
         setTimeout(() => setToast(null), 3000);
     };
 
-    const saveDocument = async (overrideLabel = null) => {
+    const handlePrint = () => {
+        // Entrar en modo preview forzado para limpiar la pantalla
+        setPreviewMode(true);
+        // Pequeño delay para que React renderice el cambio antes de llamar al print del sistema
+        setTimeout(() => {
+            window.print();
+        }, 100);
+    };
+
+    const handleManualSave = async (overrideLabel = null) => {
         setIsSaving(true);
         try {
             await bridge.save({
@@ -130,6 +140,9 @@ function DocumentDesignerShell({ atom, bridge }) {
                 } else if (e.key === 'y') {
                     e.preventDefault();
                     redo();
+                } else if (e.key === 'p') {
+                    e.preventDefault();
+                    handlePrint();
                 }
             }
         };
@@ -137,164 +150,202 @@ function DocumentDesignerShell({ atom, bridge }) {
         return () => window.removeEventListener('keydown', handleKeys);
     }, [undo, redo]);
 
+    const accentColor = atom?.color || '#00f5d4';
+    const dynamicStyles = {
+        '--indra-dynamic-accent': accentColor,
+        '--indra-dynamic-border': `${accentColor}26`,
+        '--indra-dynamic-bg': `${accentColor}08`,
+    };
+
     return (
-        <div
-            style={{
-                display: 'flex',
-                flexDirection: 'column',
-                width: '100%',
-                height: '100%',
-                overflow: 'hidden',
-                background: 'var(--color-bg-void)',
-                color: 'white'
-            }}
-        >
+        <div className={`macro-designer-wrapper fill ${previewMode ? 'preview-mode-active' : ''}`} style={dynamicStyles}>
             <IndraMacroHeader
                 atom={atom}
                 onClose={() => bridge.close()}
                 isSaving={isSaving}
                 onTitleChange={handleTitleChange}
-            />
-
-            <IndraEngineHood
-                onUndo={undo}
-                onRedo={redo}
-                canUndo={canUndo}
-                canRedo={canRedo}
-                leftSlot={
-                    <div className="shelf--tight glass--bone" style={{ padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>
-                        {DataProjector.getDocumentTools().map(tool => (
-                            <button
-                                key={tool.type}
-                                className="btn btn--xs btn--ghost"
-                                onClick={() => {
-                                    let targetId = selectedId;
-                                    if (!targetId && blocks.length > 0) { targetId = blocks[0].id; }
-                                    const newId = addNode(tool.type, targetId);
-                                    selectNode(newId);
-                                }}
-                                title={`INSERT ${tool.label}`}
-                            >
-                                <IndraIcon name={tool.icon} size="12px" />
-                            </button>
-                        ))}
-                    </div>
-                }
                 rightSlot={
-                    <div className="shelf--loose">
-                        {/* ZOOM */}
-                        <div className="shelf--tight glass--bone" style={{ padding: '2px 8px', borderRadius: 'var(--radius-pill)' }}>
-                            <button className="btn btn--xs btn--ghost" onClick={() => setZoom(z => Math.max(0.1, z - 0.1))}><IndraIcon name="MINUS" size="10px" /></button>
-                            <span className="font-mono" style={{ fontSize: '10px', width: '35px', textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
-                            <button className="btn btn--xs btn--ghost" onClick={() => setZoom(z => Math.min(2, z + 0.1))}><IndraIcon name="PLUS" size="10px" /></button>
-                        </div>
-
-                        <button className="btn btn--accent btn--sm" onClick={saveDocument} disabled={isSaving}>
-                            {isSaving ? 'SYNCING...' : 'SAVE_DOC'}
+                    <div className="shelf--tight">
+                        <button 
+                            className={`btn btn--xs ${previewMode ? 'active' : 'btn--ghost'}`}
+                            onClick={() => setPreviewMode(!previewMode)}
+                            style={{ 
+                                borderRadius: 'var(--indra-ui-radius)',
+                                border: previewMode ? '1px solid var(--indra-dynamic-accent)' : '1px solid var(--color-border)',
+                                color: previewMode ? 'var(--indra-dynamic-accent)' : 'var(--color-text-secondary)',
+                                background: previewMode ? 'var(--indra-dynamic-bg)' : 'transparent'
+                            }}
+                        >
+                            <IndraIcon name="EYE" size="12px" color={previewMode ? 'var(--indra-dynamic-accent)' : 'var(--color-text-secondary)'} />
+                            <span style={{ fontSize: '9px' }}>{previewMode ? 'EDIT_MODE' : 'PREVIEW'}</span>
+                        </button>
+                        <button 
+                            className="btn btn--ghost btn--xs" 
+                            onClick={handlePrint}
+                            style={{ borderRadius: 'var(--indra-ui-radius)' }}
+                        >
+                            <IndraIcon name="FILE" size="12px" />
+                            <span style={{ fontSize: '9px' }}>PDF_EXPORT</span>
                         </button>
                     </div>
                 }
             />
 
-
-            <div style={{
-                display: 'flex',
-                flexDirection: 'row',
-                flex: 1,
-                minHeight: 0,
-                overflow: 'hidden',
-                background: 'var(--color-bg-void)'
-            }}>
-                {/* 2. ADAPTIVE VIEWPORT (CENTER) */}
-                <main className="fill" style={{
-                    overflow: 'auto', // Scroll real aquí
-                    position: 'relative',
-                    background: 'var(--color-bg-deep)',
-                    minWidth: 0,
-                    flex: 1,
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column'
-                }}>
-                    {/* SCALABLE CANVAS CONTAINER (The Axiomatic Viewport) */}
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'flex-start',
-                        padding: '120px 80px',
-                        minHeight: '100%',
-                        minWidth: 'fit-content'
-                    }}>
-                        <div style={{
-                            transform: `scale(${zoom})`,
-                            transformOrigin: 'top center',
-                            transition: 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)',
-                            flexShrink: 0
-                        }}>
-                            <div className="stack--loose" style={{
-                                position: 'relative',
-                                width: 'fit-content',
-                                height: 'fit-content'
-                            }}>
-                                {blocks.map((rootNode) => (
-                                    <RecursiveBlock key={rootNode.id} block={rootNode} />
+            {!previewMode && (
+                <div className="indra-container">
+                    <div className="indra-header-label">DOCUMENT_COMPOSITION_ENGINE</div>
+                    <IndraEngineHood
+                        onUndo={undo}
+                        onRedo={redo}
+                        canUndo={canUndo}
+                        canRedo={canRedo}
+                        leftSlot={
+                            <div className="engine-hood__capsule">
+                                {DataProjector.getDocumentTools().map(tool => (
+                                    <button
+                                        key={tool.type}
+                                        className="engine-hood__btn"
+                                        onClick={() => {
+                                            let targetId = selectedId;
+                                            if (!targetId && blocks.length > 0) { targetId = blocks[0].id; }
+                                            const newId = addNode(tool.type, targetId);
+                                            selectNode(newId);
+                                        }}
+                                        title={`INSERT ${tool.label}`}
+                                    >
+                                        <IndraIcon name={tool.icon} size="12px" color={tool.color} />
+                                    </button>
                                 ))}
                             </div>
+                        }
+                        rightSlot={
+                            <div className="shelf--tight">
+                                <div className="engine-hood__capsule" style={{ gap: '2px' }}>
+                                    <button className="engine-hood__btn" onClick={() => setZoom(Math.max(0.1, zoom - 0.1))}>
+                                        <IndraIcon name="MINUS" size="10px" color="var(--color-text-secondary)" />
+                                    </button>
+                                    <span className="text-hint font-mono" style={{ fontSize: '9px', minWidth: '30px', textAlign: 'center' }}>
+                                        {Math.round(zoom * 100)}%
+                                    </span>
+                                    <button className="engine-hood__btn" onClick={() => setZoom(zoom + 0.1)}>
+                                        <IndraIcon name="PLUS" size="10px" color="var(--color-text-secondary)" />
+                                    </button>
+                                </div>
+
+                                <div className="engine-hood__divider" />
+
+                                <button 
+                                    className="btn btn--xs" 
+                                    onClick={handleManualSave}
+                                    style={{ 
+                                        borderRadius: 'var(--indra-ui-radius)', 
+                                        padding: '2px 12px', 
+                                        backgroundColor: 'var(--indra-dynamic-bg)',
+                                        border: '1px solid var(--indra-dynamic-accent)',
+                                        color: 'var(--indra-dynamic-accent)'
+                                    }}
+                                >
+                                    <IndraIcon name="SAVE" size="10px" color="var(--indra-dynamic-accent)" />
+                                    <span style={{ marginLeft: "6px" }}>SAVE_DOC</span>
+                                </button>
+                            </div>
+                        }
+                    />
+                </div>
+            )}
+
+
+            <div className="designer-body fill shelf overflow-hidden" style={{ gap: 'var(--indra-ui-gap)' }}>
+                {/* 2. ADAPTIVE VIEWPORT (CENTER) */}
+                <div className="indra-container fill relative overflow-hidden">
+                    <div className="indra-header-label">PROJECTION_REALITY_CANVAS</div>
+                    <main className="fill" style={{
+                        overflow: 'auto', 
+                        position: 'relative',
+                        background: previewMode ? 'white' : 'var(--color-bg-deep)',
+                    }}>
+                        {/* SCALABLE CANVAS CONTAINER */}
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'flex-start',
+                            padding: previewMode ? '0' : '80px 40px',
+                            minHeight: '100%',
+                            minWidth: 'fit-content'
+                        }}>
+                            <div style={{
+                                transform: previewMode ? 'none' : `scale(${zoom})`,
+                                transformOrigin: 'top center',
+                                transition: 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)',
+                                flexShrink: 0
+                            }}>
+                                <div className="stack--loose indra-document-root" style={{
+                                    position: 'relative',
+                                    width: 'fit-content',
+                                    height: 'fit-content',
+                                    boxShadow: previewMode ? 'none' : '0 10px 30px rgba(0,0,0,0.5)'
+                                }}>
+                                    {blocks.map((rootNode) => (
+                                        <RecursiveBlock key={rootNode.id} block={rootNode} />
+                                    ))}
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </main>
+                    </main>
+                </div>
 
                 {/* 3. CONTROL COLUMN (RIGHT) */}
-                <div style={{
-                    width: '320px',
-                    background: 'var(--color-bg-surface)',
-                    borderLeft: '1px solid var(--color-border-strong)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden',
-                    height: '100%'
-                }}>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                        <NavigatorPanel atom={atom} onNotify={showToast} />
+                {!previewMode && (
+                    <div className="indra-container" style={{ width: '320px' }}>
+                        <div className="indra-header-label">DOCUMENT_STRUCTURE_NAV</div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            <NavigatorPanel atom={atom} onNotify={showToast} />
+                        </div>
+                        <div className="border-top" style={{
+                            height: '400px',
+                            borderColor: 'var(--indra-dynamic-border)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                            background: 'var(--indra-dynamic-bg)'
+                        }}>
+                            <PropertiesInspector />
+                        </div>
                     </div>
-                    <div style={{
-                        height: '400px',
-                        borderTop: '2px solid var(--color-border-strong)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        overflow: 'hidden',
-                        background: 'rgba(0,0,0,0.2)'
-                    }}>
-                        <PropertiesInspector />
-                    </div>
-                </div>
+                )}
             </div>
 
             {/* UNIVERSAL TOAST HUD */}
             {toast && (
                 <div className="glass shelf--loose" style={{
                     position: 'fixed',
-                    bottom: 'var(--space-8)',
-                    right: 'var(--space-8)',
-                    padding: 'var(--space-3) var(--space-6)',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--color-accent)',
-                    background: 'rgba(var(--rgb-accent), 0.1)',
+                    bottom: 'var(--indra-ui-margin)',
+                    right: 'var(--indra-ui-margin)',
+                    padding: 'var(--space-2) var(--space-4)',
+                    borderRadius: 'var(--indra-ui-radius)',
+                    border: '1px solid var(--indra-dynamic-accent)',
+                    background: 'var(--indra-dynamic-bg)',
                     backdropFilter: 'blur(20px)',
                     zIndex: 1000,
                     animation: 'slideUp 0.3s ease-out',
                     boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
                 }}>
-                    <IndraIcon name="LOGIC" size="14px" style={{ color: 'var(--color-accent)' }} />
-                    <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'white' }}>{toast}</span>
+                    <IndraIcon name="LOGIC" size="14px" color="var(--indra-dynamic-accent)" />
+                    <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'white' }}>{toast}</span>
                 </div>
             )}
 
             <style>{`
-                .block-wrapper:hover { outline-color: var(--color-border-strong) !important; } 
+                .block-wrapper:hover { outline-color: var(--indra-dynamic-border) !important; } 
                 pre, p { margin: 0; }
                 @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+                
+                @media print {
+                    .preview-mode-active .indra-document-root {
+                        transform: none !important;
+                    }
+                }
             `}</style>
         </div>
     );

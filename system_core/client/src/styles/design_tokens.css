@@ -98,6 +98,17 @@
 
     --transition-fast: 120ms ease;
     --transition-base: 220ms ease;
+
+    /* ── AXIOMAS INDUSTRIALES (Agregados por Antigravity) ── */
+    --indra-ui-margin: 12px;     /* Margen exterior canónico */
+    --indra-ui-gap: 2px;        /* Distancia entre módulos (gap de 2px) */
+    --indra-ui-radius: 2px;
+    
+    /* Variables Dinámicas (Placeholders que se inyectan via JS) */
+    --indra-dynamic-accent: var(--color-accent);
+    --indra-dynamic-bg: var(--color-accent-dim);
+    --indra-dynamic-border: var(--color-border-strong);
+    --indra-dynamic-glow: var(--color-accent-glow);
 }
 
 /* TEMA CLARO */

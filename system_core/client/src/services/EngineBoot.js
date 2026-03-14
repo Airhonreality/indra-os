@@ -12,5 +12,7 @@ import '../components/macro_engines/SchemaDesigner/init';
 import '../components/macro_engines/WorkflowDesigner/init';
 import '../components/macro_engines/AEEFormRunner/init';
 import '../components/macro_engines/VideoDesigner/init';
+import '../components/macro_engines/CalendarEngine/init';
+
 
 console.log('[EngineBoot] All macro-engines bootstrapped.');

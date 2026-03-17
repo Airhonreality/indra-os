@@ -19,7 +19,8 @@ import { DataProjector } from '../../services/DataProjector';
 import './ArtifactCard.css';
 
 export function ArtifactCard({ atom }) {
-    const { openArtifact, unpinAtom, deleteArtifact, coreUrl, sessionSecret } = useAppState();
+    const { openArtifact, unpinAtom, deleteArtifact, coreUrl, sessionSecret, pendingSyncs } = useAppState();
+    const isSyncing = !!pendingSyncs[atom.id];
 
     // 1. Proyectar el Átomo (Agnosticismo Axiomático)
     const projection = DataProjector.projectArtifact(atom);
@@ -30,7 +31,7 @@ export function ArtifactCard({ atom }) {
     const isOrphan = atom._orphan === true;
 
     const handleOpen = () => {
-        if (isOrphan) return; // La materia no existe
+        if (isOrphan || isSyncing) return; // La materia no existe o está en resonancia
         if (capabilities.canRead) openArtifact(atom);
     };
 
@@ -52,22 +53,30 @@ export function ArtifactCard({ atom }) {
 
     return (
         <div
-            className={`mca-surface stack ${isOrphan ? 'is-orphan' : ''}`}
+            className={`mca-surface stack ${isOrphan ? 'is-orphan' : ''} ${isSyncing ? 'is-syncing' : ''}`}
             style={{
-                borderColor: isOrphan ? 'var(--color-border)' : theme.color,
-                background: isOrphan
-                    ? 'rgba(255,255,255,0.02)'
-                    : `linear-gradient(135deg, ${theme.color}10 0%, transparent 100%)`,
-                '--theme-color': isOrphan ? 'var(--color-text-dim)' : theme.color,
-                opacity: isOrphan ? 0.6 : 1,
-                cursor: isOrphan ? 'not-allowed' : 'pointer'
+                borderColor: isSyncing ? 'var(--color-accent)' : (isOrphan ? 'var(--color-border)' : theme.color),
+                background: isSyncing 
+                    ? 'rgba(0, 255, 200, 0.05)'
+                    : (isOrphan
+                        ? 'rgba(255,255,255,0.02)'
+                        : `linear-gradient(135deg, ${theme.color}10 0%, transparent 100%)`),
+                '--theme-color': isSyncing ? 'var(--color-accent)' : (isOrphan ? 'var(--color-text-dim)' : theme.color),
+                opacity: (isOrphan && !isSyncing) ? 0.6 : 1,
+                cursor: (isOrphan || isSyncing) ? 'wait' : 'pointer'
             }}
             onClick={handleOpen}
         >
+            {isSyncing && (
+                <div className="mca-surface__loader center">
+                    <IndraIcon name="SYNC" size="24px" className="spin" style={{ color: 'var(--color-accent)' }} />
+                    <span className="text-label" style={{ fontSize: '7px', marginTop: 'var(--space-2)', color: 'var(--color-accent)' }}>SYNCING_MEMO...</span>
+                </div>
+            )}
             {/* HUD Decoration */}
             <div className="mca-surface__deco" style={{
-                borderTop: `2px solid ${theme.color}`,
-                borderRight: `2px solid ${theme.color}`
+                borderTop: `2px solid var(--theme-color)`,
+                borderRight: `2px solid var(--theme-color)`
             }}></div>
 
             {/* Header: Metadata & Resonance */}

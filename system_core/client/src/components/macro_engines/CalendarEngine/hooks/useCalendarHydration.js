@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 export function useCalendarHydration(atom, bridge) {
     const [events, setEvents] = useState([]);
     const [calendars, setCalendars] = useState([]); // Silos descubiertos
+    const [account, setAccount] = useState(null); // Identidad de sesión
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -29,14 +30,27 @@ export function useCalendarHydration(atom, bridge) {
                 ...query
             };
 
+            // 0. Resolver Identidad (Sinceridad de Sesión)
+            const accountResponse = await bridge.execute('ACCOUNT_RESOLVE', {
+                provider: atom.provider
+            });
+            if (accountResponse.metadata?.status === 'OK') {
+                setAccount(accountResponse.items?.[0] || null);
+            }
+
             // 1. Descubrir Calendarios (Silos)
+            console.log('[UCP] Solicitando HIERARCHY_TREE...', atom.provider);
             const hierarchyResponse = await bridge.execute('HIERARCHY_TREE', {
                 provider: atom.provider,
                 context_id: atom.id
             });
+            console.log('[UCP] HIERARCHY_TREE Respuesta:', hierarchyResponse);
 
             if (hierarchyResponse.metadata?.status === 'OK') {
                 setCalendars(hierarchyResponse.items || []);
+            } else {
+                console.warn('[UCP] Error al cargar jerarquía', hierarchyResponse);
+                setError(`FALLO_DE_TELEMETRIA: ${hierarchyResponse.metadata?.error || 'Respuesta vacía'}`);
             }
 
             // 2. Sincronizar Realidades (Stream de eventos por defecto del primary)
@@ -49,10 +63,10 @@ export function useCalendarHydration(atom, bridge) {
             if (streamResponse.metadata?.status === 'OK') {
                 setEvents(streamResponse.items || []);
             } else {
-                setError(streamResponse.metadata?.error);
+                console.warn('[UCP] Error en stream de eventos', streamResponse);
             }
         } catch (err) {
-            setError(err.message);
+            setError(`ERROR_SISTEMICO: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -66,6 +80,7 @@ export function useCalendarHydration(atom, bridge) {
     return {
         events,
         calendars,
+        account,
         loading,
         error,
         refresh: pull

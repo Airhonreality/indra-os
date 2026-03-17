@@ -20,8 +20,12 @@ import { Spinner, EmptyState } from '../../utilities/primitives';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
 import { IndraEngineHood } from '../../utilities/IndraEngineHood';
 import { useWorkspace } from '../../../context/WorkspaceContext';
-
+import { useLexicon } from '../../../services/lexicon';
+import { useShell } from '../../../context/ShellContext';
 export function BridgeDesigner({ atom, bridge }) {
+    const shell = useShell();
+    const lang = shell?.lang || 'es';
+    const t = useLexicon(lang);
     const { updatePinIdentity } = useWorkspace();
     const [isSaving, setIsSaving] = useState(false);
     const [showSelector, setShowSelector] = useState(null); // 'FUENTE' | 'DESTINO'
@@ -58,8 +62,34 @@ export function BridgeDesigner({ atom, bridge }) {
         }
     };
 
-    // 3. Focussed Target (Select & Insert Axiom)
+    const [activeSlot, setActiveSlot] = useState('FLOW'); // FLOW | IO | TEST
     const [focusedTarget, setFocusedTarget] = useState(null);
+
+    // --- ESTADOS DE SIMULACIÓN (SANDBOX) ---
+    const [isExecuting, setIsExecuting] = useState(false);
+    const [testResult, setTestResult] = useState(null);
+
+    const runTest = async (triggerData) => {
+        setIsExecuting(true);
+        setTestResult(null);
+        try {
+            // AXIOMA DE DETERMINISMO: Enviamos el puente efímero para probar sin guardar
+            const result = await bridge.request({
+                protocol: 'LOGIC_EXECUTE',
+                context_id: localAtom.id,
+                data: {
+                    trigger_data: triggerData,
+                    bridge: localAtom.payload // Inyectamos configuración local actual
+                }
+            });
+            setTestResult(result);
+        } catch (err) {
+            console.error('[Sandbox] Execution failed:', err);
+            setTestResult({ error: err.message });
+        } finally {
+            setIsExecuting(false);
+        }
+    };
 
     const handleSelectInput = (slot) => {
         if (!focusedTarget) return;
@@ -108,14 +138,37 @@ export function BridgeDesigner({ atom, bridge }) {
 
         setIsSaving(true);
         try {
-            await bridge.save(atomToSave);
-            lastSavedRef.current = currentData;
+            const result = await bridge.save(atomToSave);
+            
+            // ADR-003: Sincronizar RAM (Realidad A) con Drive (Realidad B)
+            if (result.items?.[0]) {
+                const refreshedAtom = result.items[0];
+                setLocalAtom(refreshedAtom);
+                lastSavedRef.current = JSON.stringify(refreshedAtom);
+            } else {
+                lastSavedRef.current = currentData;
+            }
         } catch (err) {
             console.error('[BridgeDesigner] Save failed:', err);
         } finally {
             setIsSaving(false);
         }
     };
+
+    // 4. Persistencia al Desmontar (Garantía de Sinceridad)
+    const localAtomRef = useRef(localAtom);
+    useEffect(() => { localAtomRef.current = localAtom; }, [localAtom]);
+
+    useEffect(() => {
+        return () => {
+            const latestAtom = localAtomRef.current;
+            const currentData = JSON.stringify(latestAtom);
+            if (currentData !== lastSavedRef.current) {
+                // Flash final de memoria antes de salir de la realidad del bridge
+                bridge.save(latestAtom).catch(() => {});
+            }
+        };
+    }, [bridge]);
 
     // Handlers de Operadores
     const addOperator = (type) => {
@@ -148,30 +201,51 @@ export function BridgeDesigner({ atom, bridge }) {
         });
     };
 
-    const getContextAt = (index) => {
-        const context = { sources: {}, ops: {} };
+    const getOptionsFor = (index = null) => {
+        const options = [];
 
+        const flattenOptions = (fields, prefix, alias) => {
+            fields.forEach(f => {
+                options.push({
+                    value: `${prefix}.${alias}.${f.id}`,
+                    label: `${alias.toUpperCase()} > ${f.id}`,
+                    type: prefix === 'source' ? 'SOURCE' : 'OPERATOR'
+                });
+                if (f.children && f.children.length > 0) {
+                    flattenOptions(f.children, prefix, alias);
+                }
+            });
+        };
+
+        // 1. Fuentes (SOURCES)
         (localAtom.payload?.sources || []).forEach(sid => {
             if (schemas[sid]) {
                 const config = localAtom.payload?.sourceConfigs?.[sid] || {};
                 const customAlias = config.alias || schemas[sid].handle?.label || schemas[sid].label || sid;
                 const alias = customAlias.toLowerCase().replace(/\s+/g, '_');
                 const activeFields = config.activeFields;
-                const filteredFields = activeFields ? schemas[sid].fields?.filter(f => activeFields.includes(f.id)) : schemas[sid].fields;
-                context.sources[alias] = { ...schemas[sid], fields: filteredFields };
+                const fields = activeFields ? schemas[sid].fields?.filter(f => activeFields.includes(f.id)) : schemas[sid].fields;
+                
+                flattenOptions(fields || [], 'source', alias);
             }
         });
 
-        (localAtom.payload?.operators || []).slice(0, index).forEach(op => {
+        // 2. Operadores (OPS)
+        const opsToInclude = index === null 
+            ? (localAtom.payload?.operators || [])
+            : (localAtom.payload?.operators || []).slice(0, index);
+
+        opsToInclude.forEach(op => {
             if (op.alias) {
-                context.ops[op.alias] = {
-                    type: op.type,
-                    res: `RESULTADO_DE_${op.alias.toUpperCase()}`
-                };
+                options.push({
+                    value: `op.${op.alias}`,
+                    label: `OP // ${op.alias.toUpperCase()}`,
+                    type: 'OPERATOR'
+                });
             }
         });
 
-        return context;
+        return options;
     };
 
     const addPort = (id) => {
@@ -230,9 +304,10 @@ export function BridgeDesigner({ atom, bridge }) {
 
     if (isLoading) return (
         <div className="fill center">
-            <Spinner size="32px" label="INICIALIZANDO LÓGICA DEL PUENTE..." />
+            <Spinner size="32px" label={t('status_loading')} />
         </div>
     );
+
 
     return (
         <div className="fill stack" style={{ backgroundColor: 'var(--color-bg-void)', overflow: 'hidden' }}>
@@ -248,7 +323,7 @@ export function BridgeDesigner({ atom, bridge }) {
             <div className="fill stack overflow-hidden" style={{ padding: 'var(--indra-ui-margin)', gap: 'var(--indra-ui-gap)' }}>
                 {/* 1. TOP HOOD: ENGINE FUNCTIONS */}
                 <div className="indra-container" style={{ flexShrink: 0 }}>
-                <div className="indra-header-label">LOGIC_PIPELINE_ENGINE</div>
+                <div className="indra-header-label">{t('ui_controls')}</div>
                 <IndraEngineHood
                     onUndo={undo}
                     onRedo={redo}
@@ -256,7 +331,7 @@ export function BridgeDesigner({ atom, bridge }) {
                     canRedo={pointer < history.length - 1}
                     leftSlot={
                         <div className="engine-hood__capsule">
-                            <span className="text-hint font-mono" style={{ fontSize: '8px', opacity: 0.5, margin: '0 var(--space-2)' }}>AÑADIR_OP:</span>
+                            <span className="text-hint font-mono" style={{ fontSize: '8px', opacity: 0.5, margin: '0 var(--space-2)' }}>{t('ui_new_operation')}:</span>
                             {[
                                 { type: 'MATH', color: 'var(--color-accent)', label: 'MATH' },
                                 { type: 'TEXT', color: 'var(--color-text-primary)', label: 'STRING' },
@@ -287,85 +362,111 @@ export function BridgeDesigner({ atom, bridge }) {
                             }}
                         >
                             <IndraIcon name="SAVE" size="10px" color="var(--indra-dynamic-accent)" />
-                            <span style={{ marginLeft: "6px" }}>MEMORIZE_SYNC</span>
+                            <span style={{ marginLeft: "6px" }}>{t('action_save')}</span>
                         </button>
                     }
                 />
                 </div>
+                {/* 2. MAIN WORKSPACE (AXIOM: Body & Footer Shell) */}
+                <div className="fill indra-engine-shell" data-active-tab={activeSlot}>
+                    {/* INDUSTRIAL MOBILE TABS */}
+                    <nav className="indra-mobile-tabs">
+                        <button className={`btn btn--xs fill ${activeSlot === 'FLOW' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setActiveSlot('FLOW')}>FLOW</button>
+                        <button className={`btn btn--xs fill ${activeSlot === 'IO' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setActiveSlot('IO')}>I/O</button>
+                        <button className={`btn btn--xs fill ${activeSlot === 'TEST' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setActiveSlot('TEST')}>TEST</button>
+                    </nav>
 
-                {/* 2. MAIN WORKSPACE */}
-                <div className="fill shelf overflow-hidden" style={{ gap: 'var(--indra-ui-gap)', alignItems: 'stretch' }}>
-                    {/* LEFT: INPUT PORTS */}
-                <div className="indra-container" style={{ width: '280px' }}>
-                    <div className="indra-header-label">INPUT_PORT_SYSTEM</div>
-                    <PortManager
-                        title="FUENTES DE ENTRADA"
-                        ids={localAtom.payload?.sources || []}
-                        configs={localAtom.payload?.sourceConfigs || {}}
-                        schemas={schemas}
-                        onAdd={() => setShowSelector('FUENTE')}
-                        onRemove={(id) => removePort(id, 'SOURCE')}
-                        onUpdateConfig={(id, conf) => updatePortConfig(id, conf, 'SOURCE')}
-                        onSelectField={handleSelectInput}
-                        type="SOURCE"
-                    />
-                </div>
-
-                {/* MIDDLE: PIPELINE CANVAS */}
-                <div className="indra-container fill stack bg-black-soft relative overflow-hidden" style={{ borderLeft: 'none', borderRight: 'none' }}>
-                    <div className="indra-header-label">OPERATOR_PIPELINE_FABRIC</div>
-                    <section className="fill stack" style={{ overflowY: 'auto', padding: 'var(--space-4)' }}>
-                        <div className="stack--loose" style={{ maxWidth: '800px', margin: '0 auto', width: '100%', alignItems: 'stretch' }}>
-                            <div className="stack--loose" style={{ flex: 1 }}>
-                                {(localAtom.payload?.operators || []).map((op, index) => (
-                                    <OperatorCard
-                                        key={op.id}
-                                        op={op}
-                                        onUpdate={(updated) => updateOperator(index, updated)}
-                                        onRemove={() => removeOperator(op.id)}
-                                        contextBefore={getContextAt(index)}
-                                        focusedTarget={focusedTarget}
-                                        setFocusedTarget={setFocusedTarget}
-                                        onSelectOpResult={handleSelectInput}
-                                    />
-                                ))}
-                            </div>
-
-                            {(localAtom.payload?.operators || []).length === 0 && (
-                                <EmptyState
-                                    icon="BRIDGE"
-                                    title="FLUJO DE LÓGICA VACÍO"
-                                    description="Añade operadores matemáticos, de texto o resolutores para construir el pipeline de transformación."
-                                />
-                            )}
+                    {/* COLUMNS AXIS (H-AXIS) */}
+                    <div className="fill indra-engine-body bridge-designer-workspace indra-layout-tripartite">
+                        {/* SLOT: NAV (INPUT PORTS) */}
+                        <div className="tripartite-side indra-container indra-slot-nav">
+                            <div className="indra-header-label">{t('ui_sources')}</div>
+                            <PortManager
+                                title={t('ui_sources')}
+                                ids={localAtom.payload?.sources || []}
+                                configs={localAtom.payload?.sourceConfigs || {}}
+                                schemas={schemas}
+                                onAdd={() => setShowSelector('FUENTE')}
+                                onRemove={(id) => removePort(id, 'SOURCE')}
+                                onUpdateConfig={(id, conf) => updatePortConfig(id, conf, 'SOURCE')}
+                                type="SOURCE"
+                            />
                         </div>
-                    </section>
-                </div>
 
-                {/* RIGHT: OUTPUT PORTS */}
-                <div className="indra-container" style={{ width: '280px' }}>
-                    <div className="indra-header-label">OUTPUT_PORT_SYSTEM</div>
-                    <PortManager
-                        title="SALIDAS DE DATOS"
-                        ids={localAtom.payload?.targets || []}
-                        schemas={schemas}
-                        configs={localAtom.payload?.targetConfigs || {}}
-                        mappings={localAtom.payload?.mappings || {}}
-                        focusedTarget={focusedTarget}
-                        setFocusedTarget={setFocusedTarget}
-                        onAdd={() => setShowSelector('DESTINO')}
-                        onRemove={(id) => removePort(id, 'TARGET')}
-                        onUpdateMapping={updateMapping}
-                        onUpdateConfig={(id, conf) => updatePortConfig(id, conf, 'TARGET')}
-                        type="TARGET"
-                    />
+                        {/* SLOT: CORE (PIPELINE CANVAS) */}
+                        <div className="tripartite-center indra-container fill indra-slot-core">
+                            <div className="indra-header-label">{t('ui_transformation')}</div>
+                            <section className="fill stack" style={{ overflowY: 'auto', padding: 'var(--space-4)' }}>
+                                <div className="stack--loose mobile-full-width" style={{ maxWidth: '800px', margin: '0 auto', width: '100%', alignItems: 'stretch' }}>
+                                    <div className="stack--loose" style={{ flex: 1 }}>
+                                        {isLoading ? (
+                                            <div className="center fill"><Spinner /></div>
+                                        ) : (localAtom.payload?.operators || []).length === 0 ? (
+                                            <EmptyState
+                                                icon="BRIDGE"
+                                                title="FLUJO DE LÓGICA VACÍO"
+                                                description="Añade operadores matemáticos, de texto o resolutores para construir el pipeline de transformación."
+                                            />
+                                        ) : (localAtom.payload?.operators || []).map((op, index) => (
+                                            <OperatorCard
+                                                key={op.id}
+                                                op={op}
+                                                onUpdate={(updated) => updateOperator(index, updated)}
+                                                onRemove={() => removeOperator(op.id)}
+                                                options={getOptionsFor(index)}
+                                            />
+                                        ))}
+                                    </div>
+
+                                    {/* ADD OPERATOR GHOST */}
+                                    <div 
+                                        className="center glass-hover clickable" 
+                                        style={{ 
+                                            height: '40px', 
+                                            borderRadius: 'var(--radius-md)', 
+                                            border: '1px dashed var(--color-border)',
+                                            marginTop: 'var(--space-4)'
+                                        }}
+                                        onClick={() => setShowSelector('OPERADOR')}
+                                    >
+                                        <div className="shelf--tight opacity-40">
+                                            <IndraIcon name="PLUS" size="12px" />
+                                            <span style={{ fontSize: '10px', fontWeight: 'bold' }}>{t('ui_add_operator').toUpperCase()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+
+                        {/* SLOT: INSP (TARGET PORTS) */}
+                        <div className="tripartite-side indra-container">
+                            <div className="indra-header-label">{t('ui_targets')}</div>
+                            <PortManager
+                                title={t('ui_targets')}
+                                ids={localAtom.payload?.targets || []}
+                                schemas={schemas}
+                                configs={localAtom.payload?.targetConfigs || {}}
+                                mappings={localAtom.payload?.mappings || {}}
+                                mappingOptions={getOptionsFor(null)}
+                                onAdd={() => setShowSelector('DESTINO')}
+                                onRemove={(id) => removePort(id, 'TARGET')}
+                                onUpdateMapping={updateMapping}
+                                onUpdateConfig={(id, conf) => updatePortConfig(id, conf, 'TARGET')}
+                                type="TARGET"
+                            />
+                        </div>
                     </div>
-                </div>
 
-                {/* 3. LOWER SANDBOX */}
-                <div className="indra-container" style={{ flexShrink: 0, height: '220px' }}>
-                    <div className="indra-header-label">REALTIME_SANDBOX_STATION</div>
-                    <SandboxPanel bridge={bridge} schemas={schemas} sources={localAtom.payload?.sources || []} sourceConfigs={localAtom.payload?.sourceConfigs || {}} />
+                    {/* DEDICATED FOOTER AXIS (V-AXIS) */}
+                    <div className="indra-engine-footer">
+                        <SandboxPanel 
+                            localAtom={localAtom} 
+                            schemas={schemas}
+                            isExecuting={isExecuting}
+                            testResult={testResult}
+                            runTest={runTest}
+                        />
+                    </div>
                 </div>
             </div>
 

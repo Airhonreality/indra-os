@@ -1,242 +1,240 @@
 /**
  * =============================================================================
- * ARTEFACTO: DocumentDesigner/layout/RightPanel.jsx
- * RESPONSABILIDAD: Inspector paramétrico dinámico.
+ * ARTEFACTO: DocumentDesigner/inspector/PropertiesInspector.jsx
+ * RESPONSABILIDAD: Renderizado de propiedades de la entidad seleccionada.
+ *
+ * REFACTOR (QUALITY_CONTROL):
+ * - Implementa ScrubbableInput para campos numéricos/unit.
+ * - Soporta multi-columna (vía EntityInspectorSection).
  * =============================================================================
  */
 
-import React from 'react';
-import { IndraIcon } from '../../../utilities/IndraIcons';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAST } from '../context/ASTContext';
 import { useSelection } from '../context/SelectionContext';
-import { FrameBlock } from '../blocks/FrameBlock';
-import { TextBlock } from '../blocks/TextBlock';
-import { ImageBlock } from '../blocks/ImageBlock';
-import { IteratorBlock } from '../blocks/IteratorBlock';
-import { PageBlock } from '../blocks/PageBlock';
-import ArtifactSelector from '../../../utilities/ArtifactSelector';
-
-const BLOCK_COMPONENTS = {
-    'PAGE': PageBlock,
-    'FRAME': FrameBlock,
-    'TEXT': TextBlock,
-    'IMAGE': ImageBlock,
-    'ITERATOR': IteratorBlock
-};
-
-const FieldRenderer = ({ field, value, onChange }) => {
-    const [showSelector, setShowSelector] = React.useState(false);
-
-    switch (field.type) {
-        case 'vault_artifact':
-            return (
-                <>
-                    <div className="shelf--tight" style={{ width: '100%' }}>
-                        <div className="util-input--sm fill shelf--tight" style={{ opacity: value ? 1 : 0.4 }}>
-                            <IndraIcon name="VAULT" size="10px" />
-                            <span style={{ fontSize: '9px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {value || 'SELECT_FROM_VAULT...'}
-                            </span>
-                        </div>
-                        <button className="btn btn--xs btn--accent" onClick={() => setShowSelector(true)} style={{ padding: '4px 8px' }}>
-                            PICK
-                        </button>
-                    </div>
-                    {showSelector && (
-                        <ArtifactSelector
-                            onSelect={(artifact) => {
-                                // Buscamos si tiene un blob o URL de imagen
-                                const src = artifact.payload?.url || artifact.payload?.src || artifact.id;
-                                onChange(src);
-                                setShowSelector(false);
-                            }}
-                            onCancel={() => setShowSelector(false)}
-                            filter={field.filter || {}}
-                        />
-                    )}
-                </>
-            );
-        case 'text':
-            return field.multiLine ? (
-                <textarea
-                    value={value || ''}
-                    onChange={(e) => onChange(e.target.value)}
-                    className="util-input--sm"
-                    style={{ minHeight: '60px', fontFamily: 'var(--font-mono)' }}
-                />
-            ) : (
-                <input
-                    type="text"
-                    value={value || ''}
-                    onChange={(e) => onChange(e.target.value)}
-                    className="util-input--sm"
-                />
-            );
-        case 'unit':
-            return (
-                <div className="shelf--tight">
-                    <input
-                        type="text"
-                        value={value || ''}
-                        onChange={(e) => onChange(e.target.value)}
-                        className="util-input--sm fill"
-                    />
-                    <span style={{ fontSize: '8px', opacity: 0.5 }}>{field.defaultUnit || 'px'}</span>
-                </div>
-            );
-        case 'color':
-            return (
-                <div className="shelf--tight">
-                    <input
-                        type="color"
-                        value={value?.startsWith('#') ? value : '#000000'}
-                        onChange={(e) => onChange(e.target.value)}
-                        style={{ width: '24px', height: '24px', border: 'none', background: 'none' }}
-                    />
-                    <input
-                        type="text"
-                        value={value || ''}
-                        onChange={(e) => onChange(e.target.value)}
-                        className="util-input--sm fill"
-                        placeholder="#HEX..."
-                    />
-                </div>
-            );
-        case 'select':
-            return (
-                <select
-                    value={value || ''}
-                    onChange={(e) => onChange(e.target.value)}
-                    className="util-input--sm"
-                >
-                    {field.options.map(opt => (
-                        <option key={opt} value={opt}>{opt.toUpperCase()}</option>
-                    ))}
-                </select>
-            );
-        case 'boolean':
-            return (
-                <input
-                    type="checkbox"
-                    checked={!!value}
-                    onChange={(e) => onChange(e.target.checked)}
-                />
-            );
-        default:
-            return <span style={{ color: 'red', fontSize: '10px' }}>UNKNOWN_FIELD_TYPE: {field.type}</span>;
-    }
-};
-
-import { DataProjector } from '../../../../services/DataProjector';
-
-const PAGE_PRESETS = {
-    A4: { width: '210mm', height: '297mm', label: 'ISO A4' },
-    LETTER: { width: '215.9mm', height: '279.4mm', label: 'US LETTER' },
-    SQUARE: { width: '200mm', height: '200mm', label: 'SQUARE' }
-};
+import { blockManifests } from './inspectorManifests';
+import { EntityInspectorSection } from './EntityInspectorSection';
+import { IndraIcon } from '../../../utilities/IndraIcons';
 
 export function PropertiesInspector() {
-    const { blocks, findNode, updateNode, removeNode } = useAST();
+    const { findNode, updateNode, duplicateNode, removeNode } = useAST();
     const { selectedId } = useSelection();
 
-    const node = selectedId ? findNode(selectedId) : null;
-    const projection = DataProjector.projectDocumentBlock(node);
+    const selectedNode = selectedId ? findNode(selectedId) : null;
+    const blockManifest = selectedNode ? blockManifests[selectedNode.type] : null;
 
-    const onUpdate = (newData) => updateNode(selectedId, newData);
-    const onRemove = () => removeNode(selectedId);
-
-    const applyPreset = (presetKey) => {
-        const preset = PAGE_PRESETS[presetKey];
-        if (preset) {
-            onUpdate({
-                props: {
-                    ...node.props,
-                    width: preset.width,
-                    minHeight: preset.height
-                }
-            });
-        }
-    };
-
-    if (!node || !projection) {
+    if (!selectedNode) {
         return (
-            <div className="center fill stack" style={{ padding: 'var(--space-8)', opacity: 0.2 }}>
-                <IndraIcon name="ATOM" size="32px" />
-                <div className="stack--tight center">
-                    <span style={{ fontSize: '10px', fontWeight: 'bold' }}>GLOBAL_PROPERTIES</span>
-                    <span style={{ fontSize: '8px' }}>SELECT_BLOCK_TO_INSPECT</span>
-                </div>
+            <div className="center fill stack--tight text-hint" style={{ opacity: 0.3, padding: '40px' }}>
+                <IndraIcon name="TARGET" size="32px" />
+                <span className="font-mono" style={{ fontSize: '9px' }}>SELECT_ENTITY_TO_INSPECT</span>
             </div>
         );
     }
 
-    const Manifest = BLOCK_COMPONENTS[node.type]?.manifest;
+    const isRoot = selectedNode.id === 'root' || selectedNode.type === 'PAGE';
+
+    const handleUpdateField = (id, value) => {
+        updateNode(selectedId, {
+            props: { ...selectedNode.props, [id]: value }
+        });
+    };
 
     return (
-        <aside style={{
-            flex: 1,
-            background: 'var(--color-bg-surface)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-        }}>
-            <header className="spread" style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-border)' }}>
-                <div className="shelf--tight">
-                    <IndraIcon name={projection.icon} size="12px" style={{ color: projection.color || 'var(--color-accent)' }} />
-                    <span style={{ fontSize: '11px', fontWeight: 'bold' }}>{projection.label}</span>
+        <div className="properties-inspector fill stack--none overflow-hidden">
+            <header className="inspector-header shelf--tight" style={{ 
+                padding: '6px 8px', 
+                borderBottom: '1px solid var(--color-border)',
+                background: 'var(--color-bg-surface)',
+                flexShrink: 0
+            }}>
+                <IndraIcon name={blockManifest?.icon || 'ATOM'} size="10px" color="var(--color-accent)" />
+                <div className="stack--none fill">
+                    <div className="shelf--tight">
+                        <span style={{ fontSize: '9px', fontWeight: 'bold', fontFamily: 'var(--font-mono)' }}>
+                            {selectedNode.type}_ENGINE
+                        </span>
+                        <span style={{ fontSize: '7px', opacity: 0.3, fontFamily: 'var(--font-mono)' }}>#{selectedNode.id}</span>
+                    </div>
                 </div>
-                <div className="badge badge--ghost" style={{ fontSize: '9px', borderColor: projection.color }}>{node.id.substring(0, 8)}</div>
+                
+                <div className="shelf--tight">
+                    <button 
+                        className="btn btn--xs btn--ghost" 
+                        onClick={() => duplicateNode(selectedId)}
+                        title="DUPLICATE"
+                        style={{ padding: '4px' }}
+                    >
+                        <IndraIcon name="COPY" size="10px" />
+                    </button>
+                    {!isRoot && (
+                        <button 
+                            className="btn btn--xs btn--ghost color-error" 
+                            onMouseDown={() => {
+                                const timer = setTimeout(() => removeNode(selectedId), 800);
+                                window.addEventListener('mouseup', () => clearTimeout(timer), { once: true });
+                            }}
+                            title="HOLD_TO_DELETE"
+                            style={{ padding: '4px' }}
+                        >
+                            <IndraIcon name="TRASH" size="10px" />
+                        </button>
+                    )}
+                </div>
             </header>
 
-            <div className="fill stack" style={{ overflowY: 'auto', padding: 'var(--space-4)' }}>
-
-                {node.id === 'root' && (
-                    <div className="stack--tight" style={{ marginBottom: 'var(--space-6)' }}>
-                        <span className="util-label">PAGE_FORMAT_PRESETS</span>
-                        <div className="grid-auto" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-2)' }}>
-                            {Object.keys(PAGE_PRESETS).map(key => (
-                                <button
-                                    key={key}
-                                    className="btn btn--xs btn--ghost"
-                                    style={{
-                                        fontSize: '9px',
-                                        background: node.props.width === PAGE_PRESETS[key].width ? 'var(--color-accent-dim)' : 'transparent',
-                                        color: node.props.width === PAGE_PRESETS[key].width ? 'var(--color-accent)' : 'inherit'
-                                    }}
-                                    onClick={() => applyPreset(key)}
-                                >
-                                    {key}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {Manifest?.sections.map((section, idx) => (
-                    <div key={section.name || idx} className="stack--tight">
-                        <span className="util-label">{section.name}</span>
-                        <div className="stack--tight" style={{
-                            background: 'rgba(255,255,255,0.03)',
-                            padding: 'var(--space-2)',
-                            borderRadius: 'var(--radius-sm)',
-                            marginBottom: 'var(--space-3)'
-                        }}>
-                            {section.fields.map(field => (
-                                <div key={field.id} className="stack--tight">
-                                    <label style={{ fontSize: '9px', opacity: 0.5 }}>{field.label}</label>
-                                    <FieldRenderer
-                                        field={field}
-                                        value={node.props[field.id]}
-                                        onChange={(newVal) => onUpdate({ props: { ...node.props, [field.id]: newVal } })}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+            <main className="fill overflow-y-auto">
+                {blockManifest?.sections.map(section => (
+                    <EntityInspectorSection 
+                        key={section.id}
+                        section={section}
+                        fields={section.fields}
+                        values={selectedNode.props}
+                        onChange={handleUpdateField}
+                        renderField={(field) => (
+                            <FieldRenderer 
+                                field={field} 
+                                value={selectedNode.props[field.id]} 
+                                onChange={(val) => handleUpdateField(field.id, val)} 
+                            />
+                        )}
+                    />
                 ))}
+            </main>
+        </div>
+    );
+}
 
-                <div className="fill" />
-            </div>
-        </aside>
+function FieldRenderer({ field, value, onChange }) {
+    switch (field.type) {
+        case 'text':
+            return (
+                <textarea
+                    value={value || ''}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="inspector-field__input"
+                    rows={2}
+                    style={{ minHeight: '40px', resize: 'vertical', lineHeight: '1.4' }}
+                />
+            );
+
+        case 'unit':
+            return <ScrubbableUnitInput value={value} onChange={onChange} defaultUnit={field.defaultUnit} />;
+
+        case 'color':
+            return (
+                <div className="inspector-field__color-wrapper">
+                    <div 
+                        className="inspector-field__color-swatch" 
+                        style={{ backgroundColor: value?.startsWith('#') ? value : 'transparent', border: !value ? '1px dashed var(--color-border)' : 'none' }}
+                        onClick={(e) => e.currentTarget.nextSibling.click()}
+                    />
+                    <input
+                        type="color"
+                        value={value?.startsWith('#') ? value : '#000000'}
+                        onChange={(e) => onChange(e.target.value)}
+                        className="util-hidden"
+                    />
+                    <input
+                        type="text"
+                        value={value || ''}
+                        onChange={(e) => onChange(e.target.value)}
+                        className="inspector-field__input fill"
+                        placeholder="#HEX"
+                        style={{ lineHeight: '1.4' }}
+                    />
+                </div>
+            );
+
+        case 'select':
+            return (
+                <select
+                    value={value || (field.options?.[0] || '')}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="inspector-field__input"
+                    style={{ lineHeight: '1.4' }}
+                >
+                    {field.options?.map(opt => (
+                        <option key={opt} value={opt}>{opt.toUpperCase()}</option>
+                    ))}
+                </select>
+            );
+
+        default:
+            return (
+                <input
+                    type="text"
+                    value={value || ''}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="inspector-field__input"
+                    style={{ lineHeight: '1.4' }}
+                />
+            );
+    }
+}
+
+/**
+ * ScrubbableUnitInput: Permite arrastrar sobre el campo para cambiar el valor numérico.
+ */
+function ScrubbableUnitInput({ value, onChange, defaultUnit = '' }) {
+    const isDragging = useRef(false);
+    const startX = useRef(0);
+    const startValue = useRef(0);
+    const unitRef = useRef('');
+
+    // Extraer número y unidad del valor (ej. "18px" -> [18, "px"])
+    const parseValue = useCallback((val) => {
+        if (!val) return [0, defaultUnit || 'px'];
+        const num = parseFloat(val);
+        const unit = String(val).replace(String(num), '').trim();
+        return [isNaN(num) ? 0 : num, unit || defaultUnit || 'px'];
+    }, [defaultUnit]);
+
+    const handleMouseDown = (e) => {
+        isDragging.current = true;
+        startX.current = e.clientX;
+        const [num, unit] = parseValue(value);
+        startValue.current = num;
+        unitRef.current = unit;
+        
+        document.body.style.cursor = 'ew-resize';
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    };
+
+    const handleMouseMove = (e) => {
+        if (!isDragging.current) return;
+        const delta = e.clientX - startX.current;
+        const sensitivity = e.shiftKey ? 10 : 1; // Shift para incremento rápido
+        const newValue = Math.round(startValue.current + (delta / sensitivity));
+        onChange(`${newValue}${unitRef.current}`);
+    };
+
+    const handleMouseUp = () => {
+        isDragging.current = false;
+        document.body.style.cursor = 'default';
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    return (
+        <div className="inspector-field__unit-wrapper" onMouseDown={(e) => {
+            // Solo activar scrub si el click es en el label lateral o cerca del borde
+            // Pero para máxima ergonomía, lo permitimos en todo el wrapper menos el input enfocado
+            handleMouseDown(e);
+        }}>
+            <input
+                type="text"
+                value={value || ''}
+                onChange={(e) => onChange(e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()} // Permitir edit de texto normal
+                className="inspector-field__input"
+            />
+            {defaultUnit && (
+                <span className="inspector-field__unit-label">
+                    {defaultUnit}
+                </span>
+            )}
+        </div>
     );
 }

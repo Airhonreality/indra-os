@@ -21,18 +21,25 @@ import './CalendarEngine.css';
 
 export function CalendarEngine({ atom, bridge }) {
     const { updatePinIdentity } = useWorkspace();
-    const { events, calendars, loading, error, refresh } = useCalendarHydration(atom, bridge);
+    const t = useLexicon();
+    const { events, calendars, account, loading, error, refresh } = useCalendarHydration(atom, bridge);
 
     const [viewMode, setViewMode] = useState('MULTI_REALITY'); // MULTI_REALITY | ATOMIC
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedEvent, setSelectedEvent] = useState(null);
     
     const [localLabel, setLocalLabel] = useState(atom?.handle?.label || 'UNIVERSAL_CALENDAR');
-    const accentColor = '#00d2d3';
 
     const handleTitleChange = (newLabel) => {
-        setLocalLabel(newLabel);
-        updatePinIdentity(atom.id, atom.provider, { label: newLabel });
+        const cleanLabel = newLabel || 'UNIVERSAL_CALENDAR';
+        setLocalLabel(cleanLabel);
+        updatePinIdentity(atom.id, atom.provider, { label: cleanLabel });
+        
+        // PUREZA: Persistir identidad
+        bridge.save({
+            ...atom,
+            handle: { ...atom.handle, label: cleanLabel }
+        });
     };
 
     const moveDate = (days) => {
@@ -41,15 +48,9 @@ export function CalendarEngine({ atom, bridge }) {
         setCurrentDate(next);
     };
 
-    const dynamicStyles = {
-        '--indra-dynamic-accent': accentColor,
-        '--indra-dynamic-border': 'rgba(0, 210, 211, 0.2)',
-        '--indra-dynamic-bg': 'rgba(0, 210, 211, 0.05)',
-    };
-
     return (
-        <div className="macro-designer fill calendar-engine" style={dynamicStyles}>
-            {/* 0. INDRA MACRO HEADER */}
+        <div className="macro-designer fill calendar-engine stack" style={{ backgroundColor: 'var(--color-bg-void)', overflow: 'hidden' }}>
+            {/* 0. INDRA MACRO HEADER (Consumo Automático de Identidad) */}
             <IndraMacroHeader
                 atom={{ ...atom, handle: { ...atom.handle, label: localLabel } }}
                 onClose={() => bridge?.close?.()}
@@ -57,168 +58,178 @@ export function CalendarEngine({ atom, bridge }) {
                 isSaving={false}
             />
 
-            {/* 1. CONTROL HOOD */}
-            <div className="indra-container" style={{ minHeight: '50px' }}>
-                <div className="indra-header-label">TEMPORAL_COMMAND_CENTER</div>
-                <div className="engine-hood p-2 p-x-3 flex align-center gap-3">
-                    <div className="shelf--tight mr-3 p-1 bg-void rounded">
-                        <button className={`btn btn--xs ${viewMode === 'MULTI_REALITY' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setViewMode('MULTI_REALITY')}>
-                            <IndraIcon name="LAYERS" size="12px" /> MULTI_REALITY
-                        </button>
-                        <button className={`btn btn--xs ${viewMode === 'ATOMIC' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setViewMode('ATOMIC')}>
-                            <IndraIcon name="DATABASE" size="12px" /> ATOMIC_SILO
-                        </button>
-                    </div>
+            {/* ENVOLTURA TOPOLÓGICA DEL MOTOR (Respeto a Variables Globales) */}
+            <div className="fill stack overflow-hidden" style={{ padding: 'var(--indra-ui-margin)', gap: 'var(--indra-ui-gap)' }}>
+                
+                {/* 1. CONTROL HOOD */}
+                <div className="indra-container" style={{ minHeight: '64px', flexShrink: 0 }}>
+                    <div className="indra-header-label">{t('ui_controls')}</div>
+                    <div className="engine-hood p-2 px-3 flex align-center gap-3 fill">
+                        <div className="shelf--tight mr-3 p-1 bg-void rounded flex">
+                            <button className={`btn btn--xs ${viewMode === 'MULTI_REALITY' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setViewMode('MULTI_REALITY')}>
+                                <IndraIcon name="LAYERS" size="12px" /> {t('ui_multi_view')}
+                            </button>
+                            <button className={`btn btn--xs ${viewMode === 'ATOMIC' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setViewMode('ATOMIC')}>
+                                <IndraIcon name="DATABASE" size="12px" /> {t('ui_silo_view')}
+                            </button>
+                        </div>
 
-                    <div className="shelf--tight border-left pl-3 ml-2">
-                        <button className="btn btn--xs btn--ghost" onClick={() => moveDate(-7)}>
-                            <IndraIcon name="CHEVRON_LEFT" size="14px" />
-                        </button>
-                        <span className="font-mono text-xs font-bold uppercase mx-3 flex align-center" style={{ width: '180px', justifyContent: 'center', letterSpacing: '1px' }}>
-                            {currentDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-                        </span>
-                        <button className="btn btn--xs btn--ghost" onClick={() => moveDate(7)}>
-                            <IndraIcon name="CHEVRON_RIGHT" size="14px" />
-                        </button>
-                    </div>
+                        <div className="shelf--tight border-left pl-3 ml-2">
+                            <button className="btn btn--xs btn--ghost" onClick={() => moveDate(-7)}>
+                                <IndraIcon name="CHEVRON_LEFT" size="14px" />
+                            </button>
+                            <span className="font-mono text-xs font-bold uppercase mx-3 flex align-center" style={{ width: '180px', justifyContent: 'center', letterSpacing: '1px' }}>
+                                {currentDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+                            </span>
+                            <button className="btn btn--xs btn--ghost" onClick={() => moveDate(7)}>
+                                <IndraIcon name="CHEVRON_RIGHT" size="14px" />
+                            </button>
+                        </div>
 
-                    <div className="flex-1" />
+                        <div className="flex-1" />
 
-                    <div className="shelf--tight gap-2">
-                        <button className="btn btn--xs btn--ghost" onClick={refresh} title="REFRESCAR_FLUJOS">
-                            <IndraIcon name="REFRESH" size="14px" />
-                        </button>
-                        <button className="btn btn--xs btn--accent" style={{ background: 'var(--indra-dynamic-accent)', color: '#000' }}>
-                            <IndraIcon name="PLUS" size="14px" /> NUEVO_EVENTO
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* 2. DESIGNER BODY */}
-            <div className="designer-body">
-                <div className="indra-container fill overflow-hidden">
-                    <div className="indra-header-label">CHRONOS_FABRIC</div>
-                    
-                    <div className="reality-viewport fill p-0">
-                        {loading && events.length === 0 ? (
-                            <div className="fill center bg-void z-50">
-                                <Spinner label="SINCRONIZANDO_REALIDADES_TEMPORALES" />
-                            </div>
-                        ) : (
-                            <TimelineGrid 
-                                currentDate={currentDate} 
-                                events={events} 
-                                viewMode={viewMode}
-                                onEventClick={setSelectedEvent}
-                            />
-                        )}
+                        <div className="shelf--tight gap-2">
+                            <button className="btn btn--xs btn--ghost" onClick={refresh} title={t('action_refresh')}>
+                                <IndraIcon name="REFRESH" size="14px" />
+                            </button>
+                            <button 
+                                className={`btn btn--xs ${calendars?.length > 0 ? 'btn--accent' : 'btn--ghost border-dim opacity-50'}`} 
+                                style={calendars?.length > 0 ? { background: 'var(--indra-dynamic-accent)', color: '#000' } : {}}
+                                disabled={!calendars?.length}
+                            >
+                                <IndraIcon name="PLUS" size="14px" /> {t('action_new_event')}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                {/* 3. TEMPORAL INSPECTOR / SILO CONTROL */}
-                <div className="indra-container overflow-hidden" style={{ width: '380px', flexShrink: 0 }}>
-                    <div className="indra-header-label">TEMPORAL_INSPECTOR</div>
-                    
-                    <div className="flex-1 overflow-y-auto p-4 scroll-minimal stack gap-5" style={{ marginTop: '20px' }}>
-                        {selectedEvent ? (
-                            <div className="animate-fade-in stack gap-5">
-                                <div>
-                                    <div className="font-mono text-3xs opacity-40 uppercase mb-3">// ATOM_PROJECTION</div>
-                                    <EventAtomUI event={selectedEvent} />
+                {/* 2. DESIGNER BODY */}
+                <div className="designer-body fill shelf" style={{ gap: 'var(--indra-ui-gap)', minHeight: 0 }}>
+                    <div className="indra-container fill overflow-hidden relative">
+                        <div className="indra-header-label">{t('ui_calendar')}</div>
+                        
+                        <div className="reality-viewport fill p-0 relative">
+                            {loading && events.length === 0 ? (
+                                <div className="fill center bg-void z-50">
+                                    <Spinner label="SINCRONIZANDO_REALIDADES_TEMPORALES" />
                                 </div>
+                            ) : (
+                                <TimelineGrid 
+                                    currentDate={currentDate} 
+                                    events={events} 
+                                    viewMode={viewMode}
+                                    onEventClick={setSelectedEvent}
+                                />
+                            )}
+                        </div>
+                    </div>
 
-                                <div className="stack gap-3 border-top pt-4">
-                                    <div className="spread align-center">
-                                        <span className="font-mono text-xs font-bold" style={{ color: 'var(--indra-dynamic-accent)' }}>OPERACIONES_BINARIAS</span>
-                                        <IndraIcon name="SETTINGS" size="14px" className="opacity-40" />
+                    {/* 3. TEMPORAL INSPECTOR / SILO CONTROL */}
+                    <div className="indra-container overflow-hidden relative" style={{ width: '380px', flexShrink: 0 }}>
+                        <div className="indra-header-label">TEMPORAL_INSPECTOR</div>
+                        
+                        <div className="flex-1 overflow-y-auto p-4 scroll-minimal stack gap-5" style={{ marginTop: '20px' }}>
+                            {selectedEvent ? (
+                                <div className="animate-fade-in stack gap-5">
+                                    <div>
+                                        <div className="font-mono text-3xs opacity-40 uppercase mb-3">// ATOM_PROJECTION</div>
+                                        <EventAtomUI event={selectedEvent} />
                                     </div>
-                                    <div className="grid grid-2 gap-2">
-                                        <button className="btn btn--xs btn--ghost border-dim text-2xs truncate">REPROGRAMAR</button>
-                                        <button className="btn btn--xs btn--ghost border-dim text-2xs truncate">MIGRAR_SILO</button>
-                                        <button className="btn btn--xs btn--ghost border-dim text-2xs truncate">COPIAR_ID</button>
-                                        <button className="btn btn--xs btn--ghost border-red text-2xs truncate">ELIMINAR</button>
-                                    </div>
-                                </div>
 
-                                <div className="p-3 bg-void border-all opacity-80 rounded">
-                                    <div className="font-mono text-3xs opacity-40 mb-2">// METADATA_SHAFT</div>
-                                    <div className="stack gap-1">
-                                        <div className="spread"><span className="font-mono text-3xs opacity-40">ID:</span> <span className="font-mono text-3xs truncate select-text">{selectedEvent.id}</span></div>
-                                        <div className="spread"><span className="font-mono text-3xs opacity-40">SILO:</span> <span className="font-mono text-3xs font-bold">{selectedEvent.payload?.fields?.source_identity?.silo}</span></div>
-                                    </div>
-                                </div>
-
-                                <button className="btn btn--xs btn--ghost border-dim w-100" onClick={() => setSelectedEvent(null)}>
-                                    ⟵ CERRAR_INSPECTOR
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="animate-fade-in stack gap-5">
-                                <div className="stack gap-3">
-                                    <div className="spread align-center shelf--loose border-bottom pb-2">
-                                        <div>
-                                            <span className="font-mono text-xs font-bold uppercase" style={{ color: 'var(--indra-dynamic-accent)' }}>CONTROL_DE_SILOS</span>
-                                            <div className="font-mono text-3xs opacity-40 mt-1">Multi-Reality Management</div>
+                                    <div className="stack gap-3 border-top pt-4">
+                                        <div className="spread align-center">
+                                            <span className="font-mono text-xs font-bold" style={{ color: 'var(--indra-dynamic-accent)' }}>{t('ui_binary_operations')}</span>
+                                            <IndraIcon name="SETTINGS" size="14px" className="opacity-40" />
                                         </div>
-                                        <div className="bg-void p-1 px-2 border-all font-mono text-2xs font-bold">
-                                            {calendars?.length || 0}
+                                        <div className="grid grid-2 gap-2">
+                                            <button className="btn btn--xs btn--ghost border-dim text-2xs truncate">{t('action_reschedule')}</button>
+                                            <button className="btn btn--xs btn--ghost border-dim text-2xs truncate">{t('action_migrate_silo')}</button>
+                                            <button className="btn btn--xs btn--ghost border-dim text-2xs truncate">{t('action_copy_id')}</button>
+                                            <button className="btn btn--xs btn--ghost border-red text-2xs truncate">{t('action_delete')}</button>
                                         </div>
                                     </div>
-                                    
-                                    <div className="stack gap-2 mt-2">
-                                        {calendars?.length > 0 ? (
-                                            calendars.map(cal => (
-                                                <div key={cal.id} className="silo-card indra-container p-3 shelf--loose active">
-                                                    <div className="shelf--tight fill">
-                                                        <div 
-                                                            className="color-dot mr-2" 
-                                                            style={{ 
-                                                                width: '10px', height: '10px', borderRadius: '50%',
-                                                                backgroundColor: cal.payload?.fields?.color || 'var(--indra-dynamic-accent)',
-                                                                boxShadow: `0 0 10px ${cal.payload?.fields?.color || 'var(--indra-dynamic-accent)'}40`
-                                                            }} 
-                                                        />
-                                                        <div className="stack--tight fill">
-                                                            <div className="font-mono text-xs font-bold truncate pr-3">{cal.handle?.label}</div>
-                                                            <div className="font-mono text-3xs opacity-40">{cal.id === 'primary' ? 'CANAL_MAESTRO' : 'CANAL_VINCULADO'}</div>
+
+                                    <div className="p-3 bg-void border-all opacity-80 rounded">
+                                        <div className="font-mono text-3xs opacity-40 mb-2">// METADATA_SHAFT</div>
+                                        <div className="stack gap-1">
+                                            <div className="spread"><span className="font-mono text-3xs opacity-40">ID:</span> <span className="font-mono text-3xs truncate select-text">{selectedEvent.id}</span></div>
+                                            <div className="spread"><span className="font-mono text-3xs opacity-40">SILO:</span> <span className="font-mono text-3xs font-bold">{selectedEvent.payload?.fields?.source_identity?.silo}</span></div>
+                                        </div>
+                                    </div>
+
+                                    <button className="btn btn--xs btn--ghost border-dim w-100" onClick={() => setSelectedEvent(null)}>
+                                        ⟵ CERRAR_INSPECTOR
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="animate-fade-in stack gap-5">
+                                    <div className="stack gap-3">
+                                        <div className="spread align-center shelf--loose border-bottom pb-2">
+                                            <div>
+                                                <span className="font-mono text-xs font-bold uppercase" style={{ color: 'var(--indra-dynamic-accent)' }}>{t('ui_silo_control')}</span>
+                                                <div className="font-mono text-3xs opacity-40 mt-1">
+                                                    {account ? `${t('ui_session')}: ${account.handle?.label}` : t('status_loading')}
+                                                </div>
+                                            </div>
+                                            <div className="bg-void p-1 px-2 border-all font-mono text-2xs font-bold" style={{ color: calendars?.length > 0 ? 'var(--indra-dynamic-accent)' : 'inherit' }}>
+                                                {calendars?.length || 0}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="stack gap-2 mt-2">
+                                            {calendars?.length > 0 ? (
+                                                calendars.map(cal => (
+                                                    <div key={cal.id} className="silo-card indra-container p-3 shelf--loose active">
+                                                        <div className="shelf--tight fill">
+                                                            <div 
+                                                                className="color-dot mr-2" 
+                                                                style={{ 
+                                                                    width: '10px', height: '10px', borderRadius: '50%',
+                                                                    backgroundColor: cal.payload?.fields?.color || 'var(--indra-dynamic-accent)',
+                                                                    boxShadow: `0 0 10px ${cal.payload?.fields?.color || 'var(--indra-dynamic-accent)'}40`
+                                                                }} 
+                                                            />
+                                                            <div className="stack--tight fill">
+                                                                <div className="font-mono text-xs font-bold truncate pr-3">{cal.handle?.label}</div>
+                                                                <div className="font-mono text-3xs opacity-40">{cal.id === 'primary' ? 'CANAL_MAESTRO' : 'CANAL_VINCULADO'}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="shelf--tight">
+                                                            <IndraIcon name="EYE" size="14px" className="opacity-60 pointer hover-accent" />
+                                                            <IndraIcon name="SETTINGS" size="14px" className="opacity-40" />
                                                         </div>
                                                     </div>
-                                                    <div className="shelf--tight">
-                                                        <IndraIcon name="EYE" size="14px" className="opacity-60 pointer hover-accent" />
-                                                        <IndraIcon name="SETTINGS" size="14px" className="opacity-40" />
-                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="stack center border-all border-dashed p-6 opacity-30 bg-void">
+                                                <IndraIcon name={error ? 'ALERT_TRIANGLE' : 'DATABASE'} size="48px" style={{ color: error ? 'var(--color-error)' : 'inherit' }} />
+                                                <div className="font-mono text-xs opacity-60 text-center mt-2">
+                                                    {error ? error : (loading ? 'SINCRONIZANDO_REALIDADES...' : 'NO_SE_DETECTARON_CALENDARIOS')}
                                                 </div>
-                                            ))
-                                        ) : (
-                                            <div className="stack center border-all border-dashed p-6 opacity-30 bg-void">
-                                                <IndraIcon name="DATABASE" size="48px" />
-                                                <span className="font-mono text-2xs mt-4 text-center">
-                                                    BUSCANDO_FLUJOS_TEMPORALES...
-                                                </span>
                                             </div>
-                                        )}
-                                        <button className="btn btn--xs btn--ghost border-dim mt-2 py-2">
-                                            <IndraIcon name="PLUS" size="10px" className="mr-1" /> VINCULAR_NUEVA_REALIDAD
-                                        </button>
+                                            )}
+                                            <button className="btn btn--xs py-2 w-100 mt-2" style={{ border: '1px solid var(--indra-dynamic-accent)', color: 'var(--indra-dynamic-accent)', background: 'var(--indra-dynamic-bg)' }}>
+                                                <IndraIcon name="PLUS" size="10px" className="mr-2" /> {t('action_link_reality')}
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="stack gap-3 border-top pt-4">
+                                    <div className="stack gap-3 border-top pt-4">
                                     <span className="font-mono text-3xs opacity-40 uppercase">// INFRASTRUCTURE_SECURITY</span>
                                     <NexusServiceSlot 
                                         providerId="calendar_universal" 
-                                        label="GOOGLE_CALENDAR_NEXUS"
+                                        label={account ? `SINCERADO: ${account.handle?.label}` : "CONEXIÓN_NATIVA_INDRA"}
                                     />
                                 </div>
-                            </div>
-                        )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* 4. FOOTER */}
-            <div className="indra-footer flex align-center justify-between">
+            <div className="indra-footer flex align-center justify-between" style={{ padding: '0 var(--indra-ui-margin)', height: '28px', borderTop: '1px solid var(--indra-dynamic-border)', background: 'var(--color-bg-void)' }}>
                 <div className="shelf--loose">
                     <div className="shelf--tight">
                         <span className="font-mono text-3xs opacity-40">READY:</span>

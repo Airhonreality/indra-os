@@ -27,6 +27,7 @@ export function SchemaDesigner({ atom, bridge }) {
     const { updatePinIdentity } = useWorkspace();
     const [localAtom, setLocalAtom] = useState(atom);
     const [selectedFieldId, setSelectedFieldId] = useState(null);
+    const [activeSlot, setActiveSlot] = useState('CORE');
     const [isSaving, setIsSaving] = useState(false);
     const [previewMode, setPreviewMode] = useState(false);
     const [history, setHistory] = useState([]);
@@ -107,6 +108,9 @@ export function SchemaDesigner({ atom, bridge }) {
     }, [bridge]); // Solo al desmontar o si el bridge cambia
 
     // 1. Hidratación con Deduplicación
+    // Reset hasHydrated cuando cambia el atom (permite cambiar de schema sin cerrar el motor)
+    useEffect(() => { hasHydrated.current = false; }, [atom.id]);
+
     useEffect(() => {
         if (hasHydrated.current && localAtom.id === atom.id) return;
 
@@ -367,7 +371,7 @@ export function SchemaDesigner({ atom, bridge }) {
 
             {/* 1. TOP HOOD: ENGINE FUNCTIONS */}
             <div className="indra-container">
-                <div className="indra-header-label">ENGINE_CONTROL_SYSTEM</div>
+                <div className="indra-header-label">{t('ui_controls')}</div>
                 <IndraEngineHood
                     onUndo={undo}
                     onRedo={redo}
@@ -378,7 +382,7 @@ export function SchemaDesigner({ atom, bridge }) {
                             <button
                                 className={`engine-hood__btn ${previewMode ? 'engine-hood__btn--active' : ''}`}
                                 onClick={() => setPreviewMode(!previewMode)}
-                                title={previewMode ? 'VOLVER A EDICIÓN' : 'VISTA PREVIA'}
+                                title={previewMode ? t('action_edit') : t('action_preview')}
                                 style={{ width: 'auto', padding: '0 10px', gap: '6px' }}
                             >
                                 <IndraIcon 
@@ -387,7 +391,7 @@ export function SchemaDesigner({ atom, bridge }) {
                                     color={previewMode ? "var(--indra-dynamic-accent)" : "var(--color-text-secondary)"} 
                                 />
                                 <span style={{ fontSize: '9px', fontWeight: 'bold' }}>
-                                    {previewMode ? 'EDITAR' : 'VISTA PREVIA'}
+                                    {previewMode ? t('action_edit') : t('action_preview')}
                                 </span>
                             </button>
                         </div>
@@ -403,7 +407,7 @@ export function SchemaDesigner({ atom, bridge }) {
                                     color: !isLive ? 'var(--indra-dynamic-accent)' : 'var(--color-text-secondary)',
                                     border: !isLive ? '1px solid var(--indra-dynamic-accent)' : 'none'
                                 }}
-                            >BORRADOR</button>
+                            >{t('status_draft')}</button>
                             <button
                                 className={`btn btn--xs ${isLive ? 'active' : ''}`}
                                 onClick={() => updateStatus('LIVE')}
@@ -413,7 +417,7 @@ export function SchemaDesigner({ atom, bridge }) {
                                     color: isLive ? '#ff4655' : 'var(--color-text-secondary)',
                                     border: isLive ? '1px solid #ff4655' : 'none'
                                 }}
-                            >PUBLICADO</button>
+                            >{t('status_live')}</button>
                         </div>
                     }
                     rightSlot={
@@ -429,85 +433,108 @@ export function SchemaDesigner({ atom, bridge }) {
                             }}
                         >
                             <IndraIcon name="SAVE" size="10px" color="var(--indra-dynamic-accent)" />
-                            <span style={{ marginLeft: "6px" }}>GUARDAR CAMBIOS</span>
+                            <span style={{ marginLeft: "6px" }}>{t('action_save')}</span>
                         </button>
                     }
                 />
             </div>
 
-            {/* 2. MAIN CANVAS AREA */}
-            <div className="designer-body fill shelf overflow-hidden" style={{ gap: 'var(--indra-ui-gap)' }}>
-                {!previewMode && (
-                    <div className="indra-container" style={{ width: '260px' }}>
-                        <div className="indra-header-label">DNA_LAYERS_ARCHITECTURE</div>
+            {/* 2. MAIN CANVAS AREA (ADR-016 Tripartite Slot Model) */}
+            <div className="fill indra-engine-shell sd-shell" data-active-tab={activeSlot}>
+                {/* INDUSTRIAL MOBILE TABS */}
+                <nav className="indra-mobile-tabs">
+                    <button className={`btn btn--xs fill ${activeSlot === 'CORE' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setActiveSlot('CORE')}>BLUEPRINT</button>
+                    <button className={`btn btn--xs fill ${activeSlot === 'NAV' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setActiveSlot('NAV')}>LAYERS</button>
+                    <button className={`btn btn--xs fill ${activeSlot === 'INSP' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setActiveSlot('INSP')}>DNA</button>
+                </nav>
+
+                <div className={`fill indra-engine-body designer-body indra-layout-tripartite ${previewMode ? 'preview-mode' : ''}`}>
+                    <div className="tripartite-side indra-container indra-slot-nav">
+                        <div className="indra-header-label">{t('ui_layers')}</div>
                         <LayersPanel
                             fields={fields}
                             selectedId={selectedFieldId}
-                            onSelect={setSelectedFieldId}
+                            onSelect={(id) => { setSelectedFieldId(id); if (window.innerWidth < 900) setActiveSlot('INSP'); }}
                             onAdd={addField}
                             onRemove={removeField}
                             onMove={moveField}
                             onClone={cloneField}
                             onDemote={demoteField}
                             onPromote={promoteField}
+                            currentAtom={localAtom}
+                            onSwitchSchema={(newAtomId) => {
+                                if (bridge.navigate) bridge.navigate(newAtomId);
+                            }}
                         />
                     </div>
-                )}
 
-                <div className="indra-container fill relative overflow-hidden box-shadow-none">
-                    <div className="indra-header-label">BLUEPRINT_CANVAS_VIEW</div>
-                    <BlueprintCanvas
-                        fields={fields}
-                        selectedId={selectedFieldId}
-                        onSelect={setSelectedFieldId}
-                        previewMode={previewMode}
-                    />
+                    <div className="tripartite-center indra-container fill indra-slot-core designer-canvas">
+                        <div className="indra-header-label">{t('ui_canvas')}</div>
+                        <BlueprintCanvas
+                            fields={fields}
+                            selectedId={selectedFieldId}
+                            onSelect={(id) => { setSelectedFieldId(id); if (window.innerWidth < 900) setActiveSlot('INSP'); }}
+                            previewMode={previewMode}
+                        />
+                    </div>
+
+                    <div className="tripartite-side indra-container indra-slot-insp">
+                        <div className="indra-header-label">{t('ui_properties')}</div>
+                        <div className="fill" style={{ overflowY: 'auto' }}>
+                            {selectedFieldId ? (
+                                <DNAInspector
+                                    field={findFieldById(fields, selectedFieldId)}
+                                    allFields={fields}
+                                    bridge={bridge}
+                                    onUpdate={(updatedField) => {
+                                        const newFields = recursiveUpdate(fields, selectedFieldId, updatedField);
+                                        updateFields(newFields);
+                                    }}
+                                    onReparent={(fieldId, newParentId) => {
+                                        const moveNode = (list, id, targetParentId) => {
+                                            let nodeToMove = null;
+                                            const removeNode = (l) => {
+                                                return l.filter(f => {
+                                                    if (f.id === id) {
+                                                        nodeToMove = f;
+                                                        return false;
+                                                    }
+                                                    if (f.children) f.children = removeNode(f.children);
+                                                    return true;
+                                                });
+                                            };
+                                            const listWithoutNode = removeNode(JSON.parse(JSON.stringify(list)));
+                                            if (!targetParentId || targetParentId === 'ROOT') {
+                                                return [...listWithoutNode, nodeToMove];
+                                            }
+                                            const insertNode = (l) => {
+                                                return l.map(f => {
+                                                    if (f.id === targetParentId) {
+                                                        return { ...f, children: [...(f.children || []), nodeToMove] };
+                                                    }
+                                                    if (f.children) return { ...f, children: insertNode(f.children) };
+                                                    return f;
+                                                });
+                                            };
+                                            return insertNode(listWithoutNode);
+                                        };
+                                        updateFields(moveNode(fields, fieldId, newParentId));
+                                    }}
+                                />
+                            ) : (
+                                <div className="fill center stack" style={{ opacity: 0.3, padding: 'var(--space-8)' }}>
+                                    <IndraIcon name="SCHEMA" size="32px" />
+                                    <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', textAlign: 'center', letterSpacing: '0.05em', display: 'block' }}>
+                                        SELECCIONA UN CAMPO
+                                    </span>
+                                    <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', textAlign: 'center', letterSpacing: '0.05em', opacity: 0.7, display: 'block' }}>
+                                        PARA INSPECCIONAR
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
-
-                {!previewMode && selectedFieldId && (
-                    <div className="indra-container" style={{ width: '320px' }}>
-                        <div className="indra-header-label">DNA_INSPECTOR_FIELD</div>
-                        <DNAInspector
-                            field={findFieldById(fields, selectedFieldId)}
-                            allFields={fields}
-                            bridge={bridge}
-                            onUpdate={(updatedField) => {
-                                const newFields = recursiveUpdate(fields, selectedFieldId, updatedField);
-                                updateFields(newFields);
-                            }}
-                            onReparent={(fieldId, newParentId) => {
-                                const moveNode = (list, id, targetParentId) => {
-                                    let nodeToMove = null;
-                                    const removeNode = (l) => {
-                                        return l.filter(f => {
-                                            if (f.id === id) {
-                                                nodeToMove = f;
-                                                return false;
-                                            }
-                                            if (f.children) f.children = removeNode(f.children);
-                                            return true;
-                                        });
-                                    };
-                                    const listWithoutNode = removeNode(JSON.parse(JSON.stringify(list)));
-                                    if (!targetParentId || targetParentId === 'ROOT') {
-                                        return [...listWithoutNode, nodeToMove];
-                                    }
-                                    const insertNode = (l) => {
-                                        return l.map(f => {
-                                            if (f.id === targetParentId) {
-                                                return { ...f, children: [...(f.children || []), nodeToMove] };
-                                            }
-                                            if (f.children) return { ...f, children: insertNode(f.children) };
-                                            return f;
-                                        });
-                                    };
-                                    return insertNode(listWithoutNode);
-                                };
-                                updateFields(moveNode(fields, fieldId, newParentId));
-                            }}
-                        />
-                    </div>
-                )}
             </div>
         </div>
     );

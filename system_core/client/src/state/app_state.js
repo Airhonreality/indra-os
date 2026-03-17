@@ -25,6 +25,7 @@ export const useAppState = create((set, get) => ({
     // UI State
     loadingKeys: {},
     activeArtifact: null, // Átomo en edición/ejecución (Nivel 3)
+    pendingSyncs: {}, // { atomId: boolean } - Rastreo de resonancia en segundo plano
 
     // ── ACCIONES ──
 
@@ -78,6 +79,7 @@ export const useAppState = create((set, get) => ({
 
         try {
             const result = await executeDirective({
+                provider: 'system',
                 protocol: 'SYSTEM_MANIFEST'
             }, coreUrl, sessionSecret);
             
@@ -115,6 +117,71 @@ export const useAppState = create((set, get) => ({
 
     openArtifact: (atom) => set({ activeArtifact: atom }),
     closeArtifact: () => set({ activeArtifact: null }),
+
+    /**
+     * Actualiza un átomo en el core y refresca el estado local.
+     */
+    updateArtifact: async (id, provider, updates) => {
+        const { coreUrl, sessionSecret, activeArtifact, pins, registerSync, finishSync } = get();
+        
+        registerSync(id);
+        try {
+            await executeDirective({
+                provider: provider,
+                protocol: 'ATOM_UPDATE',
+                context_id: id,
+                data: updates
+            }, coreUrl, sessionSecret);
+
+            // Refrescar activo si es el mismo
+            if (activeArtifact && activeArtifact.id === id) {
+                set({ activeArtifact: { ...activeArtifact, ...updates } });
+            }
+
+            // Refrescar en la lista de pins
+            const updatedPins = pins.map(p => 
+                (p.id === id && p.provider === provider) ? { ...p, ...updates } : p
+            );
+            set({ pins: updatedPins });
+
+            toastEmitter.success('Identidad Sincerada');
+        } catch (err) {
+            console.error('[app_state] updateArtifact failed:', err);
+            toastEmitter.error(`Error al actualizar atom: ${err.message}`);
+            throw err;
+        } finally {
+            finishSync(id);
+        }
+    },
+
+    /**
+     * Registra un artefacto en proceso de sincronización global.
+     */
+    registerSync: (id) => {
+        set(state => ({
+            pendingSyncs: { ...state.pendingSyncs, [id]: true }
+        }));
+
+        // AXIOMA DE SUPERVIVENCIA: Purgado de seguridad tras 30s de silencio de red
+        setTimeout(() => {
+            const { pendingSyncs, finishSync } = get();
+            if (pendingSyncs[id]) {
+                console.warn(`[Watchdog] Purgando resonancia colgada para: ${id}`);
+                finishSync(id);
+            }
+        }, 30000);
+    },
+
+    /**
+     * Finaliza la sincronización de un artefacto.
+     */
+    finishSync: (id) => {
+        set(state => {
+            const next = { ...state.pendingSyncs };
+            delete next[id];
+            return { pendingSyncs: next };
+        });
+    },
 
     /**
      * Crea un átomo en el core, lo ancla y lo abre.

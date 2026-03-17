@@ -14,17 +14,19 @@
 export async function executeDirective(uqo, coreUrl, password) {
     if (!coreUrl) throw new Error('CORE_URL_MISSING');
 
-    // AXIOMA: Alíasing de Compatibilidad (ADR_008_LEGACY)
-    // Soportamos núcleos que aún requieren "provider" y "protocol" en el sobre UQO.
+    // AXIOMA DE DETERMINISMO RADICAL (ADR-008):
+    // No se permiten alias de compatibilidad. El UQO debe ser sincero.
     const payload = {
-        provider: uqo.provider || uqo.executor || 'system',
-        protocol: uqo.protocol || uqo.method || 'UNKNOWN',
         ...uqo,
         password: password
     };
 
     const resolvedProtocol = uqo.protocol || uqo.method || 'UNKNOWN';
     const traceId = `UQO[${resolvedProtocol}]_${Math.random().toString(36).substring(7)}`;
+
+    if (!payload.provider || !payload.protocol) {
+        throw new Error(`DETERMINISM_VIOLATION: Se requiere provider y protocol explícitos en el UQO. Trace: ${traceId}`);
+    }
     
     // Emitir pulso de salida (Resonancia)
     window.dispatchEvent(new CustomEvent('indra-pulse', { detail: { type: 'OUT', protocol: resolvedProtocol } }));

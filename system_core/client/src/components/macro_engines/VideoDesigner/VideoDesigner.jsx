@@ -4,6 +4,7 @@ import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { useAssetIngestor } from './hooks/useAssetIngestor';
 import { useWorkspace } from '../../../context/WorkspaceContext';
+import { useLexicon } from '../../../services/lexicon';
 
 // NEW MODULAR COMPONENTS
 import { EngineHood } from './components/EngineHood';
@@ -27,6 +28,7 @@ import './VideoDesigner.css';
  */
 
 export function VideoDesigner({ atom, bridge }) {
+    const t = useLexicon();
     const { updatePinIdentity } = useWorkspace();
     const { coreUrl, sessionSecret } = useAppState();
     const {
@@ -364,23 +366,13 @@ export function VideoDesigner({ atom, bridge }) {
             <div className="fill center stack text-hint font-mono">
                 <div className="mini-spinner" style={{ animation: 'indra-spin 1s linear infinite', border: '2px solid var(--color-accent)', width: 24, height: 24, borderTopColor: 'transparent', borderRadius: '50%' }} />
                 <br />
-                <span>INDRA_VIDEO_CORE_INIT...</span>
+                <span>{t('status_loading')}</span>
             </div>
         );
     }
-     const accentColor = atom?.color || '#0096ff';
-    const dynamicStyles = {
-        '--indra-dynamic-accent': accentColor,
-        '--indra-dynamic-border': `${accentColor}26`, // 15% opacity
-        '--indra-dynamic-bg': `${accentColor}08`,     // 3% opacity
-        backgroundColor: 'var(--color-bg-base)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--indra-ui-gap)'
-    };
 
     return (
-        <div className="macro-designer fill" style={dynamicStyles}>
+        <div className="macro-designer fill stack" style={{ backgroundColor: 'var(--color-bg-void)', overflow: 'hidden' }}>
             <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="video/mp4,video/webm" onChange={handleFileSelected} />
 
             {showSilo && (
@@ -400,9 +392,11 @@ export function VideoDesigner({ atom, bridge }) {
                 isSaving={isSaving}
             />
 
-            {/* 1. TOP HOOD: ENGINE FUNCTIONS */}
-            <div className="indra-container">
-                <div className="indra-header-label">ENGINE_CONTROL_SYSTEM</div>
+            {/* ENVOLTURA TOPOLÓGICA DEL MOTOR */}
+            <div className="fill stack overflow-hidden" style={{ padding: 'var(--indra-ui-margin)', gap: 'var(--indra-ui-gap)' }}>
+                {/* 1. TOP HOOD: ENGINE FUNCTIONS */}
+                <div className="indra-container" style={{ flexShrink: 0 }}>
+                <div className="indra-header-label">{t('ui_controls')}</div>
                 <EngineHood 
                     project={project} 
                     onSave={handleManualSave} 
@@ -433,7 +427,7 @@ export function VideoDesigner({ atom, bridge }) {
 
                 {/* RIGHT: AUXILIARY PANEL (INSPECTOR / VAULT) */}
                 <div className="indra-container auxiliary-panel-section bg-deep overflow-hidden stack" style={{ flex: 3 }}>
-                    <div className="indra-header-label">AUXILIARY_REALITY_PANEL</div>
+                    <div className="indra-header-label">{t('ui_inspector')}</div>
                     <InspectorSidebar 
                         selectedClip={selectedClip} 
                         vaultFiles={vaultFiles}
@@ -455,7 +449,7 @@ export function VideoDesigner({ atom, bridge }) {
 
             {/* 3. TIMELINE TOOLS HOOD */}
             <div className="indra-container px-2 py-1 shelf--tight">
-                <div className="indra-header-label">TIMELINE_TRADUCTOR_TOOLS</div>
+                <div className="indra-header-label">{t('ui_toolbar')}</div>
                 <TimelineHood 
                     currentTool={currentTool}
                     onSelectTool={setCurrentTool}
@@ -467,7 +461,7 @@ export function VideoDesigner({ atom, bridge }) {
 
             {/* 4. TIMELINE PISTAS */}
             <div className="indra-container timeline-section relative overflow-hidden stack" style={{ height: '350px', flexShrink: 0 }}>
-                <div className="indra-header-label">TEMPORAL_FABRIC_ENCODER</div>
+                <div className="indra-header-label">{t('ui_timeline')}</div>
                 <KineticTimeline 
                     project={project}
                     currentTimeMs={currentTime}
@@ -484,6 +478,7 @@ export function VideoDesigner({ atom, bridge }) {
                     mutateProject={actions.mutateProject}
                     actions={actions}
                 />
+                </div>
             </div>
         </div>
     );

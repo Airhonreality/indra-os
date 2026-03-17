@@ -61,6 +61,7 @@ const ICON_MAP = {
     'LOCK': <><rect x="3" y="7" width="10" height="7" rx="1" /><path d="M5 7V4a3 3 0 016 0v3" /></>,
     'INFO': <><circle cx="8" cy="8" r="7" /><path d="M8 11V7m0-2v.01" /></>,
     'RELOAD': <path d="M1 8a7 7 0 0113-4m1 4a7 7 0 01-13 4m0-4l3-3m10 7l-3 3" />,
+    'CALENDAR': <><rect x="2" y="3" width="12" height="11" rx="1" /><path d="M5 2v2M11 2v2M2 7h12" /><circle cx="5" cy="10" r="0.5" /><circle cx="8" cy="10" r="0.5" /><circle cx="11" cy="10" r="0.5" /></>,
 
 
     // ── NAVEGACIÓN ──
@@ -78,6 +79,16 @@ const ICON_MAP = {
     'TARGET': <><circle cx="8" cy="8" r="6" /><circle cx="8" cy="8" r="2" /><path d="M8 1V4M8 12V15M1 8H4M12 8H15" /></>,
 
     // ── OPERATORS ──
+    'WIDTH': <path d="M2 12h20M5 7l-3 5 3 5M19 7l3 5-3 5"/>,
+    'HEIGHT': <path d="M12 2v20M7 5l5-3 5 3M7 19l5 3 5-3"/>,
+    'SPACING': <path d="M3 5v14M21 5v14M7 12h10M10 9l-3 3 3 3M14 9l3 3-3 3"/>,
+    'RADIUS': <path d="M12 3a9 9 0 0 1 9 9M3 12a9 9 0 0 1 9-9"/>,
+    'GAP': <path d="M6 4v16M11 4v16M16 4v16M21 4v16"/>,
+    'ALIGN': <path d="M3 12h18M3 6h18M3 18h10"/>,
+    'TEXT_SIZE': <path d="M4 7V4h16v3M12 4v16m-4 0h8"/>,
+    'WEIGHT': <path d="M6 4h10a4 4 0 0 1 0 8H6V4zm0 8h12a4 4 0 0 1 0 8H6v-8z"/>,
+    'L_HEIGHT': <path d="M21 7H3M21 17H3M12 7v10M9 10l3-3 3 3M9 14l3 3 3-3"/>,
+    'L_SPACING': <path d="M3 12h18M6 9l-3 3 3 3M18 9l3 3-3 3"/>,
     'MATH': <path d="M8 3v10m-5-5h10m-7-3l4 4-4 4m6-8v8" />,
     'TEXT': <path d="M2 3h12v2H2zm0 4h9v2H2z" />,
     'EXTRACTOR': <path d="M8 2l5 5-5 5-5-5 5-5zM8 4l-3 3 3 3 3-3-3-3z" />,
@@ -92,6 +103,11 @@ const ICON_MAP = {
     // ── HISTORIAL ──
     'UNDO': <path d="M4 8a5 5 0 015-5h4M4 8L1 5m3 3L1 11m9-3h4" />,
     'REDO': <path d="M12 8a5 5 0 00-5-5H3m9 0l3-3m-3 3l3 3M3 8H7" />,
+
+    // ── DOCUMENT DESIGNER BLOCK TYPES ──
+    'REPEATER': <><rect x="2" y="2" width="12" height="4" rx="1" /><rect x="2" y="8" width="12" height="4" rx="1" /><path d="M8 6v2" strokeDasharray="1 1" /></>,
+    'IMAGE':    <><rect x="2" y="3" width="12" height="10" rx="1" /><path d="M2 10l3-3 3 3 2-3 4 6" /><circle cx="11" cy="6" r="1.5" /></>,
+    'EXPAND':   <path d="M6 4l-4 4 4 4m4-8l4 4-4 4" />,
 
     // ── ALIASES DE CLASE (para atom.class → icono) ──
     'DATA_SCHEMA': <path d="M2 2h12v12H2zm3 4h6m-6 3h6m-6 3h3" />,

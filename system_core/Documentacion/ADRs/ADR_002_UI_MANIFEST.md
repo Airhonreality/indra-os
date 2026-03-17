@@ -17,8 +17,11 @@ Las utilidades de UI (selectores de artefactos, paneles de propiedades, mapeador
 ### P3 — Cero Lógica de Negocio en el Frontend
 El frontend es una capa de proyección y captura. Toda computación, transformación y resolución de datos vive en el Backend (Logic Bridge → `logic_engine.gs`).
 
-### P4 — Modularización por Responsabilidad
-Cada motor principal tiene su propia carpeta con sub-artefactos. Ningún archivo superará las 300 líneas sin justificación documentada. Los hooks, paneles y utilidades son archivos separados.
+### P4 — Patrón "Hollow Component" (Soberanía Industrial)
+Los componentes visuales de INDRA son cáscaras agnósticas. No gestionan estados de carga ni lógicas de persistencia. Reciben un átomo, invocan al `DataProjector` y reaccionan ciegamente al **Campo de Resonancia** (ver [ADR-005](./ADR_005_UI_RESONANCE.md)).
+
+### P5 — Soberanía del CSS e Invarianza de Diseño
+Queda prohibido el uso de estilos inline para estados lógicos. La interactividad y el estado visual (resonancia, highlight, focus) se gestionan exclusivamente mediante atributos de datos (`data-*`) y reglas globales de CSS. Se debe cumplir estrictamente con el esquema [ui_contracts.json](../ui_contracts.json).
 
 ---
 

@@ -116,8 +116,8 @@ export function NexusView() {
                 {/* COLUMNA B: WORKSPACE SELECTION */}
                 <main className="stack" style={{ gap: 'var(--space-6)' }}>
                     <div className="shelf--loose">
-                        <span className="util-label">// EXPLORER</span>
-                        <label className="text-label" style={{ letterSpacing: '0.2em' }}>{t('hud_active_workspaces')}</label>
+                        <span className="util-label">// {t('ui_explorer')}</span>
+                        <label className="text-label" style={{ letterSpacing: '0.2em' }}>{t('ui_hud_active_workspaces')}</label>
                         <div className="hud-line fill opacity-30"></div>
                     </div>
 
@@ -150,7 +150,7 @@ export function NexusView() {
                                     <div className="shelf--tight" onClick={e => e.stopPropagation()}>
                                         <IndraActionTrigger
                                             variant="destructive"
-                                            label="DELETE_WORKSPACE"
+                                            label={t('action_delete_ws')}
                                             onClick={() => deleteWorkspace(ws.id)}
                                             size="10px"
                                         />
@@ -173,7 +173,7 @@ export function NexusView() {
                                     <IndraIcon name="SYNC" size="32px" />
                                 </div>
                                 <span className="text-label" style={{ color: 'var(--color-accent)', letterSpacing: '0.2em' }}>
-                                    MATERIALIZING...
+                                    {t('status_materializing')}
                                 </span>
                             </div>
                         ) : (

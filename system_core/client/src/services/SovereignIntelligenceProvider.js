@@ -20,6 +20,9 @@ export class SovereignIntelligenceProvider {
         this.customBaseUrl = localStorage.getItem('indra-ai-custom-url') || null;
         this.activeProvider = localStorage.getItem('indra-ai-default-provider') || config.defaultProvider || this._resolveFirstAvailableProvider();
         this.activeModel = localStorage.getItem('indra-ai-default-model') || config.defaultModel || this._resolveDefaultModel(this.activeProvider);
+        
+        // AXIOMA DE TIERING: El enrutador suele ser Gemini Flash por su velocidad y costo. 
+        this.routerModel = { provider: 'gemini', model: 'gemini-1.5-flash' };
     }
 
     /**
@@ -91,7 +94,11 @@ export class SovereignIntelligenceProvider {
         const systemInstruction = this._buildSystemInstruction();
 
         // Enviar al Bridge. Pasamos las agentTools (herramientas nativas)
-        const response = await this._dispatchToProvider(prompt, history, systemInstruction, { tools: capabilities.agentTools || [] });
+        // El orquestador puede pasar options.model para tiering
+        const response = await this._dispatchToProvider(prompt, history, systemInstruction, { 
+            tools: capabilities.agentTools || [],
+            ...context.options 
+        });
 
         return this._auditResponse(response);
     }
@@ -134,15 +141,15 @@ export class SovereignIntelligenceProvider {
      */
     _buildSystemInstruction() {
         return `
-            Eres el AGENTE MCEP de INDRA. Tu objetivo es ayudar al usuario a operar y analizar su información de manera certera.
+            Eres el AGENTE MCEP de INDRA. Tu objetivo es operar y analizar información de manera CERTERA, DIRECTA y HUMANA.
             
-            AXIOMAS DE OPERACIÓN:
-            1. NO ALUCINAR: Usa las herramientas proporcionadas (Tool Calling) para descubrir e interactuar con el entorno. No supongas el estado del sistema.
-            2. SINCERIDAD: En las payloads (data), respeta estrictamente la nomenclatura. Si necesitas escribir registros de datos, usa 'payload.fields', NO 'columns'.
-            3. EJECUCIÓN NATIVA: Usa tus \`tools\` directamente. NUNCA respondas con sintaxis textual "call: provider.protocol". Ejecuta la herramienta de forma nativa.
-            4. BUCLE DE RAZONAMIENTO: Si ejecutas una herramienta, el sistema te devolverá los resultados. Evalúalos antes de dar una respuesta definitiva al usuario humano.
+            AXIOMAS DE EFICIENCIA:
+            1. RESPUESTA DIRECTA: Si el usuario te saluda ("hola", "buenos días") o hace una pregunta general que no requiere datos del sistema, RESPONDE DIRECTAMENTE en lenguaje natural. Tienes prohibido usar herramientas para interacciones sociales básicas.
+            2. SENSING MÍNIMO VIABLE: Solo usa herramientas si necesitas conocer la realidad del sistema para cumplir una orden. Con UNA sola observación del entorno suele ser suficiente. 
+            3. CONCLUSIÓN RÁPIDA: En el momento en que tengas la respuesta gracias a una herramienta, SINTETIZA y responde al humano de inmediato.
+            4. PAYLOADS PRECISOS: Usa 'payload.fields' estrictamente, NO 'columns'. NUNCA alucines datos.
             
-            Si te piden operar sobre el entorno, primero usa \`call__system__get_workspace_state\` y otras herramientas de sensing para ver la realidad de la memoria local, antes de actuar.
+            Si te piden específicamente "qué ves en mi entorno", usa \`call__system__get_workspace_state\` UNA VEZ.
         `;
     }
 
@@ -175,8 +182,8 @@ export class SovereignIntelligenceProvider {
         });
 
         const uqo = {
-            executor: 'system',
-            method: 'INTELLIGENCE_CHAT',
+            provider: 'system',
+            protocol: 'INTELLIGENCE_CHAT',
             data: {
                 prompt,
                 history: normalizedHistory,

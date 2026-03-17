@@ -18,14 +18,13 @@ import { TextConfig } from './OperatorTypes/TextConfig';
 import { ResolverConfig } from './OperatorTypes/ResolverConfig';
 import { ExpressionConfig } from './OperatorTypes/ExpressionConfig';
 
-export function OperatorCard({ op, onUpdate, onRemove, contextBefore, focusedTarget, setFocusedTarget, onSelectOpResult }) {
+export function OperatorCard({ op, onUpdate, onRemove, options }) {
 
     const renderConfig = () => {
         const props = {
             config: op.config,
             onUpdate: (cfg) => onUpdate({ ...op, config: cfg }),
-            focusedTarget,
-            setFocusedTarget,
+            options,
             opId: op.id
         };
 
@@ -52,23 +51,23 @@ export function OperatorCard({ op, onUpdate, onRemove, contextBefore, focusedTar
     };
 
     return (
-        <div className="stack--tight glass" style={{
+        <div className="stack--tight indra-container" style={{
             padding: 'var(--space-4)',
-            borderRadius: 'var(--radius-lg)',
-            border: (focusedTarget?.id === op.id) ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+            borderRadius: 'var(--indra-ui-radius)',
+            border: '1px solid var(--indra-dynamic-border)',
             position: 'relative',
-            background: 'rgba(255,255,255,0.02)',
+            background: 'var(--color-bg-deep)',
             transition: 'all 0.3s'
         }}>
             {/* Header: Tipo + Alias + Acciones */}
             <div className="spread">
-                <div className="shelf--tight clickable" onClick={() => onSelectOpResult({ path: `op.${op.alias}`, label: op.alias.toUpperCase() })}>
-                    <div className="badge badge--ghost" style={{ fontSize: '9px', opacity: 0.6 }}>{op.type}</div>
+                <div className="shelf--tight">
+                    <div className="badge badge--ghost" style={{ fontSize: '10px', opacity: 0.6, fontWeight: 'bold' }}>{op.type}</div>
                     <EditableLabel
                         value={op.alias || ''}
                         onCommit={(val) => updateAlias(val)}
                         placeholder="OP_ALIAS_REQUIRED"
-                        style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--color-accent)' }}
+                        style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--color-accent)', fontWeight: 'bold' }}
                     />
                 </div>
 
@@ -89,7 +88,8 @@ export function OperatorCard({ op, onUpdate, onRemove, contextBefore, focusedTar
                 marginTop: 'var(--space-4)',
                 padding: 'var(--space-4)',
                 background: 'var(--color-bg-void)',
-                borderRadius: 'var(--radius-md)'
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid rgba(255,255,255,0.05)'
             }}>
                 {renderConfig()}
             </div>
@@ -100,7 +100,7 @@ export function OperatorCard({ op, onUpdate, onRemove, contextBefore, focusedTar
                 bottom: '-25px',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                opacity: 0.2
+                opacity: 0.1
             }}>
                 <IndraIcon name="ARROW_DOWN" size="14px" />
             </div>

@@ -27,8 +27,8 @@ export function useBridgeHydration(bridgeAtom, bridge) {
             try {
                 const result = await bridge.read();
 
-                if (result.items?.[0]) {
-                    setLocalAtom(result.items[0]);
+                if (result) {
+                    setLocalAtom(result);
                     hasInitialHydrated.current = true;
                 }
             } catch (err) {
@@ -59,15 +59,20 @@ export function useBridgeHydration(bridgeAtom, bridge) {
             };
 
             const fetchSchema = async () => {
+                let projection = null;
                 try {
+                    const provider = getProviderForId(id);
                     // 1. INTENTO DE SINCERIDAD MÁXIMA (ATOM_READ)
                     const isLocalAtom = pins?.some(p => p.id === id) || provider === 'system';
 
                     if (isLocalAtom) {
                         try {
                             const atomResult = await bridge.request({ protocol: 'ATOM_READ', context_id: id });
-                            if (atomResult?.payload?.fields) {
-                                projection = DataProjector.projectSchema(atomResult);
+                            // AXIOMA DE SINCERIDAD: La materia está en el Átomo (items[0]), no en el sobre.
+                            const sourceAtom = atomResult?.items?.[0];
+                            
+                            if (sourceAtom?.payload?.fields) {
+                                projection = DataProjector.projectSchema(sourceAtom);
                             }
                         } catch (e) {
                             console.warn(`[BridgeHydration] ATOM_READ falló para ${id}, saltando a STREAM.`);

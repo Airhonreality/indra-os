@@ -14,13 +14,14 @@ import { IndraIcon } from '../../utilities/IndraIcons';
 import { IndraActionTrigger } from '../../utilities/IndraActionTrigger';
 import { IndraMicroHeader } from '../../utilities/IndraMicroHeader';
 import { FieldMapper } from './FieldMapper';
+import { useShell } from '../../../context/ShellContext';
+import { SchemaActionService } from '../../../services/SchemaActionService';
+import { useAppState } from '../../../state/app_state';
 
-export function PortManager({ title, ids, schemas, configs = {}, mappings = {}, onAdd, onRemove, onUpdateMapping, onUpdateConfig, onSelectField, focusedTarget, setFocusedTarget, type = 'SOURCE' }) {
+export function PortManager({ title, ids, schemas, configs = {}, mappings = {}, mappingOptions = [], onAdd, onRemove, onUpdateMapping, onUpdateConfig, type = 'SOURCE' }) {
     return (
         <aside className="stack" style={{
-            width: '320px',
-            borderRight: type === 'SOURCE' ? '1px solid var(--color-border)' : 'none',
-            borderLeft: type === 'TARGET' ? '1px solid var(--color-border)' : 'none',
+            width: '100%',
             background: 'var(--color-bg-elevated)',
             height: '100%',
             overflow: 'hidden'
@@ -43,12 +44,10 @@ export function PortManager({ title, ids, schemas, configs = {}, mappings = {}, 
                         schema={schemas[id]}
                         config={configs[id] || {}}
                         mapping={mappings[id]}
+                        mappingOptions={mappingOptions}
                         onRemove={() => onRemove(id)}
                         onUpdateMapping={(m) => onUpdateMapping(id, m)}
                         onUpdateConfig={(c) => onUpdateConfig(id, c)}
-                        onSelectField={onSelectField}
-                        focusedTarget={focusedTarget}
-                        setFocusedTarget={setFocusedTarget}
                         type={type}
                     />
                 ))}
@@ -64,7 +63,7 @@ export function PortManager({ title, ids, schemas, configs = {}, mappings = {}, 
     );
 }
 
-function PortCard({ id, schema, mapping, config, onRemove, onUpdateMapping, onUpdateConfig, onSelectField, focusedTarget, setFocusedTarget, type }) {
+function PortCard({ id, schema, mapping, mappingOptions = [], config, onRemove, onUpdateMapping, onUpdateConfig, type }) {
     const [expanded, setExpanded] = React.useState(true);
     const [isEditingAlias, setIsEditingAlias] = React.useState(false);
 
@@ -172,8 +171,7 @@ function PortCard({ id, schema, mapping, config, onRemove, onUpdateMapping, onUp
                                 config={config}
                                 schema={schema}
                                 mapping={mapping}
-                                focusedTarget={focusedTarget}
-                                setFocusedTarget={setFocusedTarget}
+                                mappingOptions={mappingOptions}
                                 onUpdateConfig={onUpdateConfig}
                                 onUpdateMapping={onUpdateMapping}
                             />
@@ -183,10 +181,10 @@ function PortCard({ id, schema, mapping, config, onRemove, onUpdateMapping, onUp
                                     <RecursiveFieldItem
                                         key={f.id}
                                         field={f}
+                                        schemaId={id}
                                         alias={alias}
                                         activeFields={activeFields}
                                         toggleField={toggleField}
-                                        onSelectField={onSelectField}
                                         level={0}
                                     />
                                 ))}
@@ -203,11 +201,11 @@ function PortCard({ id, schema, mapping, config, onRemove, onUpdateMapping, onUp
     );
 }
 
-function RecursiveFieldItem({ field, alias, activeFields, toggleField, onSelectField, level }) {
+function RecursiveFieldItem({ field, schemaId, alias, activeFields, toggleField, level }) {
     const [expanded, setExpanded] = React.useState(level < 1); // Expand first level by default
+    const { openContextMenu } = useShell();
     const hasChildren = field.children && field.children.length > 0;
     const isActive = activeFields.includes(field.id);
-    const aliasPrefix = alias.toLowerCase().replace(/\s+/g, '_');
 
     return (
         <div className="stack--tight" style={{ marginLeft: level > 0 ? 'var(--space-3)' : 0 }}>
@@ -216,19 +214,44 @@ function RecursiveFieldItem({ field, alias, activeFields, toggleField, onSelectF
                 style={{
                     opacity: isActive ? 1 : 0.4,
                     cursor: 'pointer',
-                    padding: '4px',
+                    padding: '6px',
                     borderRadius: '4px',
-                    borderLeft: hasChildren ? '1px solid rgba(255,255,255,0.1)' : 'none'
+                    borderLeft: hasChildren ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                    background: 'transparent',
+                    border: '1px solid transparent',
+                    transition: 'all 0.2s'
                 }}
                 onClick={() => {
                     if (hasChildren) {
                         setExpanded(!expanded);
-                    } else {
-                        onSelectField({
-                            path: `source.${aliasPrefix}.${field.id}`,
-                            label: `${alias} > ${field.label || field.id}`
-                        });
                     }
+                }}
+                onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const pins = useAppState.getState().pins;
+                    const targetSchema = pins.find(p => p.id === schemaId);
+
+                    openContextMenu(e, [
+                        { 
+                            label: 'Añadir Hijo', 
+                            icon: 'PLUS', 
+                            action: () => SchemaActionService.addField(targetSchema, { parentId: field.id }, { url: useAppState.getState().protocolUrl, secret: useAppState.getState().protocolSecret }) 
+                        },
+                        { 
+                            label: 'Eliminar Campo', 
+                            icon: 'DELETE', 
+                            color: 'var(--color-danger)',
+                            action: () => SchemaActionService.removeField(targetSchema, field.id, { url: useAppState.getState().protocolUrl, secret: useAppState.getState().protocolSecret }) 
+                        },
+                        { type: 'SEPARATOR' },
+                        {
+                            label: 'Ver en Schema Designer',
+                            icon: 'EXTERNAL',
+                            action: () => useShell.getState().openArtifact(targetSchema)
+                        }
+                    ]);
                 }}
             >
                 <div className="shelf--tight">
@@ -267,10 +290,10 @@ function RecursiveFieldItem({ field, alias, activeFields, toggleField, onSelectF
                         <RecursiveFieldItem
                             key={child.id}
                             field={child}
+                            schemaId={schemaId}
                             alias={alias}
                             activeFields={activeFields}
                             toggleField={toggleField}
-                            onSelectField={onSelectField}
                             level={level + 1}
                         />
                     ))}

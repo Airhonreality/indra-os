@@ -52,7 +52,7 @@ function _validateAtomContract_(items, providerId, protocol) {
   }
 
   // Lista de protocolos "ligeros" que devuelven punteros o vistas parciales (no átomos completos)
-  const LIGHTWEIGHT_PROTOCOLS = ['SYSTEM_PINS_READ', 'SYSTEM_PIN', 'ATOM_CREATE', 'SCHEMA_FIELD_OPTIONS', 'HIERARCHY_TREE', 'REVISIONS_LIST'];
+  const LIGHTWEIGHT_PROTOCOLS = ['SYSTEM_PINS_READ', 'SYSTEM_PIN', 'ATOM_CREATE', 'SCHEMA_FIELD_OPTIONS', 'HIERARCHY_TREE', 'REVISIONS_LIST', 'SCHEMA_MUTATE'];
   const isFullDataProtocol = !LIGHTWEIGHT_PROTOCOLS.includes(protocol);
 
   items.forEach((item, index) => {

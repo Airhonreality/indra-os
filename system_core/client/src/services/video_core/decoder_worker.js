@@ -31,7 +31,7 @@ const initDecoders = () => {
                 if (metaList.length === 0) videoMetadataQueue.delete(frame.timestamp);
 
                 self.postMessage({
-                    type: 'VIDEO_FRAME', // Homogeneizar con lo esperado en engine.js
+                    type: 'FRAME_READY', 
                     data: { 
                         timestamp: frame.timestamp, 
                         frame: frame, 
@@ -58,9 +58,11 @@ const initDecoders = () => {
                 if (metaList.length === 0) audioMetadataQueue.delete(data.timestamp);
 
                 self.postMessage({
-                    type: 'AUDIO_DATA', // Homogeneizar con engine.js
-                    data: data,
-                    trackId: meta?.trackId
+                    type: 'AUDIO_READY',
+                    data: {
+                        audioData: data,
+                        trackId: meta?.trackId
+                    }
                 }, [data]);
             },
             error: (e) => console.error("[DecoderWorker] AudioDecoder Error:", e)
@@ -292,12 +294,15 @@ function decodeAudioSamples(res, timeMs, trackId) {
         const buffer = new ArrayBuffer(s.size);
         res.syncAccessHandle.read(buffer, { at: s.offset });
 
+        const chunkTS = Math.floor((1e6 * s.cts) / aMap.timescale);
         const chunk = new EncodedAudioChunk({
             type: 'key', // En AAC casi todo es key para el decoder
             timestamp: chunkTS,
             duration: Math.floor((1e6 * s.duration) / aMap.timescale),
             data: buffer
         });
+
+        s.isDecoding = true; // Evitar re-decodificar mientras está en proceso
 
         // Registrar trackId para esta muestra
         const list = audioMetadataQueue.get(chunkTS) || [];

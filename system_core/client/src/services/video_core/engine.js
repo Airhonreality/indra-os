@@ -58,7 +58,7 @@ export class VideoEngine {
             if (type === 'FRAME_READY') {
                 this._handleVideoFrame(data);
             } else if (type === 'AUDIO_READY') {
-                this._handleAudioData(data.audioData);
+                this._handleAudioData(data.audioData, data.trackId);
             }
         };
     }

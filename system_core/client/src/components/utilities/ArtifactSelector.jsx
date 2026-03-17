@@ -15,6 +15,7 @@ import { useLexicon } from '../../services/lexicon.js';
 import { executeDirective } from '../../services/directive_executor.js';
 import { DataProjector } from '../../services/DataProjector.js';
 import { IndraIcon } from './IndraIcons.jsx';
+import { ResonanceTuningPanel } from '../dashboard/ResonanceTuningPanel.jsx';
 
 export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect, onCancel, filter = {} }) {
     const { services: manifest, coreUrl, sessionSecret, pins } = useAppState();
@@ -26,6 +27,7 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeClassFilter, setActiveClassFilter] = useState(null);
+    const [tuningArtifact, setTuningArtifact] = useState(null);
 
     const currentContext = contextStack.length > 0 ? contextStack[contextStack.length - 1] : null;
 
@@ -65,120 +67,141 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
             setActiveClassFilter(null); // Reset filters on navigation
             setSearchTerm('');
         } else {
-            onSelect(item);
+            // AXIOMA DE RESONANCIA: Si es un esquema/tabla externo no sintonizado, lanzamos el panel
+            const isExternal = item.provider && !['system', 'drive', 'native'].includes(item.provider);
+            const isSchema = ['DATA_SCHEMA', 'TABULAR'].includes(item.class);
+            const isAlreadyTuned = item.origin === 'RESONANT';
+
+            if (isExternal && isSchema && !isAlreadyTuned) {
+                setTuningArtifact(item);
+            } else {
+                onSelect(item);
+            }
         }
     };
 
-    const availableClasses = [...new Set(items.map(i => i.class))];
+    const availableClasses = [...new Set(items.map(i => i.class).filter(Boolean))];
 
     return (
-        <div className="selector-overlay center" style={{
-            position: 'fixed',
-            top: 0, left: 0,
-            width: '100vw', height: '100vh',
-            background: 'rgba(0,0,0,0.85)',
-            backdropFilter: 'blur(10px)',
-            zIndex: 1000
-        }} onClick={onCancel}>
-            <div className="artifact-selector stack" style={{
-                background: 'var(--color-bg-elevated)',
-                border: '1px solid var(--color-border-strong)',
-                borderRadius: 'var(--radius-lg)',
-                padding: 'var(--space-6)',
-                width: '480px',
-                height: '600px',
-                maxHeight: '85vh',
-                boxShadow: '0 30px 60px rgba(0,0,0,0.8)',
-                overflow: 'hidden'
-            }} onClick={e => e.stopPropagation()}>
+        <>
+            <div className="selector-overlay center" style={{
+                position: 'fixed',
+                top: 0, left: 0,
+                width: '100vw', height: '100vh',
+                background: 'rgba(0,0,0,0.85)',
+                backdropFilter: 'blur(10px)',
+                zIndex: 1000
+            }} onClick={onCancel}>
+                <div className="artifact-selector stack" style={{
+                    background: 'var(--color-bg-elevated)',
+                    border: '1px solid var(--color-border-strong)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: 'var(--space-6)',
+                    width: '480px',
+                    height: '600px',
+                    maxHeight: '85vh',
+                    boxShadow: '0 30px 60px rgba(0,0,0,0.8)',
+                    overflow: 'hidden'
+                }} onClick={e => e.stopPropagation()}>
 
-                {/* ── HEADER ── */}
-                <header className="stack--tight" style={{ marginBottom: 'var(--space-4)' }}>
-                    <div className="spread">
-                        <h2 style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', opacity: 0.6, letterSpacing: '0.2em' }}>{title}</h2>
-                        <button onClick={onCancel} className="btn-icon"><IndraIcon name="CLOSE" size="14px" /></button>
-                    </div>
+                    {/* ── HEADER ── */}
+                    <header className="stack--tight" style={{ marginBottom: 'var(--space-4)' }}>
+                        <div className="spread">
+                            <h2 style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', opacity: 0.6, letterSpacing: '0.2em' }}>{title}</h2>
+                            <button onClick={onCancel} className="btn-icon"><IndraIcon name="CLOSE" size="14px" /></button>
+                        </div>
 
-                    <div className="shelf--tight" style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', overflowX: 'auto', whiteSpace: 'nowrap', opacity: 0.8 }}>
-                        <span onClick={() => { setContextStack([]); setActiveClassFilter(null); }} style={{ cursor: 'pointer', color: 'var(--color-accent)' }}>{t('ROOT')}</span>
-                        {contextStack.map((ctx, i) => (
-                            <React.Fragment key={ctx.id}>
-                                <span>/</span>
-                                <span
-                                    onClick={() => { setContextStack(contextStack.slice(0, i + 1)); setActiveClassFilter(null); }}
-                                    style={{ cursor: 'pointer', color: i === contextStack.length - 1 ? 'white' : 'var(--color-accent)' }}
-                                >
-                                    {ctx.handle?.label || ctx.id}
-                                </span>
-                            </React.Fragment>
-                        ))}
-                    </div>
-                </header>
-
-                {/* ── SEARCH & DYNAMIC FILTERS ── */}
-                <div className="stack--tight" style={{ marginBottom: 'var(--space-6)' }}>
-                    <div className="shelf--tight" style={{
-                        background: 'var(--color-bg-void)',
-                        border: '1px solid var(--color-border)',
-                        padding: 'var(--space-2) var(--space-3)',
-                        borderRadius: 'var(--radius-sm)'
-                    }}>
-                        <IndraIcon name="EYE" size="14px" style={{ opacity: 0.3 }} />
-                        <input
-                            type="text"
-                            placeholder={t('SEARCH_IN_CURRENT_PULSE')}
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '11px', fontFamily: 'var(--font-mono)', width: '100%', outline: 'none' }}
-                        />
-                    </div>
-
-                    {availableClasses.length > 1 && (
-                        <div className="shelf--tight" style={{ overflowX: 'auto', padding: 'var(--space-1) 0' }}>
-                            <button
-                                onClick={() => setActiveClassFilter(null)}
-                                className={`chip ${!activeClassFilter ? 'active' : ''}`}
-                            >{t('ALL')}</button>
-                            {availableClasses.map(cls => (
-                                <button
-                                    key={cls}
-                                    onClick={() => setActiveClassFilter(cls)}
-                                    className={`chip ${activeClassFilter === cls ? 'active' : ''}`}
-                                >{cls}</button>
+                        <div className="shelf--tight" style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', overflowX: 'auto', whiteSpace: 'nowrap', opacity: 0.8 }}>
+                            <span onClick={() => { setContextStack([]); setActiveClassFilter(null); }} style={{ cursor: 'pointer', color: 'var(--color-accent)' }}>{t('ROOT')}</span>
+                            {contextStack.map((ctx, i) => (
+                                <React.Fragment key={ctx.id}>
+                                    <span>/</span>
+                                    <span
+                                        onClick={() => { setContextStack(contextStack.slice(0, i + 1)); setActiveClassFilter(null); }}
+                                        style={{ cursor: 'pointer', color: i === contextStack.length - 1 ? 'white' : 'var(--color-accent)' }}
+                                    >
+                                        {ctx.handle?.label || ctx.id}
+                                    </span>
+                                </React.Fragment>
                             ))}
                         </div>
-                    )}
-                </div>
+                    </header>
 
-                {/* ── BROWSER AREA ── */}
-                <div className="fill stack" style={{ overflowY: 'auto', minHeight: '300px', gap: '2px', paddingRight: 'var(--space-2)' }}>
-                    {loading ? (
-                        <div className="fill center" style={{ opacity: 0.2, fontFamily: 'var(--font-mono)', fontSize: '10px' }}>{t('PULSING_CORE')}</div>
-                    ) : (
-                        items
-                            .map(item => DataProjector.projectArtifact(item))
-                            .filter(projection => {
-                                if (!projection) return false;
-                                const matchesSearch = !searchTerm ||
-                                    (projection.title.toUpperCase().includes(searchTerm.toUpperCase())) ||
-                                    (projection.id.toUpperCase().includes(searchTerm.toUpperCase()));
-                                const matchesClass = !activeClassFilter || projection.class === activeClassFilter;
-                                return matchesSearch && matchesClass;
-                            })
-                            .map(projection => (
-                                <button key={projection.id} className="shelf--loose glass-hover-row" onClick={() => handleDrillDown(projection.raw)}>
-                                    <IndraIcon name={projection.theme.icon} size="16px" style={{ opacity: 0.6, color: projection.theme.color }} />
-                                    <div className="stack--tight fill">
-                                        <span style={{ fontSize: '13px', color: 'white' }}>{projection.title}</span>
-                                        <span style={{ fontSize: '8px', opacity: 0.4, fontFamily: 'var(--font-mono)' }}>{projection.subtitle}</span>
-                                    </div>
-                                    {projection.capabilities.raw.includes('HIERARCHY_TREE') && <IndraIcon name="CHEVRON_RIGHT" size="12px" style={{ opacity: 0.2 }} />}
-                                </button>
-                            ))
-                    )}
+                    {/* ── SEARCH & DYNAMIC FILTERS ── */}
+                    <div className="stack--tight" style={{ marginBottom: 'var(--space-6)' }}>
+                        <div className="shelf--tight" style={{
+                            background: 'var(--color-bg-void)',
+                            border: '1px solid var(--color-border)',
+                            padding: 'var(--space-2) var(--space-3)',
+                            borderRadius: 'var(--radius-sm)'
+                        }}>
+                            <IndraIcon name="EYE" size="14px" style={{ opacity: 0.3 }} />
+                            <input
+                                type="text"
+                                placeholder={t('SEARCH_IN_CURRENT_PULSE')}
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '11px', fontFamily: 'var(--font-mono)', width: '100%', outline: 'none' }}
+                            />
+                        </div>
+
+                        {availableClasses.length > 1 && (
+                            <div className="shelf--tight" style={{ overflowX: 'auto', padding: 'var(--space-1) 0' }}>
+                                <button
+                                    onClick={() => setActiveClassFilter(null)}
+                                    className={`chip ${!activeClassFilter ? 'active' : ''}`}
+                                >{t('ALL')}</button>
+                                {availableClasses.map(cls => (
+                                    <button
+                                        key={cls}
+                                        onClick={() => setActiveClassFilter(cls)}
+                                        className={`chip ${activeClassFilter === cls ? 'active' : ''}`}
+                                    >{cls}</button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ── BROWSER AREA ── */}
+                    <div className="fill stack" style={{ overflowY: 'auto', minHeight: '300px', gap: '2px', paddingRight: 'var(--space-2)' }}>
+                        {loading ? (
+                            <div className="fill center" style={{ opacity: 0.2, fontFamily: 'var(--font-mono)', fontSize: '10px' }}>{t('PULSING_CORE')}</div>
+                        ) : (
+                            items
+                                .map(item => DataProjector.projectArtifact(item))
+                                .filter(projection => {
+                                    if (!projection) return false;
+                                    const matchesSearch = !searchTerm ||
+                                        (projection.title.toUpperCase().includes(searchTerm.toUpperCase())) ||
+                                        (projection.id.toUpperCase().includes(searchTerm.toUpperCase()));
+                                    const matchesClass = !activeClassFilter || projection.class === activeClassFilter;
+                                    return matchesSearch && matchesClass;
+                                })
+                                .map((projection, index) => (
+                                    <button key={`${projection.provider}_${projection.class}_${projection.id}_${index}`} className="shelf--loose glass-hover-row" onClick={() => handleDrillDown(projection.raw)}>
+                                        <IndraIcon name={projection.theme.icon} size="16px" style={{ opacity: 0.6, color: projection.theme.color }} />
+                                        <div className="stack--tight fill">
+                                            <span style={{ fontSize: '13px', color: 'white' }}>{projection.title}</span>
+                                            <span style={{ fontSize: '8px', opacity: 0.4, fontFamily: 'var(--font-mono)' }}>{projection.subtitle}</span>
+                                        </div>
+                                        {projection.capabilities.raw.includes('HIERARCHY_TREE') && <IndraIcon name="CHEVRON_RIGHT" size="12px" style={{ opacity: 0.2 }} />}
+                                    </button>
+                                ))
+                        )}
+                    </div>
                 </div>
             </div>
 
+            {tuningArtifact && (
+                <ResonanceTuningPanel
+                    artifact={tuningArtifact}
+                    onConfirm={(resonantAtom) => {
+                        setTuningArtifact(null);
+                        onSelect(resonantAtom);
+                    }}
+                    onCancel={() => setTuningArtifact(null)}
+                />
+            )}
             <style>{`
                 .glass-hover-row { 
                     width: 100%; border: none; background: transparent; text-align: left; border-radius: var(--radius-sm);
@@ -209,6 +232,6 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                 }
                 .chip:hover { opacity: 1; border-color: var(--color-accent); }
             `}</style>
-        </div>
+        </>
     );
 }

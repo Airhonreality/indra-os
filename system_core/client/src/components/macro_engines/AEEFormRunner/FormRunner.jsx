@@ -9,6 +9,7 @@
 import React from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { DataProjector } from '../../../services/DataProjector';
+import { useLexicon } from '../../../services/lexicon';
 
 /**
  * Componente Recursivo para renderizar nodos del esquema.
@@ -21,7 +22,7 @@ function FormNode({ field, value, onChange, disabled }) {
     if (isFrame) {
         return (
             <div className="indra-container">
-                <div className="indra-header-label" style={{ opacity: 0.7 }}>FRAME::{field.alias.toUpperCase()}</div>
+                <div className="indra-header-label" style={{ opacity: 0.7 }}>{t('ui_group')}::{field.alias.toUpperCase()}</div>
                 <div className="node-body grid-split--tight" style={{ padding: 'var(--space-4) var(--space-3)' }}>
                     {field.children?.map(child => (
                         <FormNode
@@ -60,7 +61,7 @@ function FormNode({ field, value, onChange, disabled }) {
 
         return (
             <div className="indra-container" style={{ background: 'var(--color-bg-void)' }}>
-                <div className="indra-header-label" style={{ background: 'var(--color-warm)', color: 'black' }}>REPEATER::{field.alias.toUpperCase()}</div>
+                <div className="indra-header-label" style={{ background: 'var(--color-warm)', color: 'black' }}>{t('ui_list')}::{field.alias.toUpperCase()}</div>
                 <div style={{ padding: 'var(--space-3)' }}>
                     <header className="node-header shelf--between" style={{ marginBottom: 'var(--space-2)' }}>
                         <span className="util-label" style={{ fontSize: '10px' }}>{field.label}</span>
@@ -78,7 +79,7 @@ function FormNode({ field, value, onChange, disabled }) {
                             }}
                         >
                             <IndraIcon name="PLUS" size="8px" color="var(--indra-dynamic-accent)" />
-                            <span style={{ marginLeft: '4px' }}>ADD_RECORD</span>
+                            <span style={{ marginLeft: '4px' }}>{t('action_add_item')}</span>
                         </button>
                     </header>
                     
@@ -101,7 +102,7 @@ function FormNode({ field, value, onChange, disabled }) {
                                 </button>
                             </div>
                         )) : (
-                            <p className="util-hint center" style={{ padding: '10px', fontSize: '9px', opacity: 0.4 }}>VACUUM_ARRAY_NULL</p>
+                            <p className="util-hint center" style={{ padding: '10px', fontSize: '9px', opacity: 0.4 }}>{t('status_empty_list')}</p>
                         )}
                     </div>
                 </div>
@@ -150,6 +151,7 @@ function FormNode({ field, value, onChange, disabled }) {
 }
 
 export function FormRunner({ schema, formData, onFieldChange, onExecute, status }) {
+    const t = useLexicon();
     const projection = DataProjector.projectSchema(schema);
     const fields = projection.fields || [];
 
@@ -158,7 +160,7 @@ export function FormRunner({ schema, formData, onFieldChange, onExecute, status 
             <header className="form-header stack--tight">
                 <div className="shelf--tight">
                     <IndraIcon name="SCHEMA" size="12px" style={{ color: 'var(--color-accent)' }} />
-                    <span className="util-label">SCHEMA_PROJECTION</span>
+                    <span className="util-label">{t('ui_schema_projection')}</span>
                 </div>
                 <h2>{projection.label}</h2>
                 <p className="util-hint">Configure los parámetros del flujo de negocio.</p>
@@ -191,7 +193,7 @@ export function FormRunner({ schema, formData, onFieldChange, onExecute, status 
                     disabled={status === 'EXECUTING' || fields.length === 0}
                 >
                     <IndraIcon name={status === 'EXECUTING' ? 'SYNC' : 'PLAY'} className={status === 'EXECUTING' ? 'spin' : ''} />
-                    <span>{status === 'EXECUTING' ? 'EXECUTING...' : 'EJECUTAR_FLUJO'}</span>
+                    <span>{status === 'EXECUTING' ? t('status_executing') : t('action_execute')}</span>
                 </button>
             </footer>
         </div>

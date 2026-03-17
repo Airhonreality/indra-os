@@ -1,19 +1,21 @@
 import React from 'react';
 import { IndraEngineHood } from '../../../utilities/IndraEngineHood';
 import { IndraIcon } from '../../../utilities/IndraIcons';
+import { useLexicon } from '../../../../services/lexicon';
 
 /**
  * Módulo: EngineHood
  * Dharma: Gestión de sincronía y persistencia global.
  */
 export const EngineHood = ({ atom, isSaving, onSave, onExport, project }) => {
+    const t = useLexicon();
     return (
         <IndraEngineHood
             leftSlot={
                 <div className="engine-hood__capsule">
                     <IndraIcon name="VIDEO_PROJECT" size="12px" color="var(--indra-dynamic-accent)" />
                     <span className="font-mono" style={{ fontSize: '9px', opacity: 0.5, marginLeft: 'var(--space-1)' }}>
-                        PROJECT_ID // {atom?.id?.slice(-8)}
+                        {t('ui_project_id')} // {atom?.id?.slice(-8)}
                     </span>
                 </div>
             }
@@ -32,7 +34,7 @@ export const EngineHood = ({ atom, isSaving, onSave, onExport, project }) => {
                         }}
                     >
                         <IndraIcon name={isSaving ? "LOAD" : "SAVE"} size="10px" color="var(--indra-dynamic-accent)" className={isSaving ? 'spin' : ''} />
-                        <span style={{ marginLeft: "6px" }}>{isSaving ? 'SYNCING...' : 'COMMIT_CHANGES'}</span>
+                        <span style={{ marginLeft: "6px" }}>{isSaving ? t('status_loading') : t('action_save')}</span>
                     </button>
                     
                     <button 
@@ -48,7 +50,7 @@ export const EngineHood = ({ atom, isSaving, onSave, onExport, project }) => {
                         }}
                     >
                         <IndraIcon name="FLOW" size="10px" color="var(--color-info)" />
-                        <span style={{ marginLeft: "6px" }}>EXPORT_FINAL</span>
+                        <span style={{ marginLeft: "6px" }}>{t('action_export')}</span>
                     </button>
                 </div>
             }

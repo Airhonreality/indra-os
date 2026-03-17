@@ -7,6 +7,9 @@
 
 import { useState, useCallback } from 'react';
 
+// Genera un ID único para nodos duplicados
+const genId = () => `block_${Math.random().toString(36).substr(2, 9)}`;
+
 export function useDocumentAST(initialBlocks = []) {
     const [blocks, setBlocks] = useState(initialBlocks);
     const [history, setHistory] = useState([JSON.parse(JSON.stringify(initialBlocks))]);
@@ -164,6 +167,52 @@ export function useDocumentAST(initialBlocks = []) {
         });
     }, [history, pointer]);
 
+    /**
+     * duplicateNode (ADR_018 §A3)
+     * Clona el nodo con un nuevo ID (y regenera IDs de hijos recursivamente).
+     * El clon se inserta inmediatamente después del original en el mismo padre.
+     * Protección: no puede duplicar el nodo root (PAGE).
+     */
+    const cloneNodeDeep = (node) => ({
+        ...node,
+        id: genId(),
+        props: JSON.parse(JSON.stringify(node.props)),
+        children: node.children ? node.children.map(cloneNodeDeep) : undefined
+    });
+
+
+    const insertAfterInTree = (nodes, targetId, newNode) => {
+        // Busca en la lista directa
+        const idx = nodes.findIndex(n => n.id === targetId);
+        if (idx !== -1) {
+            const result = [...nodes];
+            result.splice(idx + 1, 0, newNode);
+            return result;
+        }
+        // Busca recursivamente en hijos
+        return nodes.map(node => {
+            if (node.children) {
+                return { ...node, children: insertAfterInTree(node.children, targetId, newNode) };
+            }
+            return node;
+        });
+    };
+
+    const duplicateNode = useCallback((id) => {
+        if (!id || id === 'root') {
+            console.warn('[useAST] Cannot duplicate root node (ADR_018 §A7)');
+            return;
+        }
+        setBlocks(prev => {
+            const original = findNode(prev, id);
+            if (!original) return prev;
+            const clone = cloneNodeDeep(original);
+            const newTree = insertAfterInTree(prev, id, clone);
+            pushToHistory(newTree);
+            return newTree;
+        });
+    }, [history, pointer]);
+
     // Mover nodo un nivel hacia ADENTRO (al hermano anterior si es contenedor)
     const indentNode = useCallback((id) => {
         setBlocks(prev => {
@@ -250,6 +299,7 @@ export function useDocumentAST(initialBlocks = []) {
         indentNode,
         outdentNode,
         removeNode,
+        duplicateNode,
         undo,
         redo,
         canUndo: pointer > 0,

@@ -17,20 +17,47 @@ export function TextBlock({ props, onUpdate, isSelected }) {
         }
     }, [isSelected]);
 
+    // Mapeo de Presets a Variables Globales (Axioma A6)
+    // Cada preset se asocia a un set de variables CSS que el StyleEngine puede manipular
+    const presetBaseStyle = props.textPreset ? {
+        fontSize: `var(--indra-dd-${props.textPreset}-size, inherit)`,
+        fontWeight: `var(--indra-dd-${props.textPreset}-weight, inherit)`,
+        lineHeight: `var(--indra-dd-${props.textPreset}-leading, 1.5)`,
+        letterSpacing: `var(--indra-dd-${props.textPreset}-tracking, normal)`,
+        textTransform: `var(--indra-dd-${props.textPreset}-case, none)`,
+        fontFamily: `var(--indra-dd-${props.textPreset}-font, var(--font-sans))`,
+        color: `var(--indra-dd-${props.textPreset}-color, var(--color-text-primary))`
+    } : {};
+
     const style = {
-        color: props.color || 'var(--color-text-primary)',
-        fontSize: props.fontSize || 'var(--text-base)',
-        fontFamily: props.fontFamily || 'var(--font-sans)',
+        ...presetBaseStyle,
+        // Overrides locales (Soberanía del Usuario)
+        color: props.color || presetBaseStyle.color,
+        fontSize: props.fontSize || presetBaseStyle.fontSize,
+        fontFamily: props.fontFamily || presetBaseStyle.fontFamily,
+        fontWeight: props.fontWeight || presetBaseStyle.fontWeight,
+        lineHeight: props.lineHeight || presetBaseStyle.lineHeight,
+        letterSpacing: props.letterSpacing || presetBaseStyle.letterSpacing,
+        textTransform: props.textTransform || presetBaseStyle.textTransform,
+        textAlign: props.textAlign || 'left',
+        
+        // Geometría y Posición
+        marginTop: props.marginTop || '0px',
+        marginBottom: props.marginBottom || '0px',
+        paddingLeft: props.paddingLeft || '0px',
+        
         minWidth: '50px',
         minHeight: '1em',
         outline: 'none',
-        lineHeight: '1.5',
-        margin: 0,
+        margin: `${props.marginTop || 0} 0 ${props.marginBottom || 0} 0`,
+        paddingLeft: props.paddingLeft || 0,
+
         // Blindaje MDO
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: props.multiLine ? 'pre-wrap' : 'nowrap',
-        opacity: (props.content || isFocused) ? 1 : 0.3
+        opacity: (props.content || isFocused) ? 1 : 0.3,
+        transition: 'all var(--transition-base)'
     };
 
     // ... (renderContent stays same)

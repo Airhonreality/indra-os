@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useAppState } from '../../state/app_state';
 import { IndraIcon } from '../utilities/IndraIcons';
+import { useLexicon } from '../../services/lexicon';
 
 /**
  * CoreConnectionView (Nivel 0)
  * Permite vincular una instancia de Google Apps Script (Core).
  */
 export function CoreConnectionView() {
+    const t = useLexicon();
     const setCoreConnection = useAppState((s) => s.setCoreConnection);
     const isConnecting = useAppState((s) => s.isConnecting);
     const systemError = useAppState((s) => s.error);
@@ -73,9 +75,9 @@ export function CoreConnectionView() {
                             fontWeight: 'var(--font-bold)',
                             letterSpacing: '0.4em',
                             margin: 0
-                        }}>INDRA_CORE</h1>
+                        }}>{t('ui_system_id')}</h1>
                         <div className="shelf">
-                            <span className="text-label" style={{ color: 'var(--color-accent)' }}>SYSTEM_AWAKENING</span>
+                            <span className="text-label" style={{ color: 'var(--color-accent)' }}>{t('ui_system_awakening')}</span>
                             <div className="hud-line" style={{ width: '200px' }}></div>
                             <span className="text-hint" style={{ fontSize: '9px' }}>MOD_V2.0.4</span>
                         </div>
@@ -88,16 +90,16 @@ export function CoreConnectionView() {
                     {/* Item 01: Identificador */}
                     <div className="grid-split">
                         <div className="stack--tight">
-                            <label className="text-label">01 // IDENTITY</label>
+                            <label className="text-label">{t('ui_identity_config')}</label>
                             <p className="text-hint" style={{ fontSize: '10px', lineHeight: '1.4' }}>
-                                Nombre técnico para esta instancia en su memoria local.
+                                {t('ui_identity_desc')}
                             </p>
                         </div>
                         <div className="slot-small glass-light">
                             <input
                                 className="input-base"
                                 style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)' }}
-                                placeholder="PRIMARY_INTERFACE_ID"
+                                placeholder={t('ui_identity_placeholder')}
                                 value={alias}
                                 onChange={onInputChange(setAlias, 'indra-core-alias')}
                             />
@@ -107,9 +109,9 @@ export function CoreConnectionView() {
                     {/* Item 02: Endpoint */}
                     <div className="grid-split">
                         <div className="stack--tight">
-                            <label className="text-label">02 // BASE_RESONANCE</label>
+                            <label className="text-label">{t('ui_resonance_config')}</label>
                             <p className="text-hint" style={{ fontSize: '10px', lineHeight: '1.4' }}>
-                                URL del despliegue de Google Apps Script.
+                                {t('ui_resonance_desc')}
                             </p>
                         </div>
                         <div className="slot-small glass-light">
@@ -127,9 +129,9 @@ export function CoreConnectionView() {
                     {/* Item 03: Access Secret */}
                     <div className="grid-split">
                         <div className="stack--tight">
-                            <label className="text-label">03 // SOBERANO_KEY</label>
+                            <label className="text-label">{t('ui_secret_config')}</label>
                             <p className="text-hint" style={{ fontSize: '10px', lineHeight: '1.4' }}>
-                                Credencial AES de acceso al núcleo sistémico.
+                                {t('ui_secret_desc')}
                             </p>
                         </div>
                         <div className="slot-small glass-light">
@@ -171,7 +173,7 @@ export function CoreConnectionView() {
                                 </div>
                             )}
                             <span className="text-hint" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
-                                {`[ ENCRYPTED_TUNNEL: ${isConnecting ? 'ESTABLISHING' : 'INACTIVE'} ]`}
+                                {`[ ${t('status_encrypted')}: ${isConnecting ? t('status_establishing') : t('status_inactive')} ]`}
                             </span>
                             <span className="text-hint" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>[ PROTOCOL: UQO_V4.1 ]</span>
                         </div>
@@ -196,7 +198,7 @@ export function CoreConnectionView() {
                                 ) : (
                                     <IndraIcon name="LINK" />
                                 )}
-                                {isConnecting ? 'LINKING...' : 'INITIATE_CORE_LINK'}
+                                {isConnecting ? t('status_loading') : t('ui_connect_action')}
                             </span>
                         </button>
                     </div>

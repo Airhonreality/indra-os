@@ -310,13 +310,14 @@ function _system_updateAtom(atomId, updates, providerId) {
         const { id, class: atomClass, provider, raw, strategy, ...pureUpdates } = updates;
         const updated = JSON.parse(JSON.stringify(current));
 
-        // Gestión del Payload según Estrategia
+        // Gestión del Payload según Estrategia (ADR-001/008)
         if (pureUpdates.payload) {
             updated.payload = updated.payload || {};
-            if (strategy === 'OVERWRITE') {
-                updated.payload = pureUpdates.payload;
-            } else {
+            // AXIOMA: Por defecto SOBREESCRIBIMOS. El Merge es origen de entropía en ASTs.
+            if (strategy === 'MERGE') {
                 _indra_deepMerge_(updated.payload, pureUpdates.payload);
+            } else {
+                updated.payload = pureUpdates.payload;
             }
             delete pureUpdates.payload;
         }

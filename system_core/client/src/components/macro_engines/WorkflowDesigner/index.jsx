@@ -28,6 +28,7 @@ export function WorkflowDesigner({ atom, onUpdate }) {
 }
 
 function WorkflowLayout({ onUpdate }) {
+    const t = useLexicon();
     const { updatePinIdentity } = useWorkspace();
     const { workflow, addStation, selectedStationId, setSelectedStationId, setWorkflow } = useWorkflow();
     const { status, traceLogs, currentStepId, runTrace } = useWorkflowExecution(workflow);
@@ -60,7 +61,7 @@ function WorkflowLayout({ onUpdate }) {
             />
 
             <div className="indra-container">
-                <div className="indra-header-label">WORKFLOW_ORCHESTRATION_SYSTEM</div>
+                <div className="indra-header-label">{t('ui_controls')}</div>
                 <IndraEngineHood
                     leftSlot={
                         <div className="engine-hood__capsule" style={{ gap: 0, padding: '1px' }}>
@@ -73,7 +74,7 @@ function WorkflowLayout({ onUpdate }) {
                                     color: workflow.status !== 'LIVE' ? 'var(--indra-dynamic-accent)' : 'var(--color-text-secondary)',
                                     border: workflow.status !== 'LIVE' ? '1px solid var(--indra-dynamic-accent)' : 'none'
                                 }}
-                            >DRAFT</button>
+                            >{t('status_draft')}</button>
                             <button
                                 className={`btn btn--xs ${workflow.status === 'LIVE' ? 'active' : ''}`}
                                 onClick={() => onUpdate({ ...workflow, status: 'LIVE' })}
@@ -83,7 +84,7 @@ function WorkflowLayout({ onUpdate }) {
                                     color: workflow.status === 'LIVE' ? '#ff4655' : 'var(--color-text-secondary)',
                                     border: workflow.status === 'LIVE' ? '1px solid #ff4655' : 'none'
                                 }}
-                            >LIVE</button>
+                            >{t('status_live')}</button>
                         </div>
                     }
                     rightSlot={
@@ -99,7 +100,7 @@ function WorkflowLayout({ onUpdate }) {
                             }}
                         >
                             <IndraIcon name="SAVE" size="10px" color="var(--indra-dynamic-accent)" />
-                            <span style={{ marginLeft: "6px" }}>SAVE_FLIGHT_LOG</span>
+                            <span style={{ marginLeft: "6px" }}>{t('action_save')}</span>
                         </button>
                     }
                 />
@@ -110,12 +111,12 @@ function WorkflowLayout({ onUpdate }) {
             <div className="designer-body fill shelf overflow-hidden" style={{ gap: 'var(--indra-ui-gap)' }}>
                 {/* Columna Izquierda: Trigger */}
                 <div className="indra-container" style={{ width: '260px' }}>
-                    <div className="indra-header-label">TRIGGER_INPUT_STATION</div>
+                    <div className="indra-header-label">{t('ui_sources')}</div>
                     <WorkflowTrigger />
                 </div>
 
                 <div className="indra-container fill stack bg-black-soft relative overflow-hidden" style={{ borderLeft: 'none', borderRight: 'none' }}>
-                    <div className="indra-header-label">STATION_SEQUENCE_PIPELINE</div>
+                    <div className="indra-header-label">{t('ui_transformation')}</div>
                     <main className="engine-canvas pipeline-viewport stack" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                         <div className="pipeline-scroll fill">
                             <section className="station-stack">
@@ -157,7 +158,7 @@ function WorkflowLayout({ onUpdate }) {
 
                 {/* Columna Derecha: Inspector */}
                 <div className="indra-container" style={{ width: '320px' }}>
-                    <div className="indra-header-label">WORKFLOW_PROPERTIES_HUD</div>
+                    <div className="indra-header-label">{t('ui_inspector')}</div>
                     <WorkflowInspector />
                 </div>
             </div>

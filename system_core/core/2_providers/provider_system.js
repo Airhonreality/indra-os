@@ -63,8 +63,30 @@ function CONF_SYSTEM() {
 
     protocol_meta: {
       SYSTEM_PINS_READ: {
-        desc: "Obtiene la lista de todos los átomos anclados al workspace activo (Estado del entorno).",
-        inputs: {}
+        desc: "Obtiene la lista de todos los átomos anclados al workspace activo.",
+        inputs: {
+          workspace_id: { type: 'string', required: true, desc: 'ID del entorno activo.' }
+        }
+      },
+      SYSTEM_PIN: {
+        desc: "Ancla un nuevo átomo al espacio de trabajo activo.",
+        inputs: {
+          workspace_id: { type: 'string', required: true },
+          data: { type: 'object', required: true, desc: '{ atom: ÁtomoUniversal }' }
+        }
+      },
+      SYSTEM_UNPIN: {
+        desc: "Desvincula un átomo del espacio de trabajo.",
+        inputs: {
+          workspace_id: { type: 'string', required: true },
+          data: { type: 'object', required: true, desc: '{ atom_id, provider }' }
+        }
+      },
+      SYSTEM_WORKSPACE_REPAIR: {
+        desc: "Saneamiento proactivo: purga punteros a archivos inexistentes.",
+        inputs: {
+          workspace_id: { type: 'string', required: true }
+        }
       },
       GETMCEPMANIFEST: {
         desc: "Realiza un sensado profundo de todas las capacidades y herramientas disponibles en Indra.",

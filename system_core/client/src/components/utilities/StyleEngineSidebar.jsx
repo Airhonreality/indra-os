@@ -1,62 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { IndraMicroHeader } from './IndraMicroHeader';
 import { IndraIcon } from './IndraIcons';
 import { useShell } from '../../context/ShellContext';
+import { useAppState } from '../../state/app_state';
+import { TokenDiscovery } from '../../services/TokenDiscovery';
 import './StyleEngineSidebar.css';
 
 /**
  * =============================================================================
- * UTILIDAD COGNITIVA: StyleEngineSidebar
- * RESPONSABILIDAD: El "Panel 1/3", un Global Style Engine que acompaña cualquier
- * Macro o Nexus view y permite editar el AST CSS en tiempo real con herramientas
- * ergonómicas (Sliders, Swatches, etc.).
+ * UTILIDAD COGNITIVA: StyleEngineSidebar (v2 Industrial)
+ * RESPONSABILIDAD: El "Panel 1/3", un Global Style Engine dinámico.
+ * AXIOMA: No contiene una lista de estilos; los "descubre" del CSS.
  * =============================================================================
  */
 
-const STYLE_MODULES = [
-    {
-        id: 'chromatics',
-        title: 'CHROMATICS & IDENTITY',
-        desc: 'Variables de Colorización Central',
-        icon: 'LAYERS',
-        params: [
-            { key: '--color-accent', label: 'Accent Palette', desc: 'Identidad y acento primario (Botones, Destellos)', type: 'color' },
-            { key: '--color-bg-void', label: 'Void Abyss', desc: 'El fondo absoluto más oscuro', type: 'color' },
-            { key: '--color-bg-surface', label: 'Floating Surface', desc: 'Fondo de los paneles y cajas (Engines, Modales)', type: 'color' },
-            { key: '--color-text-primary', label: 'Primary Typography', desc: 'Acento del texto más legible', type: 'color' }
-        ]
-    },
-    {
-        id: 'topology',
-        title: 'TOPOLOGY & METRICS',
-        desc: 'Variables de Diagramación, Paddings y Margins',
-        icon: 'FRAME',
-        params: [
-            { key: '--indra-ui-margin', label: 'Outer Padding Margin', desc: 'Margen exterior canónico de la UI (El respiro)', type: 'slider', min: 0, max: 64, unit: 'px' },
-            { key: '--indra-ui-gap', label: 'Modular Inter-Gap', desc: 'Distancia entre los flexboxes y motores (Grid System)', type: 'slider', min: 0, max: 32, unit: 'px' },
-            { key: '--indra-ui-radius', label: 'Global Border Radius', desc: 'Redondez canónica estructural', type: 'slider', min: 0, max: 24, unit: 'px' },
-            { key: '--space-4', label: 'Standard Padding', desc: 'Espacio de separación interno estándar', type: 'slider', min: 0, max: 48, unit: 'px' }
-        ]
-    },
-    {
-        id: 'atmosphere',
-        title: 'ATMOSPHERE & GLASS',
-        desc: 'Opacidades, Blur y HUD Holografics',
-        icon: 'EYE',
-        params: [
-            { key: '--glass-bg', label: 'Glass Material Opacity', desc: 'Nivel de opacidad rgba para superficies tipo blur/glass', type: 'text' },
-            { key: '--blur-glass', label: 'Atmospheric Blur', desc: 'Nivel de difuminado canónico (ej. blur(16px))', type: 'text' }
-        ]
-    }
-];
-
 // ----- CONTROLES INDIVIDUALES -----
 
-const StyleSlider = ({ label, desc, val, min, max, unit, onChange }) => {
+const StyleSlider = ({ label, desc, val, min, max, unit, onChange, isDirty }) => {
     const numVal = parseInt(val) || 0;
     
     return (
-        <div className="se-param">
+        <div className={`se-param ${isDirty ? 'se-param--dirty' : ''}`}>
             <div className="se-param__header">
                 <span className="se-param__label">{label}</span>
                 <span className="se-param__val">{numVal}{unit}</span>
@@ -74,12 +38,11 @@ const StyleSlider = ({ label, desc, val, min, max, unit, onChange }) => {
     );
 };
 
-const StyleColor = ({ label, desc, val, onChange }) => {
-    // Basic hex support for color inputs, else fallback to text
+const StyleColor = ({ label, desc, val, onChange, isDirty }) => {
     const isHex = val.startsWith('#');
     
     return (
-        <div className="se-param">
+        <div className={`se-param ${isDirty ? 'se-param--dirty' : ''}`}>
             <div className="se-param__header">
                 <span className="se-param__label">{label}</span>
                 {isHex && (
@@ -103,8 +66,8 @@ const StyleColor = ({ label, desc, val, onChange }) => {
     );
 };
 
-const StyleTextInput = ({ label, desc, val, onChange }) => (
-    <div className="se-param">
+const StyleTextInput = ({ label, desc, val, onChange, isDirty }) => (
+    <div className={`se-param ${isDirty ? 'se-param--dirty' : ''}`}>
         <div className="se-param__header">
             <span className="se-param__label">{label}</span>
         </div>
@@ -121,26 +84,45 @@ const StyleTextInput = ({ label, desc, val, onChange }) => (
 
 export function StyleEngineSidebar() {
     const { isStyleEngineOpen, setIsStyleEngineOpen, activeArtifact } = useShell();
+    const { updateArtifact } = useAppState();
+    
+    const [styleModules, setStyleModules] = useState([]);
     const [liveVars, setLiveVars] = useState({});
+    const [dirtyVars, setDirtyVars] = useState(new Set());
+    const [isFixating, setIsFixating] = useState(false);
 
+    // ── DESCUBRIMIENTO DINÁMICO ──
     useEffect(() => {
         if (!isStyleEngineOpen) return;
-        const rootStyle = getComputedStyle(document.documentElement);
-        const initialVars = {};
         
-        STYLE_MODULES.forEach(group => {
-            group.params.forEach(p => {
-                initialVars[p.key] = rootStyle.getPropertyValue(p.key).trim();
+        async function boot() {
+            const discovered = await TokenDiscovery.discover();
+            setStyleModules(discovered);
+            
+            const rootStyle = getComputedStyle(document.documentElement);
+            const initialVars = {};
+            discovered.forEach(group => {
+                group.params.forEach(p => {
+                    initialVars[p.key] = rootStyle.getPropertyValue(p.key).trim();
+                });
             });
-        });
+            setLiveVars(initialVars);
+        }
         
-        setLiveVars(initialVars);
+        boot();
     }, [isStyleEngineOpen]);
 
     const handleVarChange = (key, newValue) => {
         setLiveVars(prev => ({ ...prev, [key]: newValue }));
+        setDirtyVars(prev => {
+            const next = new Set(prev);
+            next.add(key);
+            return next;
+        });
         document.documentElement.style.setProperty(key, newValue);
     };
+
+    const hasChanges = dirtyVars.size > 0;
 
     if (!isStyleEngineOpen) return null;
 
@@ -149,13 +131,14 @@ export function StyleEngineSidebar() {
             <div className="style-engine-backdrop" onClick={() => setIsStyleEngineOpen(false)} />
             <aside className="style-engine-sidebar">
                 
-                {/* ── MACRO/MICRO HEADER DEL KINETICS ENGINE ── */}
                 <div className="micro-header">
                     <div className="shelf--tight">
                         <IndraIcon name="SETTINGS" color="var(--color-accent)" />
                         <div className="stack--tight">
-                            <h3 className="micro-header__title" style={{ fontSize: '13px' }}>GLOBAL STYLE ENGINE</h3>
-                            <span className="micro-header__description">Administración de Estética Global e Interfaces</span>
+                            <h3 className="micro-header__title" style={{ fontSize: '13px' }}>UI AUTODISCOVERY ENGINE</h3>
+                            <span className="micro-header__description">
+                                {hasChanges ? '⚠️ RESONANCIA DE SOMBRA ACTIVA' : 'Sincronía estática estable'}
+                            </span>
                         </div>
                     </div>
                     <button className="btn btn--white" onClick={() => setIsStyleEngineOpen(false)}>DONE</button>
@@ -163,6 +146,17 @@ export function StyleEngineSidebar() {
 
                 <div className="style-engine-sidebar__scroll">
                     
+                    {/* ── ALERTA DE RESONANCIA DE SOMBRA ── */}
+                    {hasChanges && (
+                        <div className="se-alert stack--tight">
+                            <div className="shelf--tight">
+                                <IndraIcon name="SYNC" size="12px" color="var(--color-warm)" />
+                                <strong>REALIDAD VOLÁTIL</strong>
+                            </div>
+                            <p>Has modificado {dirtyVars.size} parámetros. Estos cambios se perderán al recargar si no se sinceran en el Core.</p>
+                        </div>
+                    )}
+
                     {/* ── CURRENT ACTIVE UNIVERSE ── */}
                     {activeArtifact && (
                         <div className="se-module" style={{ 
@@ -176,26 +170,50 @@ export function StyleEngineSidebar() {
                                     ACTIVE UNIVERSE: {activeArtifact.class || 'ENGINE'}
                                 </span>
                             </div>
-                            <p className="se-module__desc">
-                                Parámetros locales del entorno activo en ejecución.
-                            </p>
                             
                             <div className="se-module__params">
                                 <StyleColor 
                                     label="Universe Accent Identity" 
-                                    desc="Color representativo que se inyecta por cascada en toda la UI de este macro-engine." 
+                                    desc="Color inyectado por cascada en este macro-engine." 
                                     val={liveVars['--indra-dynamic-accent'] || activeArtifact.color || '#00f5d4'} 
-                                    onChange={(v) => handleVarChange('--indra-dynamic-accent', v)} 
+                                    onChange={(v) => handleVarChange('--indra-dynamic-accent', v)}
+                                    isDirty={dirtyVars.has('--indra-dynamic-accent')}
                                 />
+
+                                <div className="mt-3">
+                                    <button 
+                                        className="btn btn--xs btn--ghost w-100 shelf--tight" 
+                                        style={{ border: '1px solid var(--indra-dynamic-accent)', color: 'var(--indra-dynamic-accent)' }}
+                                        disabled={isFixating}
+                                        onClick={async () => {
+                                            setIsFixating(true);
+                                            try {
+                                                await updateArtifact(activeArtifact.id, activeArtifact.provider, {
+                                                    color: liveVars['--indra-dynamic-accent']
+                                                });
+                                                setDirtyVars(prev => {
+                                                    const next = new Set(prev);
+                                                    next.delete('--indra-dynamic-accent');
+                                                    return next;
+                                                });
+                                            } finally {
+                                                setIsFixating(false);
+                                            }
+                                        }}
+                                    >
+                                        <IndraIcon name="SAVE" size="10px" /> 
+                                        {isFixating ? 'SINCERANDO...' : 'SINCERAR IDENTIDAD'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    {/* ── GLOBAL CANONICAL PARAMETERS ── */}
-                    {STYLE_MODULES.map(module => (
+                    {/* ── DYNAMICALLY DISCOVERED MODULES ── */}
+                    {styleModules.map(module => (
                         <div key={module.id} className="se-module">
                             <div className="se-module__header">
-                                <IndraIcon name={module.icon} size="10px" color="var(--color-text-tertiary)" />
+                                <IndraIcon name={module.icon || "LAYERS"} size="10px" color="var(--color-text-tertiary)" />
                                 <span className="se-module__title">{module.title}</span>
                             </div>
                             <p className="se-module__desc">{module.desc}</p>
@@ -203,14 +221,11 @@ export function StyleEngineSidebar() {
                             <div className="se-module__params">
                                 {module.params.map(param => {
                                     const val = liveVars[param.key] || '';
+                                    const props = { ...param, val, isDirty: dirtyVars.has(param.key), onChange: (v) => handleVarChange(param.key, v) };
                                     
-                                    if (param.type === 'slider') {
-                                        return <StyleSlider key={param.key} {...param} val={val} onChange={(v) => handleVarChange(param.key, v)} />;
-                                    }
-                                    if (param.type === 'color') {
-                                        return <StyleColor key={param.key} {...param} val={val} onChange={(v) => handleVarChange(param.key, v)} />;
-                                    }
-                                    return <StyleTextInput key={param.key} {...param} val={val} onChange={(v) => handleVarChange(param.key, v)} />;
+                                    if (param.type === 'slider') return <StyleSlider key={param.key} {...props} />;
+                                    if (param.type === 'color') return <StyleColor key={param.key} {...props} />;
+                                    return <StyleTextInput key={param.key} {...props} />;
                                 })}
                             </div>
                         </div>

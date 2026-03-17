@@ -15,9 +15,10 @@ import { IndraActionTrigger } from '../../utilities/IndraActionTrigger';
 import { IndraMicroHeader } from '../../utilities/IndraMicroHeader';
 import ArtifactSelector from '../../utilities/ArtifactSelector';
 
-export function LayersPanel({ fields, selectedId, onSelect, onAdd, onRemove, onMove, onClone, onDemote, onPromote }) {
+export function LayersPanel({ fields, selectedId, onSelect, onAdd, onRemove, onMove, onClone, onDemote, onPromote, onSwitchSchema, currentAtom }) {
 
     const [layersSearch, setLayersSearch] = React.useState('');
+    const [showSchemaSwitcher, setShowSchemaSwitcher] = React.useState(false);
 
     const flattenFields = (list) => {
         return list.reduce((acc, field) => {
@@ -80,6 +81,39 @@ export function LayersPanel({ fields, selectedId, onSelect, onAdd, onRemove, onM
                 executeLabel="AÑADIR CAMPO"
                 metadata={`${fields.length} CAMPOS`}
             />
+
+            {/* Schema Switcher: navegar entre schemas sin cerrar el motor */}
+            {onSwitchSchema && (
+                <div style={{ flexShrink: 0, padding: '0 var(--space-4) var(--space-2)', borderBottom: '1px solid var(--color-border)' }}>
+                    <button
+                        className="btn btn--ghost btn--xs shelf--tight"
+                        onClick={() => setShowSchemaSwitcher(true)}
+                        style={{
+                            width: '100%',
+                            justifyContent: 'flex-start',
+                            border: '1px dashed var(--color-border)',
+                            borderRadius: 'var(--radius-sm)',
+                            padding: 'var(--space-1) var(--space-2)',
+                            opacity: 0.6,
+                            gap: 'var(--space-1)'
+                        }}
+                    >
+                        <IndraIcon name="SYNC" size="10px" />
+                        <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>
+                            {currentAtom?.handle?.label || 'CAMBIAR SCHEMA'}
+                        </span>
+                    </button>
+                </div>
+            )}
+
+            {showSchemaSwitcher && (
+                <ArtifactSelector
+                    title="SELECCIONAR SCHEMA"
+                    filter={{ class: 'DATA_SCHEMA' }}
+                    onSelect={(a) => { onSwitchSchema(a.id); setShowSchemaSwitcher(false); }}
+                    onCancel={() => setShowSchemaSwitcher(false)}
+                />
+            )}
 
             {/* Búsqueda de Capas */}
             <div style={{ flexShrink: 0, padding: 'var(--space-2) var(--space-4)', borderBottom: '1px solid var(--color-border)' }}>

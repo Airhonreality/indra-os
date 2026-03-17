@@ -162,3 +162,33 @@
 .se-text-input:focus {
     border-color: var(--color-accent);
 }
+
+/* Shadow Resonance / Dirty States */
+.se-param--dirty .se-param__label {
+    color: var(--color-warm);
+}
+
+.se-param--dirty .se-param__val {
+    color: var(--color-warm);
+    text-shadow: 0 0 5px rgba(245, 166, 35, 0.4);
+}
+
+.se-alert {
+    background: rgba(245, 166, 35, 0.1);
+    border: 1px solid rgba(245, 166, 35, 0.3);
+    border-left: 3px solid var(--color-warm);
+    padding: var(--space-3);
+    border-radius: var(--radius-sm);
+}
+
+.se-alert strong {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-warm);
+}
+
+.se-alert p {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    margin: var(--space-1) 0 0 0;
+}

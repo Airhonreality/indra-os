@@ -126,15 +126,35 @@ function _system_handleSchemaFieldOptions(uqo) {
  * TABULAR_STREAM: Proyecta una colección de átomos como un flujo de datos.
  */
 function _system_handleTabularStream(uqo) {
+    const contextId = uqo.context_id;
     const result = _system_handleRead(uqo);
 
+    // DETERMINISMO RADICAL: Intentamos recuperar la estructura real del átomo
+    let dynamicFields = [
+        { id: 'id', alias: 'id', label: 'ID', type: 'TEXT' },
+        { id: 'label', alias: 'label', label: 'Label', type: 'TEXT' }
+    ];
+    let schemaLabel = 'System Stream';
+
+    try {
+        if (contextId) {
+            const file = _system_findAtomFile(contextId);
+            const atom = JSON.parse(file.getBlob().getDataAsString());
+            
+            // Si el átomo es un esquema, heredamos su ADN (payload.fields)
+            if (atom.class === 'DATA_SCHEMA' && atom.payload?.fields) {
+                dynamicFields = atom.payload.fields;
+                schemaLabel = atom.handle?.label || schemaLabel;
+            }
+        }
+    } catch (e) {
+        logWarn(`[tabular_stream] No se pudo heredar esquema para ${contextId}. Usando genérico.`);
+    }
+
     const schema = {
-        id: 'system_generic_stream',
-        handle: { ns: 'com.indra.system.schema', alias: 'generic', label: 'System Stream' },
-        fields: [
-            { id: 'id', alias: 'id', label: 'ID', type: 'TEXT' },
-            { id: 'label', alias: 'label', label: 'Label', type: 'TEXT' }
-        ]
+        id: contextId || 'system_generic_stream',
+        handle: { ns: 'com.indra.system.schema', alias: 'dynamic', label: schemaLabel },
+        fields: dynamicFields
     };
 
     return {

@@ -136,6 +136,7 @@ system_core/client/src/
 3.  **A3 — HUD Texture:** Todo fondo de nivel 0 debe tener el patrón de cuadrícula y scanline.
 4.  **A4 — Herencia de Iconos:** Los iconos nunca fuerzan color; se adaptan al `.btn` o `.text` donde residen.
 5.  **A5 — Scrollbar Integrada:** La scrollbar no es un elemento nativo del SO, es una pieza del diseño (pianu, floating thumb).
+6.  **A6 — Prohibición de Estilos Inline:** Ningún componente debe definir estilos dinámicos (opacidad, colores, bordes) mediante el atributo `style` de React. Se DEBE usar el mecanismo de Atributos de Datos (`data-*`) para que el motor de CSS tenga la soberanía absoluta de la representación visual.
 
 ---
 *Este documento es la fuente de verdad técnica para la UI. Toda contradicción con el código debe resolverse priorizando esta especificación.*

@@ -1,32 +1,15 @@
 /* VideoDesigner.css - Industrial Axiomatic Edition */
 
-:root {
-    /* AXIOMAS DE ESPACIO (Global variables to be used by the assembler) */
-    --indra-ui-margin: 12px;     /* Margen exterior canónico */
-    --indra-ui-gap: 2px;        /* Distancia entre módulos (gap de 2px) */
-    --indra-ui-radius: 2px;
-    
-    /* AXIOMAS DE COLOR (Sinceridad Cromática) */
-    --indra-dynamic-accent: #0096ff; /* Default, will be overridden by JS inline style */
-    --indra-dynamic-bg: rgba(0, 150, 255, 0.03);
-    --indra-dynamic-border: rgba(0, 150, 255, 0.15);
-    
-    --indra-bg-stage: #080809;
-    --indra-bg-deep: #0e0e0f;
-}
-
 .macro-designer {
     user-select: none;
     overflow: hidden;
     background-color: var(--color-bg-void);
-    /* Aplicar margen canónico exterior */
-    padding: var(--indra-ui-margin);
 }
 
 /* INDUSTRIAL BOX SYSTEM (Agnotic Container) */
 .indra-container {
     border: 1px solid var(--indra-dynamic-border);
-    background-color: var(--indra-bg-deep);
+    background-color: var(--color-bg-deep);
     position: relative;
     border-radius: var(--indra-ui-radius);
     display: flex;

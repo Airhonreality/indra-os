@@ -48,7 +48,7 @@ function CONF_NOTION() {
     },
     class: 'FOLDER',         // class del átomo-silo en el manifest
     version: '1.0',
-    protocols: ['HIERARCHY_TREE', 'TABULAR_STREAM', 'ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 'SEARCH_DEEP', 'SYSTEM_CONNECTION_TEST', 'ACCOUNT_RESOLVE'],
+    protocols: ['HIERARCHY_TREE', 'TABULAR_STREAM', 'ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 'SEARCH_DEEP', 'SYSTEM_CONNECTION_TEST', 'ACCOUNT_RESOLVE', 'SCHEMA_MUTATE'],
     implements: {
       HIERARCHY_TREE: 'handleNotion',
       TABULAR_STREAM: 'handleNotion',
@@ -58,7 +58,8 @@ function CONF_NOTION() {
       ATOM_DELETE: 'handleNotion',
       SEARCH_DEEP: 'handleNotion',
       SYSTEM_CONNECTION_TEST: 'handleNotion',
-      ACCOUNT_RESOLVE: 'handleNotion'
+      ACCOUNT_RESOLVE: 'handleNotion',
+      SCHEMA_MUTATE: 'handleNotion'
     },
     config_schema: [
       { key: 'NOTION_API_KEY', type: 'password', label: 'API Key de Notion', required: true },
@@ -68,6 +69,7 @@ function CONF_NOTION() {
       ATOM_CREATE: { sync: 'BLOCKING', purge: 'ALL' },
       ATOM_UPDATE: { sync: 'BLOCKING', purge: 'ID' },
       ATOM_DELETE: { sync: 'BLOCKING', purge: 'ALL' },
+      SCHEMA_MUTATE: { sync: 'BLOCKING', purge: 'ID' },
       TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE' },
       HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE' },
       SEARCH_DEEP: { sync: 'BLOCKING', purge: 'NONE' },
@@ -80,6 +82,7 @@ function CONF_NOTION() {
       ATOM_CREATE: { label: 'Creando en Notion', help: 'Esculpiendo nueva página en el workspace externo.' },
       ATOM_UPDATE: { label: 'Sincronizando Notion', help: 'Actualizando propiedades en la nube.' },
       ATOM_DELETE: { label: 'Archivando en Notion', help: 'Enviando página a la papelera (archivar).' },
+      SCHEMA_MUTATE: { label: 'Mutando Estructura', help: 'Alterando columnas de la base de datos externa.' },
       SEARCH_DEEP: { label: 'Búsqueda Profunda', help: 'Consultando todo el workspace de Notion.' },
       SYSTEM_CONNECTION_TEST: { label: 'Probando Enlace', help: 'Verificando validez del Token de Integración.' }
     }
@@ -130,6 +133,7 @@ function handleNotion(uqo) {
   if (protocol === 'ATOM_DELETE') return _notion_handleAtomDelete(uqo, apiKey);
   if (protocol === 'SEARCH_DEEP') return _notion_handleSearchDeep(uqo, apiKey);
   if (protocol === 'ACCOUNT_RESOLVE') return _notion_handleAccountResolve(uqo, apiKey);
+  if (protocol === 'SCHEMA_MUTATE') return _notion_handleSchemaMutate(uqo, apiKey);
 
   const err = createError('PROTOCOL_NOT_FOUND',
     `Provider "notion" no soporta el protocolo: "${protocol}".`
@@ -1086,6 +1090,104 @@ function _notion_notionRequest(endpoint, options) {
  * @returns {string|null} La API Key o null si no está configurada.
  * @private
  */
+/**
+ * Lee la Notion API Key desde PropertiesService via system_config.gs.
+ * La clave se almacena como 'ACCOUNT_notion_{accountId}_KEY' en PropertiesService.
+ *
+ * @param {string} accountId - El ID de la cuenta.
+ * @returns {string|null} La API Key o null si no está configurada.
+ * @private
+ */
 function _notion_getNotionApiKey(accountId) {
   return readProviderApiKey('notion', accountId || 'default'); // → system_config.gs
+}
+
+/**
+ * SCHEMA_MUTATE: Sincroniza cambios estructurales (columnas) con la base de datos de Notion.
+ * AXIOMA DE RESONANCIA: El provider traduce la libertad de INDRA a la restricción del silo.
+ *
+ * @param {Object} uqo - Universal Query Object.
+ * @param {string} apiKey - Integración Token de Notion.
+ * @private
+ */
+function _notion_handleSchemaMutate(uqo, apiKey) {
+  const dbId = uqo.context_id;
+  const payload = uqo.data?.payload;
+  const fields = payload?.fields;
+
+  if (!dbId || !fields) {
+    throw createError('INVALID_INPUT', 'SCHEMA_MUTATE requiere context_id (dbId) y payload.fields.');
+  }
+
+  try {
+    // 1. Obtener estado actual para detectar qué es nuevo o qué ha cambiado
+    const currentDb = _notion_notionRequest(`/databases/${dbId}`, { method: 'GET', apiKey });
+    const currentProps = currentDb.properties || {};
+
+    // 2. Traducir INDRA fields a Notion Properties
+    const notionProperties = {};
+
+    fields.forEach(field => {
+       // El label de INDRA es el nombre de la columna en Notion
+       const propertyName = field.label; 
+       
+       // Si la propiedad no existe en Notion, la preparamos para creación
+       if (!currentProps[propertyName]) {
+         notionProperties[propertyName] = _notion_translateTypeToNotion(field.type);
+       }
+       // En esta fase, no renombramos ni borramos para evitar pérdida de datos accidental.
+    });
+
+    if (Object.keys(notionProperties).length === 0) {
+      return { 
+        items: [], 
+        metadata: { 
+          status: 'OK', 
+          message: 'No se detectaron nuevas columnas para resonar en Notion.' 
+        } 
+      };
+    }
+
+    // 3. Ejecutar Mutación en Notion
+    const updated = _notion_notionRequest(`/databases/${dbId}`, {
+      method: 'PATCH',
+      payload: { properties: notionProperties },
+      apiKey
+    });
+
+    logInfo(`[provider_notion] SCHEMA_MUTATE exitoso en ${dbId}. Creadas: ${Object.keys(notionProperties).join(', ')}`);
+
+    const atom = _notion_notionObjectToAtom(updated, uqo.provider);
+    return { 
+      items: atom ? [atom] : [], 
+      metadata: { 
+        status: 'OK', 
+        mutated_properties: Object.keys(notionProperties) 
+      } 
+    };
+
+  } catch (err) {
+    logError(`[provider_notion] Fallo en SCHEMA_MUTATE para ${dbId}: ${err.message}`);
+    const msg = err.message || 'Error desconocido en mutación';
+    return { items: [], metadata: { status: 'ERROR', error: msg } };
+  }
+}
+
+/**
+ * Traduce tipos canónicos de INDRA a especificaciones de propiedad de Notion API.
+ * @param {string} indraType
+ * @returns {Object} Configuración del tipo para Notion
+ * @private
+ */
+function _notion_translateTypeToNotion(indraType) {
+  switch (indraType) {
+    case 'NUMBER': return { number: { format: 'number' } };
+    case 'BOOLEAN': return { checkbox: {} };
+    case 'DATE': return { date: {} };
+    case 'ENUM': return { select: {} };
+    case 'ARRAY': return { multi_select: {} };
+    case 'TEXT':
+    default:
+      return { rich_text: {} };
+  }
 }

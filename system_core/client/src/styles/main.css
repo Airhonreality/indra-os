@@ -12,14 +12,153 @@
 }
 
 body {
-    background: var(--grad-hud);
-    background-attachment: fixed;
+    margin: 0;
+    padding: 0;
+    background-color: var(--color-bg-void);
     color: var(--color-text-primary);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
     overflow: hidden;
-    position: relative;
+}
+
+/* 🌀 AXIOMA DE RESONANCIA: Inteligencia Reactiva Automática */
+[data-resonance="active"] {
+    opacity: 0.5 !important;
+    pointer-events: none !important;
+    cursor: wait !important;
+    z-index: 1000;
+}
+
+/* Agentic Highlight: Opacidad de Navegación */
+[data-highlighted="idle"] {
+    opacity: 1;
+    transition: all var(--transition-base);
+}
+
+[data-highlighted="selective"] {
+    opacity: 1;
+    border-color: var(--indra-dynamic-accent) !important;
+    box-shadow: 0 0 10px var(--indra-dynamic-glow);
+    z-index: 10;
+}
+
+[data-highlighted="relational"] {
+    opacity: 1;
+    border-color: var(--color-accent) !important;
+    box-shadow: 0 0 12px var(--color-accent-dim);
+    filter: brightness(1.2);
+}
+
+[data-highlighted="dimmed"] {
+    opacity: 0.7;
+    filter: saturate(0.9);
+    pointer-events: auto;
+}
+
+/* Consistencia de Componentes */
+.atom-glif, .agency-chassis, .result-card {
+    border: 1px solid var(--color-border);
+    transition: all var(--transition-fast);
+}
+
+[data-highlighted="selective"] .atom-glif,
+[data-highlighted="selective"] .agency-chassis,
+[data-highlighted="selective"] .result-card {
+    border-color: var(--indra-dynamic-accent) !important;
+}
+
+[data-highlighted="relational"] .atom-glif,
+[data-highlighted="relational"] .agency-chassis,
+[data-highlighted="relational"] .result-card {
+    border-color: var(--color-accent) !important;
+}
+
+[data-resonance="active"] .macro-header__title-input,
+[data-resonance="active"] .input-base,
+[data-resonance="active"] .util-input--sm,
+[data-resonance="active"] .btn,
+[data-resonance="active"] .clickable,
+[data-resonance="active"] .glass-hover,
+[data-resonance="active"] .engine-hood__btn,
+[data-resonance="active"] .indra-trigger,
+[data-resonance="active"] .atom-glif,
+[data-resonance="active"] .agency-chassis,
+[data-resonance="active"] .result-card,
+[data-resonance="active"] input,
+[data-resonance="active"] select,
+[data-resonance="active"] textarea,
+[data-resonance="active"] button {
+    opacity: 1 !important; /* Mantiene su visibilidad interna dentro del contenedor bloqueado */
+    pointer-events: none !important;
+}
+
+[data-resonance="active"] .ast-resonance--stable,
+[data-resonance="active"] .status-led {
+    color: var(--color-accent) !important;
+    background: var(--color-accent) !important;
+    animation: indra-pulse 2s infinite;
+}
+
+/* ── GATILLOS FRACTALES (COLUMNS HOOD) ── */
+.btn-fractal-invocation {
+    opacity: 0.6;
+    transition: all var(--transition-base);
+    color: var(--color-text-secondary);
+    border: 1px solid transparent;
+}
+
+.btn-fractal-invocation:hover {
+    opacity: 1;
+    color: var(--color-accent);
+    border-color: var(--color-accent-dim);
+    background: var(--color-accent-dim);
+    transform: scale(1.1);
+}
+
+/* ── MICRO ACCIONES (AGENCY CHASSIS) ── */
+.btn-micro-action {
+    opacity: 0.4;
+    transition: all var(--transition-fast);
+    padding: 2px 6px;
+    border-radius: 2px;
+}
+
+.btn-micro-action:hover {
+    opacity: 1;
+    background: var(--color-accent-dim);
+    color: var(--color-accent);
+    box-shadow: 0 0 10px var(--color-accent-glow);
+    transform: translateY(-1px);
+}
+
+.hud-label-mono {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+}
+
+@keyframes indra-pulse {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; text-shadow: 0 0 10px var(--color-accent); box-shadow: 0 0 10px var(--color-accent); }
+    100% { opacity: 0.3; }
+}
+
+[data-resonance="active"] .indra-container {
+    filter: saturate(0.6) brightness(0.8) !important;
+    border-color: var(--color-accent) !important;
+    transition: all 0.5s ease;
+}
+
+/* Indicador de Resonancia Activa en el Header */
+[data-resonance="active"] .macro-header__logo {
+    animation: indra-pulse-logo 2s infinite;
+}
+
+@keyframes indra-pulse-logo {
+    0% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.1); filter: brightness(1.5) drop-shadow(0 0 5px var(--color-accent)); }
+    100% { transform: scale(1); filter: brightness(1); }
 }
 
 body::before {
@@ -78,3 +217,6 @@ body::after {
 ::-webkit-scrollbar-thumb:hover {
     background: white;
 }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

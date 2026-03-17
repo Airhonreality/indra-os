@@ -3,6 +3,7 @@ import { IndraIcon } from '../utilities/IndraIcons';
 import { sovereignIntelligence } from '../../services/SovereignIntelligenceProvider';
 import { discoveryEngine } from '../../services/MCEP_DiscoveryEngine';
 import { mcepOrchestrator } from '../../services/MCEP_Orchestrator';
+import { useLexicon } from '../../services/lexicon';
 import './AxiomAgent.css';
 
 /**
@@ -10,6 +11,7 @@ import './AxiomAgent.css';
  * Interfaz de interacción MCEP (Agente Operativo).
  */
 export function AxiomAgent({ isOpen, onClose }) {
+    const t = useLexicon();
     const [view, setView] = useState(sovereignIntelligence.isConfigured() ? 'chat' : 'config'); 
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState('');
@@ -118,7 +120,7 @@ export function AxiomAgent({ isOpen, onClose }) {
                 <div className="shelf">
                     <IndraIcon name="COGNITIVE" color="var(--color-accent)" size="14px" />
                     <span className="text--title">
-                        {view === 'chat' ? 'OPERATIONAL_CHAT // MCEP' : 'COGNITIVE_SETUP // SOBERANÍA'}
+                        {view === 'chat' ? t('ui_agent_chat') : t('ui_agent_config')}
                     </span>
                 </div>
                 <div className="shelf" style={{ gap: 'var(--space-2)' }}>
@@ -145,15 +147,15 @@ export function AxiomAgent({ isOpen, onClose }) {
                             <div className="fill center stack opacity-50" style={{ padding: 'var(--space-10)', textAlign: 'center' }}>
                                 <div className="resonance-pulse" style={{ width: '40px', height: '40px', margin: '0 auto var(--space-4) auto' }}></div>
                                 <p className="text-hint" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
-                                    PROTOCOLO MCEP INICIALIZADO.<br />
-                                    ESPERANDO DESPLIEGUE DE INTENCIÓN...
+                                    {t('status_agent_ready')}<br />
+                                    {t('status_waiting_input')}
                                 </p>
                             </div>
                         )}
                         {messages.filter(m => m.role !== 'system_thinking').map((msg, i) => (
                             <div key={i} className={`agent-msg agent-msg--${msg.role}`}>
                                 <div className="agent-msg-meta">
-                                    {msg.role === 'assistant' ? 'INTELIGENCIA' : (msg.role === 'user' ? 'OPERADOR' : 'SISTEMA')} //
+                                    {msg.role === 'assistant' ? t('ui_role_ai') : (msg.role === 'user' ? t('ui_role_operator') : t('ui_role_system'))} //
                                 </div>
                                 <div className="agent-msg-body">
                                     {msg.content}
@@ -164,7 +166,7 @@ export function AxiomAgent({ isOpen, onClose }) {
                             <div className="agent-msg agent-msg--assistant thinking" style={{ background: 'transparent', border: 'none' }}>
                                 <div className="resonance-pulse"></div>
                                 <span className="text-hint" style={{ fontSize: '11px' }}>
-                                    {messages.find(m => m.role === 'system_thinking')?.content || 'DESCUBRIENDO_CONTEXTO...'}
+                                    {messages.find(m => m.role === 'system_thinking')?.content || t('status_thinking')}
                                 </span>
                             </div>
                         )}
@@ -173,21 +175,21 @@ export function AxiomAgent({ isOpen, onClose }) {
                     <div className="stack--loose" style={{ padding: 'var(--space-2)' }}>
                         <div className="stack" style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-4)', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
                              <p className="text--title" style={{ fontSize: '12px', color: 'var(--color-accent)' }}>
-                                {isConfigured ? 'MODO MANTENIMIENTO' : 'ESTADO DE CUNA REQUERIDO'}
+                                {isConfigured ? t('ui_maintenance_mode') : t('ui_config_required')}
                              </p>
                              <p className="text-body" style={{ fontSize: '11px', marginTop: 'var(--space-2)', opacity: 0.7 }}>
                                 {isConfigured 
-                                    ? 'Ajusta tus parámetros cognitivos o cambia de modelo. El chat se reactivará al volver.'
-                                    : 'Indra no detecta una vía de inteligencia activa. Por favor, configura al menos una API Key soberana para despertar al agente.'}
+                                    ? t('ui_maintenance_desc')
+                                    : t('ui_config_required_desc')}
                              </p>
                         </div>
 
                         <div className="shelf" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
                             <p className="text-hint" style={{ fontSize: '10px' }}>
-                                CONFIGURACIÓN SOBERANA // LLAVES LOCALES
+                                {t('ui_keys_config')}
                             </p>
                             {!isConfigured && (
-                                <span className="tag color-danger shadow-glow" style={{ fontSize: '8px', padding: '2px 6px' }}>OFFLINE_STATE</span>
+                                <span className="tag color-danger shadow-glow" style={{ fontSize: '8px', padding: '2px 6px' }}>{t('status_offline')}</span>
                             )}
                         </div>
                         
@@ -246,7 +248,7 @@ export function AxiomAgent({ isOpen, onClose }) {
                         <div style={{ marginTop: 'var(--space-4)', padding: 'var(--space-4)', background: 'rgba(109, 40, 217, 0.1)', borderRadius: '12px', border: '1px solid rgba(109, 40, 217, 0.2)' }}>
                             <p className="text-body" style={{ fontSize: '11px', color: '#a78bfa', lineHeight: '1.4' }}>
                                 <IndraIcon name="INFO" size="12px" style={{ marginBottom: '4px' }} /><br />
-                                <strong>Soberanía Total:</strong> El chat permanecerá bloqueado hasta que se valide una vía de inteligencia. Tus llaves permanecen encriptadas localmente.
+                                <strong>{t('ui_data_sovereignty')}:</strong> {t('ui_data_sovereignty_desc')}
                             </p>
                         </div>
                     </div>
@@ -258,7 +260,7 @@ export function AxiomAgent({ isOpen, onClose }) {
                     <div className="agent-input-wrapper fill">
                         <textarea 
                             className="agent-input"
-                            placeholder="Define intención (ej: 'Navega en Drive buscando balances')..."
+                            placeholder={t('ui_input_placeholder')}
                             value={inputValue}
                             rows={1}
 

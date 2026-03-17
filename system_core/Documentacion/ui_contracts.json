@@ -1,0 +1,31 @@
+{
+  "version": "1.0.0",
+  "name": "INDRA_UI_INDUSTRIAL_CONTRACTS",
+  "description": "Esquemas de validación deterministas para la construcción de interfaces en INDRA.",
+  "contracts": {
+    "component_logic": {
+      "forbidden": [
+        "style={{ opacity: ... }}",
+        "style={{ pointerEvents: ... }}",
+        "useState(() => loading)",
+        "hardcoded_colors"
+      ],
+      "mandatory": [
+        "data-resonance",
+        "data-highlighted",
+        "DataProjector.projectArtifact"
+      ]
+    },
+    "data_mapping": {
+      "bridge_sources": "payload.sources",
+      "origin_reference": "_origin",
+      "timestamp_format": "ISO_8601"
+    },
+    "visual_hierarchy": {
+      "resonance_opacity": 0.5,
+      "highlight_opacity": 0.7,
+      "z_index_safe_zone": 1000
+    }
+  },
+  "compliance_check": "Cualquier componente que gestione su propio estado de carga o ignore el atributo data-resonance del orquestador será rechazado por el sistema de auditoría."
+}

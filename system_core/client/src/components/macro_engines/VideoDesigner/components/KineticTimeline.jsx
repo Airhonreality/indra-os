@@ -5,7 +5,7 @@ import { TimelineTrack } from './TimelineTrack';
  * Módulo: KineticTimeline
  * Dharma: El motor de la cinta del tiempo. Orquesta las pistas y el cursor maestro.
  */
-export const KineticTimeline = ({ project, currentTimeMs, onSeek, onStartDrag, currentTool, onSelectClip, selectedClip, onClipMove, onClipTrim, snapEnabled, mutateProject, actions, onSplitClip }) => {
+export const KineticTimeline = ({ project, currentTimeMs, onSeek, onStartDrag, currentTool, onSelectClip, selectedClip, onClipMove, onClipTrim, snapEnabled, mutateProject, actions, onSplitClip, onDropAsset }) => {
     const timelineRef = React.useRef(null);
     const PIXELS_PER_SECOND = 100;
     const [isDragging, setIsDragging] = React.useState(null);
@@ -103,7 +103,7 @@ export const KineticTimeline = ({ project, currentTimeMs, onSeek, onStartDrag, c
     };
 
     return (
-        <div className="kinetic-timeline shelf fill overflow-hidden" style={{ backgroundColor: 'var(--indra-bg-stage)' }}>
+        <div className="kinetic-timeline shelf fill overflow-hidden" style={{ backgroundColor: 'var(--color-bg-deep)' }}>
             
             {/* FIXED SIDEBAR: TRACK HEADERS */}
             <div className="timeline-sidebar stack border-right" style={{ width: '200px', zIndex: 10, backgroundColor: 'var(--color-bg-deep)', borderColor: 'var(--indra-blue-border)' }}>

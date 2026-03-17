@@ -49,8 +49,8 @@ class MCEP_DiscoveryEngine {
     async _senseCoreCapabilities() {
         const { coreUrl, sessionSecret } = useAppState.getState();
         const uqo = {
-            executor: 'system',
-            method: 'getMCEPManifest',
+            provider: 'system',
+            protocol: 'getMCEPManifest',
             data: { mode: 'RAW_MAP' }
         };
         
@@ -97,6 +97,9 @@ class MCEP_DiscoveryEngine {
         const tools = [];
 
         Object.entries(coreCaps).forEach(([provider, manifest]) => {
+            // AXIOMA DE SEGURIDAD: La IA no debe llamarse a sí misma como herramienta (evita recursión infinita y errores de prompt)
+            if (provider === 'intelligence') return;
+
             Object.entries(manifest.tools || {}).forEach(([protocol, tool]) => {
                 // OpenAI/Gemini exigen patron ^[a-zA-Z0-9_-]{1,64}$
                 const name = `call__${provider}__${protocol}`.substring(0, 64).replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -142,6 +145,40 @@ class MCEP_DiscoveryEngine {
         }
 
         return tools;
+    }
+
+    /**
+     * Filtra el conjunto completo de herramientas basándose en la intención del usuario.
+     * Si no hay keywords claras, devuelve un "Safe Set" (herramientas core).
+     */
+    filterToolsByIntent(prompt, fullSet) {
+        if (!fullSet || !Array.isArray(fullSet)) return [];
+        
+        const p = prompt.toLowerCase();
+        
+        // Mapeo de Keywords a Silos (Nodos de Core)
+        const logic = {
+            system: ['system', 'core', 'entorno', 'workspace', 'mcep', 'qué ves', 'que ves', 'donde estoy', 'donde estoy', 'ambiente', 'espacio'],
+            drive: ['drive', 'archivo', 'documento', 'leer', 'pdf', 'buscar en nube', 'google drive'],
+            calendar: ['calendario', 'evento', 'cita', 'reunión', 'hoy', 'mañana', 'calendar'],
+            intelligence: ['descubrir', 'analizar', 'pensar', 'inteligencia'],
+            notion: ['notion', 'página', 'base de datos'],
+            pipeline: ['pipeline', 'automatización', 'flujo', 'ejecutar']
+        };
+
+        const relevantSilos = new Set(['system']); // System siempre se incluye por seguridad
+
+        Object.entries(logic).forEach(([silo, keywords]) => {
+            if (keywords.some(k => p.includes(k))) {
+                relevantSilos.add(silo);
+            }
+        });
+
+        // Filtrar herramientas que pertenezcan a los silos relevantes
+        return fullSet.filter(tool => {
+            const toolName = tool.function.name.toLowerCase();
+            return Array.from(relevantSilos).some(silo => toolName.includes(`call__${silo}__`));
+        });
     }
 }
 

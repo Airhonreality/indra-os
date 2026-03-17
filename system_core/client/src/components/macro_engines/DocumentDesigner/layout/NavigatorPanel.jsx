@@ -1,113 +1,136 @@
-import React, { useState } from 'react';
-import { IndraIcon } from '../../../utilities/IndraIcons';
-import { Spinner } from '../../../utilities/primitives';
-import { LayerTree } from './LayerTree';
-import { useAST } from '../context/ASTContext';
-import { useSelection } from '../context/SelectionContext';
-import { useDocumentHydration } from '../hooks/useDocumentHydration';
+/**
+ * =============================================================================
+ * ARTEFACTO: DocumentDesigner/layout/NavigatorPanel.jsx
+ * RESPONSABILIDAD: Orquestador de navegación IZQUIERDA (Zona A).
+ * (ADR_018 §3.1.2)
+ *
+ * REFACTOR (FASE 3):
+ * - Integra WorkspaceResourcePanel reemplazando el antiguo DATA_SOURCE.
+ * - Inyecta estilos globales para LayerTree y Navigator.
+ * =============================================================================
+ */
 
-export function NavigatorPanel({ atom, onNotify }) {
-    const { blocks, findNode, updateNode } = useAST();
-    const { selectedId } = useSelection();
-    const [tab, setTab] = useState('LAYERS'); // 'LAYERS' | 'DATA'
-    const { slots, isLoading } = useDocumentHydration(atom);
+import React, { useRef, useEffect } from 'react';
+import { IndraIcon } from '../../../utilities/IndraIcons';
+import { LayerTree, LAYER_TREE_STYLES } from './LayerTree';
+import { WorkspaceResourcePanel } from './WorkspaceResourcePanel';
+import { useAST } from '../context/ASTContext';
+
+export function NavigatorPanel({ atom, onNotify, activeTab: controlledTab, onTabChange }) {
+    const { blocks } = useAST();
+    
+    // ADR-002 §8.2: componente controlado — el shell eleva el estado del tab.
+    const [localTab, setLocalTab] = React.useState('LAYERS');
+    const tab = controlledTab !== undefined ? controlledTab : localTab;
+    const setTab = onTabChange !== undefined ? onTabChange : setLocalTab;
+    
+    const scrollRef = useRef(null);
+
+    // Reset scroll al cambiar de tab
+    useEffect(() => {
+        if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    }, [tab]);
 
     return (
-        <aside style={{
-            flex: 1,
-            background: 'var(--color-bg-surface)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-        }}>
-            {/* TABS ENAV */}
-            <div className="shelf" style={{ borderBottom: '1px solid var(--color-border)', padding: '0 var(--space-2)' }}>
+        <aside className="navigator-panel fill stack--none">
+            {/* TABS ENAV (ADR_018 §3.1.3) */}
+            <div className="navigator-tabs">
                 <button
                     onClick={() => setTab('LAYERS')}
-                    className={`btn btn--xs ${tab === 'LAYERS' ? 'btn--accent' : 'btn--ghost'}`}
-                    style={{ flex: 1, borderRadius: 0, border: 'none' }}
+                    data-active={tab === 'LAYERS'}
+                    className="nav-tab-btn"
                 >
                     LAYERS
                 </button>
                 <button
-                    onClick={() => setTab('DATA')}
-                    className={`btn btn--xs ${tab === 'DATA' ? 'btn--accent' : 'btn--ghost'}`}
-                    style={{ flex: 1, borderRadius: 0, border: 'none' }}
+                    onClick={() => setTab('WORKSPACE')}
+                    data-active={tab === 'WORKSPACE'}
+                    className="nav-tab-btn"
                 >
-                    DATA_SOURCE
+                    WORKSPACE
                 </button>
             </div>
 
-            <div className="fill stack" style={{ overflowY: 'auto', padding: 'var(--space-2)' }}>
+            {/* SCROLLABLE CONTENT AREA */}
+            <div className="fill overflow-y-auto" ref={scrollRef}>
                 {tab === 'LAYERS' ? (
-                    <div className="stack--tight">
-                        <header className="shelf--tight" style={{ padding: 'var(--space-2)', opacity: 0.4 }}>
+                    <div className="stack--none" style={{ padding: 'var(--space-2)' }}>
+                        <header className="navigator-header">
                             <IndraIcon name="ATOM" size="10px" />
-                            <span style={{ fontSize: '9px', fontWeight: 'bold' }}>DOCUMENT_HIERARCHY</span>
+                            <span>DOCUMENT_HIERARCHY</span>
                         </header>
-                        {blocks.map(node => (
-                            <LayerTree
-                                key={node.id}
-                                node={node}
-                                depth={0}
-                            />
-                        ))}
+                        
+                        <div className="stack--none">
+                            {blocks.map(node => (
+                                <LayerTree
+                                    key={node.id}
+                                    node={node}
+                                    depth={0}
+                                />
+                            ))}
+                        </div>
                     </div>
                 ) : (
-                    <div className="stack--tight">
-                        <header className="shelf--tight" style={{ padding: 'var(--space-2)', opacity: 0.4 }}>
-                            <IndraIcon name="LINK" size="10px" />
-                            <span style={{ fontSize: '9px', fontWeight: 'bold' }}>DATA_SLOTS_AVAILABLE</span>
-                        </header>
-
-                        {isLoading && (
-                            <div className="center" style={{ padding: 'var(--space-8)' }}>
-                                <Spinner size="20px" label="HYDRATING_CONTEXT" />
-                            </div>
-                        )}
-
-                        {!isLoading && slots.map(slot => (
-                            <div
-                                key={slot.id}
-                                className="shelf--tight glass-hover"
-                                style={{
-                                    padding: 'var(--space-2) var(--space-4)',
-                                    borderRadius: 'var(--radius-sm)',
-                                    cursor: 'pointer',
-                                    borderBottom: '1px solid var(--color-border)'
-                                }}
-                                onClick={() => {
-                                    const slotTag = `{{${slot.label}}}`;
-
-                                    // 1. Si hay un bloque seleccionado y es de texto, lo inyectamos
-                                    if (selectedId) {
-                                        const node = findNode(selectedId);
-                                        if (node && node.type === 'TEXT') {
-                                            const currentContent = node.props.content || '';
-                                            updateNode(selectedId, {
-                                                props: { ...node.props, content: currentContent + slotTag }
-                                            });
-                                            if (onNotify) onNotify(`SLOT_INSERTED: ${slotTag}`);
-                                            return;
-                                        }
-                                    }
-
-                                    // 2. Fallback: Copiar al portapapeles
-                                    navigator.clipboard.writeText(slotTag);
-                                    if (onNotify) onNotify(`SLOT_COPIED: ${slotTag}`);
-                                }}
-                            >
-                                <IndraIcon name="LOGIC" size="10px" style={{ opacity: 0.5 }} />
-                                <div className="stack--tight fill" style={{ gap: '2px' }}>
-                                    <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)' }}>{slot.label}</span>
-                                    <span style={{ fontSize: '7px', opacity: 0.3 }}>origin: {slot.origin}</span>
-                                </div>
-                                <div className="badge badge--ghost" style={{ fontSize: '7px', opacity: 0.5 }}>{slot.type}</div>
-                            </div>
-                        ))}
-                    </div>
+                    <WorkspaceResourcePanel 
+                        atom={atom} 
+                        onNotify={onNotify} 
+                    />
                 )}
             </div>
+
+            {/* ESTILOS ENCAPSULADOS (ADR_004 AXIOMS) */}
+            <style>{`
+                .navigator-panel {
+                    background: var(--color-bg-surface);
+                    border-right: 1px solid var(--color-border);
+                }
+
+                .navigator-tabs {
+                    display: flex;
+                    border-bottom: 1px solid var(--color-border);
+                    background: var(--color-bg-deep);
+                }
+
+                .nav-tab-btn {
+                    flex: 1;
+                    height: 32px;
+                    background: transparent;
+                    border: none;
+                    border-bottom: 2px solid transparent;
+                    color: var(--color-text-secondary);
+                    font-size: 9px;
+                    font-family: var(--font-mono);
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    letter-spacing: 0.05em;
+                }
+
+                .nav-tab-btn:hover {
+                    background: var(--color-bg-hover);
+                    color: var(--color-text-primary);
+                }
+
+                .nav-tab-btn[data-active="true"] {
+                    color: var(--color-accent);
+                    border-bottom-color: var(--color-accent);
+                    background: var(--color-accent-dim);
+                }
+
+                .navigator-header {
+                    display: flex;
+                    align-items: center;
+                    gap: var(--space-2);
+                    padding: var(--space-2);
+                    opacity: 0.4;
+                    font-size: 8px;
+                    font-family: var(--font-mono);
+                    letter-spacing: 0.1em;
+                }
+
+                /* Inyección de estilos de sub-componentes */
+                ${LAYER_TREE_STYLES}
+            `}</style>
         </aside>
     );
 }

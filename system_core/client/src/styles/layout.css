@@ -122,3 +122,348 @@
     border-radius: 50%;
     box-shadow: 0 0 5px var(--color-accent);
 }
+
+.indra-grid-governor {
+    display: flex !important;
+    gap: var(--indra-ui-gap) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — DASHBOARD TRIPTYCH (ADR-016: 28/44/28)
+   ══════════════════════════════════════════════════════════════ */
+
+/* Columnas desktop: clamp() para ceder espacio sin overflow */
+.triptych-col-potency,
+.triptych-col-manifest {
+    flex: 0 0 clamp(var(--triptych-col-side-min), var(--triptych-col-side-ideal), var(--triptych-col-side-max));
+    min-width: 0;
+    overflow-y: auto;
+}
+.triptych-col-agency {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+}
+
+/* Tablet (≤900px): columnas empiezan a comprimirse */
+@media (max-width: 900px) {
+    .artifact-grid-triptych {
+        height: auto !important;
+        flex-direction: column !important;
+        overflow-y: auto !important;
+    }
+    .triptych-col-potency,
+    .triptych-col-agency,
+    .triptych-col-manifest {
+        flex: none !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-height: 45vh;
+        overflow-y: auto;
+    }
+}
+
+/* Mobile (≤480px): scroll comprimido, tamaño mínimo garantizado */
+@media (max-width: 480px) {
+    .triptych-col-potency,
+    .triptych-col-agency,
+    .triptych-col-manifest {
+        max-height: 38vh;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — BRIDGE DESIGNER (3 columnas)
+   ══════════════════════════════════════════════════════════════ */
+
+.bd-col-side {
+    flex: 0 0 clamp(var(--bd-col-side-min), var(--bd-col-side-ideal), var(--bd-col-side-max));
+    min-width: 0;
+    overflow-y: auto;
+}
+.bd-col-center {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* --- AXIOMA DE DISTRIBUCIÓN UNIFORME (TRÍPTICO) --- */
+.indra-layout-tripartite {
+    display: flex !important;
+    flex-direction: row !important;
+    width: 100% !important;
+    height: 100% !important;
+    gap: var(--indra-ui-gap);
+    align-items: stretch;
+    background: var(--color-bg-void);
+    overflow: hidden;
+}
+
+.indra-layout-tripartite > * {
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.tripartite-side {
+    flex: 0 0 clamp(240px, 20vw, 320px);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.indra-layout-tripartite.preview-mode .tripartite-side {
+    display: none !important;
+}
+
+.indra-layout-tripartite.preview-mode .tripartite-center {
+    flex: 1 !important;
+    width: 100% !important;
+}
+
+.tripartite-center {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* Utilidad para asegurar que el contenido core ocupe el 100% en móvil */
+@media (max-width: 900px) {
+    .mobile-full-width {
+        max-width: 100% !important;
+        padding: var(--space-2) !important;
+    }
+}
+
+/* --- SISTEMA GLOBAL DE SLOTS (ESTANCIAS) --- */
+.indra-engine-shell {
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--color-bg-void);
+}
+
+/* Área de Columnas (Eje Horizontal) */
+.indra-engine-body {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    gap: var(--indra-ui-gap);
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Área de Herramientas (Eje Vertical Inferior) */
+.indra-engine-footer {
+    height: 300px; /* Tamaño por defecto en escritorio */
+    border-top: 1px solid var(--indra-dynamic-border);
+    background: var(--color-bg-deep);
+    z-index: 20;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+/* Selector de Pestañas Industrial */
+.indra-mobile-tabs {
+    display: none;
+    height: 38px;
+    background: var(--color-bg-surface);
+    border-bottom: 1px solid var(--indra-dynamic-border);
+    padding: 2px;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+    .indra-mobile-tabs {
+        display: flex;
+    }
+
+    .indra-engine-body {
+        flex-direction: column !important;
+        flex: 1 !important;
+    }
+
+    /* Regla de Oro: En móvil, el contenedor padre controla qué slot es soberano */
+    .indra-engine-shell[data-active-tab="FLOW"] .indra-engine-footer,
+    .indra-engine-shell[data-active-tab="FLOW"] .tripartite-side {
+        display: none !important;
+    }
+
+    .indra-engine-shell[data-active-tab="IO"] .indra-slot-core,
+    .indra-engine-shell[data-active-tab="IO"] .indra-engine-footer {
+        display: none !important;
+    }
+    .indra-engine-shell[data-active-tab="IO"] .tripartite-side {
+        flex: 1 !important;
+        height: 100% !important;
+    }
+
+    .indra-engine-shell[data-active-tab="TEST"] .indra-engine-body {
+        display: none !important;
+    }
+    .indra-engine-shell[data-active-tab="TEST"] .indra-engine-footer {
+        flex: 1 !important;
+        height: 100% !important;
+        display: block !important;
+    }
+}
+
+/* --- DASHBOARD MOBILE: HORIZONTAL SHELVES --- */
+@media (max-width: 900px) {
+    .indra-grid-governor {
+        flex-direction: column !important;
+        overflow-y: auto !important;
+        gap: var(--space-4) !important;
+        padding: var(--space-2) !important;
+    }
+
+    .triptych-col-potency,
+    .triptych-col-agency,
+    .triptych-col-manifest {
+        flex: none !important;
+        width: 100% !important;
+        max-height: none !important;
+        overflow: visible !important;
+        background: transparent !important;
+    }
+
+    /* Contenedor de items: scroll horizontal en móvil */
+    .mobile-horizontal-shelf {
+        display: flex !important;
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        gap: var(--space-4) !important;
+        padding-bottom: var(--space-4);
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .mobile-horizontal-shelf > div {
+        flex: 0 0 clamp(240px, 85%, 320px) !important; 
+        scroll-snap-align: start;
+    }
+
+    /* Reducción de escala para elementos mobile */
+    .atom-glif, .agency-chassis {
+        transform: scale(0.95);
+        transform-origin: left center;
+    }
+}
+
+@media (max-width: 900px) {
+    .bridge-designer-workspace {
+        flex-direction: column !important;
+    }
+    .bd-col-side {
+        flex: none !important;
+        width: 100% !important;
+        max-height: 200px;
+    }
+    .bd-col-center {
+        flex: 1;
+        min-height: 240px;
+    }
+}
+
+@media (max-width: 900px) {
+    .macro-designer-wrapper .designer-body {
+        flex-direction: column !important;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DOCUMENT DESIGNER SPECIFIC AXIOMS (ADR_018)
+   ══════════════════════════════════════════════════════════════ */
+
+.dd-shell .indra-slot-core {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shadow-glow {
+    box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03);
+}
+
+@media (max-width: 900px) {
+    .indra-engine-shell.dd-shell .indra-engine-body {
+        flex-direction: column !important;
+        background: var(--color-bg-void);
+    }
+
+    /* El Canvas es SOBERANO e INMUTABLE en móvil (61.8%) */
+    .indra-engine-shell.dd-shell .indra-slot-core {
+        flex: 0 0 61.8vh !important;
+        height: 61.8vh !important;
+        z-index: 10;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    /* La Zona de Herramientas ocupa el resto (38.2%) */
+    .indra-engine-shell.dd-shell .indra-slot-controls {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        background: var(--color-bg-deep);
+        border-top: 1px solid var(--color-accent-dim);
+        min-height: 0;
+    }
+
+    /* Las pestañas solo controlan qué se ve DENTRO de indra-slot-controls */
+    .indra-engine-shell.dd-shell[data-active-tab="NAV"] .indra-slot-insp { display: none !important; }
+    .indra-engine-shell.dd-shell[data-active-tab="INSP"] .indra-slot-nav { display: none !important; }
+    
+    /* En modo Preview, expandimos el canvas o colapsamos paneles (opcional) */
+    .indra-engine-shell.dd-shell.preview-mode .indra-slot-controls {
+        display: none !important;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   INDUSTRIAL INSPECTOR STYLE SYSTEM
+   ══════════════════════════════════════════════════════════════ */
+
+.inspector-field__input,
+.inspector-field__unit-wrapper,
+.inspector-field__color-wrapper {
+    background: var(--color-bg-deep) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: 2px !important;
+    color: var(--color-text-primary) !important;
+    font-size: 10px !important;
+    font-family: var(--font-mono) !important;
+    padding: 3px 6px !important;
+}
+
+.inspector-field__input:focus {
+    border-color: var(--color-accent) !important;
+    outline: none;
+    box-shadow: 0 0 0 1px var(--color-accent-dim);
+}
+
+.inspector-field__unit-label {
+    font-size: 8px;
+    opacity: 0.5;
+    background: var(--color-bg-surface);
+    padding: 2px 4px;
+    border-left: 1px solid var(--color-border);
+}
+
+.inspector-field__color-swatch {
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.inspector-field__color-wrapper input[type="text"] {
+    border: none !important;
+    background: transparent !important;
+}
+

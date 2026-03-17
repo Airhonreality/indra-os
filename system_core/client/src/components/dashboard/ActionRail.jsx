@@ -38,10 +38,11 @@ export function ActionRail() {
     const handleCreate = async (atomClass) => {
         setCreating(atomClass);
         try {
-            await createArtifact(atomClass, `NEW_${atomClass}`);
+            // AXIOMA: No hardcodear prefijos. El Core o el Lexicon deciden.
+            await createArtifact(atomClass, t('status_unnamed'));
         } catch (err) {
             console.error('[ActionRail] Create failed:', err);
-            toast.error(`Error al crear ${atomClass}: ${err.message}`);
+            toast.error(`${t('status_error')}: ${atomClass}`);
         } finally {
             setCreating(null);
         }
@@ -50,11 +51,11 @@ export function ActionRail() {
     return (
         <div className="action-rail shelf" style={{
             padding: 'var(--space-1) var(--space-4)',
-            background: 'var(--color-glass-bg)',
+            background: 'var(--glass-bg)',
             backdropFilter: 'var(--blur-glass)',
             border: '1px solid var(--color-border-strong)',
             borderRadius: 'var(--radius-pill)',
-            gap: 'var(--space-2)'
+            gap: 'var(--indra-ui-gap)'
         }}>
             <div className="shelf" style={{ gap: 'var(--space-1)' }}>
                 {creatableEngines.map(({ atomClass, manifest }) => (

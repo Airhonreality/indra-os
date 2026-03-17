@@ -51,14 +51,18 @@ class AudioProcessorWorklet extends AudioWorkletProcessor {
 
     process(inputs, outputs, parameters) {
         const output = outputs[0];
-        const leftChannel = output[0];
-        const rightChannel = output[1];
-        const numSamples = leftChannel.length;
+        if (!output || output.length === 0) return true;
 
-        leftChannel.fill(0);
-        rightChannel.fill(0);
+        const numChannels = output.length;
+        const numSamples = output[0].length;
+
+        // SINCERIDAD: Limpiar solo los canales existentes
+        for (let ch = 0; ch < numChannels; ch++) {
+            output[ch].fill(0);
+        }
 
         for (const [trackId, t] of this.tracks) {
+            // Verificar si hay suficientes muestras para la velocidad actual
             if (t.available < numSamples * t.speed) continue;
 
             const gain = t.volume;
@@ -75,8 +79,10 @@ class AudioProcessorWorklet extends AudioWorkletProcessor {
                 const s2 = t.buffer[nextIdx];
                 const s = (s1 + (s2 - s1) * fract) * gain;
 
-                leftChannel[i] += this.applyPanning(s, pan, 0);
-                rightChannel[i] += this.applyPanning(s, pan, 1);
+                // DISTRIBUCIÓN ESPACIAL (Axioma de Panorámica)
+                for (let ch = 0; ch < numChannels; ch++) {
+                    output[ch][i] += this.applyPanning(s, pan, ch % 2);
+                }
 
                 // Avanzar puntero de lectura proporcional a la velocidad
                 t.readPtr = (t.readPtr + speed) % t.buffer.length;
@@ -88,10 +94,11 @@ class AudioProcessorWorklet extends AudioWorkletProcessor {
             t.available = Math.max(0, t.available);
         }
 
-        // Limitador Maestro
-        for (let i = 0; i < numSamples; i++) {
-            leftChannel[i] = Math.max(-1, Math.min(1, leftChannel[i]));
-            rightChannel[i] = Math.max(-1, Math.min(1, rightChannel[i]));
+        // Limitador Maestro (Hard Clipping Preventer)
+        for (let ch = 0; ch < numChannels; ch++) {
+            for (let i = 0; i < numSamples; i++) {
+                output[ch][i] = Math.max(-1, Math.min(1, output[ch][i]));
+            }
         }
 
         return true;

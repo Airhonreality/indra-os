@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAppState } from '../state/app_state';
 
 const ShellContext = createContext();
+import { IndraContextMenu } from '../components/utilities/IndraContextMenu';
 
 /**
  * ShellContext (Capa de UI Global)
@@ -17,6 +18,20 @@ export function ShellProvider({ children }) {
     const [isStyleEngineOpen, setIsStyleEngineOpen] = useState(false);
     const [theme, setTheme] = useState(localStorage.getItem('indra-theme') || 'dark');
 
+    // Context Menu Management
+    const [contextMenu, setContextMenu] = useState(null);
+
+    const openContextMenu = (e, options) => {
+        if (e && e.preventDefault) e.preventDefault();
+        setContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            options
+        });
+    };
+
+    const closeContextMenu = () => setContextMenu(null);
+
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('indra-theme', theme);
@@ -30,12 +45,20 @@ export function ShellProvider({ children }) {
         isStyleEngineOpen,
         setIsStyleEngineOpen,
         theme,
-        setTheme
+        setTheme,
+        openContextMenu,
+        closeContextMenu
     };
 
     return (
         <ShellContext.Provider value={value}>
             {children}
+            {contextMenu && (
+                <IndraContextMenu 
+                    menu={contextMenu} 
+                    onClose={closeContextMenu} 
+                />
+            )}
         </ShellContext.Provider>
     );
 }

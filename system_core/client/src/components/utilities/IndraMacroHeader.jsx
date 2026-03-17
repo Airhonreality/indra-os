@@ -3,37 +3,18 @@ import { IndraIcon } from './IndraIcons';
 import { IndraActionTrigger } from './IndraActionTrigger';
 import { useShell } from '../../context/ShellContext';
 import { StyleEngineSidebar } from './StyleEngineSidebar';
+import { useAppState } from '../../state/app_state';
+import { useLexicon } from '../../services/lexicon';
 
-/**
- * =============================================================================
- * COMPONENTE: IndraMacroHeader
- * RESPONSABILIDAD: Cabecera canónica universal para Macro-Engines (Nivel 2/3).
- *
- * AXIOMAS (ADR-002):
- *   - AGNÓSTICO: No conoce la lógica de ningún engine. Proyecta identidad.
- *   - SOBERANO: Siempre ocupa 100% del ancho del contenedor. Alto natural.
- *   - ESTÉTICO: Inspira confianza y soberanía (estilo Nexus).
- *
- * PROPS:
- *   atom          — El átomo que se está editando. Source of truth para el título.
- *   onClose       — Función de cierre (obligatoria).
- *   onTitleChange — Fn(string): si se provee, el título es editable.
- *   isSaving      — boolean: activa la animación de sincronización.
- *   isLive        — boolean: activa el indicador LIVE_MODE.
- *   onUpdateStatus — Fn('DRAFT'|'LIVE'): muestra el toggle DRAFT/LIVE.
- *   onUndo/onRedo/canUndo/canRedo — Controles de historial.
- *   onTogglePreview/previewMode   — Controla el modo de previsualización.
- *   rightSlot     — ReactNode: zona derecha para acciones del engine (OPCIONAL).
- * =============================================================================
- */
 export function IndraMacroHeader({
     atom,
     onClose,
     onTitleChange,
-    isSaving = false,
     isLive = false,
     rightSlot
 }) {
+    const t = useLexicon();
+    const isSaving = useAppState(s => !!s.pendingSyncs[atom?.id]);
     const { setIsStyleEngineOpen, theme, setTheme } = useShell();
     const [isPulsing, setIsPulsing] = React.useState(false);
 
@@ -74,7 +55,7 @@ export function IndraMacroHeader({
     }, [atom?.color]);
 
     const handle = atom?.handle || {};
-    const label = handle.label || 'UNTITLED';
+    const label = handle.label || t('status_unnamed');
     const atomClass = atom?.class || 'ATOM';
     const atomId = atom?.id ? atom.id.substring(0, 20) : '...';
 
@@ -114,14 +95,14 @@ export function IndraMacroHeader({
 
                     <div className="macro-header__meta shelf--tight">
                         <span className={`macro-header__meta-text ${isSaving ? 'ast-resonance--syncing' : 'ast-resonance--stable'}`}>
-                            {isSaving ? 'AST_SYNCING' : 'AST_STABLE'}
+                            {isSaving ? t('status_syncing') : t('status_stable')}
                         </span>
                         <span className="macro-header__meta-sep opacity-30">//</span>
                         <span className="macro-header__meta-text opacity-40">{atomClass}</span>
                         <span className="macro-header__meta-sep opacity-30">//</span>
                         <span className="macro-header__meta-text opacity-30">ID: {atomId}</span>
                         {isLive && (
-                            <span className="macro-header__live-badge">LIVE</span>
+                            <span className="macro-header__live-badge">{t('status_live')}</span>
                         )}
                     </div>
                 </div>
@@ -136,20 +117,20 @@ export function IndraMacroHeader({
                         className="btn btn--ghost btn--mini"
                         style={{ padding: '0 8px', height: '22px' }}
                         onClick={handleThemeToggle}
-                        title={`Current Theme: ${theme.toUpperCase()}`}
+                        title={t('ui_theme_selection')}
                     >
                         <IndraIcon name="EYE" size="10px" />
-                        <span style={{ fontSize: '8px', marginLeft: '4px' }}>THEME</span>
+                        <span style={{ fontSize: '8px', marginLeft: '4px' }}>{t('ui_theme')}</span>
                     </button>
                     
                     <button 
                         className="btn btn--ghost btn--mini"
                         style={{ padding: '0 8px', height: '22px' }}
                         onClick={() => setIsStyleEngineOpen(true)}
-                        title="UI Config Engine"
+                        title={t('ui_style_engine')}
                     >
                         <IndraIcon name="LAYERS" size="10px" />
-                        <span style={{ fontSize: '8px', marginLeft: '4px' }}>KINETICS</span>
+                        <span style={{ fontSize: '8px', marginLeft: '4px' }}>{t('ui_style_engine')}</span>
                     </button>
                 </div>
                 
@@ -161,7 +142,7 @@ export function IndraMacroHeader({
                 <div className="macro-header__divider" />
                 <IndraActionTrigger
                     icon="MINUS"
-                    label="UNFOCUS_ENGINE"
+                    label={t('action_back')}
                     onClick={onClose}
                     color="var(--color-text-secondary)"
                     activeColor="var(--indra-dynamic-accent, var(--color-accent))"

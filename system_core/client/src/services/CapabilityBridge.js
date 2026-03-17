@@ -22,12 +22,19 @@ export class DesignerBridge {
     async save(data) {
         // ADR-001: Purgar identidad inmutable antes de cruzar la frontera del ATOM_UPDATE
         const { id, class: atomClass, ...mutableData } = data;
+        const contextId = this.atom.id;
 
-        return await this.request({
-            protocol: 'ATOM_UPDATE',
-            context_id: this.atom.id,
-            data: mutableData
-        });
+        if (this.shell.onSyncStart) this.shell.onSyncStart(contextId);
+        
+        try {
+            return await this.request({
+                protocol: 'ATOM_UPDATE',
+                context_id: contextId,
+                data: { ...mutableData, strategy: 'OVERWRITE' }
+            });
+        } finally {
+            if (this.shell.onSyncEnd) this.shell.onSyncEnd(contextId);
+        }
     }
 
     /**

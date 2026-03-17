@@ -12,16 +12,16 @@
 import { registry } from './EngineRegistry';
 
 const CLASS_THEMES = {
-    'DATA_SCHEMA': { color: 'var(--color-accent)', icon: 'SCHEMA', label: 'DATA_SCHEMA' },
-    'BRIDGE': { color: 'var(--color-cold)', icon: 'BRIDGE', label: 'LOGIC_BRIDGE' },
-    'DOCUMENT': { color: 'var(--color-warm)', icon: 'DOCUMENT', label: 'DOCUMENT_TEMPLATE' },
-    'WORKFLOW': { color: '#ff007c', icon: 'WORKFLOW', label: 'WORKFLOW' },
-    'VIDEO_PROJECT': { color: '#8B5CF6', icon: 'PLAY', label: 'VIDEO_PROJECT' },
-    'AEE_RUNNER': { color: 'var(--color-success)', icon: 'PLAY', label: 'OPERATIONAL_RUNNER' },
-    'VIRTUAL_SERVICE': { color: 'var(--color-info)', icon: 'ATOM', label: 'VIRTUAL_SERVICE' },
-    'FOLDER': { color: 'var(--color-text-tertiary)', icon: 'FOLDER', label: 'COLLECTION' },
-    'CALENDAR_HIVE': { color: 'var(--color-accent-blue)', icon: 'CALENDAR', label: 'CALENDAR_HIVE' },
-    'CALENDAR_EVENT': { color: 'var(--color-accent-blue)', icon: 'CALENDAR', label: 'CALENDAR_EVENT' }
+    'DATA_SCHEMA': { color: 'var(--color-accent)', icon: 'SCHEMA', label: 'ESQUEMA_DATOS' },
+    'BRIDGE': { color: 'var(--color-accent)', icon: 'BRIDGE', label: 'PUENTE_LÓGICO' },
+    'DOCUMENT': { color: 'var(--color-warm)', icon: 'DOCUMENT', label: 'DOCUMENTO' },
+    'WORKFLOW': { color: 'var(--color-accent)', icon: 'WORKFLOW', label: 'FLUJO_PROCESO' },
+    'VIDEO_PROJECT': { color: '#8B5CF6', icon: 'PLAY', label: 'PROYECTO_VIDEO' },
+    'AEE_RUNNER': { color: 'var(--color-success)', icon: 'PLAY', label: 'EJECUTOR_OPERATIVO' },
+    'VIRTUAL_SERVICE': { color: 'var(--color-info)', icon: 'ATOM', label: 'SERVICIO_VIRTUAL' },
+    'FOLDER': { color: 'var(--color-text-tertiary)', icon: 'FOLDER', label: 'COLECCIÓN' },
+    'CALENDAR_HIVE': { color: 'var(--color-accent)', icon: 'CALENDAR', label: 'AGENDA_HIVE' },
+    'CALENDAR_EVENT': { color: 'var(--color-accent)', icon: 'CALENDAR', label: 'EVENTO' }
 };
 
 
@@ -49,6 +49,12 @@ const BLOCK_TYPES = {
     'ITERATOR': { label: 'Bucle (Lista)', icon: 'REPEATER', color: 'var(--color-warm)' }
 };
 
+const AGENTIC_CATEGORIES = {
+    POTENCY: ['DATA_SCHEMA', 'FOLDER', 'ACCOUNT_IDENTITY'],
+    AGENCY: ['BRIDGE', 'WORKFLOW', 'AEE_RUNNER', 'VIRTUAL_SERVICE'],
+    MANIFESTATION: ['VIDEO_PROJECT', 'CALENDAR_HIVE', 'CALENDAR_EVENT', 'DOCUMENT']
+};
+
 export class DataProjector {
     /**
      * Proyecta un átomo crudo en un objeto listo para la UI.
@@ -58,8 +64,9 @@ export class DataProjector {
     static projectArtifact(atom) {
         if (!atom) return null;
 
-        const defaultTheme = { color: 'var(--color-text-tertiary)', icon: 'ATOM', label: atom.class };
+        const defaultTheme = { color: 'var(--color-accent)', icon: 'ATOM', label: atom.class };
         const theme = CLASS_THEMES[atom.class] || defaultTheme;
+        const color = atom.color || theme.color;
 
         return {
             id: atom.id,
@@ -67,12 +74,12 @@ export class DataProjector {
             class: atom.class,
 
             // Proyección de Identidad (Sinceridad Radical ADR-008)
-            title: atom.handle?.label || 'UNTITLED_ATOM',
+            title: atom.handle?.label || 'SIN_NOMBRE',
             subtitle: `${atom.class} // ${atom.id?.substring(0, 8)}`,
 
             // Proyeccion Visual
             theme: {
-                color: theme.color,
+                color: color,
                 icon: theme.icon,
                 groupLabel: theme.label
             },
@@ -88,9 +95,33 @@ export class DataProjector {
             // Proyeccion Temporal
             timestamp: atom.updated_at || atom.created_at || Date.now(),
 
+            // Proyeccion de Densidad (Carga Cognitiva)
+            density: this._calculateDensity(atom),
+
             // Referencia al atomo original (por si acaso)
             raw: atom
         };
+    }
+
+    /**
+     * Calcula la "densidad" o peso del átomo para indicadores UI.
+     */
+    static _calculateDensity(atom) {
+        if (!atom.payload) return 0;
+        
+        switch (atom.class) {
+            case 'DATA_SCHEMA':
+                return atom.payload.fields?.length || 0;
+            case 'BRIDGE':
+            case 'WORKFLOW':
+                return (atom.payload.sources?.length || 0) + (atom.payload.steps?.length || 0);
+            case 'FOLDER':
+                return atom.payload.children?.length || 0;
+            case 'VIDEO_PROJECT':
+                return atom.payload.timeline?.length || 0;
+            default:
+                return 0;
+        }
     }
 
     /**
@@ -262,7 +293,32 @@ export class DataProjector {
     }
 
     /**
-     * Agrupa una lista de átomos por su clase proyectada.
+     * Proyecto el Workspace bajo el modelo Agentic (20/50/30).
+     */
+    static projectAgenticWorkspace(atoms) {
+        const artifacts = atoms.map(a => this.projectArtifact(a)).filter(p => p !== null);
+
+        // Agrupación por intención
+        const potency = artifacts.filter(p => AGENTIC_CATEGORIES.POTENCY.includes(p.class));
+        const agency = artifacts.filter(p => AGENTIC_CATEGORIES.AGENCY.includes(p.class));
+        const manifestation = artifacts.filter(p => AGENTIC_CATEGORIES.MANIFESTATION.includes(p.class));
+
+        // Capturar "Huérfanos de Categoría" para evitar pérdida de datos
+        const others = artifacts.filter(p => 
+            !AGENTIC_CATEGORIES.POTENCY.includes(p.class) && 
+            !AGENTIC_CATEGORIES.AGENCY.includes(p.class) && 
+            !AGENTIC_CATEGORIES.MANIFESTATION.includes(p.class)
+        );
+
+        return {
+            potency: [...potency, ...others], // Por defecto, lo desconocido es materia prima
+            agency,
+            manifestation
+        };
+    }
+
+    /**
+     * Agrupa una lista de átomos por su clase proyectada (Legacy Grid).
      * @param {Array} atoms 
      */
     static projectGrid(atoms) {

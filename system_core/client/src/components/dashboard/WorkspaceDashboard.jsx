@@ -22,6 +22,7 @@ import { ArtifactGrid } from './ArtifactGrid';
 import { ActionRail } from './ActionRail';
 import { IndraIcon } from '../utilities/IndraIcons';
 import { IndraMacroHeader } from '../utilities/IndraMacroHeader';
+import { useLexicon } from '../../services/lexicon';
 
 export function WorkspaceDashboard() {
     const {
@@ -34,6 +35,7 @@ export function WorkspaceDashboard() {
     } = useWorkspace();
 
     const { lang } = useShell();
+    const t = useLexicon(lang);
     const loading = loadingKeys.pins;
     const activeWS = workspaces.find(w => w.id === activeWorkspaceId);
 
@@ -42,7 +44,7 @@ export function WorkspaceDashboard() {
             <div className="fill center stack--loose" style={{ opacity: 0.5 }}>
                 <IndraIcon name="ATOM" size="48px" />
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.1em' }}>
-                    RESOLVING_WORKSPACE_SOVEREIGNTY...
+                    {t('status_loading')}
                 </span>
             </div>
         );
@@ -61,18 +63,8 @@ export function WorkspaceDashboard() {
                 />
             )}
 
-            {/* ── 2. ACTION RAIL (banda operativa de creación) ── */}
-            <div style={{
-                flexShrink: 0,
-                padding: 'var(--space-3) var(--space-8)',
-                borderBottom: '1px solid var(--color-border)',
-                background: 'rgba(0,0,0,0.2)',
-            }}>
-                <ActionRail />
-            </div>
-
-            {/* ── 3. GRID DE ARTEFACTOS (área scrollable) ── */}
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 'var(--space-6) var(--space-8)' }}>
+            {/* ── 2. GRID DE ARTEFACTOS (área operativa fractal) ── */}
+            <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
                 {activeWS && <ArtifactGrid pins={pins} />}
             </div>
 

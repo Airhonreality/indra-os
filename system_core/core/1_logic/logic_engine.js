@@ -47,7 +47,12 @@ var LogicEngine = {
         
         // 3. Calculadora de Deltas (Sinceridad de Resonancia)
         // Solo retornamos los campos que han cambiado respecto al 'before' original.
-        return this._calculateDelta_(before, context);
+        const delta = this._calculateDelta_(before, context);
+        
+        // AXIOMA DE TRANSPARENCIA: En simulaciones, adjuntamos resultados de operadores
+        if (bridge) delta.__debug_op__ = JSON.parse(JSON.stringify(context.op || {}));
+        
+        return delta;
       });
 
       // Si es una ejecución unitaria (AEE / Cotizador), notificamos modo DELTA
@@ -58,7 +63,9 @@ var LogicEngine = {
         metadata: { 
           status: "OK", 
           update_type: isSingle ? "DELTA" : "SNAPSHOT",
-          result: isSingle ? results[0] : null
+          result: isSingle ? results[0] : null,
+          // AXIOMA DE TRANSPARENCIA: Si enviaron un bridge efímero, devolvemos los resultados de los operadores
+          debug: bridge ? results.map((_, idx) => results[idx].__debug_op__) : null
         } 
       };
 

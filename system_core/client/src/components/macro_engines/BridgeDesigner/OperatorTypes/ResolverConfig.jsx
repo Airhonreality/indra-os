@@ -1,18 +1,11 @@
-/**
- * =============================================================================
- * ARTEFACTO: components/macro_engines/BridgeDesigner/OperatorTypes/ResolverConfig.jsx
- * RESPONSABILIDAD: Configuración de cruce de datos y extracción.
- * =============================================================================
- */
-
 import React, { useState, useEffect } from 'react';
-import { MicroSlot } from '../MicroSlot';
+import { MappingSelect } from '../MappingSelect';
 import ArtifactSelector from '../../../utilities/ArtifactSelector';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import { useAppState } from '../../../../state/app_state';
 import { executeDirective } from '../../../../services/directive_executor';
 
-export function ResolverConfig({ config, onUpdate, focusedTarget, setFocusedTarget, opId }) {
+export function ResolverConfig({ config, onUpdate, options = [] }) {
     const { coreUrl, sessionSecret, pins, services } = useAppState();
     const [showSelector, setShowSelector] = useState(false);
     const [fields, setFields] = useState([]);
@@ -96,87 +89,84 @@ export function ResolverConfig({ config, onUpdate, focusedTarget, setFocusedTarg
         setShowSelector(false);
     };
 
+    const handleInputMapping = (key, value) => {
+        const option = options.find(opt => opt.value === value);
+        onUpdate({
+            ...config,
+            [key]: value,
+            [key + '_label']: option?.label || value
+        });
+    };
+
     return (
-        <div className="stack--loose glass" style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-3)' }}>
+        <div className="stack--tight glass" style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-4)' }}>
 
             {/* 1. INPUT SLOT */}
-            <div className="shelf--tight" style={{ borderBottom: '1px solid var(--color-border-strong)', paddingBottom: 'var(--space-2)' }}>
-                <IndraIcon name="ARROW_RIGHT" size="10px" style={{ opacity: 0.5 }} />
-                <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', opacity: 0.7, width: '80px' }}>SEARCH_KEY</span>
-                <MicroSlot
+            <div className="stack--tight" style={{ borderBottom: '1px solid var(--color-border-strong)', paddingBottom: 'var(--space-3)' }}>
+                <span style={{ fontSize: '8px', opacity: 0.4, fontFamily: 'var(--font-mono)', letterSpacing: '1px' }}>CLAVE_DE_BÚSQUEDA</span>
+                <MappingSelect
                     value={config.pointer}
-                    label={config.pointer_label}
-                    isActive={focusedTarget?.id === opId && focusedTarget?.key === 'pointer'}
-                    onActivate={() => setFocusedTarget({ mode: 'OPERATOR', id: opId, key: 'pointer' })}
-                    placeholder="CHOOSE_SLOT_TO_SEARCH"
+                    options={options}
+                    onChange={(val) => handleInputMapping('pointer', val)}
+                    placeholder="ELEGIR CAMPO PARA BUSCAR..."
                 />
             </div>
 
             {/* 2. TARGET SILO (PUNTERO) */}
-            <div className="shelf--tight" style={{ borderBottom: '1px solid var(--color-border-strong)', paddingBottom: 'var(--space-2)' }}>
-                <IndraIcon name="FOLDER" size="10px" style={{ opacity: 0.5 }} />
-                <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', opacity: 0.7, width: '80px' }}>IN_DATABASE</span>
-
-                <button
-                    className={`btn btn--xs ${config.mode === 'MANUAL' ? 'btn--accent' : 'btn--ghost'}`}
-                    onClick={toggleManualMode}
-                    style={{ fontSize: '8px', padding: '2px 8px' }}
-                >
-                    {config.mode === 'MANUAL' ? 'MANUAL' : 'INFERRED'}
-                </button>
-
-                {config.mode === 'MANUAL' && (
-                    <div
-                        className="shelf--tight glass-hover fill"
-                        onClick={() => setShowSelector(true)}
-                        style={{
-                            padding: 'var(--space-1) var(--space-3)',
-                            borderRadius: 'var(--radius-sm)',
-                            border: '1px solid var(--color-border)',
-                            cursor: 'pointer',
-                            background: config.silo_id ? 'rgba(var(--rgb-accent), 0.05)' : 'transparent'
-                        }}
+            <div className="stack--tight" style={{ borderBottom: '1px solid var(--color-border-strong)', paddingBottom: 'var(--space-3)', marginTop: 'var(--space-2)' }}>
+                <span style={{ fontSize: '8px', opacity: 0.4, fontFamily: 'var(--font-mono)', letterSpacing: '1px' }}>BASE_DE_DATOS_DESTINO</span>
+                <div className="shelf--tight">
+                    <button
+                        className={`btn btn--xs ${config.mode === 'MANUAL' ? 'btn--accent' : 'btn--ghost'}`}
+                        onClick={toggleManualMode}
+                        style={{ fontSize: '9px', padding: '4px 10px', fontWeight: 'bold' }}
                     >
-                        <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', flex: 1 }}>
-                            {config.silo_label || 'SELECT_EXT_SILO...'}
-                        </span>
-                    </div>
-                )}
+                        {config.mode === 'MANUAL' ? 'MODO MANUAL' : 'MODO INFERIDO'}
+                    </button>
+
+                    {config.mode === 'MANUAL' && (
+                        <div
+                            className="shelf--tight glass-hover fill"
+                            onClick={() => setShowSelector(true)}
+                            style={{
+                                padding: '4px 12px',
+                                borderRadius: 'var(--radius-sm)',
+                                border: '1px solid var(--color-border)',
+                                cursor: 'pointer',
+                                background: 'rgba(255,255,255,0.02)',
+                                minHeight: '26px'
+                            }}
+                        >
+                            <IndraIcon name="FOLDER" size="10px" color="var(--color-accent)" />
+                            <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', flex: 1, color: config.silo_id ? 'var(--color-accent)' : 'inherit' }}>
+                                {config.silo_label || 'SELECCIONAR SILO EXTERNO...'}
+                            </span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* 3. OUTPUT FIELD (RESULTADO) */}
-            <div className="shelf--tight">
-                <IndraIcon name="TARGET" size="10px" style={{ opacity: 0.5 }} />
-                <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', opacity: 0.7, width: '80px' }}>EXTRACT_FIELD</span>
+            <div className="stack--tight" style={{ marginTop: 'var(--space-2)' }}>
+                <span style={{ fontSize: '8px', opacity: 0.4, fontFamily: 'var(--font-mono)', letterSpacing: '1px' }}>CAMPO_A_EXTRAER</span>
 
                 {config.mode === 'MANUAL' && config.silo_id ? (
                     <div className="fill">
                         {loadingSchema ? (
-                            <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', opacity: 0.5 }}>LOADING_COLUMNS...</span>
+                            <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', opacity: 0.5 }}>CARGANDO ESQUEMA...</span>
                         ) : (
-                            <select
-                                value={config.target_field || ''}
-                                onChange={(e) => onUpdate({ ...config, target_field: e.target.value })}
-                                style={{
-                                    width: '100%',
-                                    background: 'var(--color-bg-void)',
-                                    border: '1px solid var(--color-border)',
-                                    color: 'white',
-                                    fontFamily: 'var(--font-mono)',
-                                    fontSize: '10px',
-                                    padding: 'var(--space-1) var(--space-2)',
-                                    borderRadius: 'var(--radius-sm)'
-                                }}
-                            >
-                                <option value="">SELECT_COLUMN...</option>
-                                {fields.map(f => (
-                                    <option key={f.id} value={f.id}>{f.label || f.id}</option>
-                                ))}
-                            </select>
+                            <MappingSelect
+                                value={config.target_field}
+                                options={fields.map(f => ({ value: f.id, label: (f.label || f.id).toUpperCase(), type: 'SOURCE' }))}
+                                onChange={(val) => onUpdate({ ...config, target_field: val })}
+                                placeholder="ELEGIR COLUMNA DE RETORNO..."
+                            />
                         )}
                     </div>
                 ) : (
-                    <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', opacity: 0.4 }}>AWAITING_SILO_SELECTION...</span>
+                    <div style={{ padding: '8px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px', border: '1px dashed rgba(255,255,255,0.05)' }}>
+                        <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', opacity: 0.3 }}>ESPERANDO SELECCIÓN DE SILO...</span>
+                    </div>
                 )}
             </div>
 
@@ -184,7 +174,7 @@ export function ResolverConfig({ config, onUpdate, focusedTarget, setFocusedTarg
                 <ArtifactSelector
                     onSelect={selectSilo}
                     onCancel={() => setShowSelector(false)}
-                    title="RESOLVER_TARGET_SILO"
+                    title="SELECCIONAR ARTEFACTO DE DATOS"
                 />
             )}
         </div>

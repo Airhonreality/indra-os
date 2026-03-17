@@ -20,8 +20,8 @@
 # ================================
 
 $ErrorActionPreference = "Stop"
-$backendPath = ".\OrbitalCore_Codex_v1"
-$frontendPath = ".\INDRA_FRONT DEV"
+$backendPath = ".\system_core\core"
+$frontendPath = ".\system_core\client"
 
 # ================================
 # FUNCIONES DE UI

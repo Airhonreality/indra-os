@@ -12,10 +12,8 @@ export function useVideoEngine(projectData) {
     const [duration, setDuration] = useState(0);
     
     // Inicialización Sincera: Asegurar que el proyecto tenga estructura desde el inicio
-    const [project, setProject] = useState(() => {
-        if (projectData && projectData.timeline) return projectData;
-        return { settings: { duration_ms: 0, fps: 30 }, timeline: { lanes: [] } };
-    });
+    // AXIOMA DE SINCERIDAD: No inventamos estructura. El estado es el reflejo de la materia recibida.
+    const [project, setProject] = useState(projectData || null);
 
     useEffect(() => {
         // Ejecutado en mount (y en unmount de Strict Mode)

@@ -7,8 +7,8 @@ const ASTContext = createContext();
  * ASTProvider
  * Proporciona el estado y las funciones de mutación del documento de forma neural.
  */
-export function ASTProvider({ initialBlocks, children }) {
-    const ast = useDocumentAST(initialBlocks);
+export function ASTProvider({ initialBlocks, initialVariables, children }) {
+    const ast = useDocumentAST(initialBlocks, initialVariables);
 
     return (
         <ASTContext.Provider value={ast}>

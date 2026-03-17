@@ -206,9 +206,10 @@ export function BridgeDesigner({ atom, bridge }) {
 
         const flattenOptions = (fields, prefix, alias) => {
             fields.forEach(f => {
+                const fieldLabel = f.handle?.label || f.label || f.id;
                 options.push({
                     value: `${prefix}.${alias}.${f.id}`,
-                    label: `${alias.toUpperCase()} > ${f.id}`,
+                    label: `${alias.toUpperCase()} > ${fieldLabel}`,
                     type: prefix === 'source' ? 'SOURCE' : 'OPERATOR'
                 });
                 if (f.children && f.children.length > 0) {

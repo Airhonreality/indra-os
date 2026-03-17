@@ -29,39 +29,14 @@ const PAGE_PRESETS = {
     SQUARE: { width: '200mm', height: '200mm', label: 'SQUARE' }
 };
 
-const DEFAULT_BLOCKS = [
-    {
-        id: 'root',
-        type: 'PAGE',
-        props: {
-            width: PAGE_PRESETS.A4.width,
-            minHeight: PAGE_PRESETS.A4.height,
-            background: '#ffffff',
-            padding: '20mm',
-            direction: 'column',
-            gap: '10px'
-        },
-        children: [
-            {
-                id: 'header_text',
-                type: 'TEXT',
-                props: {
-                    content: 'INDRA — AXIOMATIC_DOCUMENT',
-                    fontSize: '18pt',
-                    fontWeight: 'bold',
-                    color: 'var(--color-accent)',
-                    marginBottom: '10mm'
-                }
-            }
-        ]
-    }
-];
-
 export function DocumentDesigner({ atom, bridge }) {
-    const initialBlocks = atom.payload?.blocks || (atom.payload ? [] : DEFAULT_BLOCKS);
+    // AXIOMA DE SINCERIDAD TOTAL: 
+    // No inventamos materia. Si el payload está vacío, el motor es vacío.
+    const initialBlocks = atom.payload?.blocks || [];
+    const initialVariables = atom.payload?.variables || null;
 
     return (
-        <ASTProvider initialBlocks={initialBlocks}>
+        <ASTProvider initialBlocks={initialBlocks} initialVariables={initialVariables}>
             <SelectionProvider>
                 <DocumentDesignerShell atom={atom} bridge={bridge} />
             </SelectionProvider>
@@ -72,7 +47,7 @@ export function DocumentDesigner({ atom, bridge }) {
 function DocumentDesignerShell({ atom, bridge }) {
     const t = useLexicon();
     const { updatePinIdentity } = useWorkspace();
-    const { blocks, updateNode, undo, redo, canUndo, canRedo } = useAST();
+    const { blocks, docVariables, updateNode, undo, redo, canUndo, canRedo } = useAST();
     const { selectedId, selectNode } = useSelection();
 
     const projection = DataProjector.projectArtifact(atom);
@@ -85,6 +60,7 @@ function DocumentDesignerShell({ atom, bridge }) {
     const [toast, setToast] = useState(null);
     const [previewMode, setPreviewMode] = useState(false);
     const [activeSlot, setActiveSlot] = useState('CORE');
+    const [navigatorTab, setNavigatorTab] = useState('LAYERS');
     
     // ── Lógica de Resize (Zona A vs Zona B) ───────────────────────────────────
     const [navHeight, setNavHeight] = useState(320); // Altura inicial del Navigator
@@ -140,13 +116,21 @@ function DocumentDesignerShell({ atom, bridge }) {
         setTimeout(() => setToast(null), 3000);
     };
 
+    // ── Ref Guard para Persistencia Atómica ──────────────────────────────────
+    // Evita que handleManualSave capture copias obsoletas (stale closures)
+    const astRef = useRef({ blocks, docVariables });
+    useEffect(() => {
+        astRef.current = { blocks, docVariables };
+    }, [blocks, docVariables]);
+
     const handleManualSave = async (overrideLabel = null) => {
         setIsSaving(true);
         try {
+            const currentAST = astRef.current; // Siempre fresco
             await bridge.save({
                 ...atom,
                 handle: { ...atom.handle, label: overrideLabel || localLabel },
-                payload: { ...atom.payload, blocks: blocks }
+                payload: { ...atom.payload, blocks: currentAST.blocks, variables: currentAST.docVariables }
             });
             showToast('DOCUMENT_SAVED_SUCCESSFULLY');
         } catch (err) {
@@ -172,11 +156,14 @@ function DocumentDesignerShell({ atom, bridge }) {
     }, [undo, redo]);
 
     return (
-        <div className={`macro-designer-wrapper fill ${previewMode ? 'preview-mode-active' : ''}`} style={{
-            '--indra-dynamic-accent': accentColor,
-            '--indra-dynamic-border': `${accentColor}26`,
-            '--indra-dynamic-bg': `${accentColor}08`,
-        }}>
+        <div className={`macro-designer-wrapper fill ${previewMode ? 'preview-mode-active' : ''}`} 
+            data-theme="dark"
+            style={{
+                '--indra-dynamic-accent': accentColor,
+                '--indra-dynamic-border': `${accentColor}26`,
+                '--indra-dynamic-bg': `${accentColor}08`,
+            }}
+        >
             <IndraMacroHeader
                 atom={atom}
                 onClose={() => bridge.close()}
@@ -242,7 +229,7 @@ function DocumentDesignerShell({ atom, bridge }) {
                 </div>
             )}
 
-            <div className={`designer-body fill overflow-hidden indra-engine-shell dd-shell`} data-active-tab={activeSlot}>
+            <div className={`designer-body fill overflow-hidden indra-engine-shell dd-shell stack`} data-active-tab={activeSlot} style={{ height: 'calc(100vh - 48px)' }}>
                 <div className={`fill indra-engine-body ${previewMode ? 'preview-mode' : ''}`}>
                     {/* ── 1. CANVAS AREA (SIEMPRE VISIBLE) ── */}
                     <div className="indra-slot-core canvas-section relative overflow-hidden">
@@ -269,14 +256,14 @@ function DocumentDesignerShell({ atom, bridge }) {
                                 <button className={`btn btn--xs fill ${activeSlot === 'INSP' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setActiveSlot('INSP')}>PROPERTIES</button>
                             </nav>
 
-                            <div className="control-desktop-stack fill stack--none">
+                            <div className="control-desktop-stack fill stack">
                                 {/* ZONA A: NAVIGATOR */}
-                                <div className="navigator-zone indra-slot-nav" style={{ height: window.innerWidth > 900 ? `${navHeight}px` : '100%' }}>
+                                <div className="navigator-zone indra-slot-nav" style={{ height: window.innerWidth > 900 ? `${navHeight}px` : 'auto', flexShrink: 0 }}>
                                     <NavigatorPanel
                                         atom={atom}
                                         onNotify={showToast}
-                                        activeTab="LAYERS"
-                                        onTabChange={() => {}}
+                                        activeTab={navigatorTab}
+                                        onTabChange={setNavigatorTab}
                                     />
                                 </div>
 
@@ -289,7 +276,7 @@ function DocumentDesignerShell({ atom, bridge }) {
                                 </div>
 
                                 {/* ZONA B: INSPECTOR */}
-                                <div className="inspector-zone indra-slot-insp">
+                                <div className="inspector-zone indra-slot-insp fill stack overflow-hidden">
                                     <PropertiesInspector />
                                 </div>
                             </div>
@@ -307,10 +294,20 @@ function DocumentDesignerShell({ atom, bridge }) {
             )}
 
             <style>{`
+                .macro-designer-wrapper {
+                    display: flex;
+                    flex-direction: column;
+                    width: 100vw;
+                    height: 100vh;
+                    overflow: hidden;
+                    background: var(--color-bg-void);
+                }
+
                 .dd-shell .indra-engine-body {
                     display: flex;
                     flex-direction: row;
                     background: var(--color-bg-deep);
+                    height: 100%;
                 }
 
                 .canvas-section {
@@ -348,7 +345,10 @@ function DocumentDesignerShell({ atom, bridge }) {
 
                 .designer-canvas-bg {
                     flex: 1;
-                    background: var(--color-bg-deep);
+                    background: var(--color-bg-void);
+                    display: flex;
+                    flex-direction: column;
+                    overflow: auto;
                 }
 
                 .canvas-viewport {
@@ -418,6 +418,28 @@ function DocumentDesignerShell({ atom, bridge }) {
                     background: white;
                     width: fit-content;
                     height: fit-content;
+                }
+
+                .indra-mobile-tabs {
+                    display: none;
+                    gap: 1px;
+                    background: var(--color-bg-deep);
+                    border-bottom: 1px solid var(--color-border);
+                    flex-shrink: 0;
+                }
+
+                @media (max-width: 900px) {
+                    .indra-mobile-tabs {
+                        display: flex;
+                    }
+
+                    .dd-shell[data-active-tab="NAV"] .inspector-zone { display: none; }
+                    .dd-shell[data-active-tab="INSP"] .navigator-zone { display: none; }
+                    .dd-shell[data-active-tab="CORE"] .control-section { display: none; } /* En móvil el canvas es core */
+                    
+                    .control-section {
+                        height: 400px !important;
+                    }
                 }
             `}</style>
         </div>

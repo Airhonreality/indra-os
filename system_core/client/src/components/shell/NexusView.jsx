@@ -6,7 +6,7 @@ import { IndraIcon } from '../utilities/IndraIcons';
 import { IndraActionTrigger } from '../utilities/IndraActionTrigger';
 import { useLexicon } from '../../services/lexicon';
 import { DataProjector } from '../../services/DataProjector';
-import { ServiceManager } from './ServiceManager/ServiceManager';
+import { useAppState } from '../../state/app_state';
 import './NexusView.css';
 
 /**
@@ -16,7 +16,7 @@ import './NexusView.css';
 export function NexusView() {
     const { coreUrl } = useProtocol();
     const { lang } = useShell();
-    const [isServiceManagerOpen, setIsServiceManagerOpen] = useState(false);
+    const openServiceManager = useAppState(s => s.openServiceManager);
     const {
         workspaces,
         services,
@@ -92,7 +92,7 @@ export function NexusView() {
                         <button
                             className="btn btn--ghost btn--full"
                             style={{ fontSize: '9px', marginTop: 'var(--space-2)', borderStyle: 'dashed' }}
-                            onClick={() => setIsServiceManagerOpen(true)}
+                            onClick={() => openServiceManager()}
                         >
                             <IndraIcon name="SERVICE" size="12px" />
                             {t('action_manage_services')}
@@ -206,11 +206,6 @@ export function NexusView() {
                 </main>
 
             </div>
-
-            {/* Renderizado Condicional del ServiceManager */}
-            {isServiceManagerOpen && (
-                <ServiceManager onClose={() => setIsServiceManagerOpen(false)} />
-            )}
         </div>
     );
 }

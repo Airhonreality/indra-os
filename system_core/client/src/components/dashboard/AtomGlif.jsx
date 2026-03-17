@@ -24,20 +24,18 @@ export function AtomGlif({ atom, onHoverStart, onHoverEnd }) {
 
     return (
         <div 
-            className="atom-glif shelf--tight ripple glass-hover"
+            className="atom-glif stack--none ripple glass-hover"
             style={{
                 minHeight: '32px',
                 height: 'auto',
-                padding: 'var(--space-2)',
                 background: 'var(--glass-bg)',
                 borderRadius: 'var(--radius-sm)',
                 cursor: 'pointer',
                 transition: 'all var(--transition-fast)',
                 display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
+                flexDirection: 'column',
                 border: '1px solid var(--color-border)',
-                flexWrap: 'wrap'
+                overflow: 'hidden'
             }}
             onMouseEnter={() => onHoverStart?.(atom.id)}
             onMouseLeave={() => onHoverEnd?.()}
@@ -60,53 +58,83 @@ export function AtomGlif({ atom, onHoverStart, onHoverEnd }) {
                         opacity: 1;
                         color: var(--color-danger);
                     }
+                    .atom-glif-header {
+                        display: flex;
+                        align-items: center;
+                        gap: var(--space-2);
+                        padding: var(--space-2);
+                        min-height: 32px;
+                        width: 100%;
+                    }
                 `}
             </style>
 
-            <IndraIcon 
-                name={projection.theme.icon} 
-                size="12px" 
-                style={{ color: projection.theme.color, opacity: 0.8 }} 
-            />
-            
-            <span style={{ 
-                fontFamily: 'var(--font-mono)', 
-                fontSize: '9px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                flex: 1,
-                color: 'var(--color-text-primary)'
-            }}>
-                {projection.title}
-            </span>
-
-            {/* Contador de Densidad */}
-            {projection.density > 0 && (
+            {/* Header Area */}
+            <div className="atom-glif-header">
+                <IndraIcon 
+                    name={projection.theme.icon} 
+                    size="12px" 
+                    style={{ color: projection.theme.color, opacity: 0.8 }} 
+                />
+                
                 <span style={{ 
-                    fontSize: '8px', 
                     fontFamily: 'var(--font-mono)', 
-                    opacity: 0.4,
-                    background: 'var(--color-bg-hover)',
-                    padding: '1px 4px',
-                    borderRadius: '2px'
+                    fontSize: '9px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    flex: 1,
+                    color: 'var(--color-text-primary)'
                 }}>
-                    {projection.density}
+                    {projection.title}
                 </span>
-            )}
 
-            <button 
-                className="delete-trigger btn btn--mini"
-                style={{ padding: '4px' }}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    setIsDeleting(true);
-                }}
-            >
-                <IndraIcon name="DELETE" size="10px" />
-            </button>
+                {projection.density > 0 && (
+                    <span style={{ 
+                        fontSize: '8px', 
+                        fontFamily: 'var(--font-mono)', 
+                        opacity: 0.4,
+                        background: 'var(--color-bg-hover)',
+                        padding: '1px 4px',
+                        borderRadius: '2px'
+                    }}>
+                        {projection.density}
+                    </span>
+                )}
+
+                <button 
+                    className="delete-trigger btn btn--mini"
+                    style={{ padding: '4px' }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsDeleting(true);
+                    }}
+                >
+                    <IndraIcon name="DELETE" size="10px" />
+                </button>
+
+                <StatusLed 
+                    active={!atom._orphan} 
+                    color={atom._orphan ? 'var(--color-danger)' : 'var(--color-success)'} 
+                    size="4px"
+                />
+
+                <button 
+                    className="btn btn--mini opacity-40 hover-opacity-100"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsExpanded(!isExpanded);
+                    }}
+                    style={{ padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                    <IndraIcon name="CHEVRON_RIGHT" size="8px" style={{ 
+                        transform: isExpanded ? 'rotate(90deg)' : 'none',
+                        transition: 'transform 0.2s ease'
+                    }} />
+                </button>
+            </div>
 
             <ConfirmModal 
                 isOpen={isDeleting}
@@ -119,51 +147,36 @@ export function AtomGlif({ atom, onHoverStart, onHoverEnd }) {
                 onCancel={() => setIsDeleting(false)}
             />
 
-            <StatusLed 
-                active={!atom._orphan} 
-                color={atom._orphan ? 'var(--color-danger)' : 'var(--color-success)'} 
-                size="4px"
-            />
-
-            <button 
-                className="btn btn--mini opacity-40 hover-opacity-100"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    setIsExpanded(!isExpanded);
-                }}
-            >
-                <IndraIcon name="CHEVRON_RIGHT" size="8px" style={{ 
-                    transform: isExpanded ? 'rotate(90deg)' : 'none',
-                    transition: 'transform 0.2s ease'
-                }} />
-            </button>
-
+            {/* Expansion Area (Tree) */}
             {isExpanded && (
                 <div 
-                    className="stack--tight fill" 
+                    className="stack--none fill" 
                     style={{ 
-                        marginTop: 'var(--space-1)', 
-                        padding: 'var(--space-2)',
-                        background: 'rgba(0,0,0,0.1)',
-                        borderRadius: 'var(--radius-sm)',
-                        borderTop: '1px solid var(--color-border)'
+                        padding: '0 var(--space-2) var(--space-2)',
+                        background: 'rgba(0,0,0,0.15)',
+                        borderTop: '1px solid rgba(255,255,255,0.05)',
+                        width: '100%'
                     }}
                     onClick={e => e.stopPropagation()}
                 >
                     <SchemaMicroExplorer 
                         schema={atom}
                         onContextMenu={(e, field) => {
+                            const creds = { 
+                                url: useAppState.getState().protocolUrl, 
+                                secret: useAppState.getState().protocolSecret 
+                            };
                             openContextMenu(e, [
                                 { 
                                     label: 'Añadir Hijo', 
                                     icon: 'PLUS', 
-                                    action: () => SchemaActionService.addField(atom, { parentId: field.id }, { url: useAppState.getState().protocolUrl, secret: useAppState.getState().protocolSecret }) 
+                                    action: () => SchemaActionService.addField(atom, { parentId: field.id }, creds) 
                                 },
                                 { 
                                     label: 'Eliminar Campo', 
                                     icon: 'DELETE', 
                                     color: 'var(--color-danger)',
-                                    action: () => SchemaActionService.removeField(atom, field.id, { url: useAppState.getState().protocolUrl, secret: useAppState.getState().protocolSecret }) 
+                                    action: () => SchemaActionService.removeField(atom, field.id, creds) 
                                 }
                             ]);
                         }}

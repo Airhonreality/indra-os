@@ -32,6 +32,7 @@ var LogicEngine = {
         
         // AXIOMA DE NOMBRE ESPACIAL: El payload original reside en 'source' para el parser.
         context.source = JSON.parse(JSON.stringify(item));
+        context.op = {}; // Asegurar inicialización de namespace de operadores
         
         // 1. Ejecución Secuencial de Operadores (Resonancia de Cálculo)
         operators.forEach(op => {
@@ -39,14 +40,32 @@ var LogicEngine = {
         });
         
         // 2. Aplicación de Mapeo Final (Mapeo a slots destino)
-        Object.keys(targetMappings).forEach(targetKey => {
-          const sourcePath = targetMappings[targetKey];
-          const val = this._get_(context, sourcePath);
-          this._set_(context, targetKey, val);
+        // ADR-014: Los mappings vienen agrupados por targetId
+        const mappings = config.mappings || config.targetMappings || {};
+        const targetConfigs = config.targetConfigs || {};
+        const sourceConfigs = config.sourceConfigs || {};
+
+        Object.keys(mappings).forEach(targetId => {
+          const fieldMappings = mappings[targetId];
+          if (typeof fieldMappings !== 'object') return;
+
+          // Buscar el alias del targetId para saber dónde escribir en el context
+          const tConfig = targetConfigs[targetId] || {};
+          const sConfig = sourceConfigs[targetId] || {};
+          const alias = tConfig.alias || sConfig.alias || targetId;
+
+          Object.keys(fieldMappings).forEach(fieldId => {
+             if (fieldId.endsWith('_label')) return; // Saltar metadatos de UI
+             
+             const sourcePath = fieldMappings[fieldId];
+             const val = this._get_(context, sourcePath);
+             
+             // Escribir en context.ALIAS.FIELD_ID (Ley de Aduana: Respetar estructura del trigger_data)
+             this._set_(context, `${alias}.${fieldId}`, val);
+          });
         });
         
         // 3. Calculadora de Deltas (Sinceridad de Resonancia)
-        // Solo retornamos los campos que han cambiado respecto al 'before' original.
         const delta = this._calculateDelta_(before, context);
         
         // AXIOMA DE TRANSPARENCIA: En simulaciones, adjuntamos resultados de operadores

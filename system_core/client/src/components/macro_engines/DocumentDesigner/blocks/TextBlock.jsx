@@ -52,10 +52,11 @@ export function TextBlock({ props, onUpdate, isSelected }) {
         margin: `${props.marginTop || 0} 0 ${props.marginBottom || 0} 0`,
         paddingLeft: props.paddingLeft || 0,
 
-        // Blindaje MDO
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: props.multiLine ? 'pre-wrap' : 'nowrap',
+        // Blindaje MDO (Optimizado para Sinceridad)
+        overflow: 'visible',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        color: props.color || (props.textPreset ? presetBaseStyle.color : '#000000'),
         opacity: (props.content || isFocused) ? 1 : 0.3,
         transition: 'all var(--transition-base)'
     };
@@ -103,12 +104,15 @@ export function TextBlock({ props, onUpdate, isSelected }) {
             onFocus={() => setIsFocused(true)}
             onBlur={(e) => {
                 setIsFocused(false);
-                onUpdate({ content: e.target.innerText });
+                // Extraemos texto limpio para evitar contaminación por slots de interpolación
+                const cleanText = e.currentTarget.innerText;
+                onUpdate({ content: cleanText });
             }}
             onKeyDown={(e) => {
-                if (e.key === 'Enter' && !props.multiLine) {
+                // Ctrl+Enter o Enter en modo single-line dispara el guardado local
+                if (e.key === 'Enter' && (!props.multiLine || e.ctrlKey)) {
                     e.preventDefault();
-                    e.target.blur();
+                    e.currentTarget.blur();
                 }
             }}
         >

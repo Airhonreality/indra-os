@@ -1,4 +1,4 @@
-﻿# ============================================
+# ============================================
 # INDRA OS - First Time Setup Script (PowerShell)
 # ============================================
 # Este script configura tu instancia personal de INDRA OS
@@ -422,7 +422,7 @@ if (-not $alreadyAuthenticated) {
 Write-Header "📂 Paso 3: Configurar Proyecto en Google Apps Script"
 
 # Cambiar al directorio del backend
-$backendPath = Join-Path $PSScriptRoot "..\OrbitalCore_Codex_v1"
+$backendPath = Join-Path $PSScriptRoot "..\system_core\core"
 Push-Location $backendPath
 
 # Verificar si ya existe un proyecto
@@ -753,7 +753,7 @@ Write-Host "   Ejecuta: .\scripts\update.ps1" -ForegroundColor Cyan
 
 Write-Header "🎨 Paso 6: Configurar Frontend"
 
-$frontendPath = Join-Path $PSScriptRoot "..\INDRA_FRONT DEV"
+$frontendPath = Join-Path $PSScriptRoot "..\system_core\client"
 Push-Location $frontendPath
 
 # Verificar si existe .env

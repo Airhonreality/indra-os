@@ -14,31 +14,11 @@ import { useAppState } from '../../../state/app_state';
 
 export function useBridgeHydration(bridgeAtom, bridge) {
     const { pins, services } = useAppState();
+    // AXIOMA DE SINCERIDAD: Confianza plena en el Orquestador.
+    // El átomo ya viene hidratado desde app_state.js (Aduana de Sinceridad).
     const [localAtom, setLocalAtom] = useState(bridgeAtom);
     const [schemas, setSchemas] = useState({}); // id -> { fields: [], label: '' }
-    const [isLoading, setIsLoading] = useState(true);
-    const hasInitialHydrated = useRef(false);
-
-    // 1. Carga inicial del Átomo Completo (Dharma de Sinceridad)
-    useEffect(() => {
-        if (hasInitialHydrated.current) return;
-
-        const hydrateBridge = async () => {
-            try {
-                const result = await bridge.read();
-
-                if (result) {
-                    setLocalAtom(result);
-                    hasInitialHydrated.current = true;
-                }
-            } catch (err) {
-                console.error('[BridgeHydration] Bridge READ failed:', err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        hydrateBridge();
-    }, [bridgeAtom.id, bridge]);
+    const [isLoading, setIsLoading] = useState(false);
 
     // 2. Hidratación de Esquemas Externos (The Wiring)
     // Detecta fuentes y destinos y pide sus headers si no los tiene.

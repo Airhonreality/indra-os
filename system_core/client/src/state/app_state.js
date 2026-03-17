@@ -25,7 +25,12 @@ export const useAppState = create((set, get) => ({
     // UI State
     loadingKeys: {},
     activeArtifact: null, // Átomo en edición/ejecución (Nivel 3)
+    isMaterializing: false, // Estado de transición para hidratación de átomos
     pendingSyncs: {}, // { atomId: boolean } - Rastreo de resonancia en segundo plano
+    
+    // Infraestructura & Bóveda
+    isServiceManagerOpen: false,
+    serviceFilter: null, // 'intelligence', 'storage', null (all)
 
     // ── ACCIONES ──
 
@@ -69,6 +74,18 @@ export const useAppState = create((set, get) => ({
     },
 
     clearError: () => set({ error: null }),
+    
+    /**
+     * Gestión universal de la Bóveda (ServiceManager)
+     */
+    openServiceManager: (filter = null) => set({ 
+        isServiceManagerOpen: true, 
+        serviceFilter: filter 
+    }),
+    closeServiceManager: () => set({ 
+        isServiceManagerOpen: false, 
+        serviceFilter: null 
+    }),
 
     /**
      * Carga los servicios disponibles (pila de providers).
@@ -115,7 +132,40 @@ export const useAppState = create((set, get) => ({
         if (id) get().loadPins();
     },
 
-    openArtifact: (atom) => set({ activeArtifact: atom }),
+    /**
+     * Abre un artefacto asegurando su sinceridad (Hidratación).
+     * Si el átomo es un Puntero (Pin), descarga la materia completa del Core.
+     */
+    openArtifact: async (atom) => {
+        const { coreUrl, sessionSecret } = get();
+        
+        // AXIOMA: Si ya tiene payload, la materia es sincera.
+        if (atom.payload && (atom.payload.blocks || atom.payload.fields || atom.payload.stations)) {
+            set({ activeArtifact: atom });
+            return;
+        }
+
+        set({ isMaterializing: true });
+        try {
+            const result = await executeDirective({
+                provider: atom.provider || 'system',
+                protocol: 'ATOM_READ',
+                context_id: atom.id
+            }, coreUrl, sessionSecret);
+
+            const fullAtom = result.items?.[0];
+            if (fullAtom) {
+                // Mezclamos metadatos del pin con la materia del core
+                set({ activeArtifact: { ...atom, ...fullAtom }, isMaterializing: false });
+            } else {
+                throw new Error('ATOM_NOT_FOUND_IN_CORE');
+            }
+        } catch (err) {
+            console.error('[app_state] Materialization failed:', err);
+            toastEmitter.error('Fallo de Sinceridad: No se pudo materializar el contenido.');
+            set({ isMaterializing: false });
+        }
+    },
     closeArtifact: () => set({ activeArtifact: null }),
 
     /**
@@ -233,18 +283,9 @@ export const useAppState = create((set, get) => ({
                 workspace_id: activeWorkspaceId
             }, coreUrl, sessionSecret);
 
-            // AXIOMA: Mezcla Deep-over-Shallow para evitar degradación de átomos hidratados
-            const currentPins = get().pins;
-            const newPins = (result.items || []).map(newPin => {
-                const existing = currentPins.find(p => p.id === newPin.id && p.provider === newPin.provider);
-                if (existing && existing.payload && !newPin.payload) {
-                    // Mantener la hidratación profunda si ya existe
-                    return { ...newPin, payload: existing.payload, protocols: existing.protocols || newPin.protocols };
-                }
-                return newPin;
-            });
-
-            set({ pins: newPins });
+            // AXIOMA DE SINCERIDAD: La lista de pins es una colección de punteros ligeros.
+            // La hidratación (materia completa) ocurre exclusivamente en openArtifact.
+            set({ pins: result.items || [] });
         } catch (err) {
             console.error('[app_state] loadPins failed:', err);
         } finally {

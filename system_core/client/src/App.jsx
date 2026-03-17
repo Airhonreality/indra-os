@@ -11,6 +11,7 @@ import './services/EngineBoot';
 import { DesignerBridge } from './services/CapabilityBridge';
 import { ToastProvider } from './components/utilities/primitives/ToastNotification';
 import { useAppState } from './state/app_state';
+import { ServiceManager } from './components/shell/ServiceManager/ServiceManager';
 
 /**
  * EngineViewport
@@ -60,8 +61,13 @@ function IndraAppContent() {
     const { isConnected, bootstrap, coreUrl, sessionSecret } = useProtocol();
     const { activeWorkspaceId } = useWorkspace();
     const { activeArtifact, closeArtifact, lang } = useShell();
+    const isMaterializing = useAppState(s => s.isMaterializing);
     const registerSync = useAppState(s => s.registerSync);
     const finishSync = useAppState(s => s.finishSync);
+    
+    // Global Infra Manager
+    const isServiceManagerOpen = useAppState(s => s.isServiceManagerOpen);
+    const closeServiceManager = useAppState(s => s.closeServiceManager);
 
     useEffect(() => {
         if (isConnected) bootstrap();
@@ -72,28 +78,51 @@ function IndraAppContent() {
         return <CoreConnectionView />;
     }
 
+    // NIVEL 0.5: Materializando materia (Transición de nivel)
+    if (isMaterializing) {
+        return (
+            <div className="fill center stack" style={{ background: 'var(--color-bg-void)', color: 'var(--color-accent)' }}>
+                <div className="indra-pulse-loader" />
+                <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', marginTop: 'var(--space-8)', letterSpacing: '2px', opacity: 0.8 }}>MATERIALIZING_CONTENT...</h2>
+            </div>
+        );
+    }
+
     // NIVEL 1: Core conectado, sin Workspace seleccionado (NEXUS)
     if (!activeWorkspaceId) {
-        return <NexusView />;
+        return (
+            <>
+                <NexusView />
+                {isServiceManagerOpen && <ServiceManager />}
+            </>
+        );
     }
 
     // NIVEL 3: Macro Engine Activo
     if (activeArtifact) {
         return (
-            <EngineViewport 
-                activeArtifact={activeArtifact}
-                closeArtifact={closeArtifact}
-                coreUrl={coreUrl}
-                sessionSecret={sessionSecret}
-                lang={lang}
-                registerSync={registerSync}
-                finishSync={finishSync}
-            />
+            <>
+                <EngineViewport 
+                    activeArtifact={activeArtifact}
+                    closeArtifact={closeArtifact}
+                    coreUrl={coreUrl}
+                    sessionSecret={sessionSecret}
+                    lang={lang}
+                    registerSync={registerSync}
+                    finishSync={finishSync}
+                />
+                {isServiceManagerOpen && <ServiceManager />}
+            </>
         );
     }
 
     // NIVEL 2: Workspace operacional (Dashboard)
-    return <WorkspaceDashboard />;
+    return (
+        <>
+            <WorkspaceDashboard />
+            {isServiceManagerOpen && <ServiceManager />}
+        </>
+    );
 }
 
 /**

@@ -10,34 +10,72 @@ import { useAppState } from '../state/app_state';
 export class SovereignIntelligenceProvider {
 
     constructor(config = {}) {
-        this.providers = {
-            gemini: localStorage.getItem('indra-ai-gemini') || config.geminiKey || null,
-            groq: localStorage.getItem('indra-ai-groq') || config.groqKey || null,
-            grok: localStorage.getItem('indra-ai-grok') || config.grokKey || null,
-            custom: localStorage.getItem('indra-ai-custom') || config.customKey || null,
-            openai: localStorage.getItem('indra-ai-openai') || config.openaiKey || null
-        };
-        this.customBaseUrl = localStorage.getItem('indra-ai-custom-url') || null;
-        this.activeProvider = localStorage.getItem('indra-ai-default-provider') || config.defaultProvider || this._resolveFirstAvailableProvider();
-        this.activeModel = localStorage.getItem('indra-ai-default-model') || config.defaultModel || this._resolveDefaultModel(this.activeProvider);
-        
-        // AXIOMA DE TIERING: El enrutador suele ser Gemini Flash por su velocidad y costo. 
-        this.routerModel = { provider: 'gemini', model: 'gemini-1.5-flash' };
+        this._updateFromState();
     }
 
     /**
-     * Verifica si hay al menos una llave configurada.
+     * Sincroniza los proveedores internos con el estado global (Bóveda del Core).
+     * AXIOMA: El Core es la fuente de verdad, el localStorage es persistencia de sesión.
      */
+    _updateFromState() {
+        const state = useAppState.getState();
+        const services = state.services || [];
+        
+        // Mapeo de sub-servicios de inteligencia
+        this.providers = {
+            gemini: localStorage.getItem('indra-ai-gemini') || this._getSecretFromServices(services, 'intelligence:gemini') || null,
+            groq: localStorage.getItem('indra-ai-groq') || this._getSecretFromServices(services, 'intelligence:groq') || null,
+            grok: localStorage.getItem('indra-ai-grok') || this._getSecretFromServices(services, 'intelligence:grok') || null,
+            openai: localStorage.getItem('indra-ai-openai') || this._getSecretFromServices(services, 'intelligence:openai') || null,
+            custom: localStorage.getItem('indra-ai-custom') || this._getSecretFromServices(services, 'intelligence:custom') || null
+        };
+
+        const available = Object.keys(this.providers).filter(p => !!this.providers[p]);
+        this.customBaseUrl = localStorage.getItem('indra-ai-custom-url') || null;
+        
+        // RESOLUCIÓN LINEAL: Evitamos recursión con getAvailableProviders
+        this.activeProvider = localStorage.getItem('indra-ai-default-provider') || (available.length > 0 ? available[0] : 'gemini');
+        this.activeModel = localStorage.getItem('indra-ai-default-model') || this._resolveDefaultModel(this.activeProvider);
+        this.routerModel = this._resolveRouterModel();
+    }
+
+    _getSecretFromServices(services, id) {
+        const svc = services.find(s => s.id === id);
+        return svc?.isReady ? (svc.raw?.secrets?.api_key || 'VAULT_PROTECTED') : null;
+    }
+
+    _resolveRouterModel() {
+        if (this.providers.gemini) return { provider: 'gemini', model: 'gemini-1.5-flash' };
+        if (this.providers.groq) return { provider: 'groq', model: 'llama-3.1-8b-instant' }; // Modelo rápido en Groq
+        return { provider: this.activeProvider, model: this.activeModel };
+    }
+
+    /**
+     * Retorna la lista de proveedores que tienen una API Key configurada.
+     * AXIOMA: Si no hay llave, el proveedor no existe para la UI.
+     */
+    getAvailableProviders() {
+        return Object.keys(this.providers).filter(p => !!this.providers[p]);
+    }
+
+    /**
+     * Retorna los modelos recomendados para los proveedores activos.
+     */
+    getAvailableModels() {
+        const available = this.getAvailableProviders();
+        return available.map(p => ({
+            provider: p,
+            model: this._resolveDefaultModel(p),
+            label: `${p.toUpperCase()} - ${this._resolveDefaultModel(p)}`
+        }));
+    }
+
     /**
      * Resuelve el primer proveedor con key disponible.
-     * AXIOMA: No asumas Gemini si no está configurado.
      */
     _resolveFirstAvailableProvider() {
-        const order = ['groq', 'grok', 'gemini', 'openai', 'custom'];
-        for (const p of order) {
-            if (localStorage.getItem(`indra-ai-${p}`)) return p;
-        }
-        return 'gemini'; // Fallback si no hay nada configurado
+        const available = this.getAvailableProviders();
+        return available.length > 0 ? available[0] : 'gemini';
     }
 
     _resolveDefaultModel(provider) {
@@ -48,10 +86,11 @@ export class SovereignIntelligenceProvider {
             openai: 'gpt-4o',
             custom: 'gpt-4o'
         };
-        return models[provider] || 'gpt-4o';
+        return models[provider] || 'default-model';
     }
 
     isConfigured() {
+        this._updateFromState();
         return Object.values(this.providers).some(k => !!k);
     }
 
@@ -66,6 +105,15 @@ export class SovereignIntelligenceProvider {
             if (provider === 'custom' && baseUrl) {
                 this.customBaseUrl = baseUrl;
                 localStorage.setItem('indra-ai-custom-url', baseUrl);
+            }
+
+            // AXIOMA: Al actualizar una llave, recalculamos la disponibilidad
+            this.routerModel = this._resolveRouterModel();
+            
+            // Si el proveedor activo no tenía llave, lo seteamos ahora
+            if (!this.providers[this.activeProvider]) {
+                this.activeProvider = provider;
+                this.activeModel = this._resolveDefaultModel(provider);
             }
         }
     }
@@ -88,6 +136,7 @@ export class SovereignIntelligenceProvider {
      * @param {Object} context - { history, capabilities, currentWorkspace }
      */
     async ask(prompt, context = {}) {
+        this._updateFromState();
         const { history = [], capabilities = {}, currentWorkspace = null } = context;
 
         // AXIOMA DE SINCERIDAD: Instrucción base

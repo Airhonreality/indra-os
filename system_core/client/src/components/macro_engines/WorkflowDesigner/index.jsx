@@ -15,19 +15,20 @@ import { useWorkflowExecution } from './useWorkflowExecution';
 import { useWorkflowHydration } from './useWorkflowHydration';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
 import { IndraEngineHood } from '../../utilities/IndraEngineHood';
-import { DataProjector } from '../../../services/DataProjector';
+import { useLexicon } from '../../../services/lexicon';
 import { useWorkspace } from '../../../context/WorkspaceContext';
+import { DataProjector } from '../../../services/DataProjector';
 import './WorkflowDesigner.css';
 
-export function WorkflowDesigner({ atom, onUpdate }) {
+export function WorkflowDesigner({ atom, bridge }) {
     return (
         <WorkflowProvider initialData={atom}>
-            <WorkflowLayout onUpdate={onUpdate} />
+            <WorkflowLayout bridge={bridge} />
         </WorkflowProvider>
     );
 }
 
-function WorkflowLayout({ onUpdate }) {
+function WorkflowLayout({ bridge }) {
     const t = useLexicon();
     const { updatePinIdentity } = useWorkspace();
     const { workflow, addStation, selectedStationId, setSelectedStationId, setWorkflow } = useWorkflow();
@@ -48,15 +49,18 @@ function WorkflowLayout({ onUpdate }) {
             {/* ── CANONICAL MACRO HEADER ── */}
             <IndraMacroHeader
                 atom={workflow}
-                onClose={() => window.history.back()}
+                onClose={() => bridge.close()}
                 isSaving={status === 'EXECUTING'}
-                isLive={workflow.status === 'LIVE'}
-                onTitleChange={(newLabel) => {
+                isLive={workflow.payload?.status === 'LIVE'}
+                onTitleChange={async (newLabel) => {
                     const cleanLabel = newLabel === '' ? 'UNTITLED_WORKFLOW' : newLabel;
-                    const newWorkflow = { ...workflow, handle: { ...workflow.handle, label: cleanLabel } };
+                    const newWorkflow = { 
+                        ...workflow, 
+                        handle: { ...workflow.handle, label: cleanLabel } 
+                    };
                     setWorkflow(newWorkflow);
                     updatePinIdentity(workflow.id, workflow.provider, { label: cleanLabel });
-                    onUpdate(newWorkflow);
+                    await bridge.save(newWorkflow);
                 }}
             />
 
@@ -66,23 +70,31 @@ function WorkflowLayout({ onUpdate }) {
                     leftSlot={
                         <div className="engine-hood__capsule" style={{ gap: 0, padding: '1px' }}>
                             <button
-                                className={`btn btn--xs ${workflow.status !== 'LIVE' ? 'active' : ''}`}
-                                onClick={() => onUpdate({ ...workflow, status: 'DRAFT' })}
+                                className={`btn btn--xs ${workflow.payload?.status !== 'LIVE' ? 'active' : ''}`}
+                                onClick={() => {
+                                    const next = { ...workflow, payload: { ...workflow.payload, status: 'DRAFT' } };
+                                    setWorkflow(next);
+                                    bridge.save(next);
+                                }}
                                 style={{ 
                                     fontSize: '8px', padding: '2px 10px', borderRadius: 'var(--indra-ui-radius)', border: 'none', 
-                                    background: workflow.status !== 'LIVE' ? 'var(--indra-dynamic-bg)' : 'transparent', 
-                                    color: workflow.status !== 'LIVE' ? 'var(--indra-dynamic-accent)' : 'var(--color-text-secondary)',
-                                    border: workflow.status !== 'LIVE' ? '1px solid var(--indra-dynamic-accent)' : 'none'
+                                    background: workflow.payload?.status !== 'LIVE' ? 'var(--indra-dynamic-bg)' : 'transparent', 
+                                    color: workflow.payload?.status !== 'LIVE' ? 'var(--indra-dynamic-accent)' : 'var(--color-text-secondary)',
+                                    border: workflow.payload?.status !== 'LIVE' ? '1px solid var(--indra-dynamic-accent)' : 'none'
                                 }}
                             >{t('status_draft')}</button>
                             <button
-                                className={`btn btn--xs ${workflow.status === 'LIVE' ? 'active' : ''}`}
-                                onClick={() => onUpdate({ ...workflow, status: 'LIVE' })}
+                                className={`btn btn--xs ${workflow.payload?.status === 'LIVE' ? 'active' : ''}`}
+                                onClick={() => {
+                                    const next = { ...workflow, payload: { ...workflow.payload, status: 'LIVE' } };
+                                    setWorkflow(next);
+                                    bridge.save(next);
+                                }}
                                 style={{ 
                                     fontSize: '8px', padding: '2px 10px', borderRadius: 'var(--indra-ui-radius)', border: 'none', 
-                                    background: workflow.status === 'LIVE' ? 'rgba(255, 70, 85, 0.1)' : 'transparent', 
-                                    color: workflow.status === 'LIVE' ? '#ff4655' : 'var(--color-text-secondary)',
-                                    border: workflow.status === 'LIVE' ? '1px solid #ff4655' : 'none'
+                                    background: workflow.payload?.status === 'LIVE' ? 'rgba(255, 70, 85, 0.1)' : 'transparent', 
+                                    color: workflow.payload?.status === 'LIVE' ? '#ff4655' : 'var(--color-text-secondary)',
+                                    border: workflow.payload?.status === 'LIVE' ? '1px solid #ff4655' : 'none'
                                 }}
                             >{t('status_live')}</button>
                         </div>
@@ -90,7 +102,7 @@ function WorkflowLayout({ onUpdate }) {
                     rightSlot={
                         <button
                             className="btn btn--xs"
-                            onClick={() => onUpdate(workflow)}
+                            onClick={() => bridge.save(workflow)}
                             style={{ 
                                 borderRadius: 'var(--indra-ui-radius)', 
                                 padding: '2px 12px', 
@@ -120,7 +132,7 @@ function WorkflowLayout({ onUpdate }) {
                     <main className="engine-canvas pipeline-viewport stack" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                         <div className="pipeline-scroll fill">
                             <section className="station-stack">
-                                {workflow.stations.map((station, index) => (
+                                {workflow.payload?.stations?.map((station, index) => (
                                     <StationCard
                                         key={station.id}
                                         index={index}

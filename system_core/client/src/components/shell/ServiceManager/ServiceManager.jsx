@@ -11,7 +11,13 @@ import { IndraIcon } from '../../utilities/IndraIcons';
 import { useLexicon } from '../../../services/lexicon';
 import './ServiceManager.css';
 
-export function ServiceManager({ onClose }) {
+export function ServiceManager({ onClose, filter: propFilter }) {
+    const globalFilter = useAppState(s => s.serviceFilter);
+    const globalClose = useAppState(s => s.closeServiceManager);
+    
+    const filter = propFilter || globalFilter;
+    const handleClose = onClose || globalClose;
+
     const {
         services,
         pairingStatus,
@@ -40,14 +46,16 @@ export function ServiceManager({ onClose }) {
                     <div className="shelf--loose">
                         <IndraIcon name="VAULT" size="28px" style={{ color: 'var(--color-accent)' }} />
                         <div className="stack--tight">
-                            <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: '24px', margin: 0 }}>{t('ui_infra_manager')}</h1>
+                            <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: '24px', margin: 0 }}>
+                                {filter === 'intelligence' ? t('ui_agent_config') : t('ui_infra_manager')}
+                            </h1>
                             <div className="shelf">
                                 <span className="vault-status">{t('ui_vault_encryption')}</span>
                                 <div className="hud-line" style={{ width: '100px' }}></div>
                             </div>
                         </div>
                     </div>
-                    <button className="btn btn--ghost" onClick={onClose}>
+                    <button className="btn btn--ghost" onClick={handleClose}>
                         <IndraIcon name="CLOSE" />
                         {t('ui_exit_infra')}
                     </button>
@@ -83,7 +91,9 @@ export function ServiceManager({ onClose }) {
                         </div>
 
                         <div className="service-grid fill">
-                            {services.map(svc => (
+                            {services
+                                .filter(svc => !filter || svc.id.startsWith(filter) || svc.raw?.category === filter)
+                                .map(svc => (
                                 <div
                                     key={svc.id}
                                     className={`service-card hud-deco-corners ${svc.isReady ? 'is-paired' : ''} ${svc.error ? 'is-error' : ''}`}

@@ -54,6 +54,12 @@ Basado íntegramente en `IndraIcons.jsx` y CSS puro:
 - **SENSING:** Borde animado (violeta), icono rotando suavemente. El sistema está enviando el prompt al oráculo.
 - **SETTLED:** Brillo verde tenue en el icono. El contrato ha sido cumplido y los campos están disponibles para el siguiente Step.
 
+### 3.3 El "Service Gateway" (Axioma de Conectividad)
+Para evitar que el usuario abandone su flujo de trabajo por falta de llaves:
+- **Direct Access:** Si no hay proveedores configurados, el nodo muestra un botón de `CRITICAL_INJECT: Configurar Inteligencia`.
+- **Mini-Modal Sovereignty:** Al pulsar, se despliega una interfaz minimalista de `ServiceManager` que permite introducir la API Key *in-situ*. Al guardar, el nodo activa automáticamente los modelos disponibles sin recargar la página.
+- **Dynamic Filtering (Zero Hardcode):** El `Model_Tier_Selector` solo proyectará modelos cuyas API Keys estén validadas en el `SovereignIntelligenceProvider`. Modelos sin llave son invisibles para evitar errores de ejecución. El sistema **no debe** mostrar nombres de modelos que no pueda ejecutar.
+
 ---
 
 ## 4. FLUJO DE USABILIDAD (EL "MÉTODO INDRA")
@@ -80,3 +86,4 @@ Basado íntegramente en `IndraIcons.jsx` y CSS puro:
 
 - **Nada entra al Core sin contrato:** Ninguna salida de IA se guarda si no cumple con la estructura de `Atomo`.
 - **Auditoría de Razonamiento:** Cada átomo procesado por IA debe guardar una traza de su "procedencia cognitiva" en metadatos para futura fiscalización humana.
+- **Soberanía de Modelos:** El sistema nunca sugerirá el uso de un modelo que no tenga una vía de autenticación local configurada (Cero Hardcoding de publicidad de terceros).

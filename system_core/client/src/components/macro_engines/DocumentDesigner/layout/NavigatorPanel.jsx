@@ -13,7 +13,7 @@
 import React, { useRef, useEffect } from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import { LayerTree, LAYER_TREE_STYLES } from './LayerTree';
-import { WorkspaceResourcePanel } from './WorkspaceResourcePanel';
+import { DocumentStylesPanel } from './DocumentStylesPanel';
 import { useAST } from '../context/ASTContext';
 
 export function NavigatorPanel({ atom, onNotify, activeTab: controlledTab, onTabChange }) {
@@ -32,28 +32,41 @@ export function NavigatorPanel({ atom, onNotify, activeTab: controlledTab, onTab
     }, [tab]);
 
     return (
-        <aside className="navigator-panel fill stack--none">
-            {/* TABS ENAV (ADR_018 §3.1.3) */}
+        <aside className="navigator-panel fill stack">
+            {/* TABS ENAV (ADR_018 §3.1.3 - Sistema Triádico) */}
             <div className="navigator-tabs">
                 <button
                     onClick={() => setTab('LAYERS')}
                     data-active={tab === 'LAYERS'}
-                    className="nav-tab-btn"
+                    className="nav-tab-btn shelf--tight center"
+                    title="HIERARCHY"
                 >
-                    LAYERS
+                    <IndraIcon name="ATOM" size="10px" />
+                    <span>LAYERS</span>
                 </button>
                 <button
                     onClick={() => setTab('WORKSPACE')}
                     data-active={tab === 'WORKSPACE'}
-                    className="nav-tab-btn"
+                    className="nav-tab-btn shelf--tight center"
+                    title="RESOURCES"
                 >
-                    WORKSPACE
+                    <IndraIcon name="LAYER_STRICT" size="10px" />
+                    <span>RESOURCES</span>
+                </button>
+                <button
+                    onClick={() => setTab('STYLES')}
+                    data-active={tab === 'STYLES'}
+                    className="nav-tab-btn shelf--tight center"
+                    title="DESIGN_SYSTEM"
+                >
+                    <IndraIcon name="PALETTE" size="10px" />
+                    <span>THEME</span>
                 </button>
             </div>
 
             {/* SCROLLABLE CONTENT AREA */}
             <div className="fill overflow-y-auto" ref={scrollRef}>
-                {tab === 'LAYERS' ? (
+                {tab === 'LAYERS' && (
                     <div className="stack--none" style={{ padding: 'var(--space-2)' }}>
                         <header className="navigator-header">
                             <IndraIcon name="ATOM" size="10px" />
@@ -70,11 +83,17 @@ export function NavigatorPanel({ atom, onNotify, activeTab: controlledTab, onTab
                             ))}
                         </div>
                     </div>
-                ) : (
+                )}
+                
+                {tab === 'WORKSPACE' && (
                     <WorkspaceResourcePanel 
                         atom={atom} 
                         onNotify={onNotify} 
                     />
+                )}
+
+                {tab === 'STYLES' && (
+                    <DocumentStylesPanel />
                 )}
             </div>
 

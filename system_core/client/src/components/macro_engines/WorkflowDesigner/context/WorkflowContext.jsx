@@ -11,10 +11,12 @@ const WorkflowContext = createContext();
 
 export function WorkflowProvider({ children, initialData = {} }) {
     const [workflow, setWorkflow] = useState({
-        id: initialData.id || 'wf_temp',
-        trigger: initialData.trigger || { type: 'SCHEMA_SUBMIT', source: null },
-        stations: initialData.stations || [],
-        updated_at: new Date().toISOString()
+        ...initialData,
+        payload: {
+            status: initialData.payload?.status || 'DRAFT',
+            trigger: initialData.payload?.trigger || { type: 'SCHEMA_SUBMIT', source: null },
+            stations: initialData.payload?.stations || [],
+        }
     });
 
     const [selectedStationId, setSelectedStationId] = useState(null);

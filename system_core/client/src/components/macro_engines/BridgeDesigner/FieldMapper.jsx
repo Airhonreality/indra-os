@@ -52,7 +52,7 @@ export function FieldMapper({ targetId, config = {}, schema, mapping = {}, mappi
                         >
                             <option value="">-- SELECCIONAR PK --</option>
                             {schema.fields.map(f => (
-                                <option key={f.id} value={f.id}>{f.id.toUpperCase()}</option>
+                                <option key={f.id} value={f.id}>{(f.handle?.label || f.label || f.id).toUpperCase()}</option>
                             ))}
                         </select>
                     </div>
@@ -99,7 +99,7 @@ function RecursiveMappingItem({ field, mapping, options, onMapping, level }) {
                         fontWeight: level === 0 ? 'bold' : 'normal',
                         opacity: hasChildren ? 0.5 : 1
                     }}>
-                        {field.label || field.id}
+                        {field.handle?.label || field.label || field.id}
                     </span>
                     {!hasChildren && <span style={{ fontSize: '7px', opacity: 0.3 }}>{field.type}</span>}
                 </div>

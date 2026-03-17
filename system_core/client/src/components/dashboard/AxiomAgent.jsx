@@ -4,6 +4,7 @@ import { sovereignIntelligence } from '../../services/SovereignIntelligenceProvi
 import { discoveryEngine } from '../../services/MCEP_DiscoveryEngine';
 import { mcepOrchestrator } from '../../services/MCEP_Orchestrator';
 import { useLexicon } from '../../services/lexicon';
+import { useAppState } from '../../state/app_state';
 import './AxiomAgent.css';
 
 /**
@@ -12,21 +13,12 @@ import './AxiomAgent.css';
  */
 export function AxiomAgent({ isOpen, onClose }) {
     const t = useLexicon();
-    const [view, setView] = useState(sovereignIntelligence.isConfigured() ? 'chat' : 'config'); 
+    const openServiceManager = useAppState(s => s.openServiceManager);
+    const [view, setView] = useState('chat'); 
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState('');
     const [isThinking, setIsThinking] = useState(false);
     const [capabilities, setCapabilities] = useState(null);
-    const [testResults, setTestResults] = useState({});
-    
-    // Estado local para configuración (soberana)
-    const [config, setConfig] = useState({
-        gemini: localStorage.getItem('indra-ai-gemini') || '',
-        groq: localStorage.getItem('indra-ai-groq') || '',
-        grok: localStorage.getItem('indra-ai-grok') || '',
-        custom: localStorage.getItem('indra-ai-custom') || '',
-        customUrl: localStorage.getItem('indra-ai-custom-url') || ''
-    });
 
     const scrollRef = useRef(null);
 
@@ -87,27 +79,6 @@ export function AxiomAgent({ isOpen, onClose }) {
             setIsThinking(false);
         }
     };
-    
-    const handleSaveConfig = (provider, value, baseUrl = null) => {
-        if (provider === 'customUrl') {
-            setConfig(prev => ({ ...prev, customUrl: value }));
-            sovereignIntelligence.setCredentials('custom', config.custom, value);
-            return;
-        }
-        setConfig(prev => ({ ...prev, [provider]: value }));
-        sovereignIntelligence.setCredentials(provider, value, provider === 'custom' ? config.customUrl : null);
-    };
-
-
-    const handleTestConnection = async (provider) => {
-        setTestResults(prev => ({ ...prev, [provider]: 'testing' }));
-        try {
-            const result = await sovereignIntelligence.verifyConnection(provider);
-            setTestResults(prev => ({ ...prev, [provider]: result.success ? 'ok' : 'error' }));
-        } catch (error) {
-            setTestResults(prev => ({ ...prev, [provider]: 'error' }));
-        }
-    };
 
 
 
@@ -124,16 +95,14 @@ export function AxiomAgent({ isOpen, onClose }) {
                     </span>
                 </div>
                 <div className="shelf" style={{ gap: 'var(--space-2)' }}>
-                    {isConfigured && (
-                        <button 
-                            className={`btn--ghost ${view === 'config' ? 'color-accent' : ''}`} 
-                            onClick={() => setView(view === 'chat' ? 'config' : 'chat')}
-                            style={{ padding: '4px' }}
-                            title="Cambiar entre Chat y Configuración"
-                        >
-                            <IndraIcon name={view === 'chat' ? "SETTINGS" : "TERMINAL"} size="14px" />
-                        </button>
-                    )}
+                    <button 
+                        className="btn--ghost" 
+                        onClick={() => openServiceManager('intelligence')}
+                        style={{ padding: '4px' }}
+                        title="Configurar Inteligencia"
+                    >
+                        <IndraIcon name="SETTINGS" size="14px" />
+                    </button>
                     <button className="btn--ghost" onClick={onClose} style={{ padding: '4px' }}>
                         <IndraIcon name="CLOSE" size="14px" />
                     </button>
@@ -141,116 +110,31 @@ export function AxiomAgent({ isOpen, onClose }) {
             </div>
 
             <div className="axiom-agent-content fill" ref={scrollRef}>
-                {view === 'chat' && isConfigured ? (
-                    <>
-                        {messages.length === 0 && (
-                            <div className="fill center stack opacity-50" style={{ padding: 'var(--space-10)', textAlign: 'center' }}>
-                                <div className="resonance-pulse" style={{ width: '40px', height: '40px', margin: '0 auto var(--space-4) auto' }}></div>
-                                <p className="text-hint" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
-                                    {t('status_agent_ready')}<br />
-                                    {t('status_waiting_input')}
-                                </p>
-                            </div>
-                        )}
-                        {messages.filter(m => m.role !== 'system_thinking').map((msg, i) => (
-                            <div key={i} className={`agent-msg agent-msg--${msg.role}`}>
-                                <div className="agent-msg-meta">
-                                    {msg.role === 'assistant' ? t('ui_role_ai') : (msg.role === 'user' ? t('ui_role_operator') : t('ui_role_system'))} //
-                                </div>
-                                <div className="agent-msg-body">
-                                    {msg.content}
-                                </div>
-                            </div>
-                        ))}
-                        {isThinking && (
-                            <div className="agent-msg agent-msg--assistant thinking" style={{ background: 'transparent', border: 'none' }}>
-                                <div className="resonance-pulse"></div>
-                                <span className="text-hint" style={{ fontSize: '11px' }}>
-                                    {messages.find(m => m.role === 'system_thinking')?.content || t('status_thinking')}
-                                </span>
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <div className="stack--loose" style={{ padding: 'var(--space-2)' }}>
-                        <div className="stack" style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-4)', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                             <p className="text--title" style={{ fontSize: '12px', color: 'var(--color-accent)' }}>
-                                {isConfigured ? t('ui_maintenance_mode') : t('ui_config_required')}
-                             </p>
-                             <p className="text-body" style={{ fontSize: '11px', marginTop: 'var(--space-2)', opacity: 0.7 }}>
-                                {isConfigured 
-                                    ? t('ui_maintenance_desc')
-                                    : t('ui_config_required_desc')}
-                             </p>
+                {messages.length === 0 && (
+                    <div className="fill center stack opacity-50" style={{ padding: 'var(--space-10)', textAlign: 'center' }}>
+                        <div className="resonance-pulse" style={{ width: '40px', height: '40px', margin: '0 auto var(--space-4) auto' }}></div>
+                        <p className="text-hint" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
+                            {t('status_agent_ready')}<br />
+                            {t('status_waiting_input')}
+                        </p>
+                    </div>
+                )}
+                {messages.filter(m => m.role !== 'system_thinking').map((msg, i) => (
+                    <div key={i} className={`agent-msg agent-msg--${msg.role}`}>
+                        <div className="agent-msg-meta">
+                            {msg.role === 'assistant' ? t('ui_role_ai') : (msg.role === 'user' ? t('ui_role_operator') : t('ui_role_system'))} //
                         </div>
-
-                        <div className="shelf" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
-                            <p className="text-hint" style={{ fontSize: '10px' }}>
-                                {t('ui_keys_config')}
-                            </p>
-                            {!isConfigured && (
-                                <span className="tag color-danger shadow-glow" style={{ fontSize: '8px', padding: '2px 6px' }}>{t('status_offline')}</span>
-                            )}
+                        <div className="agent-msg-body">
+                            {msg.content}
                         </div>
-                        
-                        {['gemini', 'groq', 'grok', 'custom'].map(provider => (
-                            <div key={provider} className="stack" style={{ 
-                                background: 'rgba(255,255,255,0.02)', 
-                                padding: 'var(--space-4)', 
-                                borderRadius: '12px',
-                                border: '1px solid rgba(255,255,255,0.05)',
-                                marginBottom: 'var(--space-2)'
-                            }}>
-                                <label className="text-label" style={{ fontSize: '10px', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between' }}>
-                                    <span>{provider === 'custom' ? 'UNIVERSAL (OpenAI Compatible)' : `${provider} API KEY`}</span>
-                                    {provider === 'custom' && <span style={{ opacity: 0.5, fontSize: '9px' }}>LMStudio, DeepSeek, local...</span>}
-                                </label>
-
-                                {provider === 'custom' && (
-                                    <div className="stack" style={{ marginTop: 'var(--space-2)', gap: 'var(--space-1)' }}>
-                                        <input 
-                                            type="text"
-                                            className="agent-input fill"
-                                            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '11px', padding: '6px 10px' }}
-                                            value={config.customUrl}
-                                            onChange={(e) => handleSaveConfig('customUrl', e.target.value)}
-                                            placeholder="Base URL (ej: https://api.deepseek.com/v1)"
-                                        />
-                                    </div>
-                                )}
-
-                                <div className="shelf" style={{ marginTop: 'var(--space-2)' }}>
-                                    <input 
-                                        type="password"
-                                        className="agent-input fill"
-                                        style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                                        value={config[provider]}
-                                        onChange={(e) => handleSaveConfig(provider, e.target.value)}
-                                        placeholder={`Enter ${provider} key...`}
-                                    />
-                                    <button 
-                                        className="btn--ghost" 
-                                        onClick={() => handleTestConnection(provider)}
-                                        disabled={!config[provider] || (provider === 'custom' && !config.customUrl) || testResults[provider] === 'testing'}
-                                        style={{ 
-                                            padding: '8px', 
-                                            color: testResults[provider] === 'ok' ? 'var(--color-success)' : (testResults[provider] === 'error' ? 'var(--color-danger)' : 'inherit')
-                                        }}
-                                    >
-                                        <IndraIcon name={testResults[provider] === 'testing' ? 'RELOAD' : 'CHECK'} size="14px" />
-                                    </button>
-                                </div>
-                                {testResults[provider] === 'ok' && <span className="text-hint color-success" style={{ fontSize: '9px' }}>Conectado correctamente //</span>}
-                                {testResults[provider] === 'error' && <span className="text-hint color-danger" style={{ fontSize: '9px' }}>Error de conexión //</span>}
-                            </div>
-                        ))}
-
-                        <div style={{ marginTop: 'var(--space-4)', padding: 'var(--space-4)', background: 'rgba(109, 40, 217, 0.1)', borderRadius: '12px', border: '1px solid rgba(109, 40, 217, 0.2)' }}>
-                            <p className="text-body" style={{ fontSize: '11px', color: '#a78bfa', lineHeight: '1.4' }}>
-                                <IndraIcon name="INFO" size="12px" style={{ marginBottom: '4px' }} /><br />
-                                <strong>{t('ui_data_sovereignty')}:</strong> {t('ui_data_sovereignty_desc')}
-                            </p>
-                        </div>
+                    </div>
+                ))}
+                {isThinking && (
+                    <div className="agent-msg agent-msg--assistant thinking" style={{ background: 'transparent', border: 'none' }}>
+                        <div className="resonance-pulse"></div>
+                        <span className="text-hint" style={{ fontSize: '11px' }}>
+                            {messages.find(m => m.role === 'system_thinking')?.content || t('status_thinking')}
+                        </span>
                     </div>
                 )}
             </div>

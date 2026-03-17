@@ -21,7 +21,9 @@ const CLASS_THEMES = {
     'VIRTUAL_SERVICE': { color: 'var(--color-info)', icon: 'ATOM', label: 'SERVICIO_VIRTUAL' },
     'FOLDER': { color: 'var(--color-text-tertiary)', icon: 'FOLDER', label: 'COLECCIÓN' },
     'CALENDAR_HIVE': { color: 'var(--color-accent)', icon: 'CALENDAR', label: 'AGENDA_HIVE' },
-    'CALENDAR_EVENT': { color: 'var(--color-accent)', icon: 'CALENDAR', label: 'EVENTO' }
+    'CALENDAR_EVENT': { color: 'var(--color-accent)', icon: 'CALENDAR', label: 'EVENTO' },
+    'SERVICE': { color: 'var(--color-info)', icon: 'SERVICE', label: 'SERVICIO' },
+    'DATABASE': { color: 'var(--color-accent)', icon: 'SCHEMA', label: 'BASE_DATOS' }
 };
 
 
@@ -52,7 +54,8 @@ const BLOCK_TYPES = {
 const AGENTIC_CATEGORIES = {
     POTENCY: ['DATA_SCHEMA', 'FOLDER', 'ACCOUNT_IDENTITY'],
     AGENCY: ['BRIDGE', 'WORKFLOW', 'AEE_RUNNER', 'VIRTUAL_SERVICE'],
-    MANIFESTATION: ['VIDEO_PROJECT', 'CALENDAR_HIVE', 'CALENDAR_EVENT', 'DOCUMENT']
+    MANIFESTATION: ['VIDEO_PROJECT', 'CALENDAR_HIVE', 'CALENDAR_EVENT', 'DOCUMENT'],
+    SERVICE: ['SERVICE', 'DATABASE']
 };
 
 export class DataProjector {
@@ -64,18 +67,24 @@ export class DataProjector {
     static projectArtifact(atom) {
         if (!atom) return null;
 
-        const defaultTheme = { color: 'var(--color-accent)', icon: 'ATOM', label: atom.class };
-        const theme = CLASS_THEMES[atom.class] || defaultTheme;
+        const defaultTheme = { color: 'var(--color-accent)', icon: 'ATOM', label: atom.class || 'ARTEFACTO' };
+        
+        // Sinceridad de Origen: Detectar si es un servicio navegable (Silo) o un servicio proyectado
+        const isProjectedService = !!atom.label && !!atom.id && !atom.class;
+        const isService = atom.protocols?.includes('HIERARCHY_TREE') || atom.provider_base || isProjectedService || (!atom.class && atom.id);
+        const atomClass = atom.class || (isService ? 'SERVICE' : 'ATOM');
+        
+        const theme = CLASS_THEMES[atomClass] || defaultTheme;
         const color = atom.color || theme.color;
 
         return {
             id: atom.id,
-            provider: atom.provider,
-            class: atom.class,
+            provider: atom.provider || atom.id, // Para servicios, el id suele ser el provider
+            class: atomClass,
 
             // Proyección de Identidad (Sinceridad Radical ADR-008)
-            title: atom.handle?.label || 'SIN_NOMBRE',
-            subtitle: `${atom.class} // ${atom.id?.substring(0, 8)}`,
+            title: atom.handle?.label || atom.label || atom.id || atom.provider || (isService ? atom.provider_base : null) || 'SIN_NOMBRE',
+            subtitle: `${atomClass} // ${atom.provider || atom.id || '??'}`,
 
             // Proyeccion Visual
             theme: {

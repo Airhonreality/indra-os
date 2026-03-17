@@ -1084,15 +1084,7 @@ function _notion_notionRequest(endpoint, options) {
 
 /**
  * Lee la Notion API Key desde PropertiesService via system_config.gs.
- * La clave se almacena como 'ACCOUNT_notion_{accountId}_KEY' en PropertiesService.
- *
- * @param {string} accountId - El ID de la cuenta.
- * @returns {string|null} La API Key o null si no está configurada.
- * @private
- */
-/**
- * Lee la Notion API Key desde PropertiesService via system_config.gs.
- * La clave se almacena como 'ACCOUNT_notion_{accountId}_KEY' en PropertiesService.
+ * La clave se almacena como 'ACCOUNT_notion_{accountId}_KEY' in PropertiesService.
  *
  * @param {string} accountId - El ID de la cuenta.
  * @returns {string|null} La API Key o null si no está configurada.

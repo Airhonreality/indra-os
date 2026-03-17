@@ -15,7 +15,7 @@
  * =============================================================================
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import { useShell } from '../../context/ShellContext';
 import { ArtifactGrid } from './ArtifactGrid';
@@ -23,6 +23,8 @@ import { ActionRail } from './ActionRail';
 import { IndraIcon } from '../utilities/IndraIcons';
 import { IndraMacroHeader } from '../utilities/IndraMacroHeader';
 import { useLexicon } from '../../services/lexicon';
+import ArtifactSelector from '../utilities/ArtifactSelector';
+import { useAppState } from '../../state/app_state';
 
 export function WorkspaceDashboard() {
     const {
@@ -36,8 +38,17 @@ export function WorkspaceDashboard() {
 
     const { lang } = useShell();
     const t = useLexicon(lang);
+    const { pinAtom } = useAppState();
+
+    const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+
     const loading = loadingKeys.pins;
     const activeWS = workspaces.find(w => w.id === activeWorkspaceId);
+
+    const handleResonate = (atom) => {
+        pinAtom(atom);
+        setIsSelectorOpen(false);
+    };
 
     if (!activeWS && !loading) {
         return (
@@ -65,8 +76,17 @@ export function WorkspaceDashboard() {
 
             {/* ── 2. GRID DE ARTEFACTOS (área operativa fractal) ── */}
             <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                {activeWS && <ArtifactGrid pins={pins} />}
+                {activeWS && <ArtifactGrid pins={pins} onResonate={() => setIsSelectorOpen(true)} />}
             </div>
+
+            {/* Selector de Resonancia (Universal Invocation) */}
+            {isSelectorOpen && (
+                <ArtifactSelector 
+                    title="INVOCAR_RESONANCIA"
+                    onSelect={handleResonate}
+                    onCancel={() => setIsSelectorOpen(false)}
+                />
+            )}
 
             {/* ── 4. AGENTE AXIOMÁTICO (MCEP) ── */}
             <AgentTrigger />

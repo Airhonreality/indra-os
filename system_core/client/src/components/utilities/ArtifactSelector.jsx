@@ -22,6 +22,7 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
     const { lang } = useAppState();
     const t = useLexicon(lang);
 
+    const [browserMode, setBrowserMode] = useState('PINS'); // 'PINS' | 'REALITY'
     const [contextStack, setContextStack] = useState([]);
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -35,18 +36,22 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
         setLoading(true);
         try {
             if (!currentContext) {
-                const pinItems = (pins || []).map(p => ({
-                    ...p,
-                    protocols: p.protocols || ['ATOM_READ']
-                }));
-                // Filtrar manifest para evitar keys duplicadas (ej: "drive")
-                const manifestItems = (manifest || []).filter(m => !pinItems.some(p => p.id === m.id));
-                setItems([...pinItems, ...manifestItems]);
+                if (browserMode === 'PINS') {
+                    setItems((pins || []).map(p => ({
+                        ...p,
+                        protocols: p.protocols || ['ATOM_READ']
+                    })));
+                } else {
+                    // MODO REALIDAD: Solo servicios externos registrados
+                    setItems(manifest || []);
+                }
             } else {
+                // Sinceridad de Fuente: El provider es o bien una propiedad del objeto o el objeto mismo si es un servicio raíz.
+                const effectiveProvider = currentContext.provider || currentContext.id;
                 const result = await executeDirective({
-                    provider: currentContext.provider,
+                    provider: effectiveProvider,
                     protocol: 'HIERARCHY_TREE',
-                    context_id: currentContext.id
+                    context_id: currentContext.id === effectiveProvider ? null : currentContext.id
                 }, coreUrl, sessionSecret);
                 setItems(result.items || []);
             }
@@ -56,23 +61,31 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
         } finally {
             setLoading(false);
         }
-    }, [currentContext, manifest, coreUrl, sessionSecret]);
+    }, [currentContext, manifest, coreUrl, sessionSecret, pins, browserMode]);
+
+    // AXIOMA DE TRANSICIÓN: Cambiar de realidad limpia las lentes de búsqueda
+    useEffect(() => {
+        setActiveClassFilter(null);
+        setSearchTerm('');
+        setContextStack([]);
+    }, [browserMode]);
 
     useEffect(() => { loadLevel(); }, [loadLevel]);
 
     const handleDrillDown = (item) => {
         const protocols = item.protocols || [];
+        // Sinceridad Operativa: Si permite navegación, entramos.
         if (protocols.includes('HIERARCHY_TREE')) {
             setContextStack([...contextStack, item]);
             setActiveClassFilter(null); // Reset filters on navigation
             setSearchTerm('');
         } else {
-            // AXIOMA DE RESONANCIA: Si es un esquema/tabla externo no sintonizado, lanzamos el panel
-            const isExternal = item.provider && !['system', 'drive', 'native'].includes(item.provider);
-            const isSchema = ['DATA_SCHEMA', 'TABULAR'].includes(item.class);
+            // AXIOMA DE RESONANCIA: Si es un objeto externo que puede proyectar datos (TABULAR/CALENDAR/SCHEMA)
+            const isExternal = item.provider && !['system', 'native'].includes(item.provider);
+            const isResonantType = ['DATA_SCHEMA', 'TABULAR', 'CALENDAR', 'DATABASE'].includes(item.class);
             const isAlreadyTuned = item.origin === 'RESONANT';
 
-            if (isExternal && isSchema && !isAlreadyTuned) {
+            if (isExternal && isResonantType && !isAlreadyTuned) {
                 setTuningArtifact(item);
             } else {
                 onSelect(item);
@@ -111,19 +124,41 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                             <button onClick={onCancel} className="btn-icon"><IndraIcon name="CLOSE" size="14px" /></button>
                         </div>
 
-                        <div className="shelf--tight" style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', overflowX: 'auto', whiteSpace: 'nowrap', opacity: 0.8 }}>
-                            <span onClick={() => { setContextStack([]); setActiveClassFilter(null); }} style={{ cursor: 'pointer', color: 'var(--color-accent)' }}>{t('ROOT')}</span>
-                            {contextStack.map((ctx, i) => (
-                                <React.Fragment key={ctx.id}>
-                                    <span>/</span>
-                                    <span
-                                        onClick={() => { setContextStack(contextStack.slice(0, i + 1)); setActiveClassFilter(null); }}
-                                        style={{ cursor: 'pointer', color: i === contextStack.length - 1 ? 'white' : 'var(--color-accent)' }}
+                        <div className="spread">
+                            <div className="shelf--tight" style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', overflowX: 'auto', whiteSpace: 'nowrap', opacity: 0.8 }}>
+                                <span onClick={() => { setContextStack([]); setActiveClassFilter(null); }} style={{ cursor: 'pointer', color: 'var(--color-accent)' }}>{t('ROOT')}</span>
+                                {contextStack.map((ctx, i) => (
+                                    <React.Fragment key={ctx.id}>
+                                        <span>/</span>
+                                        <span
+                                            onClick={() => { setContextStack(contextStack.slice(0, i + 1)); setActiveClassFilter(null); }}
+                                            style={{ cursor: 'pointer', color: i === contextStack.length - 1 ? 'white' : 'var(--color-accent)' }}
+                                        >
+                                            {ctx.handle?.label || ctx.id}
+                                        </span>
+                                    </React.Fragment>
+                                ))}
+                            </div>
+
+                            {/* SELECTOR DE MODO (COSMOS vs REALIDAD) */}
+                            {contextStack.length === 0 && (
+                                <div className="shelf--tight glass" style={{ padding: '2px', borderRadius: 'var(--radius-pill)' }}>
+                                    <button 
+                                        className={`btn btn--xs ${browserMode === 'PINS' ? 'btn--accent' : 'btn--ghost'}`} 
+                                        onClick={() => setBrowserMode('PINS')}
+                                        style={{ fontSize: '8px', padding: '2px 10px', borderRadius: 'var(--radius-pill)', border: 'none' }}
                                     >
-                                        {ctx.handle?.label || ctx.id}
-                                    </span>
-                                </React.Fragment>
-                            ))}
+                                        PINS
+                                    </button>
+                                    <button 
+                                        className={`btn btn--xs ${browserMode === 'REALITY' ? 'btn--accent' : 'btn--ghost'}`} 
+                                        onClick={() => setBrowserMode('REALITY')}
+                                        style={{ fontSize: '8px', padding: '2px 10px', borderRadius: 'var(--radius-pill)', border: 'none' }}
+                                    >
+                                        SERVICIOS
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </header>
 
@@ -145,7 +180,7 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                             />
                         </div>
 
-                        {availableClasses.length > 1 && (
+                        {availableClasses.length > 0 && (
                             <div className="shelf--tight" style={{ overflowX: 'auto', padding: 'var(--space-1) 0' }}>
                                 <button
                                     onClick={() => setActiveClassFilter(null)}
@@ -168,25 +203,31 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                             <div className="fill center" style={{ opacity: 0.2, fontFamily: 'var(--font-mono)', fontSize: '10px' }}>{t('PULSING_CORE')}</div>
                         ) : (
                             items
-                                .map(item => DataProjector.projectArtifact(item))
-                                .filter(projection => {
-                                    if (!projection) return false;
+                                .map((item, index) => {
+                                    // Sinceridad Total: Extraer la materia cruda. 
+                                    // Los servicios del manifest suelen venir ya 'proyectados', buscamos el original.
+                                    const raw = item.raw || item;
+                                    const projection = DataProjector.projectArtifact(raw);
+                                    if (!projection) return null;
+                                    
                                     const matchesSearch = !searchTerm ||
                                         (projection.title.toUpperCase().includes(searchTerm.toUpperCase())) ||
                                         (projection.id.toUpperCase().includes(searchTerm.toUpperCase()));
                                     const matchesClass = !activeClassFilter || projection.class === activeClassFilter;
-                                    return matchesSearch && matchesClass;
+                                    
+                                    if (!matchesSearch || !matchesClass) return null;
+
+                                    return (
+                                        <button key={`${projection.provider}_${projection.class}_${projection.id}_${index}`} className="shelf--loose glass-hover-row" onClick={() => handleDrillDown(raw)}>
+                                            <IndraIcon name={projection.theme.icon} size="16px" style={{ opacity: 0.6, color: projection.theme.color }} />
+                                            <div className="stack--tight fill">
+                                                <span style={{ fontSize: '13px', color: 'white' }}>{projection.title}</span>
+                                                <span style={{ fontSize: '8px', opacity: 0.4, fontFamily: 'var(--font-mono)' }}>{projection.subtitle}</span>
+                                            </div>
+                                            {projection.capabilities.raw.includes('HIERARCHY_TREE') && <IndraIcon name="CHEVRON_RIGHT" size="12px" style={{ opacity: 0.2 }} />}
+                                        </button>
+                                    );
                                 })
-                                .map((projection, index) => (
-                                    <button key={`${projection.provider}_${projection.class}_${projection.id}_${index}`} className="shelf--loose glass-hover-row" onClick={() => handleDrillDown(projection.raw)}>
-                                        <IndraIcon name={projection.theme.icon} size="16px" style={{ opacity: 0.6, color: projection.theme.color }} />
-                                        <div className="stack--tight fill">
-                                            <span style={{ fontSize: '13px', color: 'white' }}>{projection.title}</span>
-                                            <span style={{ fontSize: '8px', opacity: 0.4, fontFamily: 'var(--font-mono)' }}>{projection.subtitle}</span>
-                                        </div>
-                                        {projection.capabilities.raw.includes('HIERARCHY_TREE') && <IndraIcon name="CHEVRON_RIGHT" size="12px" style={{ opacity: 0.2 }} />}
-                                    </button>
-                                ))
                         )}
                     </div>
                 </div>

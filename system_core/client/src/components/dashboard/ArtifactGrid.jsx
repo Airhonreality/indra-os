@@ -12,7 +12,7 @@ import { EmptyState } from '../utilities/primitives';
  * ArtifactGrid: Implementación del Modelo Tríptico (20/50/30) de Mendoza-Collazos.
  * 🧬 AXIOMA DE RESONANCIA: El Grid inyecta la conciencia sistémica a través de data-attributes.
  */
-export function ArtifactGrid({ pins }) {
+export function ArtifactGrid({ pins, onResonate }) {
     const t = useLexicon();
     const [focusedEngineId, setFocusedEngineId] = useState(null);
     const pendingSyncs = useAppState(s => s.pendingSyncs);
@@ -73,15 +73,25 @@ export function ArtifactGrid({ pins }) {
                         <span style={{ fontSize: '9px', opacity: 0.2, fontFamily: 'var(--font-mono)' }}>[ {potency.length} ]</span>
                     </div>
                     
-                    {/* Fractal Invocation: SIEMBRA */}
-                    <button 
-                        className="btn btn--xs btn-fractal-invocation" 
-                        onClick={() => useAppState.getState().createArtifact('DATA_SCHEMA', 'NUEVO_ESQUEMA')}
-                        style={{ padding: '2px 8px', border: '1px solid var(--color-border)', borderRadius: '2px' }}
-                    >
-                        <IndraIcon name="PLUS" size="10px" />
-                        <span style={{ fontSize: '8px', marginLeft: '4px' }}>{t('action_seed_potency').toUpperCase().split(' ')[0]}</span>
-                    </button>
+                     {/* Fractal Invocation: SIEMBRA & RESONANCIA */}
+                    <div className="shelf--tight">
+                        <button 
+                            className="btn btn--xs btn-fractal-invocation" 
+                            onClick={onResonate}
+                            title={t('action_link_reality')}
+                            style={{ padding: '2px 6px', border: '1px solid var(--color-border)', borderRadius: '2px', color: 'var(--color-accent)' }}
+                        >
+                            <IndraIcon name="LINK" size="10px" />
+                        </button>
+                        <button 
+                            className="btn btn--xs btn-fractal-invocation" 
+                            onClick={() => useAppState.getState().createArtifact('DATA_SCHEMA', 'NUEVO_ESQUEMA')}
+                            style={{ padding: '2px 8px', border: '1px solid var(--color-border)', borderRadius: '2px' }}
+                        >
+                            <IndraIcon name="PLUS" size="10px" />
+                            <span style={{ fontSize: '8px', marginLeft: '4px' }}>{t('action_seed_potency').toUpperCase().split(' ')[0]}</span>
+                        </button>
+                    </div>
                 </header>
                 <div className="stack--1 mobile-horizontal-shelf" style={{ flex: 1 }}>
                     {potency.map(atom => (

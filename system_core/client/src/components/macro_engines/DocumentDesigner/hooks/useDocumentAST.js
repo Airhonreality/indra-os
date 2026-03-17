@@ -10,36 +10,75 @@ import { useState, useCallback } from 'react';
 // Genera un ID único para nodos duplicados
 const genId = () => `block_${Math.random().toString(36).substr(2, 9)}`;
 
-export function useDocumentAST(initialBlocks = []) {
+const DEFAULT_VARIABLES = {
+    colors: [
+        { id: 'var_col_1', name: 'ACCENT_CORE', value: '#00f5d4' },
+        { id: 'var_col_2', name: 'INK_PRIMARY', value: '#1a1a1a' },
+        { id: 'var_col_3', name: 'SURFACE_WHITE', value: '#ffffff' }
+    ],
+    typography: {
+        h1: { fontSize: '32pt', lineHeight: '1.2', letterSpacing: '-0.02em', fontWeight: '800', fontFamily: 'Inter' },
+        h2: { fontSize: '24pt', lineHeight: '1.2', letterSpacing: '-0.01em', fontWeight: '700', fontFamily: 'Inter' },
+        paragraph: { fontSize: '11pt', lineHeight: '1.6', letterSpacing: '0', fontWeight: '400', fontFamily: 'Inter' },
+        list: { fontSize: '11pt', lineHeight: '1.6', letterSpacing: '0', fontWeight: '400', fontFamily: 'Inter' }
+    },
+    spacing: {
+        gap_sm: '4mm',
+        gap_md: '10mm',
+        pad_page: '20mm'
+    }
+};
+
+export function useDocumentAST(initialBlocks = [], initialVariables = null) {
     const [blocks, setBlocks] = useState(initialBlocks);
-    const [history, setHistory] = useState([JSON.parse(JSON.stringify(initialBlocks))]);
+    const [docVariables, setDocVariables] = useState(initialVariables || DEFAULT_VARIABLES);
+    
+    // El historial ahora guarda el estado completo (BLOCKS + VARIABLES)
+    const [history, setHistory] = useState([{ 
+        blocks: JSON.parse(JSON.stringify(initialBlocks)),
+        variables: JSON.parse(JSON.stringify(initialVariables || DEFAULT_VARIABLES))
+    }]);
     const [pointer, setPointer] = useState(0);
 
-    const pushToHistory = (newBlocks) => {
-        const cleanBlocks = JSON.parse(JSON.stringify(newBlocks));
-        const newHistory = history.slice(0, pointer + 1);
-        newHistory.push(cleanBlocks);
+    // ── MOTOR DE HISTORIAL AUTOMÁTICO (Reactivo) ─────────────────────────────
+    // Este efecto captura el estado estable y lo inyecta en el historial
+    // evitando los cierres (closures) obsoletos de los handlers de mutación.
+    const commitToHistory = useCallback((newBlocks, newVars) => {
+        setHistory(prev => {
+            const nextHistory = prev.slice(0, pointer + 1);
+            const entry = {
+                blocks: JSON.parse(JSON.stringify(newBlocks)),
+                variables: JSON.parse(JSON.stringify(newVars))
+            };
+            
+            // Solo añadir si es diferente al último (para evitar bucles)
+            const last = nextHistory[nextHistory.length - 1];
+            if (last && JSON.stringify(last) === JSON.stringify(entry)) return prev;
 
-        // Limit history to 50 steps
-        if (newHistory.length > 50) newHistory.shift();
-
-        setHistory(newHistory);
-        setPointer(newHistory.length - 1);
-    };
+            nextHistory.push(entry);
+            if (nextHistory.length > 50) nextHistory.shift();
+            return nextHistory;
+        });
+        setPointer(prev => Math.min(pointer + 1, 49));
+    }, [pointer]);
 
     const undo = useCallback(() => {
         if (pointer > 0) {
             const prevPointer = pointer - 1;
+            const state = JSON.parse(JSON.stringify(history[prevPointer]));
+            setBlocks(state.blocks);
+            setDocVariables(state.variables);
             setPointer(prevPointer);
-            setBlocks(JSON.parse(JSON.stringify(history[prevPointer])));
         }
     }, [history, pointer]);
 
     const redo = useCallback(() => {
         if (pointer < history.length - 1) {
             const nextPointer = pointer + 1;
+            const state = JSON.parse(JSON.stringify(history[nextPointer]));
+            setBlocks(state.blocks);
+            setDocVariables(state.variables);
             setPointer(nextPointer);
-            setBlocks(JSON.parse(JSON.stringify(history[nextPointer])));
         }
     }, [history, pointer]);
 
@@ -116,20 +155,20 @@ export function useDocumentAST(initialBlocks = []) {
                     newTree = [...prev, newNode];
                 }
             }
-            pushToHistory(newTree);
+            commitToHistory(newTree, docVariables);
             return newTree;
         });
 
         return newNode.id;
-    }, [history, pointer]);
+    }, [docVariables, commitToHistory]);
 
     const updateNode = useCallback((id, newData) => {
         setBlocks(prev => {
             const newTree = updateNodeInTree(prev, id, newData);
-            pushToHistory(newTree);
+            commitToHistory(newTree, docVariables);
             return newTree;
         });
-    }, [history, pointer]);
+    }, [docVariables, commitToHistory]);
 
     const moveNode = useCallback((id, direction) => {
         setBlocks(prev => {
@@ -150,10 +189,10 @@ export function useDocumentAST(initialBlocks = []) {
                 });
             };
             const newTree = findAndMove(prev);
-            pushToHistory(newTree);
+            commitToHistory(newTree, docVariables);
             return newTree;
         });
-    }, [history, pointer]);
+    }, [docVariables, commitToHistory]);
 
     const removeNode = useCallback((id) => {
         if (id === 'root') {
@@ -162,10 +201,10 @@ export function useDocumentAST(initialBlocks = []) {
         }
         setBlocks(prev => {
             const newTree = removeNodeFromTree(prev, id);
-            pushToHistory(newTree);
+            commitToHistory(newTree, docVariables);
             return newTree;
         });
-    }, [history, pointer]);
+    }, [docVariables, commitToHistory]);
 
     /**
      * duplicateNode (ADR_018 §A3)
@@ -208,10 +247,10 @@ export function useDocumentAST(initialBlocks = []) {
             if (!original) return prev;
             const clone = cloneNodeDeep(original);
             const newTree = insertAfterInTree(prev, id, clone);
-            pushToHistory(newTree);
+            commitToHistory(newTree, docVariables);
             return newTree;
         });
-    }, [history, pointer]);
+    }, [docVariables, commitToHistory]);
 
     // Mover nodo un nivel hacia ADENTRO (al hermano anterior si es contenedor)
     const indentNode = useCallback((id) => {
@@ -239,12 +278,12 @@ export function useDocumentAST(initialBlocks = []) {
                 const newTree = updateNodeInTree(cleanTree, prevSibling.id, {
                     children: [...(prevSibling.children || []), nodeToIndent]
                 });
-                pushToHistory(newTree);
+                commitToHistory(newTree, docVariables);
                 return newTree;
             }
             return prev;
         });
-    }, [history, pointer]);
+    }, [docVariables, commitToHistory]);
 
     const outdentNode = useCallback((id) => {
         setBlocks(prev => {
@@ -282,15 +321,37 @@ export function useDocumentAST(initialBlocks = []) {
                     newTree = [...cleanTree];
                     newTree.splice(parentIndex + 1, 0, nodeToMove);
                 }
-                pushToHistory(newTree);
+                commitToHistory(newTree, docVariables);
                 return newTree;
             }
             return prev;
         });
-    }, [history, pointer]);
+    }, [docVariables, commitToHistory]);
+
+    // ── GESTIÓN DE VARIABLES GLOBALES DE DISEÑO ────────────────────────────────
+    const updateVariable = useCallback((category, path, value) => {
+        setDocVariables(prev => {
+            const next = JSON.parse(JSON.stringify(prev));
+            
+            // Lógica de actualización profunda
+            if (category === 'typography') {
+                const [preset, param] = path.split('.');
+                if (next.typography[preset]) next.typography[preset][param] = value;
+            } else if (category === 'colors') {
+                const color = next.colors.find(c => c.id === path);
+                if (color) color.value = value;
+            } else {
+                next[category][path] = value;
+            }
+
+            commitToHistory(blocks, next);
+            return next;
+        });
+    }, [blocks, commitToHistory]);
 
     return {
         blocks,
+        docVariables,
         setBlocks,
         findNode: (id) => findNode(blocks, id),
         addNode,
@@ -300,6 +361,7 @@ export function useDocumentAST(initialBlocks = []) {
         outdentNode,
         removeNode,
         duplicateNode,
+        updateVariable,
         undo,
         redo,
         canUndo: pointer > 0,
@@ -317,7 +379,7 @@ function getDefaultProps(type) {
                 padding: '20mm',
                 direction: 'column',
                 gap: '10px',
-                color: '#1a1a1a',
+                color: '#000000',
                 overflow: 'visible'
             };
         case 'FRAME':
@@ -333,7 +395,7 @@ function getDefaultProps(type) {
             return {
                 content: 'AXIOMATIC_TEXT_BLOCK...',
                 fontSize: '12pt',
-                color: '#1a1a1a',
+                color: '#000000',
                 fontFamily: 'Inter, sans-serif'
             };
         case 'IMAGE':

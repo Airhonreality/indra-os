@@ -93,7 +93,7 @@ export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
                             >
                                 <div className="shelf--tight">
                                     <IndraIcon name={mutedFields.includes(f.id) ? 'CLOSE' : 'CHECK'} size="10px" color={mutedFields.includes(f.id) ? 'var(--color-danger)' : 'var(--color-accent)'} />
-                                    <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)' }}>{f.id.toUpperCase()}</span>
+                                    <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)' }}>{(f.label || f.handle?.label || f.id).toUpperCase()}</span>
                                 </div>
                                 <span style={{ fontSize: '7px', opacity: 0.4 }}>{f.type}</span>
                             </div>
@@ -177,7 +177,7 @@ export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
                     height: 2px;
                     border-radius: 2px;
                 }
-                input[type='range']::-webkit-scrollbar-thumb {
+                input[type='range']::-webkit-slider-thumb {
                     -webkit-appearance: none;
                     width: 12px;
                     height: 12px;

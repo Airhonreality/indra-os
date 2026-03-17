@@ -17,7 +17,7 @@ import { EntityInspectorSection } from './EntityInspectorSection';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 
 export function PropertiesInspector() {
-    const { findNode, updateNode, duplicateNode, removeNode } = useAST();
+    const { findNode, updateNode, duplicateNode, removeNode, docVariables } = useAST();
     const { selectedId } = useSelection();
 
     const selectedNode = selectedId ? findNode(selectedId) : null;
@@ -40,8 +40,26 @@ export function PropertiesInspector() {
         });
     };
 
+    // Función para resolver el valor real (Axioma de Resonancia)
+    const resolveValue = (val) => {
+        if (typeof val === 'string' && val.startsWith('@var:')) {
+            const [_, category, path] = val.split(':');
+            if (category === 'typography') {
+                const [preset, param] = path.split('.');
+                return docVariables.typography[preset]?.[param];
+            }
+            if (category === 'colors') {
+                return docVariables.colors.find(c => c.id === path)?.value;
+            }
+            if (category === 'spacing') {
+                return docVariables.spacing[path];
+            }
+        }
+        return val;
+    };
+
     return (
-        <div className="properties-inspector fill stack--none overflow-hidden">
+        <div className="properties-inspector fill stack overflow-hidden">
             <header className="inspector-header shelf--tight" style={{ 
                 padding: '6px 8px', 
                 borderBottom: '1px solid var(--color-border)',
@@ -87,17 +105,47 @@ export function PropertiesInspector() {
                 {blockManifest?.sections.map(section => (
                     <EntityInspectorSection 
                         key={section.id}
-                        section={section}
+                        sectionId={section.id}
+                        name={section.name}
                         fields={section.fields}
                         values={selectedNode.props}
                         onChange={handleUpdateField}
-                        renderField={(field) => (
-                            <FieldRenderer 
-                                field={field} 
-                                value={selectedNode.props[field.id]} 
-                                onChange={(val) => handleUpdateField(field.id, val)} 
-                            />
-                        )}
+                        renderField={(field) => {
+                            const rawValue = selectedNode.props[field.id];
+                            const isLinked = typeof rawValue === 'string' && rawValue.startsWith('@var:');
+                            const resolvedValue = resolveValue(rawValue);
+
+                            return (
+                                <div className="shelf--tight fill">
+                                    <div className="fill stack--none">
+                                        <FieldRenderer 
+                                            field={field} 
+                                            value={resolvedValue} 
+                                            isLinked={isLinked}
+                                            onChange={(val) => handleUpdateField(field.id, val)} 
+                                        />
+                                    </div>
+                                    <button 
+                                        className={`btn btn--xs ${isLinked ? 'btn--accent' : 'btn--ghost'}`}
+                                        style={{ padding: '2px', opacity: isLinked ? 1 : 0.2 }}
+                                        onClick={() => {
+                                            if (isLinked) {
+                                                // Desvincular: copiar valor resuelto a local
+                                                handleUpdateField(field.id, resolvedValue);
+                                            } else {
+                                                // Vincular (Lógica automática por tipo de campo)
+                                                if (field.id === 'color') handleUpdateField(field.id, '@var:colors.var_col_1');
+                                                if (field.id === 'fontSize') handleUpdateField(field.id, `@var:typography.${selectedNode.props.textPreset || 'paragraph'}.fontSize`);
+                                                // etc...
+                                            }
+                                        }}
+                                        title={isLinked ? 'UNLINK_FROM_GLOBAL' : 'LINK_TO_DESIGN_SYSTEM'}
+                                    >
+                                        <IndraIcon name="LINK" size="8px" />
+                                    </button>
+                                </div>
+                            );
+                        }}
                     />
                 ))}
             </main>

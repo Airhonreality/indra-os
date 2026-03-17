@@ -19,7 +19,7 @@
 # ================================
 
 $ErrorActionPreference = "Stop"
-$backendPath = ".\OrbitalCore_Codex_v1"
+$backendPath = ".\system_core\core"
 
 # ================================
 # FUNCIONES DE UI

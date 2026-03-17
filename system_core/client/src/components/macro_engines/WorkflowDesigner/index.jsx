@@ -18,6 +18,7 @@ import { IndraEngineHood } from '../../utilities/IndraEngineHood';
 import { useLexicon } from '../../../services/lexicon';
 import { useWorkspace } from '../../../context/WorkspaceContext';
 import { DataProjector } from '../../../services/DataProjector';
+import { IndraIcon } from '../../utilities/IndraIcons.jsx';
 import './WorkflowDesigner.css';
 
 export function WorkflowDesigner({ atom, bridge }) {

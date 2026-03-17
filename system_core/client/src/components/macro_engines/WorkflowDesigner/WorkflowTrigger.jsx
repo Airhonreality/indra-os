@@ -26,26 +26,26 @@ export function WorkflowTrigger() {
 
             <div className="panel-body stack">
                 <div
-                    className={`trigger-card ${workflow.trigger?.source ? 'active' : 'empty'}`}
+                    className={`trigger-card ${workflow.payload?.trigger?.source ? 'active' : 'empty'}`}
                     onClick={() => setShowSelector(true)}
                 >
                     <IndraIcon name="SYNC" className="pulse-icon" />
                     <div className="info">
-                        <label>{workflow.trigger?.label || 'VINCULAR_SCHEMA'}</label>
-                        <small>{workflow.trigger?.source ? 'Ejecutar al enviar formulario' : 'Click para seleccionar disparador'}</small>
+                        <label>{workflow.payload?.trigger?.label || 'VINCULAR_SCHEMA'}</label>
+                        <small>{workflow.payload?.trigger?.source ? 'Ejecutar al enviar formulario' : 'Click para seleccionar disparador'}</small>
                     </div>
                 </div>
 
-                {workflow.trigger?.source && (
+                {workflow.payload?.trigger?.source && (
                     <div className="trigger-context-preview glass stack--tight">
                         <span className="util-label">INPUT_CONTEXT:</span>
-                        {workflow.trigger.source.payload?.fields?.slice(0, 5).map(f => (
+                        {workflow.payload.trigger.source.payload?.fields?.slice(0, 5).map(f => (
                             <div key={f.id} className="shelf--tight" style={{ fontSize: '10px', opacity: 0.6 }}>
                                 <IndraIcon name="EDIT" size="10px" />
                                 <span>{f.label}</span>
                             </div>
                         ))}
-                        {workflow.trigger.source.payload?.fields?.length > 5 && (
+                        {workflow.payload.trigger.source.payload?.fields?.length > 5 && (
                             <span style={{ fontSize: '10px', opacity: 0.3 }}>...</span>
                         )}
                     </div>

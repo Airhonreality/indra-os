@@ -11,7 +11,7 @@ export function WorkflowInspector() {
     const [showSlotSelector, setShowSlotSelector] = useState(false);
     const [activeParam, setActiveParam] = useState(null);
 
-    const station = workflow.stations.find(s => s.id === selectedStationId);
+    const station = (workflow.payload?.stations || []).find(s => s.id === selectedStationId);
 
     if (!station) {
         return (
@@ -35,14 +35,14 @@ export function WorkflowInspector() {
     // Construir contextStack para el SlotSelector
     const buildContextStack = () => {
         const stack = { sources: {}, ops: {} };
-        if (workflow.trigger?.source) {
-            stack.sources[workflow.trigger.source.handle?.alias || 'trigger'] = {
-                fields: workflow.trigger.source.payload?.fields || []
+        if (workflow.payload?.trigger?.source) {
+            stack.sources[workflow.payload.trigger.source.handle?.alias || 'trigger'] = {
+                fields: workflow.payload.trigger.source.payload?.fields || []
             };
         }
 
-        const currentIndex = workflow.stations.findIndex(s => s.id === selectedStationId);
-        workflow.stations.slice(0, currentIndex).forEach(s => {
+        const currentIndex = (workflow.payload?.stations || []).findIndex(s => s.id === selectedStationId);
+        (workflow.payload?.stations || []).slice(0, currentIndex).forEach(s => {
             // Si es un protocolo, el output suele ser la entidad procesada
             stack.ops[s.config?.label || s.id] = {
                 type: 'ATOM',

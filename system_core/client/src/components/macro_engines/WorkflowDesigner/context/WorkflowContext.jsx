@@ -23,23 +23,29 @@ export function WorkflowProvider({ children, initialData = {} }) {
 
     const addStation = useCallback((type) => {
         const newStation = {
-            id: `step_${workflow.stations.length + 1}`,
+            id: `step_${(workflow.payload.stations || []).length + 1}`,
             type: type, // 'PROTOCOL', 'ROUTER', 'MAP'
             config: { label: `New ${type}` },
             mapping: {}
         };
         setWorkflow(prev => ({
             ...prev,
-            stations: [...prev.stations, newStation],
+            payload: {
+                ...prev.payload,
+                stations: [...prev.payload.stations, newStation],
+            },
             updated_at: new Date().toISOString()
         }));
-    }, [workflow.stations.length]);
+    }, [workflow.payload.stations]);
 
     const removeStation = useCallback((id) => {
         if (selectedStationId === id) setSelectedStationId(null);
         setWorkflow(prev => ({
             ...prev,
-            stations: prev.stations.filter(s => s.id !== id),
+            payload: {
+                ...prev.payload,
+                stations: prev.payload.stations.filter(s => s.id !== id),
+            },
             updated_at: new Date().toISOString()
         }));
     }, [selectedStationId]);
@@ -47,32 +53,41 @@ export function WorkflowProvider({ children, initialData = {} }) {
     const updateStation = useCallback((id, updates) => {
         setWorkflow(prev => ({
             ...prev,
-            stations: prev.stations.map(s => s.id === id ? { ...s, ...updates } : s),
+            payload: {
+                ...prev.payload,
+                stations: prev.payload.stations.map(s => s.id === id ? { ...s, ...updates } : s),
+            },
             updated_at: new Date().toISOString()
         }));
     }, []);
 
     const moveStation = useCallback((index, direction) => {
         const newIndex = direction === 'up' ? index - 1 : index + 1;
-        if (newIndex < 0 || newIndex >= workflow.stations.length) return;
+        if (newIndex < 0 || newIndex >= (workflow.payload.stations || []).length) return;
 
         setWorkflow(prev => {
-            const newStations = [...prev.stations];
+            const newStations = [...prev.payload.stations];
             const temp = newStations[index];
             newStations[index] = newStations[newIndex];
             newStations[newIndex] = temp;
             return {
                 ...prev,
-                stations: newStations,
+                payload: {
+                    ...prev.payload,
+                    stations: newStations,
+                },
                 updated_at: new Date().toISOString()
             };
         });
-    }, [workflow.stations]);
+    }, [workflow.payload.stations]);
 
     const updateTrigger = useCallback((trigger) => {
         setWorkflow(prev => ({
             ...prev,
-            trigger: { ...prev.trigger, ...trigger },
+            payload: {
+                ...prev.payload,
+                trigger: { ...prev.payload.trigger, ...trigger },
+            },
             updated_at: new Date().toISOString()
         }));
     }, []);

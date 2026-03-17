@@ -7,7 +7,7 @@ export function StationCard({ station, index, isSelected, isExecuting, onSelect,
     const projection = DataProjector.projectStation(station);
     const { moveStation, removeStation, workflow } = useWorkflow();
     const isFirst = index === 0;
-    const isLast = index === workflow.stations.length - 1;
+    const isLast = index === (workflow.payload?.stations?.length || 0) - 1;
 
     // Charming Cabling Check
     const isCabled = () => {

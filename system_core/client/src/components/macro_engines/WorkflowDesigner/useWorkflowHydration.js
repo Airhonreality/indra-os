@@ -21,9 +21,9 @@ export function useWorkflowHydration(workflow) {
         const verifyDependencies = async () => {
             // 1. Recolectar todas las dependencias (IDs de Schemas y Bridges)
             const depIds = new Set();
-            if (workflow.trigger?.source_id) depIds.add(workflow.trigger.source_id);
+            if (workflow.payload?.trigger?.source_id) depIds.add(workflow.payload.trigger.source_id);
 
-            workflow.stations.forEach(s => {
+            (workflow.payload?.stations || []).forEach(s => {
                 if (s.config?.bridge_id) depIds.add(s.config.bridge_id);
                 if (s.config?.schema_id) depIds.add(s.config.schema_id);
                 if (s.context_id) depIds.add(s.context_id);
@@ -55,7 +55,7 @@ export function useWorkflowHydration(workflow) {
         };
 
         if (workflow?.id) verifyDependencies();
-    }, [workflow.id, workflow.stations.length, coreUrl, sessionSecret]);
+    }, [workflow.id, (workflow.payload?.stations?.length || 0), coreUrl, sessionSecret]);
 
     return { integrityMap, isLoading };
 }

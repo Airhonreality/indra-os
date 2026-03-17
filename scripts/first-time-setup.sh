@@ -148,7 +148,7 @@ PROJECT_NAME=${PROJECT_NAME:-INDRA-Core}
 print_info "Creando proyecto '$PROJECT_NAME' en Google Apps Script..."
 
 # Ir a la carpeta del backend
-cd "OrbitalCore_Codex_v1"
+cd "system_core/core"
 
 # Verificar si ya existe un proyecto
 if [ -f ".clasp.json" ]; then
@@ -285,7 +285,7 @@ print_success "Configuración del backend guardada"
 
 print_header "🎨 Paso 6: Configurar Frontend"
 
-cd "INDRA_FRONT DEV"
+cd "system_core/client"
 
 # Verificar si existe .env
 if [ -f ".env" ]; then

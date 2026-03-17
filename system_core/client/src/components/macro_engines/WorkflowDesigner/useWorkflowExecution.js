@@ -31,10 +31,10 @@ export function useWorkflowExecution(workflow) {
 
         try {
             // 1. Validar el trigger
-            addLog(`TRIGGER_AUTH: Validando origen [${workflow.trigger?.type}]`, 'OK');
+            addLog(`TRIGGER_AUTH: Validando origen [${workflow.payload?.trigger?.type}]`, 'OK');
 
             // 2. Iterar sobre las estaciones (Simulación de pasos)
-            for (const station of workflow.stations) {
+            for (const station of (workflow.payload?.stations || [])) {
                 setCurrentStepId(station.id);
                 addLog(`STATION_EXEC: Procesando [${station.config?.label || station.id}]`, 'INFO');
 

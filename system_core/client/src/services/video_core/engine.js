@@ -336,15 +336,20 @@ export class VideoEngine {
             return;
         }
 
-        // LEY DE SINCERIDAD: Avanzar la aguja basado en el hardware master-clock, no en supuestos.
+        // LEY DE SINCERIDAD: Avanzar la aguja basado en el hardware master-clock, compensando latencia.
+        const latenciaAudio = (this.audioCtx?.outputLatency || 0) * 1000;
         this.currentTimeMs += delta;
+
+        // El tiempo visual que solicitamos al decodificador debe estar adelantado 
+        // a la latencia de salida para que el impacto visual coincida con el auditivo.
+        const tiempoVisualBusqueda = this.currentTimeMs + latenciaAudio;
 
         if (this.currentTimeMs > maxTime) {
             this.currentTimeMs = maxTime;
         }
 
         this.onTimeUpdate(this.currentTimeMs);
-        this._requestFrameForTime(this.currentTimeMs);
+        this._requestFrameForTime(tiempoVisualBusqueda);
 
         // Programar siguiente ciclo sincronizado al monitor
         requestAnimationFrame(() => this._tick());
@@ -437,9 +442,10 @@ export class VideoEngine {
                 
                 this.pendingFrames.delete(bestFrameId);
                 
-                // Limpieza de slots antiguos (Prevención de Memory Leaks si una capa falla)
+                // Limpieza de slots antiguos (Blindaje Anti-Fugas VRAM)
+                // Usamos una ventana de 15 frames para evitar acumulación excesiva.
                 for (const oldId of this.pendingFrames.keys()) {
-                    if (oldId < bestFrameId - 100) {
+                    if (oldId < bestFrameId - 15) {
                         const oldSlot = this.pendingFrames.get(oldId);
                         oldSlot.received.forEach(r => r.frame.close());
                         this.pendingFrames.delete(oldId);

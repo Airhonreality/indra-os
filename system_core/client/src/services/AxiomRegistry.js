@@ -13,7 +13,7 @@ export const AxiomRegistry = {
     /**
      * Inicializa el registro con los tokens descubiertos en el DOM.
      */
-    init(discoveredTokens) {
+    inicializar(discoveredTokens) {
         this.tokens = { ...discoveredTokens };
         console.log("[RegistroAxioma] Inicializado con", Object.keys(this.tokens).length, "tokens.");
     },

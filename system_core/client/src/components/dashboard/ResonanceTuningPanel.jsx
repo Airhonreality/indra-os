@@ -18,20 +18,32 @@ import { executeDirective } from '../../services/directive_executor';
 export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
     const [mode, setMode] = useState(artifact.resonance_config?.mode || 'MIRROR'); // MIRROR | SOVEREIGN
     const [frequency, setFrequency] = useState(artifact.resonance_config?.frequency || 'LATENT'); // LOW | LATENT | VITAL
-    const [mutedFields, setMutedFields] = useState(artifact.resonance_config?.mutedFields || []);
+    const [mutedFields, setMutedFields] = useState(artifact.resonance_config?.mutedFields || artifact.resonance_config?.muted_fields || []);
+    const [fieldMappings, setFieldMappings] = useState({});
+    const [publishImmediately, setPublishImmediately] = useState(false);
+    const [inductionMonitor, setInductionMonitor] = useState({ step: 'READY', status: 'IDLE', message: null, error: null });
+    const [isInducing, setIsInducing] = useState(false);
+    const [currentTicketId, setCurrentTicketId] = useState(null);
     
     // ESTADOS DEL NEXO (Quantum Binding)
     const [targetSchema, setTargetSchema] = useState(null);
     const [isSelectingSchema, setIsSelectingSchema] = useState(false);
     const [schemaFields, setSchemaFields] = useState([]);
-    const [suggestedBridge, setSuggestedBridge] = useState(null);
-    const [isCreatingBridge, setIsCreatingBridge] = useState(false);
-
-    const [tuningArtifact, setTuningArtifact] = useState(null);
     const [previewData, setPreviewData] = useState([]);
     const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
-    const { pins, coreUrl, sessionSecret, lang } = useAppState();
+    const {
+        pins,
+        coreUrl,
+        sessionSecret,
+        lang,
+        activeWorkspaceId,
+        inductionTicketId,
+        inductionTicketSnapshot,
+        setInductionTicket,
+        refreshInductionTicket,
+        clearInductionTicket
+    } = useAppState();
     const t = useLexicon(lang);
 
     const fields = artifact.payload?.fields || [];
@@ -57,6 +69,42 @@ export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
         };
         fetchPreview();
     }, [artifact, coreUrl, sessionSecret]);
+
+    const hydrateSchemaFromId = async (schemaId) => {
+        if (!schemaId) return;
+        try {
+            const result = await executeDirective({
+                provider: 'system',
+                protocol: 'ATOM_READ',
+                context_id: schemaId
+            }, coreUrl, sessionSecret);
+
+            const schema = result.items?.[0];
+            if (schema) {
+                setTargetSchema(schema);
+                setSchemaFields(schema.payload?.fields || []);
+            }
+        } catch (err) {
+            console.warn('[Resonance] No se pudo hidratar schema inducido:', err?.message || err);
+        }
+    };
+
+    React.useEffect(() => {
+        const shouldReconnect = inductionTicketId && inductionTicketSnapshot?.source_artifact?.id === artifact.id;
+        if (!shouldReconnect) return;
+
+        setCurrentTicketId(inductionTicketId);
+        setInductionMonitor({
+            step: inductionTicketSnapshot.step || 'IN_PROGRESS',
+            status: inductionTicketSnapshot.status || 'IN_PROGRESS',
+            message: inductionTicketSnapshot.status === 'COMPLETED' ? 'Inducción reenganchada tras refresco.' : 'Proceso de inducción en seguimiento.',
+            error: inductionTicketSnapshot.errors?.[0] || null
+        });
+
+        if (inductionTicketSnapshot?.result?.schema_id) {
+            hydrateSchemaFromId(inductionTicketSnapshot.result.schema_id);
+        }
+    }, [artifact.id, inductionTicketId, inductionTicketSnapshot]);
 
     const toggleField = (id) => {
         setMutedFields(prev => 
@@ -91,120 +139,94 @@ export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
         }));
     };
 
-    /**
-     * TRADUCTOR DE SINTAXIS: Notion -> INDRA
-     * Convierte prop("Campo") a source.campo_alias para el LogicEngine.
-     */
-    const translateNotionFormula = (formula) => {
-        if (!formula) return null;
-        // Reemplaza prop("Cualquier Cosa") con source.cualquier_cosa
-        return formula.replace(/prop\("([^"]+)"\)/g, (match, fieldName) => {
-            const alias = fieldName.toLowerCase().replace(/\s+/g, '_');
-            return `source.${alias}`;
-        });
-    };
-
-    /**
-     * INDUCCIÓN INTELIGENTE / CARGA REALIDAD:
-     * El punto más alto de la sintonía. Crea automáticamente SCHEMAs y BRIDGEx
-     * basándose en la estructura y la LÓGICA (fórmulas) del origen.
-     */
     const handleAutoGenerateSchema = async () => {
-        const activeFields = fields.filter(f => !mutedFields.includes(f.id));
-        
-        // 1. Definir Estructura del SCHEMA
-        const suggestedPayload = {
-            fields: activeFields.map(f => ({
-                id: f.id.toLowerCase().replace(/\s+/g, '_'),
-                label: f.label || f.id,
-                type: (f.type === 'NUMBER') ? 'INTEGER' : 
-                      (f.type === 'BOOLEAN') ? 'BOOLEAN' : 
-                      (f.type === 'COMPUTED') ? 'COMPUTED' : 'STRING',
-                is_imported: true,
-                source_id: f.id,
-                // TRADUCCIÓN DE LÓGICA: Sincronizar gramáticas
-                formula_expression: translateNotionFormula(f.formula_expression)
-            })),
-            source_affinity: provider,
-            description: `Esquema inducido desde ${provider} (${artifact.handle?.label})`
-        };
-
-        const newSchemaLabel = `Esquema ${artifact.handle?.label || provider.toUpperCase()}`;
-
+        if (isInducing) return;
+        setIsInducing(true);
+        setInductionMonitor({ step: 'VALIDATING', status: 'IN_PROGRESS', message: 'Validando contrato de entrada...', error: null });
         try {
-            // CRISTALIZACIÓN DEL SCHEMA (Correción del Alambrado UQO)
-            const schemaResp = await executeDirective({
+            const inductionResult = await executeDirective({
                 provider: 'system',
-                protocol: 'ARTIFACT_CREATE',
+                protocol: 'INDUCTION_INDUCE_FULL_STACK',
+                workspace_id: activeWorkspaceId,
                 data: {
-                    class: 'DATA_SCHEMA',
-                    handle: { label: newSchemaLabel },
-                    payload: suggestedPayload
+                    source_artifact: artifact,
+                    muted_fields: mutedFields,
+                    publish_immediately: publishImmediately
                 }
             }, coreUrl, sessionSecret);
 
-            const createdSchema = schemaResp.items?.[0];
-            if (createdSchema && createdSchema.id) {
-                setTargetSchema(createdSchema);
-                setSchemaFields(suggestedPayload.fields);
-                
-                // Mapeo automático 1:1 inicial
-                const initialMappings = {};
-                activeFields.forEach(f => {
-                    initialMappings[f.id] = f.id.toLowerCase().replace(/\s+/g, '_');
-                });
-                setFieldMappings(initialMappings);
+            const ticketId = inductionResult.metadata?.ticket_id || null;
+            const ticket = inductionResult.metadata?.ticket || null;
+            if (ticketId) {
+                setCurrentTicketId(ticketId);
+                setInductionTicket(ticketId, ticket || { ticket_id: ticketId, status: 'IN_PROGRESS' });
+            }
 
-                // 2. INDUCCIÓN DE BRIDGE (Automatización de Lógica)
-                const hasFormulas = activeFields.some(f => f.formula_expression);
-                if (hasFormulas) {
-                    setSuggestedBridge({
-                        label: `Bridge ${artifact.handle?.label || provider}`,
-                        target_id: createdSchema.id,
-                        formulas: activeFields
-                            .filter(f => f.formula_expression)
-                            .map(f => ({
-                                field: f.id.toLowerCase().replace(/\s+/g, '_'),
-                                expression: translateNotionFormula(f.formula_expression)
-                            }))
-                    });
+            if (inductionResult.metadata?.status === 'OK') {
+                const schemaAtom = inductionResult.metadata?.schema_atom;
+                const bridgeAtom = inductionResult.metadata?.bridge_atom;
+                if (schemaAtom) {
+                    setTargetSchema(schemaAtom);
+                    setSchemaFields(schemaAtom.payload?.fields || []);
                 }
+
+                const mapping = bridgeAtom?.payload?.mappings?.[schemaAtom?.id] || {};
+                setFieldMappings(mapping);
+                setInductionMonitor({
+                    step: inductionResult.metadata?.step || 'COMPLETED',
+                    status: 'COMPLETED',
+                    message: 'Inducción industrial completada. Schema y Bridge generados.',
+                    error: null
+                });
+            } else {
+                setInductionMonitor({
+                    step: inductionResult.metadata?.step || 'FAILED',
+                    status: 'ERROR',
+                    message: null,
+                    error: inductionResult.metadata?.error || 'INDUCTION_FAILED'
+                });
             }
         } catch (error) {
-            console.error("Error en Inducción por Resonancia:", error);
+            console.error('[Resonance] Error en inducción industrial:', error);
+            setInductionMonitor({ step: 'FAILED', status: 'ERROR', message: null, error: error.message || 'INDUCTION_FAILED' });
+        } finally {
+            setIsInducing(false);
         }
     };
 
-    const handleCreateBridge = async () => {
-        setIsCreatingBridge(true);
-        try {
-            const bridgePayload = {
-                target_schema_id: suggestedBridge.target_id,
-                operators: suggestedBridge.formulas.map(f => ({
-                    type: 'COMPUTE',
-                    params: {
-                        formula: f.expression,
-                        target_field: f.field
-                    }
-                }))
-            };
+    const handleRefreshTicket = async () => {
+        const ticket = await refreshInductionTicket();
+        if (!ticket) return;
 
+        setCurrentTicketId(ticket.ticket_id);
+        setInductionMonitor({
+            step: ticket.step || 'IN_PROGRESS',
+            status: ticket.status || 'IN_PROGRESS',
+            message: ticket.status === 'COMPLETED' ? 'Ticket sincronizado correctamente.' : 'Estado de inducción actualizado desde Core.',
+            error: ticket.errors?.[0] || null
+        });
+
+        if (ticket.result?.schema_id) {
+            await hydrateSchemaFromId(ticket.result.schema_id);
+        }
+    };
+
+    const handleCancelTicket = async () => {
+        const ticketId = currentTicketId || inductionTicketId;
+        if (!ticketId) return;
+
+        try {
             await executeDirective({
                 provider: 'system',
-                protocol: 'ARTIFACT_CREATE',
-                data: {
-                    class: 'BRIDGE',
-                    handle: { label: suggestedBridge.label },
-                    payload: bridgePayload
-                }
+                protocol: 'INDUCTION_CANCEL',
+                data: { ticket_id: ticketId }
             }, coreUrl, sessionSecret);
 
-            setSuggestedBridge(null); // Cristalizado
-            // Podríamos disparar un toast o notificación aquí
+            setInductionMonitor({ step: 'CANCELLED', status: 'CANCELLED', message: 'Inducción cancelada por usuario.', error: null });
+            clearInductionTicket();
+            setCurrentTicketId(null);
         } catch (err) {
-            console.error("[Inducción] Error al crear Bridge:", err);
-        } finally {
-            setIsCreatingBridge(false);
+            console.error('[Resonance] No se pudo cancelar ticket:', err);
         }
     };
 
@@ -213,6 +235,7 @@ export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
             mode,
             frequency,
             muted_fields: mutedFields,
+            mutedFields: mutedFields,
             nexus_binding: targetSchema ? {
                 target_id: targetSchema.id,
                 target_label: targetSchema.handle?.label || targetSchema.id,
@@ -220,7 +243,15 @@ export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
             } : null
         };
 
-        onConfirm(resonance_config);
+        const resonantArtifact = {
+            ...artifact,
+            origin: 'RESONANT',
+            resonance_config,
+            resonance_ticket_id: currentTicketId || inductionTicketId || null,
+            linked_schema_id: targetSchema?.id || null
+        };
+
+        onConfirm(resonantArtifact);
     };
 
     return (
@@ -367,6 +398,37 @@ export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
                                 background: 'rgba(var(--rgb-accent), 0.02)' 
                             }}>
                                 <span style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: 'var(--space-4)', display: 'block', letterSpacing: '0.05em' }}>Vincular a Esquema INDRA (Schema)</span>
+
+                                <div className="stack--tight" style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-3)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
+                                    <div className="spread">
+                                        <span className="util-label">Monitor de Inducción</span>
+                                        <span className="util-label">{inductionMonitor.step}</span>
+                                    </div>
+                                    {inductionMonitor.message && <span style={{ fontSize: '10px', opacity: 0.85 }}>{inductionMonitor.message}</span>}
+                                    {inductionMonitor.error && <span style={{ fontSize: '10px', color: 'var(--color-danger)' }}>{inductionMonitor.error}</span>}
+                                    {(currentTicketId || inductionTicketId) && (
+                                        <span style={{ fontSize: '9px', opacity: 0.6 }}>Ticket: {currentTicketId || inductionTicketId}</span>
+                                    )}
+                                    <div className="shelf--tight" style={{ marginTop: 'var(--space-2)' }}>
+                                        <button className="btn btn--ghost" style={{ padding: '4px 8px', fontSize: '10px' }} onClick={handleRefreshTicket}>
+                                            RECONSULTAR ESTADO
+                                        </button>
+                                        {(currentTicketId || inductionTicketId) && (
+                                            <button className="btn btn--ghost" style={{ padding: '4px 8px', fontSize: '10px' }} onClick={handleCancelTicket}>
+                                                CANCELAR
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <label className="shelf--tight" style={{ marginBottom: 'var(--space-4)', gap: 'var(--space-2)', cursor: 'pointer' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={publishImmediately}
+                                        onChange={(e) => setPublishImmediately(e.target.checked)}
+                                    />
+                                    <span style={{ fontSize: '10px' }}>Publicar inmediatamente como AEE Form</span>
+                                </label>
                                 
                                 {!targetSchema ? (
                                     <div className="stack--tight" style={{ gap: 'var(--space-3)' }}>
@@ -374,10 +436,11 @@ export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
                                             className="btn btn--accent" 
                                             style={{ width: '100%', padding: 'var(--space-4)', border: 'none' }}
                                             onClick={handleAutoGenerateSchema}
+                                            disabled={isInducing}
                                         >
                                             <div className="shelf--tight">
                                                 <IndraIcon name="MAGIC" size="14px" />
-                                                <span style={{ fontWeight: 900, fontSize: '11px' }}>CONVERTIR DATOS EN ESQUEMA INDRA</span>
+                                                <span style={{ fontWeight: 900, fontSize: '11px' }}>{isInducing ? 'INDUCIENDO...' : 'INDUCCIÓN INDUSTRIAL'}</span>
                                             </div>
                                         </button>
                                         
@@ -407,31 +470,6 @@ export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
                                                 <IndraIcon name="CLOSE" size="14px" />
                                             </button>
                                         </div>
-                                        
-                                        {/* PROPUESTA DE BRIDGE SI HAY LÓGICA INDUCIDA */}
-                                        {suggestedBridge && (
-                                            <div className="stack--tight" style={{ 
-                                                marginTop: 'var(--space-4)', padding: 'var(--space-4)', 
-                                                background: 'var(--color-bg-void)', border: '1px dashed var(--color-accent)',
-                                                borderRadius: 'var(--radius-sm)'
-                                            }}>
-                                                <div className="shelf--tight" style={{ marginBottom: 'var(--space-2)' }}>
-                                                    <IndraIcon name="MAGIC" size="12px" color="var(--color-accent)" />
-                                                    <span style={{ fontSize: '10px', fontWeight: 'bold' }}>LÓGICA DETECTADA EN ORIGEN</span>
-                                                </div>
-                                                <p style={{ fontSize: '9px', opacity: 0.7, marginBottom: 'var(--space-3)' }}>
-                                                    Se han detectado {suggestedBridge.formulas.length} fórmulas. ¿Deseas crear un BRIDGE operativo para automatizar los cálculos?
-                                                </p>
-                                                <button 
-                                                    className="btn btn--accent" 
-                                                    style={{ width: '100%', fontSize: '10px', padding: 'var(--space-2)' }}
-                                                    onClick={handleCreateBridge}
-                                                    disabled={isCreatingBridge}
-                                                >
-                                                    {isCreatingBridge ? 'CRISTALIZANDO...' : 'SÍ, CREAR BRIDGE OPERATIVO'}
-                                                </button>
-                                            </div>
-                                        )}
                                         <span style={{ fontSize: '10px', marginTop: 'var(--space-3)', fontStyle: 'italic', opacity: 0.5 }}>
                                             {Object.keys(fieldMappings).length} campos mapeados en la columna izquierda.
                                         </span>

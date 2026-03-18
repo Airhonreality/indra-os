@@ -14,6 +14,7 @@ Para que un código visual sea aceptado en INDRA, **NO** debe contener los sigui
 2.  **PROHIBIDO: Estilos Inline para Estados.** Queda terminantemente prohibido usar `style={{ opacity: 0.5 }}` o similares para indicar bloqueo o relaciones. Se DEBE delegar al motor de CSS mediante `data-attributes`.
 3.  **PROHIBIDO: Hardcoding de Colores.** No se permiten valores Hex, RGB o nombres de colores CSS. Se deben usar estrictamente los tokens: `var(--color-...)` o `var(--indra-dynamic-...)`.
 4.  **PROHIBIDO: Datos Ficticios.** No se permite inventar campos como `_inputs` o `linkedTo`. El sistema debe mapear relaciones basadas en el contrato real: `payload.sources` y `_origin`.
+5.  **PROHIBIDO: Hardcoding de Tipos en Motores.** Ningún Macro-Motor (AEE, Designer) debe contener lógica de renderizado específica (`switch/case`) para tipos de datos (inputs, fechas, imágenes). Se DEBE delegar el renderizado a un **ComponentMapper** y a **Widgets especializados**.
 
 ---
 
@@ -23,7 +24,7 @@ Un componente de INDRA es una **Cáscara Visual Agnóstica**. Su única función
 
 *   **Identidad**: El componente recibe un objeto `atom` crudo.
 *   **Proyección**: Llama inmediatamente a `DataProjector.projectArtifact(atom)`.
-*   **Soberanía**: No toma decisiones operativas. Si hay un clic, emite un evento o llama a una función del `app_state.js`.
+*   **Soberanía (Aduana UI)**: Los widgets finales actúan como **Agentes de Aduana** (ADR-008). Deben validar activamente el dato (tamaño, formato, regex) en el cliente antes de permitir que la información viaje al Core. No se permite delegar validaciones básicas exclusivamente al backend.
 *   **Resonancia**: Debe ser sensible al atributo `data-resonance` inyectado por su orquestador. Si el orquestador lo marca como `active`, el componente se "apaga" por ley física de CSS.
 
 ---
@@ -35,8 +36,8 @@ Cualquier arquitectura de UI nueva debe cumplir con el esquema definido en:
 
 | Realidad | Atributo Requerido | Valor Esperado | Consecuencia en CSS |
 | :--- | :--- | :--- | :--- |
-| **Materia (Sync)** | `data-resonance` | `"active" \| "idle"` | Opacidad 0.5 + Bloqueo Total |
-| **Navegación (Hover)** | `data-highlighted` | `"true" \| "false"` | Opacidad 0.7 + Escala de Grises |
+| **Materia (Sync)** | `data-resonance` | `"active" | "idle"` | Opacidad 0.5 + Bloqueo Total |
+| **Navegación (Hover)** | `data-highlighted` | `"true" | "false"` | Opacidad 0.7 + Escala de Grises |
 
 ---
 
@@ -46,7 +47,9 @@ Antes de sugerir o implementar un cambio en la UI, todo agente DEBE realizar est
 
 1.  [ ] ¿Mi componente delega la opacidad de carga al CSS global?
 2.  [ ] ¿He eliminado todo rastro de estilos inline para estados lógicos?
-3.  [ ] ¿Estoy usando `sources` en lugar de campos inventados para las relaciones?
-4.  [ ] ¿He envuelto mis tarjetas en un orquestador que inyecte `data-resonance`?
+3.  [ ] ¿Mi motor utiliza un `ComponentMapper` en lugar de un `switch` de tipos?
+4.  [ ] ¿He implementado la "Aduana" (validación) en el widget de entrada?
+5.  [ ] ¿Estoy usando `sources` en lugar de campos inventados para las relaciones?
+6.  [ ] ¿He envuelto mis tarjetas en un orquestador que inyecte `data-resonance`?
 
 **Si cualquiera de estos puntos es "NO", la implementación es ARTESANAL y será rechazada.**

@@ -1,5 +1,6 @@
 import { VideoEngine } from '../../../../services/video_core/engine.js';
 import { useState, useEffect, useRef } from 'react';
+import { AxiomRegistry } from '../../../../services/AxiomRegistry';
 
 /**
  * Hook para conectar el motor agnóstico de Video a los componentes React.
@@ -100,10 +101,26 @@ export function useVideoEngine(projectData) {
                 }
             };
 
+            // ── ADUANA DE CRISTALIZACIÓN (Axioma de Determinismo Video) ──
+            // Antes de exportar, clonamos y cristalizamos todos los tokens en el AST de video
+            const proyectoCristalizado = JSON.parse(JSON.stringify(engineRef.current.project));
+            
+            proyectoCristalizado.timeline.lanes.forEach(lane => {
+                lane.clips.forEach(clip => {
+                    if (clip.props) {
+                        Object.keys(clip.props).forEach(key => {
+                            if (typeof clip.props[key] === 'string' && clip.props[key].includes('var(')) {
+                                clip.props[key] = AxiomRegistry.cristalizar(clip.props[key]);
+                            }
+                        });
+                    }
+                });
+            });
+
             exporter.postMessage({
                 type: 'START_EXPORT',
-                project: engineRef.current.project,
-                settings: engineRef.current.project.settings
+                project: proyectoCristalizado,
+                settings: proyectoCristalizado.settings
             });
         });
     };

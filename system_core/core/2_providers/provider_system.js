@@ -22,7 +22,8 @@ function CONF_SYSTEM() {
       'SYSTEM_PIN', 'SYSTEM_UNPIN', 'SYSTEM_PINS_READ', 'SYSTEM_WORKSPACE_REPAIR',
       'TABULAR_STREAM', 'FORMULA_EVAL', 'SCHEMA_SUBMIT', 'SCHEMA_FIELD_OPTIONS',
       'ACCOUNT_RESOLVE', 'SYSTEM_AUDIT', 'REVISIONS_LIST', 'ATOM_ROLLBACK',
-      'GETMCEPMANIFEST', 'INTELLIGENCE_CHAT'
+      'GETMCEPMANIFEST', 'INTELLIGENCE_CHAT',
+      'INDUCTION_START', 'INDUCTION_INDUCE_FULL_STACK', 'INDUCTION_STATUS', 'INDUCTION_CANCEL', 'INDUCTION_DRIFT_CHECK'
     ],
     implements: {
       ATOM_READ: 'handleSystem',
@@ -44,6 +45,11 @@ function CONF_SYSTEM() {
       ATOM_ROLLBACK: 'handleSystem',
       GETMCEPMANIFEST: 'handleSystem',
       INTELLIGENCE_CHAT: 'handleSystem',
+      INDUCTION_START: 'handleSystem',
+      INDUCTION_INDUCE_FULL_STACK: 'handleSystem',
+      INDUCTION_STATUS: 'handleSystem',
+      INDUCTION_CANCEL: 'handleSystem',
+      INDUCTION_DRIFT_CHECK: 'handleSystem',
     },
 
     capabilities: {
@@ -58,7 +64,12 @@ function CONF_SYSTEM() {
       SYSTEM_WORKSPACE_REPAIR: { sync: 'BLOCKING', purge: 'ALL' },
       TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE' },
       GETMCEPMANIFEST: { sync: 'BLOCKING', exposure: 'public' },
-      INTELLIGENCE_CHAT: { sync: 'BLOCKING', exposure: 'public' }
+      INTELLIGENCE_CHAT: { sync: 'BLOCKING', exposure: 'public' },
+      INDUCTION_START: { sync: 'BLOCKING', purge: 'ALL' },
+      INDUCTION_INDUCE_FULL_STACK: { sync: 'BLOCKING', purge: 'ALL' },
+      INDUCTION_STATUS: { sync: 'BLOCKING', purge: 'NONE' },
+      INDUCTION_CANCEL: { sync: 'BLOCKING', purge: 'NONE' },
+      INDUCTION_DRIFT_CHECK: { sync: 'BLOCKING', purge: 'NONE' }
     },
 
     protocol_meta: {
@@ -95,6 +106,38 @@ function CONF_SYSTEM() {
       ATOM_READ: {
         desc: "Lee la metadata y contenido de un átomo/archivo específico del sistema.",
         inputs: { context_id: { type: 'string', required: true } }
+      },
+      INDUCTION_START: {
+        desc: "Alias canónico para iniciar inducción industrial y devolver ticket.",
+        inputs: {
+          workspace_id: { type: 'string', required: false },
+          data: { type: 'object', required: true, desc: '{ source_artifact, muted_fields, publish_immediately }' }
+        }
+      },
+      INDUCTION_INDUCE_FULL_STACK: {
+        desc: "Ejecuta la inducción industrial de schema+bridge desde un artefacto externo y devuelve ticket de trazabilidad.",
+        inputs: {
+          workspace_id: { type: 'string', required: false },
+          data: { type: 'object', required: true, desc: '{ source_artifact, muted_fields, publish_immediately }' }
+        }
+      },
+      INDUCTION_STATUS: {
+        desc: "Consulta el estado actual de un ticket de inducción.",
+        inputs: {
+          query: { type: 'object', required: true, desc: '{ ticket_id }' }
+        }
+      },
+      INDUCTION_CANCEL: {
+        desc: "Cancela una inducción en seguimiento y marca su ticket como cancelado.",
+        inputs: {
+          data: { type: 'object', required: true, desc: '{ ticket_id }' }
+        }
+      },
+      INDUCTION_DRIFT_CHECK: {
+        desc: "Compara estructura actual del origen versus baseline guardada en DATA_SCHEMA inducido.",
+        inputs: {
+          context_id: { type: 'string', required: true, desc: 'ID del DATA_SCHEMA inducido' }
+        }
       }
     }
   });
@@ -135,6 +178,13 @@ function handleSystem(uqo) {
   // ─── HANDLER DE INTELIGENCIA / MCEP (provider_intelligence.js)
   if (protocol === 'GETMCEPMANIFEST') return _ai_handleDiscovery(uqo);
   if (protocol === 'INTELLIGENCE_CHAT') return _ai_handleChat(uqo);
+
+  // ─── HANDLER DE INDUCCIÓN INDUSTRIAL (induction_orchestrator.gs)
+  if (protocol === 'INDUCTION_START') return _system_induction_start(uqo);
+  if (protocol === 'INDUCTION_INDUCE_FULL_STACK') return _system_induction_start(uqo);
+  if (protocol === 'INDUCTION_STATUS') return _system_induction_status(uqo);
+  if (protocol === 'INDUCTION_CANCEL') return _system_induction_cancel(uqo);
+  if (protocol === 'INDUCTION_DRIFT_CHECK') return _system_induction_driftCheck(uqo);
 
 
   const err = createError('PROTOCOL_NOT_FOUND', `System no soporta: ${protocol}`);

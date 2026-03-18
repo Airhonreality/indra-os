@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { AxiomRegistry } from '../../../services/AxiomRegistry';
+import { AxiomRegistry } from '../../../../services/AxiomRegistry';
 
 export const HonestContext = React.createContext(null);
 
@@ -15,12 +15,12 @@ export function HonestProvider({ children, styleContext = {} }) {
     // Definimos los tokens honestos (estáticos) para este documento
     // Resolvemos desde el registro para evitar dependencia de la Shell
     const honestVariables = {
-        '--honest-bg': AxiomRegistry.resolve(styleContext.bgColor || '#FFFFFF'),
-        '--honest-text': AxiomRegistry.resolve(styleContext.textColor || '#000000'),
-        '--honest-accent': AxiomRegistry.resolve(styleContext.accentColor || '#00F5D4'),
-        '--honest-accent-dim': AxiomRegistry.resolve(styleContext.accentDim || 'rgba(0, 245, 212, 0.1)'),
-        '--honest-font-base': AxiomRegistry.resolve(styleContext.fontFamily || "'Inter', sans-serif"),
-        '--honest-font-mono': AxiomRegistry.resolve(styleContext.fontMono || "'JetBrains Mono', monospace"),
+        '--honest-bg': AxiomRegistry.resolver(styleContext.bgColor || '#FFFFFF'),
+        '--honest-text': AxiomRegistry.resolver(styleContext.textColor || '#000000'),
+        '--honest-accent': AxiomRegistry.resolver(styleContext.accentColor || '#00F5D4'),
+        '--honest-accent-dim': AxiomRegistry.resolver(styleContext.accentDim || 'rgba(0, 245, 212, 0.1)'),
+        '--honest-font-base': AxiomRegistry.resolver(styleContext.fontFamily || "'Inter', sans-serif"),
+        '--honest-font-mono': AxiomRegistry.resolver(styleContext.fontMono || "'JetBrains Mono', monospace"),
     };
 
     return (

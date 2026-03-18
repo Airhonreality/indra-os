@@ -1,31 +1,51 @@
 /**
  * =============================================================================
  * ARTEFACTO: DocumentDesigner/blocks/ImageBlock.jsx
- * RESPONSABILIDAD: Nodo multimedia.
+ * RESPONSABILIDAD: Nodo multimedia del sistema INDRA.
+ * AXIOMA: Determinismo visual ante cambios de marca.
  * =============================================================================
  */
 
 import React from 'react';
+import { useAxiomStyles } from '../hooks/useAxiomStyles';
+import { assertBlockContract } from '../contracts/assertBlockContract';
 
-export function ImageBlock({ props }) {
-    const style = {
-        width: props.width === 'fill' ? '100%' : props.width,
-        height: props.height === 'fill' ? '100%' : props.height,
-        objectFit: props.objectFit || 'cover',
-        borderRadius: props.borderRadius || 'var(--radius-sm)',
-        display: 'block'
+export function ImageBlock({ block }) {
+    // Fallo ruidoso inmediato si la identidad del bloque no es válida.
+    assertBlockContract('ImageBlock', block);
+
+    // HIDRATACIÓN SINCERA (The Figma Model)
+    const { propsHidratadas, tieneDeriva } = useAxiomStyles(block.props);
+    const p = propsHidratadas;
+
+    const estiloFinal = {
+        width: p.width === 'fill' ? '100%' : p.width,
+        height: p.height === 'fill' ? '100%' : p.height,
+        objectFit: p.objectFit || 'cover',
+        borderRadius: p.borderRadius || 'var(--radius-sm)',
+        display: 'block',
+        position: 'relative'
     };
 
-    if (!props.src) {
+    if (!p.src) {
         return (
-            <div style={{ ...style, background: 'var(--color-bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '8px', opacity: 0.3, fontFamily: 'var(--font-mono)' }}>IMAGE_NOT_DEFINED</span>
+            <div style={{ ...estiloFinal, background: 'var(--color-bg-elevated)', border: '1px dashed var(--color-border)', color: 'var(--color-text-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', opacity: 0.5 }}>SIN_IMAGEN_DEFINIDA</span>
             </div>
         );
     }
 
     return (
-        <img src={props.src} alt="document-node" style={style} />
+        <div style={{ position: 'relative', display: 'inline-block', width: estiloFinal.width }}>
+            {/* HUD de Deriva para multimedia */}
+            {tieneDeriva && (
+                <div 
+                    title="DERIVA_DE_REALIDAD: Esta imagen usa estilos desactualizados."
+                    style={{ position: 'absolute', top: 5, right: 5, width: 8, height: 8, borderRadius: '50%', background: 'var(--color-accent)', border: '2px solid white', zIndex: 10 }} 
+                />
+            )}
+            <img src={p.src} alt="indra-node" style={estiloFinal} />
+        </div>
     );
 }
 
@@ -33,26 +53,25 @@ ImageBlock.manifest = {
     displayName: 'MEDIA_ENGINE',
     sections: [
         {
-            name: 'SOURCE',
+            name: 'ORIGEN',
             fields: [
-                { id: 'src', label: 'SOURCE_URL', type: 'vault_artifact' }
+                { id: 'src', label: 'URL_RECURSO', type: 'vault_artifact' }
             ]
         },
         {
-            name: 'DIMENSIONS',
+            name: 'DIMENSIONES',
             fields: [
-                { id: 'width', label: 'WIDTH', type: 'unit' },
-                { id: 'height', label: 'HEIGHT', type: 'unit' },
-                { id: 'objectFit', label: 'FIT', type: 'select', options: ['cover', 'contain', 'fill'] }
+                { id: 'width', label: 'ANCHO', type: 'unit' },
+                { id: 'height', label: 'ALTO', type: 'unit' },
+                { id: 'objectFit', label: 'AJUSTE', type: 'select', options: ['cover', 'contain', 'fill'] }
             ]
         },
         {
-            name: 'STYLE',
+            name: 'ESTILO',
             fields: [
-                { id: 'borderRadius', label: 'RADIUS', type: 'unit' }
+                { id: 'borderRadius', label: 'RADIO_BORDE', type: 'unit' }
             ]
         }
     ]
 };
 export default ImageBlock;
-

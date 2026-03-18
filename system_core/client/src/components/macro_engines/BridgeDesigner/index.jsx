@@ -69,6 +69,27 @@ export function BridgeDesigner({ atom, bridge }) {
     const [isExecuting, setIsExecuting] = useState(false);
     const [testResult, setTestResult] = useState(null);
 
+    const slugify = (value) => String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\w\s-]/g, '')
+        .trim()
+        .replace(/[\s_-]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+
+    const buildNamespacedSourceAlias = (schema, fallbackId) => {
+        const provider = (schema?.raw?.provider || schema?.provider || 'system').split(':')[0];
+        const sourceId = slugify(schema?.id || fallbackId || 'source');
+        const sourceLabel = slugify(schema?.handle?.label || schema?.label || fallbackId || 'source');
+
+        if (provider === 'notion') {
+            return `${sourceId}_${sourceLabel}`;
+        }
+
+        return `${slugify(provider)}_${sourceId}_${sourceLabel}`;
+    };
+
     const runTest = async (triggerData) => {
         setIsExecuting(true);
         setTestResult(null);
@@ -222,8 +243,8 @@ export function BridgeDesigner({ atom, bridge }) {
         (localAtom.payload?.sources || []).forEach(sid => {
             if (schemas[sid]) {
                 const config = localAtom.payload?.sourceConfigs?.[sid] || {};
-                const customAlias = config.alias || schemas[sid].handle?.label || schemas[sid].label || sid;
-                const alias = customAlias.toLowerCase().replace(/\s+/g, '_');
+                const customAlias = config.alias || buildNamespacedSourceAlias(schemas[sid], sid);
+                const alias = slugify(customAlias);
                 const activeFields = config.activeFields;
                 const fields = activeFields ? schemas[sid].fields?.filter(f => activeFields.includes(f.id)) : schemas[sid].fields;
                 
@@ -254,9 +275,23 @@ export function BridgeDesigner({ atom, bridge }) {
         const currentList = localAtom.payload?.[key] || [];
         if (currentList.includes(id)) return;
 
+        const nextPayload = { ...localAtom.payload, [key]: [...currentList, id] };
+
+        if (key === 'sources') {
+            const sourceSchema = schemas[id] || null;
+            const defaultAlias = buildNamespacedSourceAlias(sourceSchema, id);
+            nextPayload.sourceConfigs = {
+                ...(localAtom.payload?.sourceConfigs || {}),
+                [id]: {
+                    ...(localAtom.payload?.sourceConfigs?.[id] || {}),
+                    alias: localAtom.payload?.sourceConfigs?.[id]?.alias || defaultAlias
+                }
+            };
+        }
+
         pushToHistory({
             ...localAtom,
-            payload: { ...localAtom.payload, [key]: [...currentList, id] }
+            payload: nextPayload
         });
         setShowSelector(null);
     };

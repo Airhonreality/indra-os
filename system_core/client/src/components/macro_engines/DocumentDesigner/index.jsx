@@ -18,7 +18,6 @@ import { NavigatorPanel } from './layout/NavigatorPanel';
 import { PropertiesInspector } from './inspector/PropertiesInspector';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
-import { IndraEngineHood } from '../../utilities/IndraEngineHood';
 import { DataProjector } from '../../../services/DataProjector';
 import { useWorkspace } from '../../../context/WorkspaceContext';
 import { useLexicon } from '../../../services/lexicon';
@@ -27,10 +26,10 @@ import { Crystallizer } from './Crystallizer';
 import { TokenDiscovery } from '../../../services/TokenDiscovery';
 import { AxiomRegistry } from '../../../services/AxiomRegistry';
 
-const PAGE_PRESETS = {
-    A4: { width: '210mm', height: '297mm', label: 'ISO A4' },
-    LETTER: { width: '215.9mm', height: '279.4mm', label: 'US LETTER' },
-    SQUARE: { width: '200mm', height: '200mm', label: 'SQUARE' }
+const MEDIA_PRESETS = {
+    PRINT: { canvasBg: 'var(--color-bg-void)' },
+    SCREEN: { canvasBg: 'linear-gradient(180deg, #070716 0%, #0f1030 100%)' },
+    PRESENTATION: { canvasBg: 'linear-gradient(180deg, #050612 0%, #101a35 100%)' }
 };
 
 export function DocumentDesigner({ atom, bridge }) {
@@ -38,9 +37,10 @@ export function DocumentDesigner({ atom, bridge }) {
     // No inventamos materia. Si el payload está vacío, el motor es vacío.
     const initialBlocks = atom.payload?.blocks || [];
     const initialVariables = atom.payload?.variables || null;
+    const initialLayoutMeta = atom.payload?.layoutMeta || null;
 
     return (
-        <ASTProvider initialBlocks={initialBlocks} initialVariables={initialVariables}>
+        <ASTProvider initialBlocks={initialBlocks} initialVariables={initialVariables} initialLayoutMeta={initialLayoutMeta}>
             <SelectionProvider>
                 <DocumentDesignerShell atom={atom} bridge={bridge} />
             </SelectionProvider>
@@ -51,7 +51,7 @@ export function DocumentDesigner({ atom, bridge }) {
 function DocumentDesignerShell({ atom, bridge }) {
     const t = useLexicon();
     const { updatePinIdentity } = useWorkspace();
-    const { blocks, docVariables, updateNode, undo, redo, canUndo, canRedo } = useAST();
+    const { blocks, docVariables, layoutMeta, updateLayoutMeta, setBlocks, undo, redo, canUndo, canRedo } = useAST();
     const { selectedId, selectNode } = useSelection();
 
     const projection = DataProjector.projectArtifact(atom);
@@ -66,16 +66,19 @@ function DocumentDesignerShell({ atom, bridge }) {
     useEffect(() => {
         async function initReality() {
             const discovered = await TokenDiscovery.discover();
-            AxiomRegistry.init(discovered);
+            AxiomRegistry.inicializar(discovered);
             setIsReady(true);
         }
         initReality();
     }, []);
-    const [zoom, setZoom] = useState(0.8);
     const [toast, setToast] = useState(null);
     const [previewMode, setPreviewMode] = useState(false);
     const [activeSlot, setActiveSlot] = useState('CORE');
     const [navigatorTab, setNavigatorTab] = useState('LAYERS');
+    const canvasScrollRef = useRef(null);
+    const documentRootRef = useRef(null);
+    const pageHostRefs = useRef(new Map());
+    const [runtimePaginationMap, setRuntimePaginationMap] = useState([]);
     
     // ── Lógica de Resize (Zona A vs Zona B) ───────────────────────────────────
     const [navHeight, setNavHeight] = useState(320); // Altura inicial del Navigator
@@ -133,10 +136,203 @@ function DocumentDesignerShell({ atom, bridge }) {
 
     // ── Ref Guard para Persistencia Atómica ──────────────────────────────────
     // Evita que handleManualSave capture copias obsoletas (stale closures)
-    const astRef = useRef({ blocks, docVariables });
+    const astRef = useRef({ blocks, docVariables, layoutMeta });
     useEffect(() => {
-        astRef.current = { blocks, docVariables };
-    }, [blocks, docVariables]);
+        astRef.current = { blocks, docVariables, layoutMeta };
+    }, [blocks, docVariables, layoutMeta]);
+
+    const zoom = layoutMeta?.canvas?.zoom ?? 0.8;
+
+    const setZoom = (next) => {
+        const nextZoom = typeof next === 'function' ? next(zoom) : next;
+        updateLayoutMeta({
+            canvas: {
+                zoom: Math.max(0.2, Math.min(2.5, Number(nextZoom) || 0.8))
+            }
+        });
+    };
+
+    // Fit geométrico real: calcula escala en función del documento y del viewport actual.
+    const fitCanvasToBounds = useCallback(() => {
+        const scrollEl = canvasScrollRef.current;
+        const docEl = documentRootRef.current;
+
+        if (!scrollEl || !docEl) {
+            setZoom(0.8);
+            return;
+        }
+
+        const availableWidth = Math.max(100, scrollEl.clientWidth - 120);
+        const availableHeight = Math.max(100, scrollEl.clientHeight - 120);
+        const docWidth = Math.max(1, docEl.scrollWidth);
+        const docHeight = Math.max(1, docEl.scrollHeight);
+
+        const nextZoom = Math.min(2.5, Math.max(0.2, Math.min(availableWidth / docWidth, availableHeight / docHeight)));
+        setZoom(nextZoom);
+    }, [setZoom]);
+
+    const updateCanvasSetting = (key, value) => {
+        updateLayoutMeta({
+            canvas: {
+                [key]: value
+            }
+        });
+    };
+
+    const resolvedPages = React.useMemo(() => {
+        const paginationGlobal = layoutMeta?.pagination || {};
+        const mastersGlobal = layoutMeta?.masters || {};
+
+        const startAt = Number.isFinite(Number(paginationGlobal.startAt))
+            ? Number(paginationGlobal.startAt)
+            : 1;
+
+        let pageCursor = startAt;
+
+        return blocks.map((rootNode) => {
+            const props = rootNode?.props || {};
+
+            if (props.pageBreakBefore === true) {
+                pageCursor += 1;
+            }
+
+            const allowPageOverride = props.allowMasterOverride !== false;
+            const useMasterHeader = mastersGlobal.headerEnabled === true && (!allowPageOverride || !props.headerTemplate);
+            const useMasterFooter = mastersGlobal.footerEnabled === true && (!allowPageOverride || !props.footerTemplate);
+
+            const resolvedProps = {
+                ...props,
+                paginationMode: props.paginationMode || paginationGlobal.mode || 'hybrid',
+                showPageNumber: props.showPageNumber !== undefined
+                    ? props.showPageNumber
+                    : (paginationGlobal.showNumbers !== false),
+                headerTemplate: useMasterHeader
+                    ? (mastersGlobal.headerTemplate || '')
+                    : (props.headerTemplate || ''),
+                footerTemplate: useMasterFooter
+                    ? (mastersGlobal.footerTemplate || 'Página {{page}}')
+                    : (props.footerTemplate || 'Página {{page}}'),
+                _resolvedPageNumber: pageCursor
+            };
+
+            const out = {
+                pageNumber: pageCursor,
+                block: {
+                    ...rootNode,
+                    props: resolvedProps
+                }
+            };
+
+            pageCursor += props.pageBreakAfter === true ? 2 : 1;
+
+            return out;
+        });
+    }, [blocks, layoutMeta]);
+
+    // Medición de overflow real por página para paginación híbrida operativa.
+    useEffect(() => {
+        const measured = resolvedPages.map((entry) => {
+            const host = pageHostRefs.current.get(entry.block.id);
+            const pageEl = host?.querySelector('.page-block');
+            const mode = entry.block?.props?.paginationMode || 'hybrid';
+            const autoPaginationEnabled = mode === 'auto' || mode === 'hybrid';
+
+            if (!pageEl) {
+                return {
+                    blockId: entry.block.id,
+                    pageNumber: entry.pageNumber,
+                    overflowPages: 0,
+                    contentHeight: 0,
+                    pageHeight: 0
+                };
+            }
+
+            const pageHeight = Math.max(1, pageEl.clientHeight);
+            const contentHeight = Math.max(1, pageEl.scrollHeight);
+            const overflowPages = autoPaginationEnabled
+                ? Math.max(0, Math.ceil(contentHeight / pageHeight) - 1)
+                : 0;
+
+            return {
+                blockId: entry.block.id,
+                pageNumber: entry.pageNumber,
+                overflowPages,
+                contentHeight,
+                pageHeight
+            };
+        });
+
+        let lastPage = 0;
+        const normalized = measured.map((item) => {
+            const original = resolvedPages.find(p => p.block.id === item.blockId);
+            const requested = Math.max(1, Number(item.pageNumber) || 1);
+            const pageBreakAfter = original?.block?.props?.pageBreakAfter === true;
+            const currentPage = Math.max(requested, lastPage + 1);
+            const consumed = 1 + item.overflowPages + (pageBreakAfter ? 1 : 0);
+
+            lastPage = currentPage + consumed - 1;
+
+            return {
+                ...item,
+                pageNumber: currentPage,
+                consumedPages: consumed
+            };
+        });
+
+        setRuntimePaginationMap(normalized);
+    }, [resolvedPages, zoom, layoutMeta]);
+
+    const effectivePages = React.useMemo(() => {
+        return resolvedPages.map((entry) => {
+            const runtime = runtimePaginationMap.find(m => m.blockId === entry.block.id);
+            return {
+                ...entry,
+                pageNumber: runtime?.pageNumber || entry.pageNumber,
+                overflowPages: runtime?.overflowPages || 0,
+                pageHeight: runtime?.pageHeight || 0
+            };
+        });
+    }, [resolvedPages, runtimePaginationMap]);
+
+    // Proyección visible: páginas base + páginas virtuales de continuación por overflow.
+    const renderPages = React.useMemo(() => {
+        const pages = [];
+
+        effectivePages.forEach((entry) => {
+            pages.push({
+                renderKey: entry.block.id,
+                pageNumber: entry.pageNumber,
+                block: entry.block,
+                virtual: false
+            });
+
+            const overflow = Math.max(0, Number(entry.overflowPages) || 0);
+            for (let index = 1; index <= overflow; index += 1) {
+                const virtualId = `${entry.block.id}__continuation_${index}`;
+                pages.push({
+                    renderKey: virtualId,
+                    pageNumber: entry.pageNumber + index,
+                    virtual: true,
+                    block: {
+                        ...entry.block,
+                        id: virtualId,
+                        props: {
+                            ...(entry.block?.props || {}),
+                            _resolvedPageNumber: entry.pageNumber + index,
+                            _virtualContinuation: true,
+                            _virtualContinuationOf: entry.block.id,
+                            _virtualContinuationIndex: index,
+                            _virtualContinuationTotal: overflow,
+                            _virtualSliceOffsetPx: Math.max(0, Math.round((entry.pageHeight || 0) * index)),
+                            _virtualSliceHeightPx: Math.max(1, Math.round(entry.pageHeight || 1))
+                        }
+                    }
+                });
+            }
+        });
+
+        return pages;
+    }, [effectivePages]);
 
     const handleManualSave = async (overrideLabel = null) => {
         setIsSaving(true);
@@ -144,23 +340,68 @@ function DocumentDesignerShell({ atom, bridge }) {
             const currentAST = astRef.current; // Siempre fresco
 
             // ── ADUANA DE CRISTALIZACIÓN (Axioma de Determinismo) ──
-            const crystallizedBlocks = Crystallizer.crystallize(currentAST.blocks);
+            // Convertimos tokens vivos en Snapshots de Soberanía Atómica
+            const bloquesCristalizados = Crystallizer.cristalizar(currentAST.blocks);
+
+            const paginationMap = renderPages.map((entry) => ({
+                blockId: entry.block.id,
+                sourceBlockId: entry.block.props?._virtualContinuationOf || entry.block.id,
+                pageNumber: entry.pageNumber,
+                virtual: entry.virtual === true
+            }));
 
             await bridge.save({
                 ...atom,
                 handle: { ...atom.handle, label: overrideLabel || localLabel },
                 payload: { 
                     ...atom.payload, 
-                    blocks: crystallizedBlocks, 
-                    variables: currentAST.docVariables 
+                    blocks: bloquesCristalizados, 
+                    variables: currentAST.docVariables,
+                    layoutMeta: {
+                        ...currentAST.layoutMeta,
+                        pagination: {
+                            ...(currentAST.layoutMeta?.pagination || {}),
+                            map: paginationMap
+                        }
+                    }
                 }
             });
-            showToast('DOCUMENT_SAVED_SUCCESSFULLY');
+            showToast('DOCUMENTO_GUARDADO_CON_ÉXITO_CANÓNICO');
         } catch (err) {
-            showToast(`SAVE_ERROR: ${err.message}`);
+            showToast(`ERROR_DE_GUARDADO_SISTÉMICO: ${err.message}`);
         } finally {
             setIsSaving(false);
         }
+    };
+
+    // ── LÓGICA DE DERIVA Y SINCRONIZACIÓN ──
+    const [discrepanciasVisibles, setDiscrepanciasVisibles] = useState(false);
+    useEffect(() => {
+        const hayDerivaGlobal = blocks.some(b => AxiomRegistry.detectarDeriva(b.props));
+        setDiscrepanciasVisibles(hayDerivaGlobal);
+    }, [blocks, isReady]);
+
+    const sincronizarMarcaActual = () => {
+        // AXIOMA DE SINCRONIZACIÓN VOLUNTARIA
+        // El usuario decide actualizar todos los snapshots a la marca actual
+        const bloquesSincronizados = blocks.map(b => {
+             const nuevasProps = { ...b.props };
+             Object.keys(nuevasProps).forEach(key => {
+                 const value = nuevasProps[key];
+                 if (value && typeof value === 'object' && value._vinc) {
+                     // Actualizamos el snapshot al valor actual de la marca
+                     nuevasProps[key] = {
+                         ...value,
+                         _snap: AxiomRegistry.resolver(value._vinc)
+                     };
+                 }
+             });
+             return { ...b, props: nuevasProps };
+        });
+        
+        // Reemplazo determinista de estado raíz multipágina (sin suponer id='root').
+        setBlocks(bloquesSincronizados);
+        showToast('DOCUMENTO_SINCRONIZADO_CON_MARCA_REGISTRADA');
     };
 
     useEffect(() => {
@@ -236,19 +477,52 @@ function DocumentDesignerShell({ atom, bridge }) {
                     {/* ── 1. CANVAS AREA (SIEMPRE VISIBLE) ── */}
                     <div className="indra-slot-core canvas-section relative overflow-hidden">
                         <div className="indra-header-label" style={{ position: 'absolute', top: 6, left: 10, zIndex: 5 }}>CANVAS</div>
-                        <main className="fill overflow-auto designer-canvas-bg">
+                        <main
+                            className="fill overflow-auto designer-canvas-bg"
+                            ref={canvasScrollRef}
+                            style={{
+                                background: MEDIA_PRESETS[layoutMeta?.canvas?.mediaPreset || 'PRINT']?.canvasBg || 'var(--color-bg-void)'
+                            }}
+                        >
+                            <CanvasTechnicalOverlay layoutMeta={layoutMeta} />
                             <div className="canvas-viewport">
                                 <div className="canvas-scaler" style={{ transform: previewMode ? 'none' : `scale(${zoom})` }}>
                                     <HonestProvider styleContext={atom.payload?.styleContext}>
-                                        <div className="indra-document-root shadow-glow">
-                                            {blocks.map((rootNode) => (
-                                                <RecursiveBlock key={rootNode.id} block={rootNode} />
+                                        <div className="indra-document-root shadow-glow" ref={documentRootRef}>
+                                            {renderPages.map((entry, index) => (
+                                                <div
+                                                    key={entry.renderKey}
+                                                    ref={(el) => {
+                                                        if (entry.virtual) return;
+                                                        if (el) pageHostRefs.current.set(entry.block.id, el);
+                                                        else pageHostRefs.current.delete(entry.block.id);
+                                                    }}
+                                                >
+                                                    <RecursiveBlock
+                                                        block={entry.block}
+                                                        pageIndex={entry.pageNumber || (index + 1)}
+                                                        readOnly={entry.virtual === true}
+                                                        keyPrefix={`${entry.renderKey}::`}
+                                                    />
+                                                </div>
                                             ))}
                                         </div>
                                     </HonestProvider>
                                 </div>
                             </div>
                         </main>
+
+                        {!previewMode && (
+                            <CanvasControlHood
+                                layoutMeta={layoutMeta}
+                                zoom={zoom}
+                                onZoomOut={() => setZoom(z => z - 0.1)}
+                                onZoomIn={() => setZoom(z => z + 0.1)}
+                                onZoomFit={fitCanvasToBounds}
+                                onCanvasChange={updateCanvasSetting}
+                                overflowCount={effectivePages.reduce((acc, page) => acc + (page.overflowPages || 0), 0)}
+                            />
+                        )}
                     </div>
 
                     {/* ── 2. CONTROL SECTION (SIDEBAR EN DESKTOP / BOTTOM EN MÓVIL) ── */}
@@ -288,6 +562,39 @@ function DocumentDesignerShell({ atom, bridge }) {
                     )}
                 </div>
             </div>
+
+            {/* HUD DE DERIVA DE REALIDAD */}
+            {discrepanciasVisibles && (
+                <div className="hud-deriva-realidad" style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'var(--color-bg-surface)',
+                    border: '1px solid var(--color-accent)',
+                    borderRadius: '8px',
+                    padding: '8px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.8), 0 0 10px var(--color-accent-dim)',
+                    zIndex: 2001,
+                    animation: 'indra-pulse-glow 2s infinite'
+                }}>
+                    <IndraIcon name="ALERT" size="14px" color="var(--color-accent)" />
+                    <div className="stack--none">
+                        <span className="font-mono text-hint" style={{ fontSize: '9px', fontWeight: 'bold' }}>DERIVA_DE_REALIDAD_DETECTADA</span>
+                        <p className="font-mono" style={{ fontSize: '7px', opacity: 0.6, margin: 0 }}>HAY_ATRIBUTOS_FUERA_DE_SINCRONÍA_CON_LA_MARCA</p>
+                    </div>
+                    <button 
+                        className="btn btn--xs btn--accent"
+                        onClick={sincronizarMarcaActual}
+                        style={{ height: '24px', fontSize: '8px', padding: '0 10px' }}
+                    >
+                        SINCRONIZAR_CANON
+                    </button>
+                </div>
+            )}
 
             {/* TOAST HUD */}
             {toast && (
@@ -444,6 +751,257 @@ function DocumentDesignerShell({ atom, bridge }) {
                     .control-section {
                         height: 400px !important;
                     }
+                }
+            `}</style>
+        </div>
+    );
+}
+
+function CanvasTechnicalOverlay({ layoutMeta }) {
+    const canvas = layoutMeta?.canvas || {};
+    const gridSize = Math.max(4, Number(canvas.gridSize) || 10);
+
+    return (
+        <div className="canvas-tech-overlay" aria-hidden="true">
+            {canvas.showGrid && (
+                <div
+                    className="canvas-tech-overlay__grid"
+                    style={{
+                        backgroundSize: `${gridSize}px ${gridSize}px`
+                    }}
+                />
+            )}
+
+            {canvas.showGuides && (
+                <>
+                    <div className="canvas-tech-overlay__guide canvas-tech-overlay__guide--v" />
+                    <div className="canvas-tech-overlay__guide canvas-tech-overlay__guide--h" />
+                </>
+            )}
+
+            {canvas.showRulers && (
+                <>
+                    <div className="canvas-tech-overlay__ruler canvas-tech-overlay__ruler--top" />
+                    <div className="canvas-tech-overlay__ruler canvas-tech-overlay__ruler--left" />
+                </>
+            )}
+
+            <style>{`
+                .canvas-tech-overlay {
+                    position: absolute;
+                    inset: 0;
+                    z-index: 2;
+                    pointer-events: none;
+                }
+
+                .canvas-tech-overlay__grid {
+                    position: absolute;
+                    inset: 0;
+                    background-image:
+                        linear-gradient(to right, rgba(0,245,212,0.06) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(0,245,212,0.06) 1px, transparent 1px);
+                }
+
+                .canvas-tech-overlay__guide {
+                    position: absolute;
+                    background: rgba(0,245,212,0.45);
+                    box-shadow: 0 0 0 1px rgba(0,245,212,0.18);
+                }
+
+                .canvas-tech-overlay__guide--v {
+                    top: 0;
+                    bottom: 0;
+                    left: 50%;
+                    width: 1px;
+                    transform: translateX(-0.5px);
+                }
+
+                .canvas-tech-overlay__guide--h {
+                    left: 0;
+                    right: 0;
+                    top: 50%;
+                    height: 1px;
+                    transform: translateY(-0.5px);
+                }
+
+                .canvas-tech-overlay__ruler {
+                    position: absolute;
+                    background: rgba(10, 10, 26, 0.92);
+                    backdrop-filter: blur(2px);
+                }
+
+                .canvas-tech-overlay__ruler--top {
+                    top: 0;
+                    left: 18px;
+                    right: 0;
+                    height: 18px;
+                    border-bottom: 1px solid rgba(255,255,255,0.08);
+                    background-image: repeating-linear-gradient(
+                        to right,
+                        rgba(255,255,255,0.24) 0,
+                        rgba(255,255,255,0.24) 1px,
+                        transparent 1px,
+                        transparent 20px
+                    );
+                }
+
+                .canvas-tech-overlay__ruler--left {
+                    top: 18px;
+                    left: 0;
+                    bottom: 0;
+                    width: 18px;
+                    border-right: 1px solid rgba(255,255,255,0.08);
+                    background-image: repeating-linear-gradient(
+                        to bottom,
+                        rgba(255,255,255,0.24) 0,
+                        rgba(255,255,255,0.24) 1px,
+                        transparent 1px,
+                        transparent 20px
+                    );
+                }
+            `}</style>
+        </div>
+    );
+}
+
+function CanvasControlHood({ layoutMeta, zoom, onZoomOut, onZoomIn, onZoomFit, onCanvasChange, overflowCount = 0 }) {
+    const canvas = layoutMeta?.canvas || {};
+
+    return (
+        <div className="canvas-hood" role="toolbar" aria-label="CANVAS_HOOD">
+            <button className="canvas-hood__btn" onClick={onZoomOut} title="ZOOM_OUT">
+                <IndraIcon name="MINUS" size="10px" />
+            </button>
+
+            <button className="canvas-hood__value" onClick={onZoomFit} title="FIT_VIEW">
+                {Math.round(zoom * 100)}%
+            </button>
+
+            <button className="canvas-hood__btn" onClick={onZoomIn} title="ZOOM_IN">
+                <IndraIcon name="PLUS" size="10px" />
+            </button>
+
+            <div className="canvas-hood__divider" />
+
+            <select
+                value={canvas.mediaPreset || 'PRINT'}
+                className="canvas-hood__select"
+                onChange={(e) => onCanvasChange('mediaPreset', e.target.value)}
+                title="MEDIA_PRESET"
+            >
+                <option value="PRINT">PRINT</option>
+                <option value="SCREEN">SCREEN</option>
+                <option value="PRESENTATION">PRESENT</option>
+            </select>
+
+            <select
+                value={canvas.unit || 'mm'}
+                className="canvas-hood__select"
+                onChange={(e) => onCanvasChange('unit', e.target.value)}
+                title="UNIT"
+            >
+                <option value="mm">MM</option>
+                <option value="pt">PT</option>
+                <option value="px">PX</option>
+            </select>
+
+            <button className={`canvas-hood__toggle ${canvas.showRulers ? 'is-on' : ''}`} onClick={() => onCanvasChange('showRulers', !canvas.showRulers)} title="RULERS">
+                R
+            </button>
+            <button className={`canvas-hood__toggle ${canvas.showGuides ? 'is-on' : ''}`} onClick={() => onCanvasChange('showGuides', !canvas.showGuides)} title="GUIDES">
+                G
+            </button>
+            <button className={`canvas-hood__toggle ${canvas.showGrid ? 'is-on' : ''}`} onClick={() => onCanvasChange('showGrid', !canvas.showGrid)} title="GRID">
+                #
+            </button>
+            <button className={`canvas-hood__toggle ${canvas.snapToGrid ? 'is-on' : ''}`} onClick={() => onCanvasChange('snapToGrid', !canvas.snapToGrid)} title="SNAP">
+                S
+            </button>
+
+            {overflowCount > 0 && (
+                <span className="canvas-hood__overflow" title="AUTO_PAGINATION_OVERFLOW">
+                    +{overflowCount}P
+                </span>
+            )}
+
+            <style>{`
+                .canvas-hood {
+                    position: absolute;
+                    bottom: 14px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    z-index: 20;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    height: 34px;
+                    padding: 0 10px;
+                    border-radius: 999px;
+                    border: 1px solid var(--color-border-strong);
+                    background: rgba(11, 11, 24, 0.85);
+                    backdrop-filter: blur(10px);
+                    box-shadow: 0 10px 32px rgba(0,0,0,0.4);
+                }
+
+                .canvas-hood__btn,
+                .canvas-hood__value,
+                .canvas-hood__toggle {
+                    height: 22px;
+                    min-width: 22px;
+                    padding: 0 7px;
+                    border: 1px solid var(--color-border);
+                    border-radius: 999px;
+                    background: var(--color-bg-elevated);
+                    color: var(--color-text-secondary);
+                    font-size: 9px;
+                    font-family: var(--font-mono);
+                    cursor: pointer;
+                }
+
+                .canvas-hood__value {
+                    min-width: 48px;
+                    color: var(--color-accent);
+                    font-weight: 900;
+                }
+
+                .canvas-hood__select {
+                    height: 22px;
+                    border: 1px solid var(--color-border);
+                    border-radius: 999px;
+                    background: var(--color-bg-elevated);
+                    color: var(--color-text-secondary);
+                    font-size: 8px;
+                    font-family: var(--font-mono);
+                    padding: 0 8px;
+                }
+
+                .canvas-hood__toggle.is-on {
+                    color: var(--color-accent);
+                    border-color: var(--color-accent);
+                    background: var(--color-accent-dim);
+                }
+
+                .canvas-hood__divider {
+                    width: 1px;
+                    height: 16px;
+                    background: var(--color-border);
+                    opacity: 0.5;
+                }
+
+                .canvas-hood__overflow {
+                    height: 20px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 0 8px;
+                    border-radius: 999px;
+                    background: rgba(255, 80, 80, 0.12);
+                    border: 1px solid rgba(255, 80, 80, 0.4);
+                    color: #ff9fa8;
+                    font-size: 8px;
+                    font-family: var(--font-mono);
+                    font-weight: 900;
+                    letter-spacing: 0.04em;
                 }
             `}</style>
         </div>

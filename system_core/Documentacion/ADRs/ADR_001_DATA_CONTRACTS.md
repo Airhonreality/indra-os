@@ -219,6 +219,12 @@ El frontend nunca contiene lógica específica de un provider. Solo conoce `clas
 ### A8 — Borrado Físico Determinista (ADR_008 §3.3)
 `ATOM_DELETE` elimina solo la materia física. No propaga ni escanea referencias. La integridad referencial se resuelve en tiempo de lectura mediante el **Portal de Sinceridad** (`SYSTEM_PINS_READ`). Las referencias huérfanas son un estado transitorio visible, no un estado de error.
 
+### A9 — Determinismo de Paridad (Auto-Mapping)
+En procesos de inducción automática, el sistema asume una **Relación de Identidad** entre el Alias del Campo y el ID de la Columna externa si sus nombres normalizados coinciden. El usuario solo interviene en casos de ambigüedad.
+
+### A10 — Soberanía del Manifiesto de Acceso (ADR-019)
+Todo puente (`BRIDGE`) destinado a ejecución pública mediante enlace compartido DEBE estar firmado por un `ACCESS_TOKEN` generado en el momento de la inducción. La ejecución sin token válido en contexto público resulta en `SECURITY_VIOLATION`.
+
 ---
 
 ## 9. RESTRICCIONES ABSOLUTAS
@@ -229,6 +235,22 @@ El frontend nunca contiene lógica específica de un provider. Solo conoce `clas
 - ❌ **NO** retornar `null` o valores no-objeto desde un handler de provider.
 - ❌ **NO** modificar el campo `query` del UQO en el `protocol_router`.
 - ❌ **NO** usar el campo `name` (deprecado). Usar `handle.label` para proyección.
+
+---
+
+## 10. REGLAS DE INDUSTRIALIZACIÓN Y AUTOMATIZACIÓN (Induction Rules)
+
+Para garantizar la robustez en la generación automática de átomos (`Schema`, `Bridge`) desde fuentes externas:
+
+### 10.1 Detección de Deriva (Schema Drift)
+Todo motor de ejecución (AEE) DEBE validar la integridad estructural del `DATA_SCHEMA` contra la fuente real (`TABULAR_STREAM`) antes de cada sesión. Si se detectan cambios en el origen, el sistema debe pausar y ofrecer una **Sincronización de Emergencia**.
+
+### 10.2 Escopado de Alias (Namespace Scoping)
+Para evitar colisiones de alias en el `LogicEngine`, los alias generados por inducción automática deben estar prefijados por el `external_id` o el `alias` de la base de datos de origen:  
+`alias_final = [db_alias]_[column_name_normalized]`
+
+### 10.3 Patrón de Tickets Asíncronos (Async Induction)
+Debido a los límites de ejecución de GAS, las inducciones complejas no deben ser síncronas. El protocolo `INDUCTION_START` debe retornar un `TICKET_ID`. El frontend realizará *polling* mediante `INDUCTION_STATUS` hasta que el `InductionOrchestrator` confirme la cristalización de los átomos.
 
 ---
 

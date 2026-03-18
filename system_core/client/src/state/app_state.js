@@ -3,6 +3,15 @@ import { executeDirective } from '../services/directive_executor';
 import { toastEmitter } from '../services/toastEmitter';
 import { DataProjector } from '../services/DataProjector';
 
+function _loadInductionSnapshot_() {
+    try {
+        const raw = localStorage.getItem('indra-induction-ticket-snapshot');
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
 /**
  * Indra App State
  * Gestiona el nivel de hidratación y la persistencia de la sesión.
@@ -27,6 +36,8 @@ export const useAppState = create((set, get) => ({
     activeArtifact: null, // Átomo en edición/ejecución (Nivel 3)
     isMaterializing: false, // Estado de transición para hidratación de átomos
     pendingSyncs: {}, // { atomId: boolean } - Rastreo de resonancia en segundo plano
+    inductionTicketId: localStorage.getItem('indra-induction-ticket-id') || null,
+    inductionTicketSnapshot: _loadInductionSnapshot_(),
     
     // Infraestructura & Bóveda
     isServiceManagerOpen: false,
@@ -123,6 +134,8 @@ export const useAppState = create((set, get) => ({
         localStorage.removeItem('indra-core-url');
         localStorage.removeItem('indra-session-secret');
         localStorage.removeItem('indra-active-workspace-id');
+        localStorage.removeItem('indra-induction-ticket-id');
+        localStorage.removeItem('indra-induction-ticket-snapshot');
         set({
             coreUrl: null,
             isConnected: false,
@@ -130,8 +143,64 @@ export const useAppState = create((set, get) => ({
             sessionSecret: null,
             workspaces: [],
             pins: [],
-            services: []
+            services: [],
+            inductionTicketId: null,
+            inductionTicketSnapshot: null
         });
+    },
+
+    setInductionTicket: (ticketId, snapshot = null) => {
+        if (ticketId) {
+            localStorage.setItem('indra-induction-ticket-id', ticketId);
+        } else {
+            localStorage.removeItem('indra-induction-ticket-id');
+        }
+
+        if (snapshot) {
+            localStorage.setItem('indra-induction-ticket-snapshot', JSON.stringify(snapshot));
+        } else {
+            localStorage.removeItem('indra-induction-ticket-snapshot');
+        }
+
+        set({
+            inductionTicketId: ticketId || null,
+            inductionTicketSnapshot: snapshot || null
+        });
+    },
+
+    clearInductionTicket: () => {
+        localStorage.removeItem('indra-induction-ticket-id');
+        localStorage.removeItem('indra-induction-ticket-snapshot');
+        set({ inductionTicketId: null, inductionTicketSnapshot: null });
+    },
+
+    refreshInductionTicket: async () => {
+        const { coreUrl, sessionSecret, inductionTicketId, clearInductionTicket } = get();
+        if (!inductionTicketId || !coreUrl || !sessionSecret) return null;
+
+        try {
+            const result = await executeDirective({
+                provider: 'system',
+                protocol: 'INDUCTION_STATUS',
+                query: { ticket_id: inductionTicketId }
+            }, coreUrl, sessionSecret);
+
+            const ticket = result.metadata?.ticket || null;
+            if (!ticket) return null;
+
+            get().setInductionTicket(inductionTicketId, ticket);
+
+            if (['COMPLETED', 'ERROR', 'CANCELLED'].includes(ticket.status)) {
+                if (ticket.status === 'COMPLETED') {
+                    setTimeout(() => clearInductionTicket(), 15000);
+                }
+            }
+
+            return ticket;
+        } catch (err) {
+            console.warn('[app_state] refreshInductionTicket failed:', err?.message || err);
+            return null;
+        }
     },
 
     setActiveWorkspace: (id) => {
@@ -480,6 +549,9 @@ export const useAppState = create((set, get) => ({
             if (activeWorkspaceId) {
                 get().loadPins();
             }
+
+            // Reenganche de inducción tras refresh accidental
+            get().refreshInductionTicket();
         } catch (err) {
             console.error('[app_state] Bootstrap failed:', err);
             // Si el secret falló, desconectar

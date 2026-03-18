@@ -15,7 +15,7 @@ Se establece la **Ley de Aduana Coercitiva**:
 2.  **Responsabilidad en el Origen (Sinceridad)**: Es deber absoluto del **Provider** entregar la materia procesada y plana. Ningún motor intermedio (Logic Engine) ni el Cliente (Frontend) debe realizar "unrolling" o "aplanamiento" de datos crudos.
 3.  **Validación en la Frontera (Protocol Router)**: El `protocol_router.js` actuará como el único oficial de aduana. Si un provider entrega un átomo `TABULAR` o `DATA_SCHEMA` sin `payload.fields` (o con `columns`), el router rechazará la carga con una excepción `CONTRACT_VIOLATION`.
 4.  **Eliminación de la Tolerancia**: Se retira toda lógica de "perdón" o "auto-corrección" en el frontend (`directive_executor`, `DataProjector`) para forzar un comportamiento determinista y ruidoso ante el error.
-
+5.  **Pre-validación en frontera UI (Agentes de Aduana)**: Los widgets de captura (Macro-Engines) actúan como la primera línea de inspección. Deben rechazar activamente en el cliente cualquier carga que viole los metadatos del átomo (ej: exceder el tamaño máximo de archivo o formato incorrecto en `ImageUploader`) antes de generar tráfico hacia el Core.
 ## 3. Justificación Axiomática
 - **Axioma de Sinceridad**: INDRA no adivina. Los datos deben ser explícitos.
 - **Dharma de Fractalidad**: Cada capa debe ser autosuficiente. Si el provider no es sincero, la fractalidad se rompe porque la capa superior debe "saber" demasiado sobre la inferior.

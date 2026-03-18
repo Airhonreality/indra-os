@@ -14,7 +14,7 @@ import PageBlock from '../blocks/PageBlock';
 
 import { useAST } from '../context/ASTContext';
 import { useSelection } from '../context/SelectionContext';
-import { UnitTranslator } from '../../../../services/UnitTranslator';
+import { assertBlockContract } from '../contracts/assertBlockContract';
 
 const BLOCK_COMPONENTS = {
     PAGE: PageBlock,
@@ -24,27 +24,23 @@ const BLOCK_COMPONENTS = {
     ITERATOR: IteratorBlock
 };
 
-// Helper para procesar estilos axiomáticos
-const processStyles = (props = {}) => {
-    const styled = {};
-    const pxProps = ['width', 'height', 'minWidth', 'minHeight', 'padding', 'margin', 'gap', 'fontSize', 'borderRadius', 'top', 'left', 'right', 'bottom', 'marginTop', 'marginBottom', 'marginLeft', 'marginRight', 'paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight'];
+const assertValidBlockContract = (block) => {
+    // Reutilizamos el contrato canónico para toda la familia de bloques.
+    assertBlockContract('RecursiveBlock', block);
 
-    Object.entries(props).forEach(([key, value]) => {
-        if (pxProps.includes(key) && value && typeof value === 'string') {
-            styled[key] = UnitTranslator.parseToPx(value);
-        } else {
-            styled[key] = value;
-        }
-    });
-    return styled;
+    if (block.children !== undefined && !Array.isArray(block.children)) {
+        throw new Error(`[RecursiveBlock] Contrato inválido en block ${block.id}: \`block.children\` debe ser un array cuando existe.`);
+    }
 };
 
-export function RecursiveBlock({ block, depth = 0 }) {
+export function RecursiveBlock({ block, depth = 0, pageIndex = 1, readOnly = false, keyPrefix = '' }) {
+    assertValidBlockContract(block);
+
     const { updateNode } = useAST();
     const { selectedId, selectNode, setHover, hoveredId } = useSelection();
 
-    const isSelected = selectedId === block.id;
-    const isHovered = hoveredId === block.id;
+    const isSelected = !readOnly && selectedId === block.id;
+    const isHovered = !readOnly && hoveredId === block.id;
 
     const Component = BLOCK_COMPONENTS[block.type];
     const hasChildren = block.children && block.children.length > 0;
@@ -53,21 +49,23 @@ export function RecursiveBlock({ block, depth = 0 }) {
         return <div style={{ color: 'red' }}>[UNKNOWN_BLOCK_TYPE: {block.type}]</div>;
     }
 
-    // El Wrapper se encarga de la selección y el Outline estético
+    // Axioma de independencia: páginas virtuales de continuidad no aceptan interacción.
     return (
         <div
             onClick={(e) => {
+                if (readOnly) return;
                 if (!isSelected) {
                     if (block.type !== 'TEXT') e.stopPropagation();
                     selectNode(block.id);
                 }
             }}
-            onMouseEnter={() => setHover(block.id)}
-            onMouseLeave={() => setHover(null)}
+            onMouseEnter={() => { if (!readOnly) setHover(block.id); }}
+            onMouseLeave={() => { if (!readOnly) setHover(null); }}
             className="block-wrapper"
             style={{
                 position: 'relative',
-                cursor: 'pointer',
+                cursor: readOnly ? 'default' : 'pointer',
+                pointerEvents: readOnly ? 'none' : 'auto',
                 outline: isSelected ? '1px solid var(--color-accent)' :
                     isHovered ? '1px dashed var(--color-border-strong)' : '1px dashed transparent',
                 outlineOffset: '-1px',
@@ -76,23 +74,27 @@ export function RecursiveBlock({ block, depth = 0 }) {
             }}
         >
             <Component
-                props={processStyles(block.props)}
+                block={block}
                 isSelected={isSelected}
-                onUpdate={(newProps) => updateNode(block.id, { props: { ...block.props, ...newProps } })}
+                updateNode={updateNode}
+                pageIndex={pageIndex}
             >
                 {hasChildren && (
                     block.children.map(child => (
                         <RecursiveBlock
-                            key={child.id}
+                            key={`${keyPrefix}${child.id}`}
                             block={child}
                             depth={depth + 1}
+                            pageIndex={pageIndex}
+                            readOnly={readOnly}
+                            keyPrefix={keyPrefix}
                         />
                     ))
                 )}
             </Component>
 
             {/* Marcador de tipo solo en modo selección o profundidad baja */}
-            {isSelected && (
+            {isSelected && !readOnly && (
                 <>
                     <div style={{
                         position: 'absolute',

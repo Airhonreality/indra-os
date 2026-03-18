@@ -23,6 +23,9 @@ Los componentes visuales de INDRA son cáscaras agnósticas. No gestionan estado
 ### P5 — Soberanía del CSS e Invarianza de Diseño
 Queda prohibido el uso de estilos inline para estados lógicos. La interactividad y el estado visual (resonancia, highlight, focus) se gestionan exclusivamente mediante atributos de datos (`data-*`) y reglas globales de CSS. Se debe cumplir estrictamente con el esquema [ui_contracts.json](../ui_contracts.json).
 
+### P6 — Proyección Axiomática y Mapeo Semántico
+Los Macro-Motores (Engines) no deben contener lógica de renderizado específica para tipos de datos. Se utiliza un **ComponentMapper** que vincula el `type` (o `semantic_type`) del átomo con un **Widget especializado**. Esto garantiza que la UI sea una proyección dinámica del esquema y no un formulario estático cableado.
+
 ---
 
 ## 2. ÁRBOL DE ARTEFACTOS
@@ -207,11 +210,11 @@ El **Nexus** es el pasillo técnico donde el usuario decide su contexto de traba
 
 Corre un formulario (`DATA_SCHEMA`) en tiempo real, captura los valores ingresados por el usuario, los envía al Logic Bridge asignado (`LOGIC_EXECUTE`), y proyecta el resultado.
 
-**No contiene lógica de negocio.** Es un proyector reactivo de contratos.
+**No contiene lógica de campo específica.** Es un proyector reactivo que delega el renderizado en un **Mapeador de Componentes**.
 
 Modos:
-- **Form Mode:** Proyecta el schema como formulario interactivo (`FormRunner.jsx`)
-- **Dashboard Mode:** Proyecta el resultado del Bridge en widgets configurables (`ResultPanel.jsx`)
+- **Form Mode:** Proyecta el schema como formulario interactivo (`FormRunner.jsx`). Utiliza el `ComponentMapper.js` para instanciar widgets especializados (ImageUploader, DatePicker, etc.) según el tipo de campo.
+- **Dashboard Mode:** Proyecta el resultado del Bridge en widgets configurables (`ResultPanel.jsx`). Implementa la **Proyección Inteligente de Éxito**, transformando JSON técnico en mensajes humanos legibles si el resultado lo permite.
 
 ---
 

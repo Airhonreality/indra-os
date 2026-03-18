@@ -7,7 +7,7 @@
  */
 
 import { useMemo } from 'react';
-import { AxiomRegistry } from '../../../services/AxiomRegistry';
+import { AxiomRegistry } from '../../../../services/AxiomRegistry';
 
 export function useAxiomStyles(props = {}) {
     // Resolvemos el objeto de propiedades hidratadas

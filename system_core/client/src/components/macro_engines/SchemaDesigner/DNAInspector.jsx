@@ -199,6 +199,35 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
                     </div>
                 )}
 
+                {field.type === 'IMAGE' && (
+                    <div className="stack--tight">
+                        <label className="dna-label">Límite de Aduana (Tamaño Máximo MB)</label>
+                        <input 
+                            type="number" 
+                            className="dna-input mono" 
+                            value={field.config?.max_size_mb || 5} 
+                            onChange={e => updateConfig('max_size_mb', Number(e.target.value))} 
+                        />
+                        <div className="shelf--tight" style={{ opacity: 0.5, marginTop: '2px' }}>
+                            <IndraIcon name="INFO" size="10px" />
+                            <span style={{ fontSize: '9px' }}>Los archivos que superen este peso serán rechazados en la frontera UI.</span>
+                        </div>
+                    </div>
+                )}
+
+                {field.type === 'CURRENCY' && (
+                    <div className="stack--tight">
+                        <label className="dna-label">Símbolo Monetario / Divisa</label>
+                        <input 
+                            type="text" 
+                            className="dna-input mono" 
+                            value={field.config?.symbol || '€'} 
+                            onChange={e => updateConfig('symbol', e.target.value)} 
+                            placeholder="Ej: $, €, USD"
+                        />
+                    </div>
+                )}
+
                 {/* ── CONFIGURACIÓN SEGÚN TIPO ── */}
                 {field.type === 'RELATION_SELECT' && (
                     <div className="stack--tight">

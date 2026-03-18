@@ -16,27 +16,184 @@ import { blockManifests } from './inspectorManifests';
 import { EntityInspectorSection } from './EntityInspectorSection';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 
+const PAGE_PRESETS = {
+    A4: { width: '210mm', height: '297mm' },
+    LETTER: { width: '215.9mm', height: '279.4mm' },
+    SQUARE: { width: '200mm', height: '200mm' }
+};
+
+const resolvePageDimensions = (preset, orientation) => {
+    const base = PAGE_PRESETS[preset] || PAGE_PRESETS.A4;
+    if (orientation === 'landscape') {
+        return { width: base.height, minHeight: base.width };
+    }
+    return { width: base.width, minHeight: base.height };
+};
+
+const parseUnitValue = (value) => {
+    if (typeof value !== 'string') return null;
+    const match = value.trim().match(/^(-?\d+(?:\.\d+)?)([a-zA-Z%]*)$/);
+    if (!match) return null;
+    return {
+        numeric: Number.parseFloat(match[1]),
+        unit: match[2] || ''
+    };
+};
+
+const snapUnitToGrid = (value, gridSize) => {
+    const parsed = parseUnitValue(value);
+    if (!parsed || !Number.isFinite(parsed.numeric)) return value;
+    const step = Math.max(1, Number.parseFloat(gridSize) || 1);
+    const snapped = Math.round(parsed.numeric / step) * step;
+    return `${snapped}${parsed.unit}`;
+};
+
 export function PropertiesInspector() {
-    const { findNode, updateNode, duplicateNode, removeNode, docVariables } = useAST();
+    const { findNode, updateNode, duplicateNode, removeNode, docVariables, layoutMeta, updateLayoutMeta } = useAST();
     const { selectedId } = useSelection();
 
     const selectedNode = selectedId ? findNode(selectedId) : null;
     const blockManifest = selectedNode ? blockManifests[selectedNode.type] : null;
 
     if (!selectedNode) {
+        const canvasFields = [
+            { id: 'zoom', label: 'ZOOM', type: 'unit', icon: 'EXPAND', compact: true, defaultUnit: '' },
+            { id: 'unit', label: 'UNIT', type: 'select', icon: 'ALIGN', options: ['mm', 'pt', 'px'], compact: true },
+            { id: 'mediaPreset', label: 'MEDIA', type: 'select', icon: 'LAYOUT', options: ['PRINT', 'SCREEN', 'PRESENTATION'], compact: true },
+            { id: 'gridSize', label: 'GRID', type: 'unit', icon: 'GAP', compact: true, defaultUnit: '' },
+            { id: 'showRulers', label: 'RULERS', type: 'boolean', icon: 'TARGET', compact: true },
+            { id: 'showGuides', label: 'GUIDES', type: 'boolean', icon: 'TARGET', compact: true },
+            { id: 'showGrid', label: 'GRID_ON', type: 'boolean', icon: 'TARGET', compact: true },
+            { id: 'snapToGrid', label: 'SNAP', type: 'boolean', icon: 'TARGET', compact: true }
+        ];
+        const paginationFields = [
+            { id: 'mode', label: 'MODE', type: 'select', icon: 'REPEATER', options: ['hybrid', 'auto', 'manual'], compact: true },
+            { id: 'startAt', label: 'START', type: 'unit', icon: 'TEXT_SIZE', compact: true, defaultUnit: '' },
+            { id: 'showNumbers', label: 'NUMBERS', type: 'boolean', icon: 'TEXT', compact: true },
+            { id: 'autoFlow', label: 'AUTO_FLOW', type: 'boolean', icon: 'TARGET', compact: true }
+        ];
+        const masterFields = [
+            { id: 'mode', label: 'MODE', type: 'select', icon: 'LAYOUT', options: ['global', 'mixed', 'per-page'], compact: true },
+            { id: 'headerEnabled', label: 'HEADER_ON', type: 'boolean', icon: 'TEXT', compact: true },
+            { id: 'footerEnabled', label: 'FOOTER_ON', type: 'boolean', icon: 'TEXT', compact: true },
+            { id: 'allowPerPageOverride', label: 'OVERRIDE', type: 'boolean', icon: 'LINK', compact: true },
+            { id: 'headerTemplate', label: 'HEADER_TXT', type: 'text', icon: 'TEXT', compact: false },
+            { id: 'footerTemplate', label: 'FOOTER_TXT', type: 'text', icon: 'TEXT', compact: false }
+        ];
+
+        const canvasValues = layoutMeta?.canvas || {};
+        const paginationValues = layoutMeta?.pagination || {};
+        const masterValues = layoutMeta?.masters || {};
+
         return (
-            <div className="center fill stack--tight text-hint" style={{ opacity: 0.3, padding: '40px' }}>
-                <IndraIcon name="TARGET" size="32px" />
-                <span className="font-mono" style={{ fontSize: '9px' }}>SELECT_ENTITY_TO_INSPECT</span>
+            <div className="properties-inspector fill stack overflow-hidden">
+                <header className="inspector-header shelf--tight" style={{
+                    padding: '6px 8px',
+                    borderBottom: '1px solid var(--color-border)',
+                    background: 'var(--color-bg-surface)',
+                    flexShrink: 0
+                }}>
+                    <IndraIcon name="TARGET" size="10px" color="var(--color-accent)" />
+                    <div className="stack--none fill">
+                        <span style={{ fontSize: '9px', fontWeight: 'bold', fontFamily: 'var(--font-mono)' }}>
+                            CANVAS_ENGINE
+                        </span>
+                    </div>
+                </header>
+
+                <main className="fill overflow-y-auto">
+                    <EntityInspectorSection
+                        sectionId="CANVAS_GLOBAL"
+                        name="CANVAS_TECHNICAL"
+                        fields={canvasFields}
+                        renderField={(field) => (
+                            <FieldRenderer
+                                field={field}
+                                value={canvasValues[field.id]}
+                                onChange={(val) => updateLayoutMeta({
+                                    canvas: {
+                                        [field.id]: field.id === 'zoom' || field.id === 'gridSize'
+                                            ? Number.parseFloat(val) || 0
+                                            : val
+                                    }
+                                })}
+                            />
+                        )}
+                    />
+
+                    <EntityInspectorSection
+                        sectionId="PAGINATION_GLOBAL"
+                        name="PAGINATION_GLOBAL"
+                        fields={paginationFields}
+                        renderField={(field) => (
+                            <FieldRenderer
+                                field={field}
+                                value={paginationValues[field.id]}
+                                onChange={(val) => updateLayoutMeta({
+                                    pagination: {
+                                        [field.id]: field.id === 'startAt'
+                                            ? Math.max(1, Number.parseInt(val, 10) || 1)
+                                            : val
+                                    }
+                                })}
+                            />
+                        )}
+                    />
+
+                    <EntityInspectorSection
+                        sectionId="MASTERS_GLOBAL"
+                        name="MASTERS_GLOBAL"
+                        fields={masterFields}
+                        renderField={(field) => (
+                            <FieldRenderer
+                                field={field}
+                                value={masterValues[field.id]}
+                                onChange={(val) => updateLayoutMeta({
+                                    masters: {
+                                        [field.id]: val
+                                    }
+                                })}
+                            />
+                        )}
+                    />
+                </main>
             </div>
         );
     }
 
     const isRoot = selectedNode.id === 'root' || selectedNode.type === 'PAGE';
+    const shouldSnapUnits = layoutMeta?.canvas?.snapToGrid === true;
+    const gridSize = layoutMeta?.canvas?.gridSize || 1;
 
     const handleUpdateField = (id, value) => {
+        let nextProps = { ...selectedNode.props, [id]: value };
+
+        // Parametrización determinista de formato de página.
+        if (selectedNode.type === 'PAGE') {
+            if (id === 'preset' || id === 'orientation') {
+                const nextPreset = id === 'preset' ? value : (nextProps.preset || 'A4');
+                const nextOrientation = id === 'orientation' ? value : (nextProps.orientation || 'portrait');
+
+                if (nextPreset !== 'CUSTOM') {
+                    const dims = resolvePageDimensions(nextPreset, nextOrientation);
+                    nextProps = {
+                        ...nextProps,
+                        width: dims.width,
+                        minHeight: dims.minHeight
+                    };
+                }
+            }
+
+            if (id === 'width' || id === 'minHeight') {
+                nextProps = {
+                    ...nextProps,
+                    preset: 'CUSTOM'
+                };
+            }
+        }
+
         updateNode(selectedId, {
-            props: { ...selectedNode.props, [id]: value }
+            props: nextProps
         });
     };
 
@@ -122,7 +279,12 @@ export function PropertiesInspector() {
                                             field={field} 
                                             value={resolvedValue} 
                                             isLinked={isLinked}
-                                            onChange={(val) => handleUpdateField(field.id, val)} 
+                                            onChange={(val) => {
+                                                const snappedValue = field.type === 'unit' && shouldSnapUnits
+                                                    ? snapUnitToGrid(val, gridSize)
+                                                    : val;
+                                                handleUpdateField(field.id, snappedValue);
+                                            }} 
                                         />
                                     </div>
                                     <button 
@@ -206,6 +368,22 @@ function FieldRenderer({ field, value, onChange }) {
                         <option key={opt} value={opt}>{opt.toUpperCase()}</option>
                     ))}
                 </select>
+            );
+
+        case 'boolean':
+            return (
+                <button
+                    type="button"
+                    className={`inspector-field__input ${value ? 'is-boolean-on' : ''}`}
+                    onClick={() => onChange(!value)}
+                    style={{
+                        textAlign: 'left',
+                        fontWeight: 'bold',
+                        color: value ? 'var(--color-accent)' : 'var(--color-text-secondary)'
+                    }}
+                >
+                    {value ? 'ON' : 'OFF'}
+                </button>
             );
 
         default:

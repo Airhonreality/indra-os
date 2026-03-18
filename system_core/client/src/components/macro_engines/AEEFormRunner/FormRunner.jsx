@@ -11,12 +11,15 @@ import { IndraIcon } from '../../utilities/IndraIcons';
 import { DataProjector } from '../../../services/DataProjector';
 import { useLexicon } from '../../../services/lexicon';
 
+import { getComponentForNode } from './ComponentMapper';
+
 /**
  * Componente Recursivo para renderizar nodos del esquema.
  */
 function FormNode({ field, value, onChange, disabled }) {
     const isFrame = field.type === 'FRAME';
     const isRepeater = field.type === 'REPEATER';
+    const t = useLexicon();
 
     // ── RENDERIZADO DE CONTENEDOR (FRAME) ──
     if (isFrame) {
@@ -110,43 +113,15 @@ function FormNode({ field, value, onChange, disabled }) {
         );
     }
 
-    // ── RENDERIZADO DE CAMPO ATÓMICO ──
+    // ── RENDERIZADO DE CAMPO ATÓMICO (MAPPING DINÁMICO) ──
+    const Widget = getComponentForNode(field);
     return (
-        <div className="form-item stack--tight">
-            <label className="util-label" style={{ fontSize: '10px', opacity: 0.7 }}>{field.label}</label>
-
-            {field.type === 'LONG_TEXT' ? (
-                <textarea
-                    className="input-base"
-                    rows="2"
-                    placeholder="..."
-                    value={value || ''}
-                    onChange={(e) => onChange(field.alias, e.target.value)}
-                    disabled={disabled}
-                />
-            ) : field.type === 'SELECT' ? (
-                <select
-                    className="input-base"
-                    value={value || ''}
-                    onChange={(e) => onChange(field.alias, e.target.value)}
-                    disabled={disabled}
-                >
-                    <option value="">...</option>
-                    {field.config?.options?.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                </select>
-            ) : (
-                <input
-                    className="input-base"
-                    type={field.type === 'NUMBER' ? 'number' : field.type === 'DATE' ? 'date' : 'text'}
-                    placeholder="..."
-                    value={value || ''}
-                    onChange={(e) => onChange(field.alias, e.target.value)}
-                    disabled={disabled}
-                />
-            )}
-        </div>
+        <Widget 
+            field={field} 
+            value={value} 
+            onChange={(alias, val) => onChange(alias, val)}
+            disabled={disabled}
+        />
     );
 }
 

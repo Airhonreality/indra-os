@@ -15,14 +15,55 @@ export const blockManifests = {
         icon: 'FILE',
         sections: [
             {
+                id: 'FORMAT',
+                name: 'PAGE_FORMAT',
+                defaultOpen: true,
+                fields: [
+                    { id: 'preset', label: 'PRESET', type: 'select', icon: 'LAYOUT', options: ['A4', 'LETTER', 'SQUARE', 'CUSTOM'], compact: false },
+                    { id: 'orientation', label: 'ORIENT', type: 'select', icon: 'ALIGN', options: ['portrait', 'landscape'], compact: true },
+                    { id: 'width', label: 'WIDTH', type: 'unit', icon: 'WIDTH', compact: true, defaultUnit: 'mm' },
+                    { id: 'minHeight', label: 'HEIGHT', type: 'unit', icon: 'HEIGHT', compact: true, defaultUnit: 'mm' }
+                ]
+            },
+            {
                 id: 'SURFACE',
                 name: 'PAGE_SURFACE',
                 defaultOpen: true,
                 fields: [
                     { id: 'background', label: 'BG', type: 'color', icon: 'PALETTE', compact: true },
-                    { id: 'padding', label: 'PAD', type: 'unit', icon: 'SPACING', compact: true },
+                    { id: 'padding', label: 'PAD', type: 'unit', icon: 'SPACING', compact: true, defaultUnit: 'mm' },
                     { id: 'gap', label: 'GAP', type: 'unit', icon: 'GAP', compact: true },
                     { id: 'direction', label: 'DIR', type: 'select', icon: 'ALIGN', options: ['column', 'row'], compact: true }
+                ]
+            },
+            {
+                id: 'PRINT',
+                name: 'PRINT_GUIDES',
+                defaultOpen: false,
+                fields: [
+                    { id: 'bleed', label: 'BLEED', type: 'unit', icon: 'SPACING', compact: true, defaultUnit: 'mm' },
+                    { id: 'marginTop', label: 'MAR_T', type: 'unit', icon: 'SPACING', compact: true, defaultUnit: 'mm' },
+                    { id: 'marginRight', label: 'MAR_R', type: 'unit', icon: 'SPACING', compact: true, defaultUnit: 'mm' },
+                    { id: 'marginBottom', label: 'MAR_B', type: 'unit', icon: 'SPACING', compact: true, defaultUnit: 'mm' },
+                    { id: 'marginLeft', label: 'MAR_L', type: 'unit', icon: 'SPACING', compact: true, defaultUnit: 'mm' },
+                    { id: 'safeTop', label: 'SAFE_T', type: 'unit', icon: 'SPACING', compact: true, defaultUnit: 'mm' },
+                    { id: 'safeRight', label: 'SAFE_R', type: 'unit', icon: 'SPACING', compact: true, defaultUnit: 'mm' },
+                    { id: 'safeBottom', label: 'SAFE_B', type: 'unit', icon: 'SPACING', compact: true, defaultUnit: 'mm' },
+                    { id: 'safeLeft', label: 'SAFE_L', type: 'unit', icon: 'SPACING', compact: true, defaultUnit: 'mm' },
+                    { id: 'showPrintGuides', label: 'GUIDES', type: 'boolean', icon: 'TARGET', compact: true },
+                    { id: 'showPageNumber', label: 'NUMBER', type: 'boolean', icon: 'TEXT', compact: true }
+                ]
+            },
+            {
+                id: 'PAGINATION',
+                name: 'PAGINATION',
+                defaultOpen: false,
+                fields: [
+                    { id: 'paginationMode', label: 'MODE', type: 'select', icon: 'REPEATER', options: ['hybrid', 'auto', 'manual'], compact: true },
+                    { id: 'pageBreakBefore', label: 'BREAK_B', type: 'boolean', icon: 'ARROW_UP', compact: true },
+                    { id: 'pageBreakAfter', label: 'BREAK_A', type: 'boolean', icon: 'ARROW_DOWN', compact: true },
+                    { id: 'footerTemplate', label: 'FOOTER', type: 'text', icon: 'TEXT', compact: false },
+                    { id: 'headerTemplate', label: 'HEADER', type: 'text', icon: 'TEXT', compact: false }
                 ]
             }
         ]

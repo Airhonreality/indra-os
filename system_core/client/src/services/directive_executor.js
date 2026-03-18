@@ -35,6 +35,7 @@ export async function executeDirective(uqo, coreUrl, password) {
     console.log('%c UQO_DATA: ', 'color: #777;', uqo.data);
     console.log('%c FULL_PAYLOAD: ', 'color: #444;', payload);
 
+    const t0 = Date.now();
     try {
         const response = await fetch(coreUrl, {
             method: 'POST',
@@ -67,6 +68,19 @@ export async function executeDirective(uqo, coreUrl, password) {
             console.groupEnd();
             throw new Error('CONTRACT_VIOLATION: Missing metadata in response');
         }
+
+        const latency_ms = Date.now() - t0;
+        window.dispatchEvent(new CustomEvent('indra-trace', {
+            detail: {
+                traceId,
+                protocol: resolvedProtocol,
+                provider: uqo.provider || 'unknown',
+                timestamp_out: t0,
+                latency_ms,
+                result: result,
+                uqo: uqo
+            }
+        }));
 
         if (result.metadata.status === 'ERROR' || result.metadata.status === 'ERROR_FLOW') {
             console.log('%c CORE_INTERNAL_ERROR: ', 'color: #f44;', result.metadata);

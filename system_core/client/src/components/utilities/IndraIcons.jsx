@@ -18,9 +18,9 @@ export function IndraIcon({ name, size = '1em', color, className = '', style = {
             height={size}
             fill="none"
             stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="square"
-            strokeLinejoin="miter"
+            strokeWidth="var(--indra-icon-stroke, 1.8)"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             className={`indra-icon ${className}`}
             style={{ flexShrink: 0, color: color, ...style }}
         >
@@ -48,8 +48,8 @@ const ICON_MAP = {
     'COPY': <path d="M4 4h9v9H4V4zm-2-2h9v9H2V2z" />,
     'LAYERS': <path d="M2 5l6 3 6-3-6-3-6 3zm0 3l6 3 6-3m-12 3l6 3 6-3" />,
     'DNA': <path d="M4 2c2 2 8 10 8 12M12 2C10 4 4 12 4 14M4 5h8M4 8h8M4 11h8" />,
-    'SYNC': <path d="M1 8a7 7 0 0113-4m1 4a7 7 0 01-13 4m0-4l3-3m10 7l-3 3" />,
-    'LINK': <path d="M6 10l4-4M5 5a2.1 2.1 0 013 3M8 8a2.1 2.1 0 013 3" />,
+    'SYNC': <><path d="M2.5 8a5.5 5.5 0 0 1 8.5-4.5" /><path d="M13.5 8a5.5 5.5 0 0 1-8.5 4.5" /><path d="M10 1l3 3-3 3M6 15l-3-3 3-3" /></>,
+    'LINK': <><path d="M7 7l2 2" /><rect x="2" y="9" width="5" height="5" rx="1" /><rect x="9" y="2" width="5" height="5" rx="1" /></>,
     'DRAG': <><circle cx="6" cy="4" r="1" /><circle cx="10" cy="4" r="1" /><circle cx="6" cy="8" r="1" /><circle cx="10" cy="8" r="1" /><circle cx="6" cy="12" r="1" /><circle cx="10" cy="12" r="1" /></>,
     'EDIT': <path d="M11 2l3 3-9 9-3 1 1-3 9-9z" />,
     'FRAME': <rect x="2" y="2" width="12" height="12" rx="1" />,
@@ -60,7 +60,7 @@ const ICON_MAP = {
     'ERROR': <path d="M8 1v7m0 4v1m7-5a7 7 0 11-14 0 7 7 0 0114 0z" />,
     'LOCK': <><rect x="3" y="7" width="10" height="7" rx="1" /><path d="M5 7V4a3 3 0 016 0v3" /></>,
     'INFO': <><circle cx="8" cy="8" r="7" /><path d="M8 11V7m0-2v.01" /></>,
-    'RELOAD': <path d="M1 8a7 7 0 0113-4m1 4a7 7 0 01-13 4m0-4l3-3m10 7l-3 3" />,
+    'RELOAD': <><path d="M2.5 8a5.5 5.5 0 0 1 8.5-4.5" /><path d="M13.5 8a5.5 5.5 0 0 1-8.5 4.5" /><path d="M10 1l3 3-3 3M6 15l-3-3 3-3" /></>,
     'CALENDAR': <><rect x="2" y="3" width="12" height="11" rx="1" /><path d="M5 2v2M11 2v2M2 7h12" /><circle cx="5" cy="10" r="0.5" /><circle cx="8" cy="10" r="0.5" /><circle cx="11" cy="10" r="0.5" /></>,
 
 
@@ -99,10 +99,11 @@ const ICON_MAP = {
     'PAUSE': <path d="M4 3h3v10H4V3zm5 0h3v10H9V3z" />,
     'TERMINAL': <path d="M2 3l4 5-4 5m4 0h8" />,
     'LOAD': <path d="M8 1a7 7 0 017 7" />,
+    'EJECT': <><path d="M3 10L8 4l5 6" /><path d="M3 13h10" /></>,
 
     // ── HISTORIAL ──
-    'UNDO': <path d="M4 8a5 5 0 015-5h4M4 8L1 5m3 3L1 11m9-3h4" />,
-    'REDO': <path d="M12 8a5 5 0 00-5-5H3m9 0l3-3m-3 3l3 3M3 8H7" />,
+    'UNDO': <><path d="M4 7l-3 3 3 3" /><path d="M1 10h7a4 4 0 0 0 0-8H5" /></>,
+    'REDO': <><path d="M12 7l3 3-3 3" /><path d="M15 10H8a4 4 0 0 1 0-8h3" /></>,
 
     // ── DOCUMENT DESIGNER BLOCK TYPES ──
     'REPEATER': <><rect x="2" y="2" width="12" height="4" rx="1" /><rect x="2" y="8" width="12" height="4" rx="1" /><path d="M8 6v2" strokeDasharray="1 1" /></>,

@@ -25,6 +25,7 @@ import { IndraMacroHeader } from '../utilities/IndraMacroHeader';
 import { useLexicon } from '../../services/lexicon';
 import ArtifactSelector from '../utilities/ArtifactSelector';
 import { useAppState } from '../../state/app_state';
+import { LofiFractalBackground } from '../utilities/LofiFractalBackground';
 
 export function WorkspaceDashboard() {
     const {
@@ -75,7 +76,8 @@ export function WorkspaceDashboard() {
             )}
 
             {/* ── 2. GRID DE ARTEFACTOS (área operativa fractal) ── */}
-            <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+                <LofiFractalBackground />
                 {activeWS && <ArtifactGrid pins={pins} onResonate={() => setIsSelectorOpen(true)} />}
             </div>
 
@@ -101,7 +103,7 @@ function AgentTrigger() {
     return (
         <>
             <button 
-                className="btn-agent-trigger shadow-glow"
+                className="btn-agent-trigger shadow-glow breathing-pulse"
                 onClick={() => setIsOpen(!isOpen)}
                 style={{
                     position: 'fixed',
@@ -116,7 +118,8 @@ function AgentTrigger() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     zIndex: 1100,
-                    transition: 'all 0.3s ease'
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 0 20px var(--color-accent-glow)'
                 }}
             >
                 <IndraIcon name={isOpen ? "CLOSE" : "COGNITIVE"} size="24px" />

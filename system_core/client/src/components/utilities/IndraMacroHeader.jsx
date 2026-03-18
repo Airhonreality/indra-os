@@ -11,7 +11,11 @@ export function IndraMacroHeader({
     onClose,
     onTitleChange,
     isLive = false,
-    rightSlot
+    rightSlot,
+    overrideTitle,
+    overrideMeta,
+    overrideClass,
+    hideExit = false
 }) {
     const t = useLexicon();
     const isSaving = useAppState(s => !!s.pendingSyncs[atom?.id]);
@@ -55,9 +59,10 @@ export function IndraMacroHeader({
     }, [atom?.color]);
 
     const handle = atom?.handle || {};
-    const label = handle.label || t('status_unnamed');
-    const atomClass = atom?.class || 'ATOM';
+    const label = overrideTitle || handle.label || t('status_unnamed');
+    const atomClass = overrideClass || atom?.class || 'ATOM';
     const atomId = atom?.id ? atom.id.substring(0, 20) : '...';
+    const metaText = overrideMeta || (isSaving ? t('status_syncing') : t('status_stable'));
 
     return (
         <>
@@ -93,61 +98,130 @@ export function IndraMacroHeader({
                         <h2 className="macro-header__title-static">{label}</h2>
                     )}
 
-                    <div className="macro-header__meta shelf--tight">
-                        <span className={`macro-header__meta-text ${isSaving ? 'ast-resonance--syncing' : 'ast-resonance--stable'}`}>
-                            {isSaving ? t('status_syncing') : t('status_stable')}
+                    <div className="macro-header__meta shelf--tight" style={{ gap: '12px' }}>
+                        <span className={`macro-header__meta-text ${isSaving ? 'ast-resonance--syncing' : 'ast-resonance--stable'}`} style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '0.05em' }}>
+                            {metaText.toUpperCase()}
                         </span>
-                        <span className="macro-header__meta-sep opacity-30">//</span>
-                        <span className="macro-header__meta-text opacity-40">{atomClass}</span>
-                        <span className="macro-header__meta-sep opacity-30">//</span>
-                        <span className="macro-header__meta-text opacity-30">ID: {atomId}</span>
+                        {!overrideMeta && (
+                            <>
+                                <div style={{ width: '1px', height: '8px', background: 'var(--color-border)', opacity: 0.3 }} />
+                                <span className="macro-header__meta-text opacity-40" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>
+                                    {atomClass}
+                                </span>
+                                <div style={{ width: '1px', height: '8px', background: 'var(--color-border)', opacity: 0.3 }} />
+                                <span className="macro-header__meta-text opacity-30" style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', letterSpacing: '0.15em' }}>
+                                    ID_{atomId}
+                                </span>
+                            </>
+                        )}
                         {isLive && (
                             <span className="macro-header__live-badge">{t('status_live')}</span>
                         )}
                     </div>
                 </div>
-            </div>
 
-            {/* ── LADO B: COMANDOS (Clean & Agnostic) ── */}
+                {/* ── ACTIVE ENGINE TOOLS (Axioma: Proximidad Cognitiva) ── */}
+                {rightSlot && (
+                    <div className="macro-header__engine-tools shelf--tight" style={{ marginLeft: 'var(--space-6)' }}>
+                        {rightSlot}
+                    </div>
+                )}
+            </div>            {/* ── LADO B: COMANDOS (Clean & Agnostic) ── */}
             <div className="macro-header__controls">
                 
-                {/* ── THE MINI HOOD (Global Kinetics) ── */}
-                <div className="macro-header__mini-hood shelf--tight">
+                {/* Global Tray (Originales) - Justified Left in this container */}
+                <div className="macro-header__control-tray shelf--tight" style={{ 
+                    padding: '4px 12px', 
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    marginRight: 'auto' // AXIOMA: Empujar el resto a la derecha
+                }}>
+                    {/* CORE CONNECTIVITY (Link Directo) */}
                     <button 
-                        className="btn btn--ghost btn--mini"
-                        style={{ padding: '0 8px', height: '22px' }}
+                        className={`btn btn--mini ${useAppState.getState().docsTab === 'INSTALACION' && useAppState.getState().isDocsOpen ? 'btn--active-glass' : ''}`}
+                        style={{ 
+                            width: '32px', height: '32px', padding: '0',
+                            color: (useAppState.getState().docsTab === 'INSTALACION' && useAppState.getState().isDocsOpen) ? 'var(--color-accent)' : 'inherit',
+                            filter: (useAppState.getState().docsTab === 'INSTALACION' && useAppState.getState().isDocsOpen) ? 'drop-shadow(0 0 8px var(--color-accent))' : 'none'
+                        }}
+                        onClick={() => useAppState.getState().openDocs('INSTALACION')}
+                        title="Core Connectivity (Conector Maestro)"
+                    >
+                        <IndraIcon name="LINK" size="14px" />
+                    </button>
+
+                    <button 
+                        className="btn btn--mini"
+                        style={{ width: '32px', height: '32px', padding: '0' }}
                         onClick={handleThemeToggle}
                         title={t('ui_theme_selection')}
                     >
-                        <IndraIcon name="EYE" size="10px" />
-                        <span style={{ fontSize: '8px', marginLeft: '4px' }}>{t('ui_theme')}</span>
+                        <IndraIcon name="EYE" size="14px" />
                     </button>
                     
                     <button 
-                        className="btn btn--ghost btn--mini"
-                        style={{ padding: '0 8px', height: '22px' }}
-                        onClick={() => setIsStyleEngineOpen(true)}
+                        className={`btn btn--mini ${useShell().isStyleEngineOpen ? 'btn--active-glass' : ''}`}
+                        style={{ 
+                            width: '32px', height: '32px', padding: '0',
+                            color: useShell().isStyleEngineOpen ? 'var(--color-accent)' : 'inherit',
+                            filter: useShell().isStyleEngineOpen ? 'drop-shadow(0 0 8px var(--color-accent))' : 'none'
+                        }}
+                        onClick={() => setIsStyleEngineOpen(!useShell().isStyleEngineOpen)}
                         title={t('ui_style_engine')}
                     >
-                        <IndraIcon name="LAYERS" size="10px" />
-                        <span style={{ fontSize: '8px', marginLeft: '4px' }}>{t('ui_style_engine')}</span>
+                        <IndraIcon name="LAYERS" size="14px" />
+                    </button>
+
+                    <button 
+                        className={`btn btn--mini ${(useAppState.getState().isDocsOpen && useAppState.getState().docsTab !== 'INSTALACION') ? 'btn--active-glass' : ''}`}
+                        style={{ 
+                            width: '32px', height: '32px', padding: '0',
+                            color: (useAppState.getState().isDocsOpen && useAppState.getState().docsTab !== 'INSTALACION') ? 'var(--color-accent)' : 'inherit',
+                            filter: (useAppState.getState().isDocsOpen && useAppState.getState().docsTab !== 'INSTALACION') ? 'drop-shadow(0 0 8px var(--color-accent))' : 'none'
+                        }}
+                        onClick={() => useAppState.getState().openDocs('BIENVENIDA')}
+                        title="Documentación y Guías"
+                    >
+                        <IndraIcon name="INFO" size="14px" />
+                    </button>
+
+                    <button 
+                        className={`btn btn--mini ${useAppState.getState().isDiagnosticHubOpen ? 'btn--active-glass' : ''}`}
+                        style={{ 
+                            width: '32px', height: '32px', padding: '0',
+                            color: useAppState.getState().isDiagnosticHubOpen ? '#ff00ff' : 'inherit',
+                            filter: useAppState.getState().isDiagnosticHubOpen ? 'drop-shadow(0 0 8px #ff00ff)' : 'none'
+                        }}
+                        onClick={() => useAppState.getState().openDiagnosticHub()}
+                        title="Cabina de Diagnóstico (IDH)"
+                    >
+                        <IndraIcon name="TERMINAL" size="14px" />
                     </button>
                 </div>
-                
-                <div className="macro-header__divider" />
 
-                {rightSlot}
+                {/* divider removed from here */}
 
-                {/* EXIT */}
-                <div className="macro-header__divider" />
-                <IndraActionTrigger
-                    icon="MINUS"
-                    label={t('action_back')}
-                    onClick={onClose}
-                    color="var(--color-text-secondary)"
-                    activeColor="var(--indra-dynamic-accent, var(--color-accent))"
-                    size="13px"
-                />
+                {/* EXIT (Semantic Eject) */}
+                {!hideExit && (
+                    <button 
+                        className="btn btn--mini shadow-hover"
+                        onClick={onClose}
+                        title={t('action_back')}
+                        style={{ 
+                            width: '36px', 
+                            height: '36px', 
+                            borderRadius: '50%', 
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.3s ease',
+                            opacity: 0.6
+                        }}
+                    >
+                        <IndraIcon name="EJECT" size="16px" />
+                    </button>
+                )}
 
             </div>
         </header>

@@ -65,11 +65,12 @@ function WorkflowLayout({ bridge }) {
                 }}
             />
 
-            <div className="indra-container">
-                <div className="indra-header-label">{t('ui_controls')}</div>
+            {/* 1. TOP HOOD: ENGINE FUNCTIONS (FLOATING) */}
+            <div style={{ flexShrink: 0, position: 'relative' }}>
+                <div className="indra-header-label" style={{ position: 'absolute', top: '-10px', left: '20px', background: 'var(--color-bg-void)' }}>{t('ui_controls')}</div>
                 <IndraEngineHood
                     leftSlot={
-                        <div className="engine-hood__capsule" style={{ gap: 0, padding: '1px' }}>
+                        <div className="engine-hood__capsule" style={{ gap: 'var(--space-2)' }}>
                             <button
                                 className={`btn btn--xs ${workflow.payload?.status !== 'LIVE' ? 'active' : ''}`}
                                 onClick={() => {

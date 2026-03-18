@@ -205,11 +205,12 @@
 }
 
 .tripartite-side {
-    flex: 0 0 clamp(240px, 20vw, 320px);
+    flex: 0 0 clamp(var(--triptych-col-side-min), var(--triptych-col-side-ideal), var(--triptych-col-side-max));
     height: 100%;
     display: flex;
     flex-direction: column;
     min-width: 0;
+    overflow: hidden; /* Evita doble scroll, el contenido interno PortManager manejará su scroll */
 }
 
 .indra-layout-tripartite.preview-mode .tripartite-side {
@@ -222,11 +223,42 @@
 }
 
 .tripartite-center {
-    flex: 1;
+    flex: 1; /* Ocupa el espacio central restante (aprox 44%) */
     height: 100%;
     display: flex;
     flex-direction: column;
     min-width: 0;
+    overflow: hidden;
+}
+
+/* --- AXIOMA DE DISTRIBUCIÓN BIPARTITA (50/50 o 40/60) --- */
+.indra-layout-bipartite {
+    display: flex !important;
+    flex-direction: row !important;
+    width: 100% !important;
+    height: 100% !important;
+    gap: var(--indra-ui-gap);
+    align-items: stretch;
+    background: var(--color-bg-void);
+    overflow: hidden;
+}
+
+.bipartite-side {
+    flex: 0 0 38.2%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-width: 320px;
+    overflow: hidden;
+}
+
+.bipartite-main {
+    flex: 1; /* Ocupa el 61.8% restante */
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
 }
 
 /* Utilidad para asegurar que el contenido core ocupe el 100% en móvil */
@@ -465,5 +497,29 @@
 .inspector-field__color-wrapper input[type="text"] {
     border: none !important;
     background: transparent !important;
+}
+
+/* --- SISTEMA GLOBAL DE OVERLAYS (INDUSTRIALIZACIÓN) --- */
+.indra-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4); 
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    backdrop-filter: var(--blur-glass);
+    -webkit-backdrop-filter: var(--blur-glass);
+    animation: fade-in-axis 0.2s ease-out;
+}
+
+@keyframes fade-in-axis {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+[data-theme="light"] .indra-overlay {
+    background: rgba(255, 255, 255, 0.4);
 }
 

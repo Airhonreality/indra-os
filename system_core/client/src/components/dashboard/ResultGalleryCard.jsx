@@ -24,15 +24,17 @@ export function ResultGalleryCard({ atom, onHoverStart, onHoverEnd }) {
 
     return (
         <div 
-            className="result-card stack--tight ripple glass-hover"
+            className="result-card shelf--tight ripple glass-hover"
             style={{
                 background: 'var(--glass-bg)',
-                borderRadius: 'var(--radius-md)',
+                borderRadius: 'var(--indra-ui-radius)',
                 overflow: 'hidden',
                 cursor: 'pointer',
                 transition: 'all var(--transition-base)',
                 border: '1px solid var(--color-border)',
-                position: 'relative'
+                position: 'relative',
+                padding: 'var(--space-2)',
+                minHeight: '54px'
             }}
             onMouseEnter={() => onHoverStart?.(atom.id)}
             onMouseLeave={() => onHoverEnd?.()}
@@ -41,19 +43,19 @@ export function ResultGalleryCard({ atom, onHoverStart, onHoverEnd }) {
             <style>
                 {`
                     .result-card:hover {
-                        border-color: var(--color-accent) !important;
-                        box-shadow: 0 0 15px var(--color-accent-dim);
+                        border-color: var(--color-warm) !important;
+                        background: var(--glass-light);
                     }
                     .result-card .delete-trigger {
                         opacity: 0;
                         transition: opacity 0.2s ease;
                         position: absolute;
-                        top: var(--space-2);
+                        bottom: var(--space-2);
                         right: var(--space-2);
                         z-index: 10;
                     }
                     .result-card:hover .delete-trigger {
-                        opacity: 0.4;
+                        opacity: 0.6;
                     }
                     .result-card .delete-trigger:hover {
                         opacity: 1;
@@ -64,6 +66,7 @@ export function ResultGalleryCard({ atom, onHoverStart, onHoverEnd }) {
 
             <button 
                 className="delete-trigger btn btn--mini"
+                style={{ background: 'transparent', padding: '0', width: '16px', height: '16px' }}
                 onClick={(e) => {
                     e.stopPropagation();
                     setIsDeleting(true);
@@ -83,37 +86,40 @@ export function ResultGalleryCard({ atom, onHoverStart, onHoverEnd }) {
                 onCancel={() => setIsDeleting(false)}
             />
 
-            {/* Cognitive Thumbnail Placeholder */}
+            {/* Compact Indicator */}
             <div style={{ 
-                aspectRatio: '16/9', 
-                background: `linear-gradient(45deg, ${projection.theme.color}22, transparent)`,
+                width: '32px', 
+                height: '32px',
+                borderRadius: '4px',
+                background: `${projection.theme.color}11`,
+                border: `1px solid ${projection.theme.color}33`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                position: 'relative'
+                flexShrink: 0
             }}>
-                <IndraIcon name={projection.theme.icon} size="32px" style={{ opacity: 0.1, color: projection.theme.color }} />
-                <Badge 
-                    label={projection.theme.label || projection.class} 
-                    style={{ position: 'absolute', bottom: 'var(--space-2)', right: 'var(--space-2)', fontSize: '8px' }} 
-                />
+                <IndraIcon name={projection.theme.icon} size="16px" style={{ color: projection.theme.color }} />
             </div>
 
-            <div style={{ padding: 'var(--space-3)' }} className="stack--tight">
-                <div className="stack--2xs">
-                    <h4 style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--color-text-primary)' }}>{projection.title}</h4>
-                    <span style={{ fontSize: '8px', opacity: 0.2, fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>ID_LOGRO: {atom.id.substring(0, 8)}</span>
+            <div style={{ flex: 1, minWidth: 0 }} className="stack--2xs">
+                <div className="spread">
+                    <h4 style={{ 
+                        margin: 0, 
+                        fontSize: '9px', 
+                        fontWeight: '800', 
+                        color: 'var(--color-text-primary)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                    }}>
+                        {projection.title.toUpperCase()}
+                    </h4>
                 </div>
                 
-                <div className="spread" style={{ marginTop: 'var(--space-2)' }}>
-                    <span style={{ fontSize: '8px', opacity: 0.4, fontFamily: 'var(--font-mono)' }}>// {timestamp}</span>
-                    <button 
-                        className="btn btn--mini btn-micro-action" 
-                        style={{ fontSize: '8px', opacity: 0.6, letterSpacing: '0.1em' }}
-                        onClick={(e) => { e.stopPropagation(); /* Logic for harvest/view */ }}
-                    >
-                        {t('action_harvest')?.toUpperCase() || 'COSECHAR'}
-                    </button>
+                <div className="shelf--tight" style={{ opacity: 0.4, fontSize: '8px', fontFamily: 'var(--font-mono)' }}>
+                    <span>// {timestamp}</span>
+                    <span style={{ opacity: 0.5 }}>•</span>
+                    <span style={{ textTransform: 'uppercase' }}>{projection.theme.label || projection.class}</span>
                 </div>
             </div>
         </div>

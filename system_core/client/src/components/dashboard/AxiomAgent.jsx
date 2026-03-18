@@ -131,8 +131,8 @@ export function AxiomAgent({ isOpen, onClose }) {
                 ))}
                 {isThinking && (
                     <div className="agent-msg agent-msg--assistant thinking" style={{ background: 'transparent', border: 'none' }}>
-                        <div className="resonance-pulse"></div>
-                        <span className="text-hint" style={{ fontSize: '11px' }}>
+                        <div className="resonance-pulse breathing-pulse"></div>
+                        <span className="text-hint" style={{ fontSize: '11px', color: 'var(--color-accent)' }}>
                             {messages.find(m => m.role === 'system_thinking')?.content || t('status_thinking')}
                         </span>
                     </div>

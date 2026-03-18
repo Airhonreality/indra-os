@@ -29,29 +29,37 @@ export function IndraEngineHood({
             <div className="engine-hood__section">
                 {/* Standard History Controls in the Hood */}
                 {(onUndo || onRedo) && (
-                    <div className="engine-hood__capsule" style={{ marginRight: 'var(--space-2)' }}>
+                    <div className="engine-hood__capsule shelf--tight" style={{ marginRight: 'var(--space-2)' }}>
                         <button 
-                            className="engine-hood__btn" 
+                            className="btn btn--mini" 
                             onClick={onUndo}
                             disabled={!canUndo} 
-                            style={{ opacity: canUndo ? 1 : 0.3 }}
+                            style={{ 
+                                opacity: canUndo ? 0.7 : 0.1,
+                                width: '32px',
+                                height: '32px'
+                            }}
                             title="UNDO (Ctrl+Z)"
                         >
-                            <IndraIcon name="UNDO" size="10px" color={canUndo ? "white" : "var(--color-text-tertiary)"} />
+                            <IndraIcon name="UNDO" size="12px" color={canUndo ? "var(--color-text-primary)" : "var(--color-text-tertiary)"} />
                         </button>
                         <button 
-                            className="engine-hood__btn" 
+                            className="btn btn--mini" 
                             onClick={onRedo}
                             disabled={!canRedo} 
-                            style={{ opacity: canRedo ? 1 : 0.3 }}
+                            style={{ 
+                                opacity: canRedo ? 0.7 : 0.1,
+                                width: '32px',
+                                height: '32px'
+                            }}
                             title="REDO (Ctrl+Y)"
                         >
-                            <IndraIcon name="REDO" size="10px" color={canRedo ? "white" : "var(--color-text-tertiary)"} />
+                            <IndraIcon name="REDO" size="12px" color={canRedo ? "var(--color-text-primary)" : "var(--color-text-tertiary)"} />
                         </button>
                     </div>
                 )}
                 
-                {onUndo || onRedo ? <div className="engine-hood__divider" /> : null}
+                {onUndo || onRedo ? <div className="engine-hood__divider" style={{height: '20px'}} /> : null}
 
                 {leftSlot}
             </div>

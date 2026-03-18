@@ -63,11 +63,8 @@ export function LayersPanel({ fields, selectedId, onSelect, onAdd, onRemove, onM
     };
 
     return (
-        <aside className="stack" style={{
-            width: '300px',
-            flexShrink: 0,
-            borderRight: '1px solid var(--color-border)',
-            background: 'var(--color-bg-elevated)',
+        <aside className="stack indra-panel-vessel" style={{
+            flex: 1,
             height: '100%',
             overflow: 'hidden',
             display: 'flex',
@@ -208,28 +205,35 @@ function LayerItem({ field, depth = 0, isSelected, canDemote, canPromote, onSele
                     top: 0,
                     bottom: 0,
                     width: '1px',
-                    background: 'var(--color-border)',
-                    opacity: 0.4
+                    background: isSelected ? projection.theme.color : 'var(--color-border)',
+                    opacity: isSelected ? 0.6 : 0.2
                 }} />
             )}
 
             <IndraIcon
                 name={projection.theme.icon}
                 size="14px"
-                style={{ opacity: isSelected ? 1 : 0.4, color: isSelected ? projection.theme.color : 'inherit' }}
+                style={{ 
+                    opacity: isSelected ? 1 : 0.6, 
+                    color: isSelected ? projection.theme.color : (isContainer ? projection.theme.color : 'inherit')
+                }}
             />
 
-            <div className="stack--tight fill">
-                <span style={{
-                    fontSize: '10px',
-                    fontWeight: isSelected ? 'bold' : 'normal',
-                    fontFamily: 'var(--font-mono)',
-                    color: isSelected ? projection.theme.color : 'var(--color-text-primary)',
-                    letterSpacing: '0.02em'
-                }}>
-                    {projection.label?.toUpperCase()}
-                </span>
-                <span style={{ fontSize: '8px', opacity: 0.3, fontFamily: 'var(--font-mono)' }}>{projection.type}</span>
+            <div className="stack--2xs fill">
+                <div className="shelf--tight">
+                    <span style={{
+                        fontSize: '11px',
+                        fontWeight: isSelected ? '800' : (isContainer ? '600' : '400'),
+                        fontFamily: 'var(--font-mono)',
+                        color: isSelected ? projection.theme.color : (isContainer ? 'white' : 'var(--color-text-primary)'),
+                        letterSpacing: '0.02em',
+                        opacity: isSelected ? 1 : (isContainer ? 0.9 : 0.7)
+                    }}>
+                        {projection.label?.toUpperCase()}
+                    </span>
+                    {isContainer && <span className="badge badge--ghost" style={{ fontSize: '7px', opacity: 0.4 }}>{field.type}</span>}
+                </div>
+                {!isContainer && <span style={{ fontSize: '8px', opacity: 0.3, fontFamily: 'var(--font-mono)' }}>{projection.type}</span>}
             </div>
 
             {/* Acciones Rápidas del Contenedor */}

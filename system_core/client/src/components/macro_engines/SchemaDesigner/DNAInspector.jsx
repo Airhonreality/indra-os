@@ -71,8 +71,7 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
 
     return (
         <aside className="stack" style={{
-            width: '320px',
-            flexShrink: 0,
+            width: '100%',
             borderLeft: '1px solid var(--color-border)',
             background: 'var(--color-bg-elevated)',
             height: '100%',
@@ -253,6 +252,28 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
                         onChange={e => updateConfig('placeholder', e.target.value)}
                     />
                 </div>
+
+                {field.type === 'COMPUTED' && (
+                    <div className="stack--tight">
+                        <label className="dna-label" style={{ color: 'var(--color-accent)' }}>Expresión de Cálculo (Fórmula)</label>
+                        <textarea
+                            className="dna-input mono"
+                            value={field.formula_expression || ''}
+                            onChange={e => onUpdate({ ...field, formula_expression: e.target.value })}
+                            placeholder="Ej: precio * cantidad"
+                            style={{ 
+                                height: '80px', 
+                                border: '1px solid var(--color-accent)', 
+                                background: 'rgba(var(--rgb-accent), 0.05)',
+                                resize: 'none'
+                             }}
+                        />
+                        <div className="shelf--tight" style={{ opacity: 0.5, marginTop: '2px' }}>
+                            <IndraIcon name="INFO" size="10px" />
+                            <span style={{ fontSize: '9px' }}>Usa los alias de los otros campos para operar.</span>
+                        </div>
+                    </div>
+                )}
 
                 <div style={{ height: '1px', background: 'var(--color-border)', margin: 'var(--space-2) 0' }}></div>
 

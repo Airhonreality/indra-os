@@ -12,6 +12,11 @@ import { DesignerBridge } from './services/CapabilityBridge';
 import { ToastProvider } from './components/utilities/primitives/ToastNotification';
 import { useAppState } from './state/app_state';
 import { ServiceManager } from './components/shell/ServiceManager/ServiceManager';
+import { DiagnosticHub } from './components/macro_engines/DiagnosticHub';
+import { LandingView } from './components/shell/Landing/LandingView';
+import { NeuralSplitter } from './context/NeuralSplitter';
+import { Spinner } from './components/utilities/primitives/Spinner';
+import { useLexicon } from './services/lexicon';
 
 /**
  * EngineViewport
@@ -67,33 +72,57 @@ function IndraAppContent() {
     
     // Global Infra Manager
     const isServiceManagerOpen = useAppState(s => s.isServiceManagerOpen);
-    const closeServiceManager = useAppState(s => s.closeServiceManager);
+    const isDiagnosticHubOpen = useAppState(s => s.isDiagnosticHubOpen);
+    const closeDiagnosticHub = useAppState(s => s.closeDiagnosticHub);
+
+    const isDocsOpen = useAppState(s => s.isDocsOpen);
 
     useEffect(() => {
         if (isConnected) bootstrap();
     }, [isConnected, bootstrap]);
 
-    // NIVEL 0: Sin conexión al Core
-    if (!isConnected) {
-        return <CoreConnectionView />;
+    // NIVEL -1: Web de INDRA / Documentación (Incluso estando conectado)
+    if (isDocsOpen || !isConnected) {
+        return <LandingView />;
     }
 
     // NIVEL 0.5: Materializando materia (Transición de nivel)
     if (isMaterializing) {
+        const t = useLexicon(lang || 'es');
         return (
             <div className="fill center stack" style={{ background: 'var(--color-bg-void)', color: 'var(--color-accent)' }}>
-                <div className="indra-pulse-loader" />
-                <h2 style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', marginTop: 'var(--space-8)', letterSpacing: '2px', opacity: 0.8 }}>MATERIALIZING_CONTENT...</h2>
+                <Spinner size="120px" variant="rich" label={t('status_materializing')} />
             </div>
         );
     }
+
+    // Helper para renderizar overlays globales
+    const renderOverlays = () => (
+        <>
+            {isServiceManagerOpen && <ServiceManager />}
+            {isDiagnosticHubOpen && (
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 2000 }}>
+                    <div 
+                        style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 2001 }}
+                        onClick={closeDiagnosticHub}
+                    >
+                        <button className="btn btn--danger btn--mini" style={{ padding: '8px' }}>
+                            <IndraIcon name="CLOSE" size="14px" />
+                            <span style={{ marginLeft: '6px', fontSize: '9px' }}>CERRAR_CABINA</span>
+                        </button>
+                    </div>
+                    <DiagnosticHub />
+                </div>
+            )}
+        </>
+    );
 
     // NIVEL 1: Core conectado, sin Workspace seleccionado (NEXUS)
     if (!activeWorkspaceId) {
         return (
             <>
                 <NexusView />
-                {isServiceManagerOpen && <ServiceManager />}
+                {renderOverlays()}
             </>
         );
     }
@@ -111,7 +140,7 @@ function IndraAppContent() {
                     registerSync={registerSync}
                     finishSync={finishSync}
                 />
-                {isServiceManagerOpen && <ServiceManager />}
+                {renderOverlays()}
             </>
         );
     }
@@ -120,19 +149,21 @@ function IndraAppContent() {
     return (
         <>
             <WorkspaceDashboard />
-            {isServiceManagerOpen && <ServiceManager />}
+            {renderOverlays()}
         </>
     );
 }
 
-/**
- * App (Entry Point)
- * Proveedor de servicios transversales (Toast, etc.)
- */
+import { SacredField } from './components/utilities/SacredField';
+
 export default function App() {
     return (
-        <ToastProvider>
-            <IndraAppContent />
-        </ToastProvider>
+        <NeuralSplitter>
+            <ToastProvider>
+                <SacredField>
+                    <IndraAppContent />
+                </SacredField>
+            </ToastProvider>
+        </NeuralSplitter>
     );
 }

@@ -90,3 +90,4 @@ src_structure_report.json
 # - package-lock.json
 # - appsscript.json
 # ============================================
+.aider*

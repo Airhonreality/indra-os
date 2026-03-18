@@ -163,6 +163,18 @@ function _validateInputContract_(uqo) {
       );
     }
   }
+
+  // ── AXIOMA 3: Aduana de Sincronía (Mirror vs Sovereign) ──
+  const WRITE_PROTOCOLS = ['ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 'CALENDAR_BATCH', 'TABULAR_WRITE'];
+  if (WRITE_PROTOCOLS.includes(protocol)) {
+    // Si el UQO trae una instrucción de resonancia en modo Espejo, bloqueamos la escritura física.
+    if (uqo.resonance_mode === 'MIRROR') {
+      throw createError(
+        'SECURITY_VIOLATION',
+        'ADR-008 (LEY_DE_SINCRONIA): El origen está en MODO ESPEJO (Mirror). La escritura está bloqueada para preservar la Verdad del Origen.'
+      );
+    }
+  }
 }
 
 /**

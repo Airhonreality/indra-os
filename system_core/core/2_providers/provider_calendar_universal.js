@@ -312,6 +312,20 @@ function _ucp_nativeEventToAtom(ev, providerId, calendarId) {
   const title    = ev.getTitle() || 'Sin título';
   const start    = ev.getStartTime();
   const end      = ev.getEndTime();
+  const summary  = ev.getDescription() || '';
+
+  // 1. TRADUCCIÓN ONTOLÓGICA (AXIOMA DE INTENCIÓN)
+  const ontology_type = _ucp_projectOntology(title, summary);
+
+  // 2. EXTRACCIÓN DE PARTICIPANTES (ANCLAS DE RED)
+  const guest_nodes = ev.getGuestList().map(guest => ({
+    handle: {
+      ns: 'com.indra.identity',
+      alias: _system_slugify_(guest.getEmail()),
+      label: guest.getEmail()
+    },
+    status: guest.getGuestStatus().toString()
+  }));
 
   return {
     id: `${calendarId}|${nativeId}`,
@@ -327,13 +341,15 @@ function _ucp_nativeEventToAtom(ev, providerId, calendarId) {
     updated_at: end   ? end.toISOString()   : null,
     payload: {
       fields: {
-        summary:     title,
-        description: ev.getDescription() || '',
-        location:    ev.getLocation()    || '',
-        start:       start ? start.toISOString() : null,
-        end:         end   ? end.toISOString()   : null,
-        is_all_day:  ev.isAllDayEvent(),
-        status:      ev.getStatus(),
+        summary:      title,
+        description:  summary,
+        location:     ev.getLocation()    || '',
+        start:        start ? start.toISOString() : null,
+        end:          end   ? end.toISOString()   : null,
+        is_all_day:   ev.isAllDayEvent(),
+        status:       ev.getStatus(),
+        ontology:     ontology_type,
+        participants: guest_nodes,
         source_identity: {
           silo:        'google_native',
           calendar_id: calendarId,
@@ -342,4 +358,28 @@ function _ucp_nativeEventToAtom(ev, providerId, calendarId) {
       }
     }
   };
+}
+
+/**
+ * PROYECTOR DE INTENCIÓN SEMÁNTICA (ONTOLOGÍA)
+ * @param {string} title
+ * @param {string} description
+ * @returns {string} Clasificación axiomática de la actividad.
+ */
+function _ucp_projectOntology(title, description) {
+  const text = `${title} ${description}`.toLowerCase();
+  
+  if (text.includes('venta') || text.includes('pago') || text.includes('cotización') || text.includes('invoices')) {
+    return 'INTENT_COMMERCIAL';
+  }
+  if (text.includes('reunión') || text.includes('sincro') || text.includes('call') || text.includes('meet')) {
+    return 'INTENT_SYNC';
+  }
+  if (text.includes('entrega') || text.includes('hito') || text.includes('milestone') || text.includes('deadline')) {
+    return 'INTENT_MILESTONE';
+  }
+  if (text.includes('descanso') || text.includes('vacaciones') || text.includes('break')) {
+    return 'INTENT_REST';
+  }
+  return 'INTENT_GENERIC';
 }

@@ -16,41 +16,34 @@ export function FieldMapper({ targetId, config = {}, schema, mapping = {}, mappi
     };
 
     return (
-        <div className="stack--tight" style={{
-            marginTop: 'var(--space-2)',
-            padding: 'var(--space-2)',
-            background: 'rgba(0,0,0,0.2)',
-            borderRadius: 'var(--radius-sm)'
-        }}>
-
-            <div className="stack--tight" style={{ paddingBottom: 'var(--space-3)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                <span style={{ fontSize: '8px', opacity: 0.4, fontFamily: 'var(--font-mono)', letterSpacing: '1px' }}>DIRECCIÓN_DE_FLUJO</span>
-                <div className="shelf--tight" style={{ background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '4px' }}>
-                    <div className="badge badge--ghost" style={{ fontSize: '8px' }}>INTENT:</div>
+        <div className="stack--tight" style={{ marginTop: 'var(--space-2)', paddingLeft: 'var(--space-2)' }}>
+            
+            <div className="stack--2xs">
+                <div className="spread">
+                    <span className="text-hint" style={{ fontSize: '7px', opacity: 0.4 }}>FLUJO_INTENT</span>
                     <select
                         value={action}
                         onChange={(e) => onUpdateConfig({ action: e.target.value, match_key: null })}
                         className="select-transparent-accent"
-                        style={{ flex: 1, fontWeight: 'bold' }}
+                        style={{ fontSize: '9px', fontWeight: 'bold' }}
                     >
-                        <option value="APPEND">INSERT (APPEND_ROW)</option>
-                        <option value="UPDATE">MUTATE (UPDATE_ROW)</option>
+                        <option value="APPEND">INSERT</option>
+                        <option value="UPDATE">MUTATE</option>
                     </select>
                 </div>
             </div>
 
             {action === 'UPDATE' && (
-                <div className="stack--tight" style={{ paddingBottom: 'var(--space-3)', borderBottom: '1px solid rgba(255,255,255,0.05)', marginTop: 'var(--space-2)' }}>
-                    <span style={{ fontSize: '8px', opacity: 0.4, fontFamily: 'var(--font-mono)', letterSpacing: '1px' }}>CLAVE_DE_CRUCE</span>
-                    <div className="shelf--tight" style={{ background: 'rgba(255,0,0,0.05)', padding: '4px', borderRadius: '4px', border: '1px solid rgba(255,0,0,0.1)' }}>
-                        <div className="badge badge--danger" style={{ fontSize: '8px' }}>MATCH_PK:</div>
+                <div className="stack--2xs" style={{ marginTop: 'var(--space-1)' }}>
+                    <div className="spread">
+                        <span className="text-hint" style={{ fontSize: '7px', color: 'var(--color-danger)', opacity: 0.6 }}>CLAVE_PRIMARIA</span>
                         <select
                             value={config.match_key || ''}
                             onChange={(e) => onUpdateConfig({ match_key: e.target.value })}
                             className="select-transparent-danger"
-                            style={{ flex: 1, fontWeight: 'bold' }}
+                            style={{ fontSize: '9px', fontWeight: 'bold' }}
                         >
-                            <option value="">-- SELECCIONAR PK --</option>
+                            <option value="">-- PK --</option>
                             {schema.fields.map(f => (
                                 <option key={f.id} value={f.id}>{(f.handle?.label || f.label || f.id).toUpperCase()}</option>
                             ))}
@@ -59,12 +52,9 @@ export function FieldMapper({ targetId, config = {}, schema, mapping = {}, mappi
                 </div>
             )}
 
-            <div className="spread" style={{ paddingBottom: 'var(--space-1)', marginTop: 'var(--space-2)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                <span style={{ fontSize: '8px', opacity: 0.5 }}>TARGET_FIELD_HIERARCHY</span>
-                <span style={{ fontSize: '8px', opacity: 0.5 }}>DATA_SOURCE_MAPPING</span>
-            </div>
+            <div className="indra-blueprint-divider" style={{ margin: 'var(--space-2) 0' }} />
 
-            <div className="stack--tight" style={{ marginTop: 'var(--space-2)' }}>
+            <div className="stack--tight" style={{ overflow: 'visible' }}>
                 {schema.fields.map(field => (
                     <RecursiveMappingItem
                         key={field.id}
@@ -85,37 +75,40 @@ function RecursiveMappingItem({ field, mapping, options, onMapping, level }) {
     const mappedValue = mapping[field.id];
 
     return (
-        <div className="stack--tight" style={{ 
-            padding: '4px 0', 
-            marginLeft: level > 0 ? 'var(--space-3)' : 0,
-            borderLeft: level > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-            paddingLeft: level > 0 ? 'var(--space-2)' : 0
+        <div className="stack--2xs" style={{ 
+            padding: '2px 0', 
+            marginLeft: level > 0 ? 'var(--space-2)' : 0,
+            borderLeft: level > 0 ? '1px solid var(--color-border)' : 'none',
+            paddingLeft: level > 0 ? 'var(--space-2)' : 0,
+            opacity: hasChildren ? 0.4 : 1
         }}>
-            <div className="spread" style={{ marginBottom: hasChildren ? '4px' : 0 }}>
-                <div className="stack--tight">
-                    <span style={{ 
-                        fontSize: level === 0 ? '10px' : '9px', 
-                        fontFamily: 'var(--font-mono)', 
-                        fontWeight: level === 0 ? 'bold' : 'normal',
-                        opacity: hasChildren ? 0.5 : 1
-                    }}>
-                        {field.handle?.label || field.label || field.id}
-                    </span>
-                    {!hasChildren && <span style={{ fontSize: '7px', opacity: 0.3 }}>{field.type}</span>}
-                </div>
+            <div className="spread shelf--tight" style={{ marginBottom: hasChildren ? '2px' : 0 }}>
+                <span style={{ 
+                    fontSize: level === 0 ? '10px' : '9px', 
+                    fontFamily: 'var(--font-mono)', 
+                    fontWeight: level === 0 ? '800' : '500',
+                    textTransform: 'uppercase',
+                    color: mappedValue ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                    letterSpacing: '0.02em'
+                }}>
+                    {field.handle?.label || field.label || field.id}
+                </span>
+                {!hasChildren && <span style={{ fontSize: '7px', opacity: 0.2 }}>{field.type}</span>}
             </div>
 
             {!hasChildren && (
-                <MappingSelect
-                    value={mappedValue}
-                    options={options}
-                    onChange={(val) => onMapping(field.id, val)}
-                    placeholder={`MAP_TO_${field.id.toUpperCase()}...`}
-                />
+                <div style={{ marginTop: '2px' }}>
+                    <MappingSelect
+                        value={mappedValue}
+                        options={options}
+                        onChange={(val) => onMapping(field.id, val)}
+                        placeholder="ORIGEN_DATOS"
+                    />
+                </div>
             )}
 
             {hasChildren && (
-                <div className="stack--tight">
+                <div className="stack--2xs" style={{ marginTop: 'var(--space-1)' }}>
                     {field.children.map(child => (
                         <RecursiveMappingItem
                             key={child.id}

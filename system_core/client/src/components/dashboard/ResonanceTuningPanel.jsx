@@ -12,14 +12,51 @@
 import React, { useState } from 'react';
 import { IndraIcon } from '../utilities/IndraIcons';
 import { IndraActionTrigger } from '../utilities/IndraActionTrigger';
-
+import { useAppState } from '../../state/app_state';
+import { useLexicon } from '../../services/lexicon';
+import { executeDirective } from '../../services/directive_executor';
 export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
-    const [mode, setMode] = useState('MIRROR'); // MIRROR | SOVEREIGN
-    const [frequency, setFrequency] = useState('LATENT'); // LOW | LATENT | VITAL
-    const [mutedFields, setMutedFields] = useState([]);
+    const [mode, setMode] = useState(artifact.resonance_config?.mode || 'MIRROR'); // MIRROR | SOVEREIGN
+    const [frequency, setFrequency] = useState(artifact.resonance_config?.frequency || 'LATENT'); // LOW | LATENT | VITAL
+    const [mutedFields, setMutedFields] = useState(artifact.resonance_config?.mutedFields || []);
+    
+    // ESTADOS DEL NEXO (Quantum Binding)
+    const [targetSchema, setTargetSchema] = useState(null);
+    const [isSelectingSchema, setIsSelectingSchema] = useState(false);
+    const [schemaFields, setSchemaFields] = useState([]);
+    const [suggestedBridge, setSuggestedBridge] = useState(null);
+    const [isCreatingBridge, setIsCreatingBridge] = useState(false);
+
+    const [tuningArtifact, setTuningArtifact] = useState(null);
+    const [previewData, setPreviewData] = useState([]);
+    const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
+    const { pins, coreUrl, sessionSecret, lang } = useAppState();
+    const t = useLexicon(lang);
 
     const fields = artifact.payload?.fields || [];
     const provider = artifact.provider || 'UNKNOWN';
+
+    // AXIOMA DE SINCERIDAD: Cargar datos reales para previsualización inmediata
+    React.useEffect(() => {
+        const fetchPreview = async () => {
+            setIsLoadingPreview(true);
+            try {
+                const result = await executeDirective({
+                    provider: artifact.provider,
+                    protocol: 'TABULAR_STREAM',
+                    context_id: artifact.id,
+                    query: { limit: 5 }
+                }, coreUrl, sessionSecret);
+                setPreviewData(result.items || []);
+            } catch (err) {
+                console.error("[Resonance] Fallo al cargar previsualización:", err);
+            } finally {
+                setIsLoadingPreview(false);
+            }
+        };
+        fetchPreview();
+    }, [artifact, coreUrl, sessionSecret]);
 
     const toggleField = (id) => {
         setMutedFields(prev => 
@@ -27,164 +64,485 @@ export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
         );
     };
 
-    const handleConfirm = () => {
-        const resonantAtom = {
-            ...artifact,
-            origin: 'RESONANT',
-            resonance_config: {
-                mode,
-                frequency,
-                mutedFields
+    const handleSelectSchema = async (schemaPin) => {
+        setIsSelectingSchema(false);
+        try {
+            // Hidratamos el schema para obtener sus campos (REPEATERs/Slots)
+            const result = await executeDirective({
+                provider: 'system',
+                protocol: 'ATOM_READ',
+                context_id: schemaPin.id
+            }, coreUrl, sessionSecret);
+            
+            const fullSchema = result.items?.[0];
+            if (fullSchema) {
+                setTargetSchema(fullSchema);
+                setSchemaFields(fullSchema.payload?.fields || []);
             }
+        } catch (err) {
+            console.error('[Nexus] Failed to load target schema:', err);
+        }
+    };
+
+    const updateMapping = (sourceFieldId, targetFieldId) => {
+        setFieldMappings(prev => ({
+            ...prev,
+            [sourceFieldId]: targetFieldId
+        }));
+    };
+
+    /**
+     * TRADUCTOR DE SINTAXIS: Notion -> INDRA
+     * Convierte prop("Campo") a source.campo_alias para el LogicEngine.
+     */
+    const translateNotionFormula = (formula) => {
+        if (!formula) return null;
+        // Reemplaza prop("Cualquier Cosa") con source.cualquier_cosa
+        return formula.replace(/prop\("([^"]+)"\)/g, (match, fieldName) => {
+            const alias = fieldName.toLowerCase().replace(/\s+/g, '_');
+            return `source.${alias}`;
+        });
+    };
+
+    /**
+     * INDUCCIÓN INTELIGENTE / CARGA REALIDAD:
+     * El punto más alto de la sintonía. Crea automáticamente SCHEMAs y BRIDGEx
+     * basándose en la estructura y la LÓGICA (fórmulas) del origen.
+     */
+    const handleAutoGenerateSchema = async () => {
+        const activeFields = fields.filter(f => !mutedFields.includes(f.id));
+        
+        // 1. Definir Estructura del SCHEMA
+        const suggestedPayload = {
+            fields: activeFields.map(f => ({
+                id: f.id.toLowerCase().replace(/\s+/g, '_'),
+                label: f.label || f.id,
+                type: (f.type === 'NUMBER') ? 'INTEGER' : 
+                      (f.type === 'BOOLEAN') ? 'BOOLEAN' : 
+                      (f.type === 'COMPUTED') ? 'COMPUTED' : 'STRING',
+                is_imported: true,
+                source_id: f.id,
+                // TRADUCCIÓN DE LÓGICA: Sincronizar gramáticas
+                formula_expression: translateNotionFormula(f.formula_expression)
+            })),
+            source_affinity: provider,
+            description: `Esquema inducido desde ${provider} (${artifact.handle?.label})`
         };
-        onConfirm(resonantAtom);
+
+        const newSchemaLabel = `Esquema ${artifact.handle?.label || provider.toUpperCase()}`;
+
+        try {
+            // CRISTALIZACIÓN DEL SCHEMA (Correción del Alambrado UQO)
+            const schemaResp = await executeDirective({
+                provider: 'system',
+                protocol: 'ARTIFACT_CREATE',
+                data: {
+                    class: 'DATA_SCHEMA',
+                    handle: { label: newSchemaLabel },
+                    payload: suggestedPayload
+                }
+            }, coreUrl, sessionSecret);
+
+            const createdSchema = schemaResp.items?.[0];
+            if (createdSchema && createdSchema.id) {
+                setTargetSchema(createdSchema);
+                setSchemaFields(suggestedPayload.fields);
+                
+                // Mapeo automático 1:1 inicial
+                const initialMappings = {};
+                activeFields.forEach(f => {
+                    initialMappings[f.id] = f.id.toLowerCase().replace(/\s+/g, '_');
+                });
+                setFieldMappings(initialMappings);
+
+                // 2. INDUCCIÓN DE BRIDGE (Automatización de Lógica)
+                const hasFormulas = activeFields.some(f => f.formula_expression);
+                if (hasFormulas) {
+                    setSuggestedBridge({
+                        label: `Bridge ${artifact.handle?.label || provider}`,
+                        target_id: createdSchema.id,
+                        formulas: activeFields
+                            .filter(f => f.formula_expression)
+                            .map(f => ({
+                                field: f.id.toLowerCase().replace(/\s+/g, '_'),
+                                expression: translateNotionFormula(f.formula_expression)
+                            }))
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Error en Inducción por Resonancia:", error);
+        }
+    };
+
+    const handleCreateBridge = async () => {
+        setIsCreatingBridge(true);
+        try {
+            const bridgePayload = {
+                target_schema_id: suggestedBridge.target_id,
+                operators: suggestedBridge.formulas.map(f => ({
+                    type: 'COMPUTE',
+                    params: {
+                        formula: f.expression,
+                        target_field: f.field
+                    }
+                }))
+            };
+
+            await executeDirective({
+                provider: 'system',
+                protocol: 'ARTIFACT_CREATE',
+                data: {
+                    class: 'BRIDGE',
+                    handle: { label: suggestedBridge.label },
+                    payload: bridgePayload
+                }
+            }, coreUrl, sessionSecret);
+
+            setSuggestedBridge(null); // Cristalizado
+            // Podríamos disparar un toast o notificación aquí
+        } catch (err) {
+            console.error("[Inducción] Error al crear Bridge:", err);
+        } finally {
+            setIsCreatingBridge(false);
+        }
+    };
+
+    const handleConfirm = () => {
+        const resonance_config = {
+            mode,
+            frequency,
+            muted_fields: mutedFields,
+            nexus_binding: targetSchema ? {
+                target_id: targetSchema.id,
+                target_label: targetSchema.handle?.label || targetSchema.id,
+                mappings: fieldMappings
+            } : null
+        };
+
+        onConfirm(resonance_config);
     };
 
     return (
-        <div className="selector-overlay center" style={{
-            position: 'fixed',
-            top: 0, left: 0,
-            width: '100vw', height: '100vh',
-            background: 'rgba(0,0,0,0.9)',
-            backdropFilter: 'blur(20px)',
-            zIndex: 1100
-        }}>
-            <div className="indra-container stack" style={{
-                width: '600px',
-                maxHeight: '80vh',
-                background: 'var(--color-bg-void)',
-                border: '1px solid var(--indra-dynamic-border)',
-                borderRadius: 'var(--indra-ui-radius)',
-                padding: 'var(--space-6)',
-                boxShadow: '0 0 50px rgba(var(--rgb-accent), 0.1)'
-            }}>
-                {/* HEADER: DISECCIÓN LÓGICA */}
-                <header className="spread" style={{ marginBottom: 'var(--space-6)', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 'var(--space-4)' }}>
-                    <div className="shelf--tight">
-                        <div className="pulse-cyan" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-accent)' }} />
-                        <div className="stack--tight">
-                            <h2 style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', letterSpacing: '2px' }}>
-                                SINTONIZAR_RESPONSABILIDAD
-                            </h2>
-                            <span style={{ fontSize: '9px', opacity: 0.4 }}>
-                                ORIGEN: {provider.toUpperCase()} // ID: {artifact.id.substring(0, 16)}...
-                            </span>
-                        </div>
+        <div className="indra-overlay" onClick={onCancel}>
+            <div className="indra-container glass-chassis stack--loose" style={{
+                width: '100%',
+                maxWidth: '1200px',
+                height: '85vh',
+                padding: 'var(--space-8)'
+            }} onClick={e => e.stopPropagation()}>
+                {/* ── HEADER CLARO Y DIRECTO ── */}
+                <header className="spread" style={{ flexShrink: 0 }}>
+                    <div className="stack--tight">
+                        <h2 style={{ fontSize: '18px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                            Configurar Conexión de Datos
+                        </h2>
+                        <span className="util-label" style={{ opacity: 0.8 }}>
+                            {provider.toUpperCase()} // <span style={{ opacity: 0.7 }}>{artifact.handle?.label || artifact.id}</span>
+                        </span>
                     </div>
-                    <button onClick={onCancel} className="btn-icon">
-                        <IndraIcon name="CLOSE" size="14px" />
+                    <button onClick={onCancel} className="btn btn--mini btn--ghost">
+                        <IndraIcon name="CLOSE" size="20px" />
                     </button>
                 </header>
 
-                <div className="spread fill" style={{ gap: 'var(--space-6)', overflow: 'hidden' }}>
-                    {/* IZQUIERDA: MAPA DE CAMPOS (ADUANA) */}
-                    <div className="stack--tight fill" style={{ overflowY: 'auto', paddingRight: 'var(--space-2)' }}>
-                        <span style={{ fontSize: '8px', opacity: 0.3, fontFamily: 'var(--font-mono)', marginBottom: 'var(--space-2)' }}>FILTRO_DE_INGESTA</span>
-                        {fields.map(f => (
-                            <div key={f.id} 
-                                className={`spread glass-hover ${mutedFields.includes(f.id) ? 'opacity-30' : ''}`}
-                                style={{ 
-                                    padding: 'var(--space-2) var(--space-3)', 
-                                    borderRadius: 'var(--radius-sm)',
-                                    background: 'rgba(255,255,255,0.02)',
-                                    marginBottom: '2px'
-                                }}
-                                onClick={() => toggleField(f.id)}
-                            >
-                                <div className="shelf--tight">
-                                    <IndraIcon name={mutedFields.includes(f.id) ? 'CLOSE' : 'CHECK'} size="10px" color={mutedFields.includes(f.id) ? 'var(--color-danger)' : 'var(--color-accent)'} />
-                                    <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)' }}>{(f.label || f.handle?.label || f.id).toUpperCase()}</span>
+                {/* ── LAYOUT DE DOS COLUMNAS ── */}
+                {/* ── LAYOUT BIPARTITO (INDRA Standard) ── */}
+                <div className="indra-layout-bipartite fill" style={{ background: 'transparent' }}>
+                    
+                    {/* COLUMNA A: SELECCIÓN DE CAMPOS (38.2%) */}
+                    <div className="bipartite-side stack" style={{ minWidth: '340px', background: 'transparent' }}>
+                        <div style={{ marginBottom: 'var(--space-4)', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 'var(--space-2)' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 'bold', opacity: 0.7 }}>1. SELECCIONAR CAMPOS A IMPORTAR</span>
+                        </div>
+                        
+                        <div style={{ overflowY: 'auto', paddingRight: 'var(--space-4)', flex: 1 }} className="stack--tight">
+                            {fields.map(f => (
+                                <div key={f.id} 
+                                    className={`slot-small spread ${mutedFields.includes(f.id) ? 'opacity-30' : ''}`}
+                                    style={{ 
+                                        padding: 'var(--space-3) var(--space-4)', 
+                                        cursor: 'pointer'
+                                    }}
+                                    onClick={() => toggleField(f.id)}
+                                >
+                                    <div className="shelf--loose">
+                                        <div style={{ 
+                                            width: '14px', height: '14px', 
+                                            border: '1px solid var(--color-border)', 
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            background: mutedFields.includes(f.id) ? 'transparent' : 'var(--color-accent)'
+                                        }}>
+                                             {!mutedFields.includes(f.id) && <IndraIcon name="CHECK" size="10px" color="var(--color-bg-void)" />}
+                                        </div>
+                                        <div className="stack--tight">
+                                            <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{f.label || f.id}</span>
+                                            <div className="shelf--tight">
+                                                <span className="util-label">{f.type === 'COMPUTED' ? 'LÓGICA' : f.type}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* MAPEO SI HAY SCHEMA */}
+                                    {targetSchema && !mutedFields.includes(f.id) && (
+                                        <div className="stack--tight" onClick={e => e.stopPropagation()} style={{ width: '45%' }}>
+                                            <select 
+                                                className="util-input--sm"
+                                                style={{ width: '100%', padding: '4px' }}
+                                                value={fieldMappings[f.id] || ''}
+                                                onChange={(e) => updateMapping(f.id, e.target.value)}
+                                            >
+                                                <option value="">(Sin Mapear)</option>
+                                                {schemaFields.map(sf => (
+                                                    <option key={sf.id} value={sf.id}>{sf.label || sf.id}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
                                 </div>
-                                <span style={{ fontSize: '7px', opacity: 0.4 }}>{f.type}</span>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
 
-                    {/* DERECHA: SENTIDO DE LA VERDAD Y FRECUENCIA */}
-                    <div className="stack" style={{ width: '220px', gap: 'var(--space-6)' }}>
-                        {/* MODO DE RESONANCIA */}
-                        <div className="stack--tight">
-                            <span style={{ fontSize: '8px', opacity: 0.3, fontFamily: 'var(--font-mono)' }}>SENTIDO_DE_LA_VERDAD</span>
-                            <div className="stack--tight" style={{ marginTop: 'var(--space-2)' }}>
-                                <button 
-                                    className={`btn btn--xs ${mode === 'MIRROR' ? 'btn--accent' : 'btn--ghost'}`}
-                                    onClick={() => setMode('MIRROR')}
-                                    style={{ justifyContent: 'flex-start', padding: '10px' }}
-                                >
-                                    <div className="stack--tight" style={{ textAlign: 'left' }}>
-                                        <span style={{ fontSize: '10px', fontWeight: 'bold' }}>REFLEJO PASIVO</span>
-                                        <span style={{ fontSize: '7px', opacity: 0.6 }}>Solo lectura. INDRA observa.</span>
-                                    </div>
-                                </button>
-                                <button 
-                                    className={`btn btn--xs ${mode === 'SOVEREIGN' ? 'btn--accent' : 'btn--ghost'}`}
-                                    onClick={() => setMode('SOVEREIGN')}
-                                    style={{ justifyContent: 'flex-start', padding: '10px' }}
-                                >
-                                    <div className="stack--tight" style={{ textAlign: 'left' }}>
-                                        <span style={{ fontSize: '10px', fontWeight: 'bold' }}>COMANDO ACTIVO</span>
-                                        <span style={{ fontSize: '7px', opacity: 0.6 }}>Bidireccional. INDRA muta.</span>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
+                    {/* COLUMNA B: REGLAS DE SINCRONÍA (61.8%) */}
+                    <div className="bipartite-main stack" style={{ minHeight: 0, background: 'transparent' }}>
 
-                        {/* FRECUENCIA DE PRESENCIA */}
-                        <div className="stack--tight">
-                            <span style={{ fontSize: '8px', opacity: 0.3, fontFamily: 'var(--font-mono)' }}>FRECUENCIA_DE_PRESENCIA</span>
-                            <input 
-                                type="range" 
-                                min="0" max="2" step="1"
-                                value={frequency === 'LOW' ? 0 : frequency === 'LATENT' ? 1 : 2}
-                                onChange={(e) => {
-                                    const v = parseInt(e.target.value);
-                                    setFrequency(v === 0 ? 'LOW' : v === 1 ? 'LATENT' : 'VITAL');
-                                }}
-                                style={{ width: '100%', marginTop: 'var(--space-3)' }}
-                            />
-                            <div className="spread" style={{ marginTop: 'var(--space-2)' }}>
-                                <span style={{ fontSize: '7px', opacity: frequency === 'LOW' ? 1 : 0.3 }}>BAJA</span>
-                                <span style={{ fontSize: '7px', opacity: frequency === 'LATENT' ? 1 : 0.3 }}>LATENTE</span>
-                                <span style={{ fontSize: '7px', opacity: frequency === 'VITAL' ? 1 : 0.3 }}>VITAL</span>
+                        {/* ÁREA DE SCROLL PARA CONFIGURACIÓN */}
+                        <div style={{ overflowY: 'auto', paddingRight: 'var(--space-2)', flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
+                            
+                            {/* MODO DE ESCRITURA */}
+                            <div className="stack--tight">
+                                <span style={{ fontSize: '11px', marginBottom: 'var(--space-3)', display: 'block', color: 'var(--color-text-secondary)' }}>Permisos de Escritura</span>
+                                <div className="stack--tight" style={{ gap: 'var(--space-2)' }}>
+                                    <button 
+                                        className={`btn ${mode === 'MIRROR' ? 'btn--accent' : 'btn--ghost'}`}
+                                        onClick={() => setMode('MIRROR')}
+                                        style={{ justifyContent: 'flex-start', padding: 'var(--space-4)', width: '100%', textAlign: 'left', border: mode === 'MIRROR' ? '1px solid var(--color-accent)' : '1px solid rgba(255,255,255,0.1)' }}
+                                    >
+                                        <div className="stack--tight">
+                                            <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Modo Espejo (Mirror)</span>
+                                            <span style={{ fontSize: '9px', opacity: 0.6 }}>INDRA refleja el origen. Permisos de solo lectura.</span>
+                                        </div>
+                                    </button>
+                                    <button 
+                                        className={`btn ${mode === 'SOVEREIGN' ? 'btn--accent' : 'btn--ghost'}`}
+                                        onClick={() => setMode('SOVEREIGN')}
+                                        style={{ justifyContent: 'flex-start', padding: 'var(--space-4)', width: '100%', textAlign: 'left', border: mode === 'SOVEREIGN' ? '1px solid var(--color-accent)' : '1px solid var(--color-border)' }}
+                                    >
+                                        <div className="stack--tight">
+                                            <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Modo Soberano (Sovereign)</span>
+                                            <span style={{ fontSize: '9px', opacity: 0.6 }}>INDRA tiene el control. Permite lectura y escritura.</span>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* FRECUENCIA */}
+                            <div className="stack--tight">
+                                <span className="text-label" style={{ marginBottom: 'var(--space-3)' }}>Frecuencia de Actualización</span>
+                                <div style={{ padding: 'var(--space-2) 0' }}>
+                                    <input 
+                                        type="range" 
+                                        min="0" max="2" step="1"
+                                        value={frequency === 'LOW' ? 0 : frequency === 'LATENT' ? 1 : 2}
+                                        onChange={(e) => {
+                                            const v = parseInt(e.target.value);
+                                            setFrequency(v === 0 ? 'LOW' : v === 1 ? 'LATENT' : 'VITAL');
+                                        }}
+                                        style={{ width: '100%', height: '4px', background: 'var(--color-border)', outline: 'none', cursor: 'pointer', appearance: 'none', borderRadius: '2px' }}
+                                    />
+                                    <div className="spread" style={{ marginTop: 'var(--space-3)', opacity: 0.8 }}>
+                                        <span className="util-label" style={{ color: frequency === 'LOW' ? 'var(--color-accent)' : 'inherit' }}>Baja</span>
+                                        <span className="util-label" style={{ color: frequency === 'LATENT' ? 'var(--color-accent)' : 'inherit' }}>Síncrona</span>
+                                        <span className="util-label" style={{ color: frequency === 'VITAL' ? 'var(--color-accent)' : 'inherit' }}>En tiempo real</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* VINCULO A SCHEMA */}
+                            <div className="stack--tight" style={{ 
+                                padding: 'var(--space-6)', 
+                                border: '1px solid rgba(var(--rgb-accent), 0.2)', 
+                                borderRadius: 'var(--radius-md)',
+                                background: 'rgba(var(--rgb-accent), 0.02)' 
+                            }}>
+                                <span style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: 'var(--space-4)', display: 'block', letterSpacing: '0.05em' }}>Vincular a Esquema INDRA (Schema)</span>
+                                
+                                {!targetSchema ? (
+                                    <div className="stack--tight" style={{ gap: 'var(--space-3)' }}>
+                                        <button 
+                                            className="btn btn--accent" 
+                                            style={{ width: '100%', padding: 'var(--space-4)', border: 'none' }}
+                                            onClick={handleAutoGenerateSchema}
+                                        >
+                                            <div className="shelf--tight">
+                                                <IndraIcon name="MAGIC" size="14px" />
+                                                <span style={{ fontWeight: 900, fontSize: '11px' }}>CONVERTIR DATOS EN ESQUEMA INDRA</span>
+                                            </div>
+                                        </button>
+                                        
+                                        <button 
+                                            className="btn btn--ghost" 
+                                            style={{ width: '100%', padding: 'var(--space-3)', fontSize: '11px', border: '1px solid var(--color-border)' }}
+                                            onClick={() => setIsSelectingSchema(true)}
+                                        >
+                                            <div className="shelf--tight">
+                                                <IndraIcon name="SEARCH" size="14px" />
+                                                <span>Vincular a Esquema Existente</span>
+                                            </div>
+                                        </button>
+                                        
+                                        <span style={{ fontSize: '9px', opacity: 0.4, textAlign: 'center', marginTop: 'var(--space-2)' }}>
+                                            Usa la conversión si no has creado tu estructura en INDRA aún.
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className="stack--tight">
+                                        <div className="spread" style={{ background: 'rgba(var(--rgb-accent), 0.1)', padding: 'var(--space-3)', borderRadius: '4px', border: '1px solid var(--color-accent)' }}>
+                                            <div className="stack--tight">
+                                                <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--color-accent)' }}>{targetSchema.handle?.label || targetSchema.id}</span>
+                                                <span style={{ fontSize: '9px', opacity: 0.6 }}>Esquema Vinculado</span>
+                                            </div>
+                                            <button className="btn-icon" onClick={() => setTargetSchema(null)}>
+                                                <IndraIcon name="CLOSE" size="14px" />
+                                            </button>
+                                        </div>
+                                        
+                                        {/* PROPUESTA DE BRIDGE SI HAY LÓGICA INDUCIDA */}
+                                        {suggestedBridge && (
+                                            <div className="stack--tight" style={{ 
+                                                marginTop: 'var(--space-4)', padding: 'var(--space-4)', 
+                                                background: 'var(--color-bg-void)', border: '1px dashed var(--color-accent)',
+                                                borderRadius: 'var(--radius-sm)'
+                                            }}>
+                                                <div className="shelf--tight" style={{ marginBottom: 'var(--space-2)' }}>
+                                                    <IndraIcon name="MAGIC" size="12px" color="var(--color-accent)" />
+                                                    <span style={{ fontSize: '10px', fontWeight: 'bold' }}>LÓGICA DETECTADA EN ORIGEN</span>
+                                                </div>
+                                                <p style={{ fontSize: '9px', opacity: 0.7, marginBottom: 'var(--space-3)' }}>
+                                                    Se han detectado {suggestedBridge.formulas.length} fórmulas. ¿Deseas crear un BRIDGE operativo para automatizar los cálculos?
+                                                </p>
+                                                <button 
+                                                    className="btn btn--accent" 
+                                                    style={{ width: '100%', fontSize: '10px', padding: 'var(--space-2)' }}
+                                                    onClick={handleCreateBridge}
+                                                    disabled={isCreatingBridge}
+                                                >
+                                                    {isCreatingBridge ? 'CRISTALIZANDO...' : 'SÍ, CREAR BRIDGE OPERATIVO'}
+                                                </button>
+                                            </div>
+                                        )}
+                                        <span style={{ fontSize: '10px', marginTop: 'var(--space-3)', fontStyle: 'italic', opacity: 0.5 }}>
+                                            {Object.keys(fieldMappings).length} campos mapeados en la columna izquierda.
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ── DATA PREVIEW (Sinceridad de Realidad) ── */}
+                            <div className="stack--tight" style={{ marginTop: 'auto', paddingTop: 'var(--space-4)' }}>
+                                <span className="text-label" style={{ marginBottom: 'var(--space-2)' }}>VISTA PREVIA DE MATERIA OSCURA (MUESTRA REAL)</span>
+                                <div className="terminal-inset" style={{ padding: 'var(--space-2)', maxHeight: '140px', overflow: 'hidden' }}>
+                                    {isLoadingPreview ? (
+                                        <div className="center" style={{ padding: 'var(--space-8)', opacity: 0.5, fontSize: '10px', color: 'var(--color-accent)' }}>Escaneando origen...</div>
+                                    ) : (
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', textAlign: 'left', color: 'inherit' }}>
+                                            <thead>
+                                                <tr style={{ borderBottom: '1px solid var(--color-border)', opacity: 0.6 }}>
+                                                    {fields.slice(0, 4).map(f => (
+                                                        <th key={f.id} style={{ padding: '6px', fontWeight: 'bold' }}>{f.label || f.id}</th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {previewData.map((row, idx) => (
+                                                    <tr key={idx} style={{ borderBottom: '1px solid var(--color-border)', background: idx % 2 === 0 ? 'rgba(var(--color-accent-rgb), 0.02)' : 'transparent' }}>
+                                                        {fields.slice(0, 4).map(f => (
+                                                            <td key={f.id} style={{ padding: '6px', opacity: 0.9, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80px' }}>
+                                                                {String(row.payload?.fields?.[f.id] || '')}
+                                                            </td>
+                                                        ))}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* ACCIÓN FINAL */}
-                <footer style={{ marginTop: 'var(--space-8)', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 'var(--space-6)' }}>
+                {/* FOOTER DE GUARDADO */}
+                <footer style={{ marginTop: 'var(--space-8)', flexShrink: 0 }}>
                     <IndraActionTrigger 
-                        label="ESTABLECER VÍNCULO DETERMINISTA"
+                        label="Guardar Configuración y Activar Conexión"
                         onClick={handleConfirm}
                         variant="accent"
                         size="large"
                         fullWidth
                     />
                 </footer>
-            </div>
 
+                {/* MODAL SELECCIÓN SCHEMA */}
+                {isSelectingSchema && (
+                    <div className="center" style={{ 
+                        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
+                        zIndex: 1500, background: 'rgba(0,0,0,0.9)', padding: 'var(--space-4)'
+                    }}>
+                        <div style={{ 
+                            width: '400px', background: 'var(--color-bg-surface)', border: '1px solid var(--color-accent)', 
+                            borderRadius: 'var(--radius-md)', padding: 'var(--space-6)', boxShadow: 'var(--shadow-float)'
+                        }}>
+                            <div className="spread" style={{ marginBottom: 'var(--space-6)' }}>
+                                <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--color-text-primary)' }}>Elegir Esquema INDRA</h3>
+                                <button className="btn-icon" onClick={() => setIsSelectingSchema(false)}>
+                                    <IndraIcon name="CLOSE" size="16px" color="var(--color-text-dim)" />
+                                </button>
+                            </div>
+
+                            <div className="stack--tight" style={{ maxHeight: '300px', overflowY: 'auto', paddingRight: 'var(--space-2)' }}>
+                                {pins.filter(p => p.class === 'DATA_SCHEMA').map(p => (
+                                    <button 
+                                        key={p.id} 
+                                        className="btn btn--ghost spread" 
+                                        style={{ 
+                                            width: '100%', marginBottom: '4px', textAlign: 'left', 
+                                            padding: 'var(--space-3)', border: '1px solid var(--color-border)' 
+                                        }}
+                                        onClick={() => handleSelectSchema(p)}
+                                    >
+                                        <div className="shelf--tight">
+                                            <IndraIcon name="DATA_SCHEMA" size="14px" color="var(--color-warm)" />
+                                            <span style={{ fontSize: '12px', color: 'var(--color-text-primary)' }}>{p.handle?.label || p.id}</span>
+                                        </div>
+                                        <IndraIcon name="CHEVRON_RIGHT" size="12px" color="var(--color-text-tertiary)" />
+                                    </button>
+                                ))}
+                                {pins.filter(p => p.class === 'DATA_SCHEMA').length === 0 && (
+                                    <div className="center" style={{ padding: 'var(--space-8)', opacity: 0.5, textAlign: 'center' }}>
+                                        <span style={{ fontSize: '11px' }}>No hay Schemas anclados en este workspace.</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
             <style>{`
-                .indra-container {
-                    animation: indra-panel-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-                }
-                @keyframes indra-panel-enter {
-                    from { opacity: 0; transform: translateY(20px) scale(0.98); }
-                    to { opacity: 1; transform: translateY(0) scale(1); }
-                }
-                input[type='range'] {
-                    -webkit-appearance: none;
-                    background: rgba(255,255,255,0.1);
-                    height: 2px;
-                    border-radius: 2px;
-                }
-                input[type='range']::-webkit-slider-thumb {
-                    -webkit-appearance: none;
-                    width: 12px;
-                    height: 12px;
-                    background: var(--color-accent);
-                    border-radius: 50%;
-                    cursor: pointer;
-                }
+                .btn { cursor: pointer; border: 1px solid var(--color-border); background: transparent; color: var(--color-text-primary); border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-family: var(--font-sans); }
+                .btn--accent { background: var(--color-accent); color: var(--color-text-inverse); border-color: var(--color-accent); font-weight: bold; }
+                .btn--accent:hover { filter: brightness(1.1); box-shadow: 0 0 15px var(--color-accent-glow); }
+                .btn--ghost:hover { background: var(--color-bg-hover); border-color: var(--color-border-strong); }
+                .opacity-30 { opacity: 0.3; }
+                select { cursor: pointer; outline: none; }
+                select option { background: var(--color-bg-surface); color: var(--color-text-primary); }
+                
+                /* Personalización de Scrollbars para mantener HUD aesthetic */
+                ::-webkit-scrollbar { width: 4px; height: 4px; }
+                ::-webkit-scrollbar-track { background: transparent; }
+                ::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 10px; }
+                ::-webkit-scrollbar-thumb:hover { background: var(--color-accent); }
             `}</style>
         </div>
     );

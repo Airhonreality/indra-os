@@ -6,10 +6,14 @@
  */
 
 import React from 'react';
+import { useAxiomStyles } from '../hooks/useAxiomStyles';
 
 export function TextBlock({ props, onUpdate, isSelected }) {
     const textRef = React.useRef(null);
     const [isFocused, setIsFocused] = React.useState(false);
+    
+    // HIDRATACIÓN SINCERA (The Figma Model)
+    const hydratedProps = useAxiomStyles(props);
 
     React.useEffect(() => {
         if (isSelected && textRef.current && !isFocused) {
@@ -56,16 +60,22 @@ export function TextBlock({ props, onUpdate, isSelected }) {
         overflow: 'visible',
         whiteSpace: 'pre-wrap',
         wordBreak: 'break-word',
-        color: props.color || (props.textPreset ? presetBaseStyle.color : '#000000'),
-        opacity: (props.content || isFocused) ? 1 : 0.3,
-        transition: 'all var(--transition-base)'
+        // AXIOMA DE SINCERIDAD DOCUMENTAL: El contenido del documento no es la UI.
+        // Forzamos un color del contexto honesto a menos que el átomo defina uno.
+        color: hydratedProps.color || 'var(--honest-text)', 
+        opacity: (hydratedProps.content || isFocused) ? 1 : 0.4,
+        transition: 'all var(--transition-base)',
+        // Fuente honesta
+        fontFamily: hydratedProps.fontFamily || 'var(--honest-font-base)',
+        fontSize: hydratedProps.fontSize,
+        fontWeight: hydratedProps.fontWeight,
     };
 
     // ... (renderContent stays same)
 
     // Interpolación: busca {{clave}} y resalta como "píldora"
     const renderContent = () => {
-        const content = props.content || 'TYPE_SOMETHING...';
+        const content = hydratedProps.content || 'TYPE_SOMETHING...';
 
         // Regex para capturar {{cualquier_cosa}}
         const parts = content.split(/(\{\{[^{}]+\}\})/g);
@@ -76,16 +86,7 @@ export function TextBlock({ props, onUpdate, isSelected }) {
                 return (
                     <span
                         key={i}
-                        style={{
-                            background: 'var(--color-accent-dim)',
-                            color: 'var(--color-accent)',
-                            padding: '0 4px',
-                            borderRadius: '3px',
-                            border: '1px solid var(--color-accent-glow)',
-                            fontSize: '0.9em',
-                            fontFamily: 'var(--font-mono)',
-                            margin: '0 2px'
-                        }}
+                        className="slot-pill"
                     >
                         {slotKey}
                     </span>

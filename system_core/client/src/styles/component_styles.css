@@ -9,13 +9,19 @@
     backdrop-filter: var(--blur-glass);
     -webkit-backdrop-filter: var(--blur-glass);
     border: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-float);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15); /* Subtler shadow */
 }
 
 .glass-light {
     background: var(--glass-light);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
+}
+
+.glass-hover:hover {
+    background: var(--color-bg-hover);
+    border-color: var(--color-accent);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 /* ── BOTONES ── */
@@ -106,8 +112,8 @@
 }
 
 .select-transparent-accent option, .select-transparent-danger option {
-    background: var(--color-bg-elevated);
-    color: white;
+    background: var(--color-bg-surface);
+    color: var(--color-text-primary);
 }
 
 /* ── TIPOGRAFÍA UTIL ── */
@@ -220,8 +226,8 @@
 }
 
 .util-input--sm option {
-    background: var(--color-bg-elevated);
-    color: white;
+    background: var(--color-bg-surface);
+    color: var(--color-text-primary);
     padding: 8px;
 }
 
@@ -229,9 +235,9 @@
 .canvas-grid {
     background-color: var(--color-bg-deep);
     background-image:
-        radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-        linear-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+        radial-gradient(var(--color-border) 1px, transparent 1px),
+        linear-gradient(var(--color-border) 0.5px, transparent 0.5px),
+        linear-gradient(90deg, var(--color-border) 0.5px, transparent 0.5px);
     background-size: 20px 20px, 100px 100px, 100px 100px;
 }
 
@@ -246,34 +252,86 @@
 }
 
 .indra-container {
-    border: 1px solid var(--indra-dynamic-border);
-    background-color: var(--color-bg-deep);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg-void);
     position: relative;
-    border-radius: var(--indra-ui-radius);
+    border-radius: var(--radius-sm);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: all var(--transition-base);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .indra-container:hover {
     border-color: var(--indra-dynamic-accent);
-    box-shadow: 0 0 15px var(--indra-dynamic-bg);
+    box-shadow: 0 0 10px var(--indra-dynamic-glow);
 }
 
 .indra-header-label {
-    background-color: var(--indra-dynamic-border);
-    color: var(--indra-dynamic-accent);
+    background-color: transparent;
+    color: var(--color-accent);
     font-family: var(--font-mono);
-    font-size: 8px;
-    padding: 2px 8px;
+    font-size: 7px;
+    padding: 6px 12px;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 3px;
     width: fit-content;
-    border-bottom-right-radius: 4px;
     z-index: 10;
     pointer-events: none;
     line-height: 1;
+    border-bottom: 1px solid var(--color-border-strong);
+    opacity: 0.6;
+}
+
+/* ── AXIOMATIC PANELS (Transversal Design System) ── */
+.indra-panel-vessel {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.indra-blueprint-node {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: var(--space-2);
+}
+
+.indra-blueprint-node:hover {
+    border-color: var(--color-accent);
+    background: var(--color-accent-dim);
+    box-shadow: 0 0 15px var(--color-accent-glow);
+}
+
+.indra-blueprint-node--warning {
+    border-color: var(--color-danger-dim);
+    background: rgba(255, 60, 60, 0.03);
+}
+
+.indra-blueprint-node--warning:hover {
+    border-color: var(--color-danger);
+    box-shadow: 0 0 15px rgba(255, 60, 60, 0.1);
+}
+
+.indra-glass-inset {
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2);
+}
+
+.indra-blueprint-divider {
+    height: 1px;
+    background: linear-gradient(90deg, var(--color-border) 0%, transparent 100%);
+    opacity: 0.2;
+    margin: var(--space-2) 0;
 }
 
 .indra-tab {
@@ -290,4 +348,68 @@
     color: var(--indra-dynamic-accent);
     background-color: var(--indra-dynamic-bg);
     border-bottom-color: var(--indra-dynamic-accent);
+}
+
+/* ── GLASS MINI-CONTROLS ── */
+.btn--mini {
+    padding: 6px; font-size: 10px; min-width: unset;
+    transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+.btn--mini:hover {
+    background: rgba(255,255,255,0.08) !important;
+    transform: translateY(-1px);
+}
+.btn--active-glass {
+    position: relative !important;
+    color: var(--color-accent) !important;
+    filter: drop-shadow(0 0 8px var(--color-accent-glow));
+}
+.btn--active-glass::after {
+    content: ''; position: absolute; bottom: 0px; left: 50%;
+    transform: translateX(-50%); width: 4px; height: 1px;
+    background: var(--color-accent);
+    box-shadow: 0 0 5px var(--color-accent);
+}
+
+/* ── SENSORY AFFORDANCES (INDRA AXIOMATIC) ── */
+
+/* 1. Resonance Glows (Artifact-Specific Feedback) - Optimized with GPU Layers */
+.resonance-glow-bridge:hover, .resonance-glow--agency:hover { 
+    box-shadow: 0 0 20px rgba(0, 245, 212, 0.3); border-color: var(--color-accent) !important; 
+}
+.resonance-glow-schema:hover, .resonance-glow--potency:hover { 
+    box-shadow: 0 0 20px rgba(245, 166, 35, 0.3); border-color: var(--color-warm) !important; 
+}
+.resonance-glow-workflow:hover, .resonance-glow--manifestation:hover { 
+    box-shadow: 0 0 20px rgba(124, 106, 247, 0.3); border-color: var(--color-cold) !important; 
+}
+.resonance-glow-default:hover { 
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.15); border-color: var(--color-border-strong) !important; 
+}
+
+/* 2. Agentic Pulse (Sensing States) - Optimized using Transform/Opacity */
+.breathing-pulse { 
+    position: relative;
+    will-change: transform, opacity;
+    animation: breathing-optimized 4s infinite ease-in-out; 
+}
+
+@keyframes breathing-optimized {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; filter: brightness(1.2); }
+    100% { transform: scale(1); opacity: 0.8; }
+}
+
+/* 3. Glass Chassis (Industrial Container) */
+.glass-chassis {
+    background: var(--glass-bg); backdrop-filter: var(--blur-glass); border: 1px solid var(--color-border);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.05);
+    contain: content; /* Optimización de pintado */
+}
+
+/* 4. Terminal Glow (Cognitive Inset) */
+.terminal-inset {
+    background: var(--color-bg-void); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); font-family: var(--font-mono); font-size: 11px;
+    contain: content;
 }

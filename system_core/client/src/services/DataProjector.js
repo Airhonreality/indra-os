@@ -12,18 +12,25 @@
 import { registry } from './EngineRegistry';
 
 const CLASS_THEMES = {
-    'DATA_SCHEMA': { color: 'var(--color-accent)', icon: 'SCHEMA', label: 'ESQUEMA_DATOS' },
+    // ESTADIO 1: POTENCIA (Materia Prima / Inercia) -> AMBAR
+    'DATA_SCHEMA': { color: 'var(--color-warm)', icon: 'SCHEMA', label: 'ESQUEMA_DATOS' },
+    'FOLDER': { color: 'var(--color-warm)', icon: 'FOLDER', label: 'COLECCIÓN' },
+    'DATABASE': { color: 'var(--color-warm)', icon: 'SCHEMA', label: 'BASE_DATOS' },
+
+    // ESTADIO 2: AGENCIA (Motores / Resonancia) -> CIAN
     'BRIDGE': { color: 'var(--color-accent)', icon: 'BRIDGE', label: 'PUENTE_LÓGICO' },
-    'DOCUMENT': { color: 'var(--color-warm)', icon: 'DOCUMENT', label: 'DOCUMENTO' },
     'WORKFLOW': { color: 'var(--color-accent)', icon: 'WORKFLOW', label: 'FLUJO_PROCESO' },
-    'VIDEO_PROJECT': { color: '#8B5CF6', icon: 'PLAY', label: 'PROYECTO_VIDEO' },
-    'AEE_RUNNER': { color: 'var(--color-success)', icon: 'PLAY', label: 'EJECUTOR_OPERATIVO' },
-    'VIRTUAL_SERVICE': { color: 'var(--color-info)', icon: 'ATOM', label: 'SERVICIO_VIRTUAL' },
-    'FOLDER': { color: 'var(--color-text-tertiary)', icon: 'FOLDER', label: 'COLECCIÓN' },
-    'CALENDAR_HIVE': { color: 'var(--color-accent)', icon: 'CALENDAR', label: 'AGENDA_HIVE' },
-    'CALENDAR_EVENT': { color: 'var(--color-accent)', icon: 'CALENDAR', label: 'EVENTO' },
-    'SERVICE': { color: 'var(--color-info)', icon: 'SERVICE', label: 'SERVICIO' },
-    'DATABASE': { color: 'var(--color-accent)', icon: 'SCHEMA', label: 'BASE_DATOS' }
+    'AEE_RUNNER': { color: 'var(--color-accent)', icon: 'PLAY', label: 'EJECUTOR_OPERATIVO' },
+    'VIRTUAL_SERVICE': { color: 'var(--color-accent)', icon: 'ATOM', label: 'SERVICIO_VIRTUAL' },
+
+    // ESTADIO 3: MATERIALIZACIÓN (Resultados / Teleología) -> PÚRPURA/FRÍO
+    'DOCUMENT': { color: 'var(--color-cold)', icon: 'DOCUMENT', label: 'DOCUMENTO' },
+    'VIDEO_PROJECT': { color: 'var(--color-cold)', icon: 'PLAY', label: 'PROYECTO_VIDEO' },
+    'CALENDAR_HIVE': { color: 'var(--color-cold)', icon: 'CALENDAR', label: 'AGENDA_HIVE' },
+    'CALENDAR_EVENT': { color: 'var(--color-cold)', icon: 'CALENDAR', label: 'EVENTO' },
+    
+    // SISTEMA / SERVICIOS
+    'SERVICE': { color: 'var(--color-success)', icon: 'SERVICE', label: 'SERVICIO' }
 };
 
 
@@ -36,6 +43,7 @@ const FIELD_TYPES = {
     'DATE': { label: 'Fecha', icon: 'SCHEMA', color: 'var(--color-info)' },
     'BOOLEAN': { label: 'Interruptor (Sí/No)', icon: 'SCHEMA', color: 'var(--color-cold)' },
     'RELATION_SELECT': { label: 'Relación (Buscador)', icon: 'BRIDGE', color: 'var(--color-accent)' },
+    'COMPUTED': { label: 'Cálculo / Fórmula', icon: 'MAGIC', color: 'var(--color-accent)' },
     'REPEATER': { label: 'Repetidor (Lista)', icon: 'FRAME', color: 'var(--color-warm)' },
     'FRAME': { label: 'Grupo (Contenedor)', icon: 'FRAME', color: 'var(--color-text-secondary)' }
 };
@@ -83,7 +91,8 @@ export class DataProjector {
             class: atomClass,
 
             // Proyección de Identidad (Sinceridad Radical ADR-008)
-            title: atom.handle?.label || atom.label || atom.id || atom.provider || (isService ? atom.provider_base : null) || 'SIN_NOMBRE',
+            // Se elimina SIN_NOMBRE. Si no hay identidad, hay una DEUDA DE IDENTIDAD que debe ser visible.
+            title: atom.handle?.label || atom.label || atom.id || atom.provider || (isService ? atom.provider_base : null) || '[DEUDA_IDENTIDAD]',
             subtitle: `${atomClass} // ${atom.provider || atom.id || '??'}`,
 
             // Proyeccion Visual

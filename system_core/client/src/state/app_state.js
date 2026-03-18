@@ -30,6 +30,9 @@ export const useAppState = create((set, get) => ({
     
     // Infraestructura & Bóveda
     isServiceManagerOpen: false,
+    isDiagnosticHubOpen: false, 
+    isDocsOpen: false,
+    docsTab: 'BIENVENIDA',
     serviceFilter: null, // 'intelligence', 'storage', null (all)
 
     // ── ACCIONES ──
@@ -87,6 +90,13 @@ export const useAppState = create((set, get) => ({
         serviceFilter: null 
     }),
 
+    openDiagnosticHub: () => set({ isDiagnosticHubOpen: true }),
+    closeDiagnosticHub: () => set({ isDiagnosticHubOpen: false }),
+
+    openDocs: (tab = 'BIENVENIDA') => set({ isDocsOpen: true, docsTab: tab }),
+    closeDocs: () => set({ isDocsOpen: false }),
+    toggleDocs: () => set(s => ({ isDocsOpen: !s.isDocsOpen })),
+
     /**
      * Carga los servicios disponibles (pila de providers).
      */
@@ -100,9 +110,9 @@ export const useAppState = create((set, get) => ({
                 protocol: 'SYSTEM_MANIFEST'
             }, coreUrl, sessionSecret);
             
-            // Proyectar para que la UI (ServiceManager) entienda isReady, label, etc.
-            const projected = (result.items || []).map(svc => DataProjector.projectService(svc));
-            set({ services: projected });
+            // AXIOMA DE SINCERIDAD: Guardamos los ítems tal cual vienen del Núcleo (Materia Prima).
+            // La proyección se realiza en la frontera de cada componente.
+            set({ services: result.items || [] });
             
         } catch (err) {
             console.error('[app_state] Failed to hydrate manifest:', err);

@@ -4,6 +4,7 @@ import { IndraIcon } from './IndraIcons';
 import { useShell } from '../../context/ShellContext';
 import { useAppState } from '../../state/app_state';
 import { TokenDiscovery } from '../../services/TokenDiscovery';
+import { AxiomRegistry } from '../../services/AxiomRegistry';
 import './StyleEngineSidebar.css';
 
 /**
@@ -97,6 +98,7 @@ export function StyleEngineSidebar() {
         
         async function boot() {
             const discovered = await TokenDiscovery.discover();
+            AxiomRegistry.init(discovered);
             setStyleModules(discovered);
             
             const rootStyle = getComputedStyle(document.documentElement);

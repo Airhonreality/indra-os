@@ -89,7 +89,7 @@ export function OperatorCard({ op, onUpdate, onRemove, options }) {
                 padding: 'var(--space-4)',
                 background: 'var(--color-bg-void)',
                 borderRadius: 'var(--radius-sm)',
-                border: '1px solid rgba(255,255,255,0.05)'
+                border: '1px solid var(--color-border)'
             }}>
                 {renderConfig()}
             </div>
@@ -100,7 +100,8 @@ export function OperatorCard({ op, onUpdate, onRemove, options }) {
                 bottom: '-25px',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                opacity: 0.1
+                opacity: 0.2,
+                color: 'var(--color-accent)'
             }}>
                 <IndraIcon name="ARROW_DOWN" size="14px" />
             </div>

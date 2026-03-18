@@ -322,51 +322,51 @@ export function BridgeDesigner({ atom, bridge }) {
 
             {/* ENVOLTURA TOPOLÓGICA DEL MOTOR */}
             <div className="fill stack overflow-hidden" style={{ padding: 'var(--indra-ui-margin)', gap: 'var(--indra-ui-gap)' }}>
-                {/* 1. TOP HOOD: ENGINE FUNCTIONS */}
-                <div className="indra-container" style={{ flexShrink: 0 }}>
-                <div className="indra-header-label">{t('ui_controls')}</div>
-                <IndraEngineHood
-                    onUndo={undo}
-                    onRedo={redo}
-                    canUndo={pointer > 0}
-                    canRedo={pointer < history.length - 1}
-                    leftSlot={
-                        <div className="engine-hood__capsule">
-                            <span className="text-hint font-mono" style={{ fontSize: '8px', opacity: 0.5, margin: '0 var(--space-2)' }}>{t('ui_new_operation')}:</span>
-                            {[
-                                { type: 'MATH', color: 'var(--color-accent)', label: 'MATH' },
-                                { type: 'TEXT', color: 'var(--color-text-primary)', label: 'STRING' },
-                                { type: 'RESOLVER', color: 'var(--color-success)', label: 'VAULT' },
-                                { type: 'EXPRESSION', color: 'var(--color-cold)', label: 'EXPR' }
-                            ].map(op => (
-                                <button 
-                                    key={op.type} 
-                                    className="engine-hood__btn" 
-                                    onClick={() => addOperator(op.type)} 
-                                    style={{ width: 'auto', padding: '0 8px', fontSize: '9px', fontWeight: 'bold', color: op.color }}
-                                >
-                                    {op.label}
-                                </button>
-                            ))}
-                        </div>
-                    }
-                    rightSlot={
-                        <button 
-                            className="btn btn--xs" 
-                            onClick={() => handleManualSave()}
-                            style={{ 
-                                borderRadius: 'var(--indra-ui-radius)', 
-                                padding: '2px 12px', 
-                                backgroundColor: 'var(--indra-dynamic-bg)',
-                                border: '1px solid var(--indra-dynamic-accent)',
-                                color: 'var(--indra-dynamic-accent)'
-                            }}
-                        >
-                            <IndraIcon name="SAVE" size="10px" color="var(--indra-dynamic-accent)" />
-                            <span style={{ marginLeft: "6px" }}>{t('action_save')}</span>
-                        </button>
-                    }
-                />
+                {/* 1. TOP HOOD: ENGINE FUNCTIONS (FLOATING) */}
+                <div style={{ flexShrink: 0, position: 'relative' }}>
+                    <div className="indra-header-label" style={{ position: 'absolute', top: '-10px', left: '20px', background: 'var(--color-bg-void)' }}>{t('ui_controls')}</div>
+                    <IndraEngineHood
+                        onUndo={undo}
+                        onRedo={redo}
+                        canUndo={pointer > 0}
+                        canRedo={pointer < history.length - 1}
+                        leftSlot={
+                            <div className="engine-hood__capsule">
+                                <span className="text-hint font-mono" style={{ fontSize: '8px', opacity: 0.8, margin: '0 var(--space-2)' }}>{t('ui_new_operation')}:</span>
+                                {[
+                                    { type: 'MATH', color: 'var(--color-accent)', label: 'MATH' },
+                                    { type: 'TEXT', color: 'var(--color-text-primary)', label: 'STRING' },
+                                    { type: 'RESOLVER', color: 'var(--color-success)', label: 'VAULT' },
+                                    { type: 'EXPRESSION', color: 'var(--color-cold)', label: 'EXPR' }
+                                ].map(op => (
+                                    <button 
+                                        key={op.type} 
+                                        className="engine-hood__btn" 
+                                        onClick={() => addOperator(op.type)} 
+                                        style={{ width: 'auto', padding: '0 8px', fontSize: '9px', fontWeight: 'bold', color: op.color }}
+                                    >
+                                        {op.label}
+                                    </button>
+                                ))}
+                            </div>
+                        }
+                        rightSlot={
+                            <button 
+                                className="btn btn--xs" 
+                                onClick={() => handleManualSave()}
+                                style={{ 
+                                    borderRadius: 'var(--indra-ui-radius)', 
+                                    padding: '2px 12px', 
+                                    backgroundColor: 'var(--indra-dynamic-bg)',
+                                    border: '1px solid var(--indra-dynamic-accent)',
+                                    color: 'var(--indra-dynamic-accent)'
+                                }}
+                            >
+                                <IndraIcon name="SAVE" size="10px" color="var(--indra-dynamic-accent)" />
+                                <span style={{ marginLeft: "6px" }}>{t('action_save')}</span>
+                            </button>
+                        }
+                    />
                 </div>
                 {/* 2. MAIN WORKSPACE (AXIOM: Body & Footer Shell) */}
                 <div className="fill indra-engine-shell" data-active-tab={activeSlot}>
@@ -379,9 +379,8 @@ export function BridgeDesigner({ atom, bridge }) {
 
                     {/* COLUMNS AXIS (H-AXIS) */}
                     <div className="fill indra-engine-body bridge-designer-workspace indra-layout-tripartite">
-                        {/* SLOT: NAV (INPUT PORTS) */}
-                        <div className="tripartite-side indra-container indra-slot-nav">
-                            <div className="indra-header-label">{t('ui_sources')}</div>
+                        {/* SLOT: NAV (FUENTES DE ENTRADA) */}
+                        <div className="tripartite-side indra-container indra-slot-nav" style={{ height: '100%', overflow: 'hidden' }}>
                             <PortManager
                                 title={t('ui_sources')}
                                 ids={localAtom.payload?.sources || []}
@@ -395,13 +394,15 @@ export function BridgeDesigner({ atom, bridge }) {
                         </div>
 
                         {/* SLOT: CORE (PIPELINE CANVAS) */}
-                        <div className="tripartite-center indra-container fill indra-slot-core">
+                        <div className="tripartite-center indra-container indra-slot-core" style={{ height: '100%', overflow: 'hidden' }}>
                             <div className="indra-header-label">{t('ui_transformation')}</div>
                             <section className="fill stack" style={{ overflowY: 'auto', padding: 'var(--space-4)' }}>
                                 <div className="stack--loose mobile-full-width" style={{ maxWidth: '800px', margin: '0 auto', width: '100%', alignItems: 'stretch' }}>
                                     <div className="stack--loose" style={{ flex: 1 }}>
                                         {isLoading ? (
-                                            <div className="center fill"><Spinner /></div>
+                                            <div className="center fill stack">
+                                                <Spinner size="80px" variant="rich" label={t('status_loading')} />
+                                            </div>
                                         ) : (localAtom.payload?.operators || []).length === 0 ? (
                                             <EmptyState
                                                 icon="BRIDGE"
@@ -439,9 +440,8 @@ export function BridgeDesigner({ atom, bridge }) {
                             </section>
                         </div>
 
-                        {/* SLOT: INSP (TARGET PORTS) */}
-                        <div className="tripartite-side indra-container">
-                            <div className="indra-header-label">{t('ui_targets')}</div>
+                        {/* SLOT: INSP (DESTINOS DE SALIDA) */}
+                        <div className="tripartite-side indra-container indra-slot-target" style={{ height: '100%', overflow: 'hidden' }}>
                             <PortManager
                                 title={t('ui_targets')}
                                 ids={localAtom.payload?.targets || []}

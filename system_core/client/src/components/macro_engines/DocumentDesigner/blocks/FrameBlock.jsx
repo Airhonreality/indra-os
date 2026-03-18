@@ -11,8 +11,8 @@ export function FrameBlock({ props, children }) {
     const style = {
         display: 'flex',
         flexDirection: props.direction || 'column',
-        gap: props.gap || 'var(--space-2)',
-        padding: props.padding || 'var(--space-0)',
+        gap: props.gap || '10px',
+        padding: props.padding || '0px',
         background: props.background || 'transparent',
         // AutoLayout Sizing
         width: props.width === 'fill' ? '100%' : (props.width === 'hug' ? 'fit-content' : props.width),
@@ -41,12 +41,12 @@ export function FrameBlock({ props, children }) {
                     alignItems: 'center',
                     justifyContent: 'center',
                     opacity: 0.1,
-                    border: '1px dashed currentColor',
+                    border: '1px dashed #cccccc',
                     minHeight: '40px',
                     width: '100%',
-                    padding: 'var(--space-2)'
+                    padding: '16px'
                 }}>
-                    <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>+ EMPTY_FRAME</span>
+                    <span style={{ fontSize: '8px', fontFamily: 'monospace', letterSpacing: '0.1em' }}>+ EMPTY_FRAME</span>
                 </div>
             ) : children}
         </div>

@@ -20,11 +20,11 @@ export function MappingSelect({ value, options = [], onChange, placeholder = "SE
                 onChange={(e) => onChange(e.target.value)}
                 style={{
                     width: '100%',
-                    background: 'var(--color-bg-void)',
-                    color: 'var(--color-text-primary)',
-                    border: '1px solid var(--color-border)',
+                    background: 'var(--indra-select-bg)',
+                    color: 'var(--indra-select-text)',
+                    border: '1px solid var(--indra-select-border)',
                     borderRadius: 'var(--radius-sm)',
-                    padding: '4px 28px 4px 8px',
+                    padding: '6px 28px 6px 12px',
                     fontSize: '10px',
                     fontFamily: 'var(--font-mono)',
                     appearance: 'none',
@@ -32,16 +32,15 @@ export function MappingSelect({ value, options = [], onChange, placeholder = "SE
                     cursor: 'pointer',
                     outline: 'none',
                     transition: 'all var(--transition-fast)',
-                    boxShadow: value ? 'inset 0 0 5px var(--color-accent-dim)' : 'none',
-                    borderColor: value ? 'var(--color-accent)' : 'var(--color-border)'
+                    boxShadow: value ? 'inset 0 0 8px var(--color-accent-dim)' : 'none',
+                    fontWeight: value ? '700' : '500'
                 }}
                 className="indra-select-industrial"
             >
-                <option value="" disabled style={{ background: 'var(--color-bg-deep)', color: 'var(--color-text-tertiary)' }}>
+                <option value="" disabled style={{ background: 'var(--color-bg-deep)', color: 'var(--color-text-dim)' }}>
                     -- {placeholder} --
                 </option>
                 
-                {/* Agrupación lógica por tipo */}
                 {['SOURCE', 'OPERATOR'].map(groupType => {
                     const groupOptions = options.filter(opt => opt.type === groupType);
                     if (groupOptions.length === 0) return null;
@@ -50,13 +49,13 @@ export function MappingSelect({ value, options = [], onChange, placeholder = "SE
                         <optgroup 
                             key={groupType} 
                             label={groupType === 'SOURCE' ? 'FUENTES (SCHEMAS)' : 'OPERACIONES (PIPELINE)'}
-                            style={{ background: 'var(--color-bg-deep)', color: 'var(--color-accent)', fontSize: '9px' }}
+                            style={{ background: 'var(--color-bg-void)', color: 'var(--color-accent)', fontWeight: '800' }}
                         >
                             {groupOptions.map(opt => (
                                 <option 
                                     key={opt.value} 
                                     value={opt.value}
-                                    style={{ background: 'var(--color-bg-surface)', color: 'white' }}
+                                    style={{ background: 'var(--indra-select-bg)', color: 'var(--indra-select-text)' }}
                                 >
                                     {opt.label}
                                 </option>

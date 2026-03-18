@@ -367,90 +367,75 @@ export function SchemaDesigner({ atom, bridge }) {
                 isSaving={isSaving}
                 isLive={isLive}
                 onTitleChange={updateLabel}
-            />
-
-            {/* 1. TOP HOOD: ENGINE FUNCTIONS */}
-            <div className="indra-container">
-                <div className="indra-header-label">{t('ui_controls')}</div>
-                <IndraEngineHood
-                    onUndo={undo}
-                    onRedo={redo}
-                    canUndo={historyIndex > 0}
-                    canRedo={historyIndex < history.length - 1}
-                    leftSlot={
-                        <div className="engine-hood__capsule">
-                            <button
-                                className={`engine-hood__btn ${previewMode ? 'engine-hood__btn--active' : ''}`}
-                                onClick={() => setPreviewMode(!previewMode)}
-                                title={previewMode ? t('action_edit') : t('action_preview')}
-                                style={{ width: 'auto', padding: '0 10px', gap: '6px' }}
-                            >
-                                <IndraIcon 
-                                    name={previewMode ? "EDIT" : "EYE"} 
-                                    size="12px" 
-                                    color={previewMode ? "var(--indra-dynamic-accent)" : "var(--color-text-secondary)"} 
-                                />
-                                <span style={{ fontSize: '9px', fontWeight: 'bold' }}>
-                                    {previewMode ? t('action_edit') : t('action_preview')}
-                                </span>
-                            </button>
-                        </div>
-                    }
-                    centerSlot={
-                        <div className="engine-hood__capsule" style={{ gap: 0, padding: '1px' }}>
+                rightSlot={
+                    <div className="shelf--tight" style={{ gap: 'var(--space-2)' }}>
+                        {/* Status Toggles (Industrial Pills) */}
+                        <div className="engine-hood__capsule" style={{ gap: '1px', background: 'var(--color-bg-deep)', padding: '2px', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
                             <button
                                 className={`btn btn--xs ${!isLive ? 'active' : ''}`}
                                 onClick={() => updateStatus('DRAFT')}
                                 style={{ 
-                                    fontSize: '8px', padding: '2px 10px', borderRadius: 'var(--indra-ui-radius)', border: 'none', 
-                                    background: !isLive ? 'var(--indra-dynamic-bg)' : 'transparent', 
-                                    color: !isLive ? 'var(--indra-dynamic-accent)' : 'var(--color-text-secondary)',
-                                    border: !isLive ? '1px solid var(--indra-dynamic-accent)' : 'none'
+                                    fontSize: '8px', padding: '4px 10px', borderRadius: '2px', border: 'none', 
+                                    background: !isLive ? 'var(--indra-dynamic-accent)' : 'transparent', 
+                                    color: !isLive ? 'var(--color-bg-void)' : 'var(--color-text-dim)',
+                                    fontWeight: '900'
                                 }}
-                            >{t('status_draft')}</button>
+                            >BORRADOR</button>
                             <button
                                 className={`btn btn--xs ${isLive ? 'active' : ''}`}
                                 onClick={() => updateStatus('LIVE')}
                                 style={{ 
-                                    fontSize: '8px', padding: '2px 10px', borderRadius: 'var(--indra-ui-radius)', border: 'none', 
-                                    background: isLive ? 'rgba(255, 70, 85, 0.1)' : 'transparent', 
-                                    color: isLive ? '#ff4655' : 'var(--color-text-secondary)',
-                                    border: isLive ? '1px solid #ff4655' : 'none'
+                                    fontSize: '8px', padding: '4px 10px', borderRadius: '2px', border: 'none', 
+                                    background: isLive ? '#ff4655' : 'transparent', 
+                                    color: isLive ? 'white' : 'var(--color-text-dim)',
+                                    fontWeight: '900'
                                 }}
-                            >{t('status_live')}</button>
+                            >PUBLICADO</button>
                         </div>
-                    }
-                    rightSlot={
+
+                        {/* Mode Switch (Edit/Preview) */}
+                        <button
+                            className={`btn btn--xs ${previewMode ? 'btn--accent' : 'btn--ghost'}`}
+                            onClick={() => setPreviewMode(!previewMode)}
+                            title={previewMode ? t('action_edit') : t('action_preview')}
+                            style={{ padding: '0 12px', height: '32px', gap: '8px', borderRadius: 'var(--radius-md)' }}
+                        >
+                            <IndraIcon name={previewMode ? "EDIT" : "EYE"} size="12px" />
+                            <span style={{ fontSize: '9px', fontWeight: '900' }}>{previewMode ? t('action_edit') : t('action_preview')}</span>
+                        </button>
+
+                        <div className="macro-header__divider-block" style={{ width: '1px', height: '16px', background: 'var(--color-border)', opacity: 0.3, margin: '0 4px' }} />
+
+                        {/* Global Save Button */}
                         <button 
-                            className="btn btn--xs" 
+                            className="btn btn--xs btn--accent shadow-hover" 
                             onClick={() => handleManualSave()}
                             style={{ 
-                                borderRadius: 'var(--indra-ui-radius)', 
-                                padding: '2px 12px', 
-                                backgroundColor: 'var(--indra-dynamic-bg)',
+                                height: '32px',
+                                padding: '0 16px',
+                                borderRadius: 'var(--radius-md)',
                                 border: '1px solid var(--indra-dynamic-accent)',
-                                color: 'var(--indra-dynamic-accent)'
+                                boxShadow: '0 0 15px var(--indra-dynamic-glow)'
                             }}
                         >
-                            <IndraIcon name="SAVE" size="10px" color="var(--indra-dynamic-accent)" />
-                            <span style={{ marginLeft: "6px" }}>{t('action_save')}</span>
+                            <IndraIcon name="SAVE" size="12px" />
+                            <span style={{ marginLeft: "8px", fontWeight: '900', fontSize: '9px', letterSpacing: '0.05em' }}>{t('action_save').toUpperCase()}</span>
                         </button>
-                    }
-                />
-            </div>
+                    </div>
+                }
+            />
 
             {/* 2. MAIN CANVAS AREA (ADR-016 Tripartite Slot Model) */}
-            <div className="fill indra-engine-shell sd-shell" data-active-tab={activeSlot}>
+            <div className="fill indra-engine-shell sd-shell" data-active-tab={activeSlot} style={{ height: 'calc(100vh - var(--indra-header-height))' }}>
                 {/* INDUSTRIAL MOBILE TABS */}
                 <nav className="indra-mobile-tabs">
-                    <button className={`btn btn--xs fill ${activeSlot === 'CORE' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setActiveSlot('CORE')}>BLUEPRINT</button>
-                    <button className={`btn btn--xs fill ${activeSlot === 'NAV' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setActiveSlot('NAV')}>LAYERS</button>
-                    <button className={`btn btn--xs fill ${activeSlot === 'INSP' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setActiveSlot('INSP')}>DNA</button>
+                    <button className={`btn btn--xs fill ${activeSlot === 'NAV' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setActiveSlot('NAV')}>ESQUEMA</button>
+                    <button className={`btn btn--xs fill ${activeSlot === 'INSP' ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setActiveSlot('INSP')}>PROPIEDADES</button>
                 </nav>
 
-                <div className={`fill indra-engine-body designer-body indra-layout-tripartite ${previewMode ? 'preview-mode' : ''}`}>
-                    <div className="tripartite-side indra-container indra-slot-nav">
-                        <div className="indra-header-label">{t('ui_layers')}</div>
+                <div className={`fill indra-engine-body designer-body indra-layout-bipartite ${previewMode ? 'preview-mode' : ''}`}>
+                    <div className="bipartite-side indra-container indra-slot-nav">
+                        <div className="indra-header-label">ESTRUCTURA_DATOS</div>
                         <LayersPanel
                             fields={fields}
                             selectedId={selectedFieldId}
@@ -468,17 +453,7 @@ export function SchemaDesigner({ atom, bridge }) {
                         />
                     </div>
 
-                    <div className="tripartite-center indra-container fill indra-slot-core designer-canvas">
-                        <div className="indra-header-label">{t('ui_canvas')}</div>
-                        <BlueprintCanvas
-                            fields={fields}
-                            selectedId={selectedFieldId}
-                            onSelect={(id) => { setSelectedFieldId(id); if (window.innerWidth < 900) setActiveSlot('INSP'); }}
-                            previewMode={previewMode}
-                        />
-                    </div>
-
-                    <div className="tripartite-side indra-container indra-slot-insp">
+                    <div className="bipartite-main indra-container indra-slot-insp">
                         <div className="indra-header-label">{t('ui_properties')}</div>
                         <div className="fill" style={{ overflowY: 'auto' }}>
                             {selectedFieldId ? (

@@ -1,98 +1,83 @@
 # 🌞 Tutorial de Instalación: INDRA OS (Solar Punk Edition)
 
-> **"Mañana es el Día 1 de tu Soberanía Digital."**
-> Este tutorial te guiará para desplegar tu propio Operador de Realidad INDRA en menos de 5 minutos, utilizando infraestructura serverless de costo cero.
+> **"Tu Soberanía Digital comienza con tu propio Núcleo."**
+> Este tutorial te guiará para desplegar tu propio **Core (Backend)** de INDRA en menos de 3 minutos. No necesitas instalar la interfaz; puedes usar la web oficial para conectar con tu infraestructura privada.
 
 ---
 
 ## 🛠️ Requisitos del Sistema
-INDRA está diseñado para ser ligero y soberano. Antes de empezar, asegúrate de tener:
+INDRA es ligero y soberano. Solo necesitas:
 
 1. ✅ **Sistema Operativo:** Windows 10 o 11 (con PowerShell).
-2. ✅ **Cuenta de Google:** (Para el Core/Backend en Apps Script).
-3. ✅ **Cuenta de GitHub:** (Para el hosting del Frontend).
-4. ✅ **Conexión a Internet.**
+2. ✅ **Cuenta de Google:** Donde vivirá tu "Cerebro" (Apps Script y Drive).
+3. ✅ **Conexión a Internet.**
 
-*Nota: No necesitas instalar Node.js, Git o Clasp manualmente; el instalador se encargará de detectar lo que falta y configurarlo por ti.*
+*Nota: El instalador configurará automáticamente las herramientas necesarias (Git, Node.js, Clasp) de forma temporal para realizar el despliegue.*
 
 ---
 
-## 🚀 Paso 1: El Bootstrap (Un Solo Comando)
+## 🚀 Paso 1: El Despliegue del Núcleo (Core)
 
-Abre una terminal de **PowerShell** (no hace falta administrador) y pega el siguiente comando:
+Abre una terminal de **PowerShell** y pega el siguiente comando:
 
 ```powershell
 irm https://raw.githubusercontent.com/Airhonreality/indra-os/main/scripts/bootstrap.ps1 | iex
 ```
 
-### ¿Qué sucederá ahora?
-1. **Detección Automática:** El script verificará si tienes Git. Si no, lo instalará de forma silenciosa.
-2. **Clonación Sincera:** Descargará el núcleo de INDRA en la carpeta que elijas (por defecto `~/INDRA-OS`).
-3. **Ignición del Setup:** Iniciará automáticamente el configurador de primera vez.
+### ¿Qué hará el script por ti?
+1. **Preparación**: Descargará el código del Core en tu equipo.
+2. **Conexión con Google**: Te pedirá iniciar sesión en tu cuenta de Google (esto crea el proyecto en tu Drive).
+3. **Inyección de Código**: Subirá toda la lógica de INDRA a tu Google Apps Script automáticamente.
 
 ---
 
-## 🔐 Paso 2: Autenticación y Despliegue del Core
+## ⚙️ Paso 2: Configuración de la Web App (Manual)
 
-El script te guiará en el proceso de conectar INDRA con tu cuenta de Google:
+Por seguridad, Google requiere que actives la "antena" (Web App) manualmente una sola vez:
 
-1. **Google Login:** Se abrirá tu navegador. Concede los permisos necesarios (Apps Script y Drive). Tu información **nunca** sale de tu cuenta de Google.
-2. **Creación del Proyecto:** INDRA creará un proyecto de Google Apps Script llamado `INDRA-Core` en tu Drive.
-3. **Subida de Código:** El script subirá automáticamente toda la lógica de procesamiento al Core.
-
----
-
-## ⚙️ Paso 3: Configuración Manual (Único Paso Manual)
-
-Por seguridad, Google requiere que el despliegue de la Web App sea manual. Tardarás 30 segundos:
-
-1. El script abrirá el editor de Apps Script en tu navegador.
+1. El script abrirá el **Editor de Google Apps Script** en tu navegador.
 2. Haz clic en el botón azul **Deploy** (arriba a la derecha) → **New deployment**.
 3. Haz clic en el engranaje ⚙️ junto a "Select type" y elige **Web app**.
-4. Configura exactamente así:
+4. Configura así:
+   - **Description:** `INDRA Core`
    - **Execute as:** `Me` (Yo)
    - **Who has access:** `Anyone` (Cualquiera)
 5. Haz clic en **Deploy**.
-6. Si pide "Authorize access", acepta y elige tu cuenta (haz clic en *Advanced* → *Go to INDRA-Core (unsafe)* si aparece el aviso de Google).
-7. **COPIA** la "Web app URL" que termina en `/exec`.
-8. **PEGA** la URL en la terminal de PowerShell cuando el script te lo pida.
+6. Copia la **URL de la Web App** (la que termina en `/exec`).
 
 ---
 
-## 🎨 Paso 4: Manifestación del Frontend
+## 🎨 Paso 3: Conexión al Frontend Oficial
 
-Una vez configurado el Core:
-1. El script compilará el Frontend (la interfaz elegante que ves en las presentaciones).
-2. Te pedirá autenticarte con **GitHub**.
-3. Creará un repositorio privado/público en tu cuenta y subirá el código.
-4. Activará **GitHub Pages** para que tengas una URL pública (ej: `tu-usuario.github.io/indra-os`).
+¡Ya tienes tu infraestructura! Ahora solo necesitas la "lente" para verla:
 
----
-
-## ✅ Confirmación de Sistema (Dharma Check)
-
-He verificado los componentes de este repositorio y confirmo que la instalación es **completamente posible** bajo las siguientes condiciones:
-
-| Componente | Estado | Nota |
-|------------|--------|------|
-| **Bootstrap Script** | 🟢 Listo | `scripts/bootstrap.ps1` configurado para `Airhonreality/indra-os`. |
-| **Setup Script** | 🟢 Actualizado | Rutas corregidas para la estructura `system_core/core` y `system_core/client`. |
-| **Backend (Core)** | 🟢 Funcional | Código GAS listo para ser inyectado vía Clasp. |
-| **Frontend (UI)** | 🟢 Compilable | Configuración de Vite preparada para despliegue en GitHub Pages. |
+1. Entra a la web oficial de INDRA: `[URL_DE_TU_GITHUB_PAGES]`
+2. Ve a la pestaña **INSTALACIÓN** o haz clic en **CONECTAR CORE**.
+3. Pega la **URL de la Web App** que copiaste en el paso anterior.
+4. Define una contraseña (Access Secret) si el script te la proporcionó.
+5. **¡Listo!** Ya estás dentro de tu propio sistema operativo soberano.
 
 ---
 
-## 🔄 Manteniendo la Soberanía
+## ✅ ¿Por qué este modelo "One Front"?
 
-Para actualizar INDRA a la última versión en el futuro, no necesitas reinstalar. Simplemente entra en tu carpeta de instalación y ejecuta:
+| Ventaja | Descripción |
+|---------|-------------|
+| **Actualizaciones Relámpago** | Cuando yo mejoro la interfaz, se actualiza para todos instantáneamente. |
+| **Soberanía de Datos** | Aunque uses mi web, los datos viajan de tu PC a tu Drive. Yo no veo nada. |
+| **Cero Mantenimiento** | No tienes que preocuparte por servidores, hosting o certificados SSL. |
+
+---
+
+## 🔄 Cómo actualizar tu Núcleo (Core)
+Si en el futuro hay mejoras en la lógica del motor, simplemente vuelve a tu carpeta de instalación local (ej: `~/INDRA-OS`) y ejecuta:
 
 ```powershell
-.\scripts\update.ps1
+.\scripts\update-backend.ps1
 ```
 
-Esto descargará las mejoras, actualizará tu Core en Google y redesplegará tu UI en GitHub automáticamente.
+Esto inyectará las últimas funciones en tu Google Apps Script sin borrar tus datos.
 
 ---
-**Versión:** 3.0.0 (Solar Punk)  
-**Soporte:** [Abre un issue en GitHub](https://github.com/Airhonreality/indra-os/issues)  
+**Versión:** 4.0.0 (Solar Punk - One Front Model)  
 ⚡🌞 **¡La red es tuya!** 🌞⚡

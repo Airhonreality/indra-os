@@ -9,6 +9,8 @@ import { DataProjector } from '../../services/DataProjector';
 import { useAppState } from '../../state/app_state';
 import './NexusView.css';
 
+import { IndraMacroHeader } from '../utilities/IndraMacroHeader';
+
 /**
  * NexusView (Nivel 1)
  * Centro de navegación asimétrico: Status sistémico + Selector de Workspaces.
@@ -17,6 +19,13 @@ export function NexusView() {
     const { coreUrl } = useProtocol();
     const { lang } = useShell();
     const openServiceManager = useAppState(s => s.openServiceManager);
+    
+    // Virtual Atom para el Header Canónico
+    const nexusAtom = {
+        id: 'nexus',
+        class: 'WORKSPACE',
+        handle: { label: 'CONTROL_NEXUS' }
+    };
     const {
         workspaces,
         services,
@@ -42,24 +51,16 @@ export function NexusView() {
         <div className="fill stack nexus-view">
 
             {/* ── HEADER DE NAVEGACIÓN ── */}
-            <div className="spread nexus-header">
-                <div className="shelf--loose">
-                    <div className="nexus-logo">
-                        <IndraIcon name="WORKSPACE" size="32px" style={{ color: 'var(--color-accent)', filter: 'drop-shadow(0 0 8px var(--color-accent-dim))' }} />
-                        <div className="nexus-logo__accent"></div>
-                    </div>
-                    <div className="stack--tight">
-                        <h2 className="nexus-title">{t('hud_nexus_control')}</h2>
-                        <span className="text-hint" style={{ opacity: 0.5 }}>{t('id_core')}: {coreUrl?.split('/').slice(-1)[0].substring(0, 12)}...</span>
-                    </div>
-                </div>
-                <div className="shelf">
-                    <button className="btn btn--ghost" onClick={() => hydrateManifest()}>
-                        <IndraIcon name="SYNC" />
-                        {t('action_refresh')}
+            {/* ── HEADER CANÓNICO INDRA ── */}
+            <IndraMacroHeader 
+                atom={nexusAtom}
+                rightSlot={
+                    <button className="btn btn--ghost btn--mini" onClick={() => hydrateManifest()}>
+                        <IndraIcon name="SYNC" size="12px" />
+                        <span style={{ marginLeft: '6px', fontSize: '9px' }}>{t('action_refresh')}</span>
                     </button>
-                </div>
-            </div>
+                }
+            />
 
             {/* ── LAYOUT ASIMÉTRICO (Grid Split) ── */}
             <div className="grid-split fill" style={{ gridTemplateColumns: '220px 1fr' }}>
@@ -78,9 +79,10 @@ export function NexusView() {
                                 <div key={svc.id} className="shelf service-status-row">
                                     <span className="text-hint" style={{ color: 'white', opacity: 0.7 }}>{svc.label}</span>
                                     <div className="shelf--tight">
-                                        <div className="service-dot" style={{
-                                            background: svc.isReady ? 'var(--color-accent)' : 'var(--color-warm)',
-                                            boxShadow: svc.isReady ? '0 0 5px var(--color-accent)' : '0 0 5px var(--color-warm)'
+                                        <div className="service-dot breathing-pulse" style={{
+                                            background: svc.isReady ? 'var(--color-success)' : 'var(--color-warm)',
+                                            boxShadow: svc.isReady ? '0 0 10px var(--color-success)' : '0 0 10px var(--color-warm)',
+                                            opacity: svc.isReady ? 1 : 0.6
                                         }}></div>
                                         <span className="text-hint" style={{ fontSize: '8px', opacity: 0.5 }}>
                                             {t(svc.statusLabel.toLowerCase())}
@@ -104,7 +106,7 @@ export function NexusView() {
                     {/* Metadata de Sistema */}
                     <div className="stack--tight">
                         <label className="text-label opacity-60">02 // {t('hud_system_log')}</label>
-                        <div className="system-log-area">
+                        <div className="system-log-area terminal-inset" style={{ padding: 'var(--space-3)', height: '100px', overflowY: 'auto', fontSize: '10px', color: 'var(--color-accent)', opacity: 0.8 }}>
                             {`[ ${new Date().toLocaleTimeString()} ] SESSION_RESTORED`}<br />
                             {`[ ${new Date().toLocaleTimeString()} ] MANIFEST_SYNC_OK`}<br />
                             {`[ ${new Date().toLocaleTimeString()} ] IDLE_WATCHDOG_ACTIVE`}
@@ -125,8 +127,9 @@ export function NexusView() {
                         {projectedWorkspaces.map(ws => (
                             <div
                                 key={ws.id}
-                                className="ws-card glass stack"
+                                className="ws-card glass resonance-glow--agency stack"
                                 onClick={() => setActiveWorkspace(ws.id)}
+                                style={{ transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
                             >
                                 {/* Decoración HUD: Esquinas */}
                                 <div className="ws-card__deco-tl"></div>

@@ -20,12 +20,7 @@ import { useAppState } from '../../../state/app_state';
 
 export function PortManager({ title, ids, schemas, configs = {}, mappings = {}, mappingOptions = [], onAdd, onRemove, onUpdateMapping, onUpdateConfig, type = 'SOURCE' }) {
     return (
-        <aside className="stack" style={{
-            width: '100%',
-            background: 'var(--color-bg-elevated)',
-            height: '100%',
-            overflow: 'hidden'
-        }}>
+        <aside className="indra-panel-vessel">
             {/* Header del Puerto (Micro-HUD) */}
             <IndraMicroHeader
                 label={type === 'SOURCE' ? 'FUENTES DE ENTRADA' : 'DESTINOS DE SALIDA'}
@@ -53,7 +48,7 @@ export function PortManager({ title, ids, schemas, configs = {}, mappings = {}, 
                 ))}
 
                 {ids.length === 0 && (
-                    <div className="center fill stack" style={{ padding: 'var(--space-4)', opacity: 0.1 }}>
+                    <div className="center fill stack" style={{ padding: 'var(--space-4)', opacity: 0.2 }}>
                         <IndraIcon name={type === 'SOURCE' ? 'LOGIC' : 'TARGET'} size="32px" />
                         <span style={{ fontSize: '10px', marginTop: 'var(--space-2)' }}>SIN {type === 'SOURCE' ? 'ENTRADAS' : 'SALIDAS'} CONECTADAS</span>
                     </div>
@@ -91,12 +86,7 @@ function PortCard({ id, schema, mapping, mappingOptions = [], config, onRemove, 
     };
 
     return (
-        <div className="stack--tight glass" style={{
-            padding: 'var(--space-3) var(--space-4)',
-            borderRadius: 'var(--radius-md)',
-            border: isBroken ? '1px solid var(--color-danger)' : '1px solid var(--color-border)',
-            marginBottom: 'var(--space-2)'
-        }}>
+        <div className={`indra-blueprint-node ${isBroken ? 'indra-blueprint-node--warning' : ''}`}>
             <div className="spread">
                 <div
                     className="shelf--tight fill clickable"
@@ -133,13 +123,13 @@ function PortCard({ id, schema, mapping, mappingOptions = [], config, onRemove, 
                                     whiteSpace: 'nowrap',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
-                                    color: isBroken ? 'var(--color-danger)' : 'white'
+                                    color: isBroken ? 'var(--color-danger)' : 'var(--color-text-primary)'
                                 }}
                             >
                                 {alias}
                             </span>
                         )}
-                        <span style={{ fontSize: '7px', opacity: 0.4, whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: '7px', opacity: 0.6, whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>
                             {isBroken ? 'VÍNCULO ROTO' : `ESQUEMA // ${id.substring(0, 16)}`}
                         </span>
                     </div>
@@ -157,7 +147,7 @@ function PortCard({ id, schema, mapping, mappingOptions = [], config, onRemove, 
                 <div style={{
                     marginTop: 'var(--space-2)',
                     paddingTop: 'var(--space-2)',
-                    borderTop: '1px solid rgba(255,255,255,0.05)',
+                    borderTop: '1px solid var(--color-border)',
                     paddingLeft: 'var(--space-4)'
                 }}>
                     {!schema ? (
@@ -212,11 +202,11 @@ function RecursiveFieldItem({ field, schemaId, alias, activeFields, toggleField,
             <div
                 className="spread glass-hover"
                 style={{
-                    opacity: isActive ? 1 : 0.4,
+                    opacity: isActive ? 1 : 0.5,
                     cursor: 'pointer',
                     padding: '6px',
                     borderRadius: '4px',
-                    borderLeft: hasChildren ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                    borderLeft: hasChildren ? '1px solid var(--color-border)' : 'none',
                     background: 'transparent',
                     border: '1px solid transparent',
                     transition: 'all 0.2s'
@@ -271,7 +261,7 @@ function RecursiveFieldItem({ field, schemaId, alias, activeFields, toggleField,
                     <span style={{
                         fontSize: '9px',
                         fontFamily: 'var(--font-mono)',
-                        color: isActive ? 'white' : 'var(--color-text-secondary)',
+                        color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                         fontWeight: hasChildren ? 'bold' : 'normal'
                     }}>
                         {field.label || field.id}
@@ -283,7 +273,7 @@ function RecursiveFieldItem({ field, schemaId, alias, activeFields, toggleField,
             {hasChildren && expanded && (
                 <div className="stack--tight" style={{
                     marginTop: '2px',
-                    borderLeft: '1px solid rgba(255,255,255,0.05)',
+                    borderLeft: '1px solid var(--color-border)',
                     paddingLeft: 'var(--space-1)'
                 }}>
                     {field.children.map(child => (

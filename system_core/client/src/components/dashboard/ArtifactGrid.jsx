@@ -73,23 +73,29 @@ export function ArtifactGrid({ pins, onResonate }) {
                         <span style={{ fontSize: '9px', opacity: 0.2, fontFamily: 'var(--font-mono)' }}>[ {potency.length} ]</span>
                     </div>
                     
-                     {/* Fractal Invocation: SIEMBRA & RESONANCIA */}
+                    {/* Fractal Invocation: SIEMBRA & RESONANCIA */}
                     <div className="shelf--tight">
                         <button 
-                            className="btn btn--xs btn-fractal-invocation" 
+                            className="btn btn--xs btn-fractal-invocation shadow-hover" 
                             onClick={onResonate}
                             title={t('action_link_reality')}
-                            style={{ padding: '2px 6px', border: '1px solid var(--color-border)', borderRadius: '2px', color: 'var(--color-accent)' }}
+                            style={{ 
+                                padding: '4px 8px', 
+                                border: '1px solid var(--color-accent)', 
+                                borderRadius: 'var(--indra-ui-radius)', 
+                                background: 'var(--color-accent-dim)',
+                                color: 'var(--color-accent)' 
+                            }}
                         >
-                            <IndraIcon name="LINK" size="10px" />
+                            <IndraIcon name="SEARCH" size="14px" />
                         </button>
                         <button 
                             className="btn btn--xs btn-fractal-invocation" 
                             onClick={() => useAppState.getState().createArtifact('DATA_SCHEMA', 'NUEVO_ESQUEMA')}
-                            style={{ padding: '2px 8px', border: '1px solid var(--color-border)', borderRadius: '2px' }}
+                            style={{ padding: '4px 12px', border: '1px solid var(--color-border)', borderRadius: 'var(--indra-ui-radius)', fontWeight: '800' }}
                         >
-                            <IndraIcon name="PLUS" size="10px" />
-                            <span style={{ fontSize: '8px', marginLeft: '4px' }}>{t('action_seed_potency').toUpperCase().split(' ')[0]}</span>
+                            <IndraIcon name="PLUS" size="14px" />
+                            <span style={{ fontSize: '9px', marginLeft: '6px' }}>{t('action_seed_potency').toUpperCase().split(' ')[0]}</span>
                         </button>
                     </div>
                 </header>
@@ -98,7 +104,8 @@ export function ArtifactGrid({ pins, onResonate }) {
                         <div key={atom.id} 
                             data-resonance={pendingSyncs[atom.id] ? "active" : "idle"}
                             data-highlighted={getHighlightState(atom.id)}
-                            style={{ transition: 'all 0.3s ease' }}
+                            className="resonance-glow--potency"
+                            style={{ transition: 'all 0.3s ease', borderRadius: 'var(--radius-sm)' }}
                         >
                             <AtomGlif 
                                 atom={atom.raw} 
@@ -132,18 +139,18 @@ export function ArtifactGrid({ pins, onResonate }) {
                         <button 
                             className="btn btn--xs btn-fractal-invocation" 
                             onClick={() => useAppState.getState().createArtifact('BRIDGE', 'NUEVO_PUENTE')}
-                            style={{ padding: '2px 8px', border: '1px solid var(--color-border)', borderRadius: '2px' }}
+                            style={{ padding: '4px 12px', border: '1px solid var(--color-border)', borderRadius: 'var(--indra-ui-radius)', fontWeight: '800' }}
                         >
-                            <IndraIcon name="BRIDGE" size="10px" />
-                            <span style={{ fontSize: '8px', marginLeft: '4px' }}>{t('ui_bridge').toUpperCase() || 'PUENTE'}</span>
+                            <IndraIcon name="BRIDGE" size="14px" />
+                            <span style={{ fontSize: '9px', marginLeft: '6px' }}>{t('ui_bridge').toUpperCase() || 'PUENTE'}</span>
                         </button>
                         <button 
                             className="btn btn--xs btn-fractal-invocation" 
                             onClick={() => useAppState.getState().createArtifact('WORKFLOW', 'NUEVO_FLUJO')}
-                            style={{ padding: '2px 8px', border: '1px solid var(--color-border)', borderRadius: '2px' }}
+                            style={{ padding: '4px 12px', border: '1px solid var(--color-border)', borderRadius: 'var(--indra-ui-radius)', fontWeight: '800' }}
                         >
-                            <IndraIcon name="WORKFLOW" size="10px" />
-                            <span style={{ fontSize: '8px', marginLeft: '4px' }}>{t('ui_workflow').toUpperCase() || 'FLUJO'}</span>
+                            <IndraIcon name="WORKFLOW" size="14px" />
+                            <span style={{ fontSize: '9px', marginLeft: '6px' }}>{t('ui_workflow').toUpperCase() || 'FLUJO'}</span>
                         </button>
                     </div>
                 </header>
@@ -152,7 +159,8 @@ export function ArtifactGrid({ pins, onResonate }) {
                         <div key={atom.id} 
                             data-resonance={pendingSyncs[atom.id] ? "active" : "idle"}
                             data-highlighted={getHighlightState(atom.id)}
-                            style={{ transition: 'all 0.3s ease' }}
+                            className="resonance-glow--agency"
+                            style={{ transition: 'all 0.3s ease', borderRadius: '8px' }}
                         >
                             <AgencyChassis 
                                 atom={atom.raw} 
@@ -176,7 +184,7 @@ export function ArtifactGrid({ pins, onResonate }) {
             <section className="triptych-col-manifest no-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                 <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div className="shelf--tight">
-                        <div style={{ width: '4px', height: '4px', background: 'var(--color-warm)', borderRadius: '50%' }}></div>
+                        <div style={{ width: '4px', height: '4px', background: 'var(--color-cold)', borderRadius: '50%' }}></div>
                         <span style={{ fontSize: '9px', opacity: 0.5, fontWeight: 'var(--font-bold)', fontFamily: 'var(--font-mono)', letterSpacing: '0.2em' }}>{t('ui_column_manifestation')}</span>
                         <span style={{ fontSize: '9px', opacity: 0.2, fontFamily: 'var(--font-mono)' }}>[ {manifestation.length} ]</span>
                     </div>
@@ -185,18 +193,19 @@ export function ArtifactGrid({ pins, onResonate }) {
                     <button 
                         className="btn btn--xs btn-fractal-invocation" 
                         onClick={() => useAppState.getState().createArtifact('DOCUMENT', 'NUEVO_LOGRO')}
-                        style={{ padding: '2px 8px', border: '1px solid var(--color-border)', borderRadius: '2px' }}
+                        style={{ padding: '4px 12px', border: '1px solid var(--color-border)', borderRadius: 'var(--indra-ui-radius)', fontWeight: '800' }}
                     >
-                        <IndraIcon name="TARGET" size="10px" />
-                        <span style={{ fontSize: '8px', marginLeft: '4px' }}>{t('action_harvest').toUpperCase() || 'COSECHA'}</span>
+                        <IndraIcon name="TARGET" size="14px" />
+                        <span style={{ fontSize: '9px', marginLeft: '6px' }}>{t('action_harvest').toUpperCase() || 'COSECHA'}</span>
                     </button>
                 </header>
-                <div className="mobile-horizontal-shelf" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--space-3)', flex: 1 }}>
+                <div className="mobile-horizontal-shelf no-scrollbar" style={{ display: 'grid', gridTemplateColumns: manifestation.length > 3 ? '1fr 1fr' : '1fr', gap: 'var(--space-2)', flex: 1, overflowY: 'auto' }}>
                     {manifestation.map(atom => (
                         <div key={atom.id} 
                             data-resonance={pendingSyncs[atom.id] ? "active" : "idle"}
                             data-highlighted={getHighlightState(atom.id)}
-                            style={{ transition: 'all 0.3s ease' }}
+                            className="resonance-glow--manifestation"
+                            style={{ transition: 'all 0.3s ease', borderRadius: '4px' }}
                         >
                             <ResultGalleryCard 
                                 atom={atom.raw} 

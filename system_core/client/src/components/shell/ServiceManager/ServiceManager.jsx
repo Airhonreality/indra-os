@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { useVault } from './useVault';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { useLexicon } from '../../../services/lexicon';
-import { useAppState } from '../../../state/app_state';
+import { DataProjector } from '../../../services/DataProjector';
 import './ServiceManager.css';
 
 export function ServiceManager({ onClose, filter: propFilter }) {
@@ -20,7 +20,7 @@ export function ServiceManager({ onClose, filter: propFilter }) {
     const handleClose = onClose || globalClose;
 
     const {
-        services,
+        services: rawServices,
         pairingStatus,
         pairingError,
         pairService,
@@ -28,6 +28,9 @@ export function ServiceManager({ onClose, filter: propFilter }) {
         setPairingStatus
     } = useVault();
     const t = useLexicon();
+
+    // AXIOMA DE PROYECCIÓN: Los servicios se proyectan en la frontera del componente.
+    const services = (rawServices || []).map(s => DataProjector.projectService(s));
 
     const [selectedService, setSelectedService] = useState(null);
     const [apiKey, setApiKey] = useState('');

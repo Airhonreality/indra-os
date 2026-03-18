@@ -22,6 +22,10 @@ import { IndraEngineHood } from '../../utilities/IndraEngineHood';
 import { DataProjector } from '../../../services/DataProjector';
 import { useWorkspace } from '../../../context/WorkspaceContext';
 import { useLexicon } from '../../../services/lexicon';
+import { HonestProvider } from './renderer/HonestProvider';
+import { Crystallizer } from './Crystallizer';
+import { TokenDiscovery } from '../../../services/TokenDiscovery';
+import { AxiomRegistry } from '../../../services/AxiomRegistry';
 
 const PAGE_PRESETS = {
     A4: { width: '210mm', height: '297mm', label: 'ISO A4' },
@@ -56,6 +60,17 @@ function DocumentDesignerShell({ atom, bridge }) {
     // ── Estado de UI ──────────────────────────────────────────────────────────
     const [localLabel, setLocalLabel] = useState(projection.title);
     const [isSaving, setIsSaving] = useState(false);
+    const [isReady, setIsReady] = useState(false);
+
+    // ── BOOTUP SINCERO (Sincronización de Realidad) ──
+    useEffect(() => {
+        async function initReality() {
+            const discovered = await TokenDiscovery.discover();
+            AxiomRegistry.init(discovered);
+            setIsReady(true);
+        }
+        initReality();
+    }, []);
     const [zoom, setZoom] = useState(0.8);
     const [toast, setToast] = useState(null);
     const [previewMode, setPreviewMode] = useState(false);
@@ -127,10 +142,18 @@ function DocumentDesignerShell({ atom, bridge }) {
         setIsSaving(true);
         try {
             const currentAST = astRef.current; // Siempre fresco
+
+            // ── ADUANA DE CRISTALIZACIÓN (Axioma de Determinismo) ──
+            const crystallizedBlocks = Crystallizer.crystallize(currentAST.blocks);
+
             await bridge.save({
                 ...atom,
                 handle: { ...atom.handle, label: overrideLabel || localLabel },
-                payload: { ...atom.payload, blocks: currentAST.blocks, variables: currentAST.docVariables }
+                payload: { 
+                    ...atom.payload, 
+                    blocks: crystallizedBlocks, 
+                    variables: currentAST.docVariables 
+                }
             });
             showToast('DOCUMENT_SAVED_SUCCESSFULLY');
         } catch (err) {
@@ -155,6 +178,14 @@ function DocumentDesignerShell({ atom, bridge }) {
         return () => window.removeEventListener('keydown', handleKeys);
     }, [undo, redo]);
 
+    if (!isReady) return (
+        <div className="fill center stack text-hint font-mono">
+            <div className="mini-spinner" style={{ animation: 'indra-spin 1s linear infinite', border: '2px solid var(--color-accent)', width: 24, height: 24, borderTopColor: 'transparent', borderRadius: '50%' }} />
+            <br />
+            <span>CALIBRANDO_REALIDAD...</span>
+        </div>
+    );
+
     return (
         <div className={`macro-designer-wrapper fill ${previewMode ? 'preview-mode-active' : ''}`} 
             data-theme="dark"
@@ -170,66 +201,37 @@ function DocumentDesignerShell({ atom, bridge }) {
                 isSaving={isSaving}
                 onTitleChange={handleTitleChange}
                 rightSlot={
-                    <div className="shelf--tight">
+                    <div className="shelf--tight" style={{ gap: 'var(--space-2)' }}>
                         <button 
-                            className={`btn btn--xs ${previewMode ? 'active' : 'btn--ghost'}`}
+                            className={`btn btn--xs ${previewMode ? 'btn--accent' : 'btn--ghost'}`}
                             onClick={() => setPreviewMode(!previewMode)}
+                            style={{ padding: '0 12px', height: '32px', gap: '8px', borderRadius: 'var(--radius-md)' }}
                         >
-                            <IndraIcon name="EYE" size="12px" />
-                            <span style={{ fontSize: '9px' }}>{previewMode ? 'EDIT_MODE' : 'PREVIEW'}</span>
+                            <IndraIcon name={previewMode ? "EDIT" : "EYE"} size="12px" />
+                            <span style={{ fontSize: '9px', fontWeight: '900' }}>{previewMode ? 'MODO_EDICION' : 'VISTA_PREVIA'}</span>
+                        </button>
+
+                        <div className="macro-header__divider-block" style={{ width: '1px', height: '16px', background: 'var(--color-border)', opacity: 0.3, margin: '0 4px' }} />
+
+                        <button 
+                            className="btn btn--xs btn--accent shadow-hover" 
+                            onClick={() => handleManualSave()}
+                            style={{ 
+                                height: '32px',
+                                padding: '0 16px',
+                                borderRadius: 'var(--radius-md)',
+                                border: '1px solid var(--indra-dynamic-accent)',
+                                boxShadow: '0 0 15px var(--indra-dynamic-glow)'
+                            }}
+                        >
+                            <IndraIcon name="SAVE" size="12px" />
+                            <span style={{ marginLeft: "8px", fontWeight: '900', fontSize: '9px', letterSpacing: '0.05em' }}>GUARDAR</span>
                         </button>
                     </div>
                 }
             />
 
-            {!previewMode && (
-                <div className="indra-container">
-                    <IndraEngineHood
-                        onUndo={undo}
-                        onRedo={redo}
-                        canUndo={canUndo}
-                        canRedo={canRedo}
-                        leftSlot={
-                            <div className="engine-hood__capsule">
-                                {DataProjector.getDocumentTools().map(tool => (
-                                    <button
-                                        key={tool.type}
-                                        className="engine-hood__btn"
-                                        onClick={() => {
-                                            const newId = addNode(tool.type, selectedId || blocks[0]?.id);
-                                            selectNode(newId);
-                                        }}
-                                        title={`INSERT ${tool.label}`}
-                                    >
-                                        <IndraIcon name={tool.icon} size="12px" color={tool.color} />
-                                    </button>
-                                ))}
-                            </div>
-                        }
-                        rightSlot={
-                            <div className="shelf--tight">
-                                <div className="engine-hood__capsule">
-                                    <button className="engine-hood__btn" onClick={() => setZoom(Math.max(0.1, zoom - 0.1))}>
-                                        <IndraIcon name="MINUS" size="10px" />
-                                    </button>
-                                    <span className="text-hint font-mono" style={{ fontSize: '9px', minWidth: '35px', textAlign: 'center' }}>
-                                        {Math.round(zoom * 100)}%
-                                    </span>
-                                    <button className="engine-hood__btn" onClick={() => setZoom(zoom + 0.1)}>
-                                        <IndraIcon name="PLUS" size="10px" />
-                                    </button>
-                                </div>
-                                <button className="btn btn--xs btn--accent" onClick={() => handleManualSave()}>
-                                    <IndraIcon name="SAVE" size="10px" />
-                                    <span style={{ marginLeft: "6px" }}>SAVE</span>
-                                </button>
-                            </div>
-                        }
-                    />
-                </div>
-            )}
-
-            <div className={`designer-body fill overflow-hidden indra-engine-shell dd-shell stack`} data-active-tab={activeSlot} style={{ height: 'calc(100vh - 48px)' }}>
+            <div className={`designer-body fill overflow-hidden indra-engine-shell dd-shell stack`} data-active-tab={activeSlot} style={{ height: 'calc(100vh - var(--indra-header-height))' }}>
                 <div className={`fill indra-engine-body ${previewMode ? 'preview-mode' : ''}`}>
                     {/* ── 1. CANVAS AREA (SIEMPRE VISIBLE) ── */}
                     <div className="indra-slot-core canvas-section relative overflow-hidden">
@@ -237,11 +239,13 @@ function DocumentDesignerShell({ atom, bridge }) {
                         <main className="fill overflow-auto designer-canvas-bg">
                             <div className="canvas-viewport">
                                 <div className="canvas-scaler" style={{ transform: previewMode ? 'none' : `scale(${zoom})` }}>
-                                    <div className="indra-document-root shadow-glow">
-                                        {blocks.map((rootNode) => (
-                                            <RecursiveBlock key={rootNode.id} block={rootNode} />
-                                        ))}
-                                    </div>
+                                    <HonestProvider styleContext={atom.payload?.styleContext}>
+                                        <div className="indra-document-root shadow-glow">
+                                            {blocks.map((rootNode) => (
+                                                <RecursiveBlock key={rootNode.id} block={rootNode} />
+                                            ))}
+                                        </div>
+                                    </HonestProvider>
                                 </div>
                             </div>
                         </main>

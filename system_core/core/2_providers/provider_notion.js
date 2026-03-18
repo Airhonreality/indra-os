@@ -843,6 +843,8 @@ function _notion_schemaToFields(notionSchema) {
         label: key
       },
       type: canonicalType,
+      // Inducción de Lógica: extraemos la expresión original para el LogicEngine
+      formula_expression: t === 'formula' ? (prop.formula?.expression || null) : null,
       options: (prop.select && prop.select.options ? prop.select.options.map(function (o) { return o.name; }) :
         (prop.multi_select && prop.multi_select.options ? prop.multi_select.options.map(function (o) { return o.name; }) : [])),
     };

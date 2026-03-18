@@ -40,8 +40,8 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                 if (browserMode === 'PINS') {
                     rawItems = pins || [];
                 } else {
-                    // MODO REALIDAD: Usamos los servicios del manifiesto
-                    rawItems = manifest.map(s => s.raw || s);
+                    // MODO REALIDAD: Usamos los servicios del manifiesto (átomos crudos)
+                    rawItems = manifest;
                 }
             } else {
                 const effectiveProvider = currentContext.provider || currentContext.id;
@@ -101,25 +101,12 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
 
     return (
         <>
-            <div className="selector-overlay center" style={{
-                position: 'fixed',
-                top: 0, left: 0,
-                width: '100vw', height: '100vh',
-                background: 'rgba(0,0,0,0.85)',
-                backdropFilter: 'blur(10px)',
-                zIndex: 1000
-            }} onClick={onCancel}>
-                <div className="artifact-selector stack" style={{
-                    background: 'var(--color-bg-elevated)',
-                    border: '1px solid var(--color-border-strong)',
-                    borderRadius: 'var(--radius-lg)',
-                    padding: 'var(--space-6)',
-                    width: '480px',
-                    height: '600px',
-                    maxHeight: '85vh',
-                    boxShadow: '0 30px 60px rgba(0,0,0,0.8)',
-                    overflow: 'hidden'
-                }} onClick={e => e.stopPropagation()}>
+            <div className="indra-overlay" onClick={onCancel}>
+                <div 
+                    className="artifact-selector glass-chassis stack--loose" 
+                    style={{ width: '520px', height: '640px', maxHeight: '85vh', padding: 'var(--space-6)' }}
+                    onClick={e => e.stopPropagation()}
+                >
 
                     {/* ── HEADER ── */}
                     <header className="stack--tight" style={{ marginBottom: 'var(--space-4)' }}>
@@ -130,13 +117,13 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
 
                         <div className="spread">
                             <div className="shelf--tight" style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', overflowX: 'auto', whiteSpace: 'nowrap', opacity: 0.8 }}>
-                                <span onClick={() => { setContextStack([]); setActiveClassFilter(null); }} style={{ cursor: 'pointer', color: 'var(--color-accent)' }}>{t('ROOT')}</span>
+                                <span onClick={() => { setContextStack([]); setActiveClassFilter(null); }} style={{ cursor: 'pointer', color: 'var(--color-accent)', fontWeight: 'bold' }}>{t('ROOT')}</span>
                                 {contextStack.map((ctx, i) => (
                                     <React.Fragment key={ctx.id}>
-                                        <span>/</span>
+                                        <span style={{ color: 'var(--color-text-dim)' }}>/</span>
                                         <span
                                             onClick={() => { setContextStack(contextStack.slice(0, i + 1)); setActiveClassFilter(null); }}
-                                            style={{ cursor: 'pointer', color: i === contextStack.length - 1 ? 'white' : 'var(--color-accent)' }}
+                                            style={{ cursor: 'pointer', color: i === contextStack.length - 1 ? 'var(--color-text-primary)' : 'var(--color-accent)' }}
                                         >
                                             {ctx.handle?.label || ctx.id}
                                         </span>
@@ -144,61 +131,76 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                                 ))}
                             </div>
 
-                            {/* SELECTOR DE MODO (COSMOS vs REALIDAD) */}
-                            {contextStack.length === 0 && (
-                                <div className="shelf--tight glass" style={{ padding: '2px', borderRadius: 'var(--radius-pill)' }}>
-                                    <button 
-                                        className={`btn btn--xs ${browserMode === 'PINS' ? 'btn--accent' : 'btn--ghost'}`} 
-                                        onClick={() => setBrowserMode('PINS')}
-                                        style={{ fontSize: '8px', padding: '2px 10px', borderRadius: 'var(--radius-pill)', border: 'none' }}
-                                    >
-                                        PINS
-                                    </button>
-                                    <button 
-                                        className={`btn btn--xs ${browserMode === 'REALITY' ? 'btn--accent' : 'btn--ghost'}`} 
-                                        onClick={() => setBrowserMode('REALITY')}
-                                        style={{ fontSize: '8px', padding: '2px 10px', borderRadius: 'var(--radius-pill)', border: 'none' }}
-                                    >
-                                        SERVICIOS
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     </header>
 
                     {/* ── SEARCH & DYNAMIC FILTERS ── */}
                     <div className="stack--tight" style={{ marginBottom: 'var(--space-6)' }}>
-                        <div className="shelf--tight" style={{
-                            background: 'var(--color-bg-void)',
-                            border: '1px solid var(--color-border)',
-                            padding: 'var(--space-2) var(--space-3)',
-                            borderRadius: 'var(--radius-sm)'
-                        }}>
-                            <IndraIcon name="EYE" size="14px" style={{ opacity: 0.3 }} />
-                            <input
-                                type="text"
-                                placeholder={t('SEARCH_IN_CURRENT_PULSE')}
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '11px', fontFamily: 'var(--font-mono)', width: '100%', outline: 'none' }}
-                            />
+                        <div className="shelf--tight" style={{ width: '100%', gap: 'var(--space-2)' }}>
+                            {contextStack.length > 0 && (
+                                <button 
+                                    onClick={() => setContextStack(contextStack.slice(0, -1))}
+                                    className="btn btn--mini btn--ghost"
+                                    title={t('GO_BACK')}
+                                >
+                                    <IndraIcon name="CHEVRON_LEFT" size="14px" />
+                                </button>
+                            )}
+                            <div className="shelf--tight terminal-inset fill" style={{ padding: 'var(--space-2) var(--space-4)' }}>
+                                <IndraIcon name="SEARCH" size="14px" style={{ opacity: 0.4 }} />
+                                <input
+                                    type="text"
+                                    placeholder={t('SEARCH_IN_CURRENT_PULSE')}
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                    className="fill"
+                                    style={{ 
+                                        background: 'transparent', border: 'none', 
+                                        color: 'inherit', 
+                                        fontSize: '13px', fontFamily: 'var(--font-mono)', 
+                                        outline: 'none' 
+                                    }}
+                                />
+                            </div>
                         </div>
 
-                        {availableClasses.length > 0 && (
-                            <div className="shelf--tight" style={{ overflowX: 'auto', padding: 'var(--space-1) 0' }}>
-                                <button
-                                    onClick={() => setActiveClassFilter(null)}
-                                    className={`chip ${!activeClassFilter ? 'active' : ''}`}
-                                >{t('ALL')}</button>
-                                {availableClasses.map(cls => (
+                        <div className="spread" style={{ marginTop: 'var(--space-2)' }}>
+                            {/* SELECTOR DE MODO (COSMOS vs REALIDAD) */}
+                            {contextStack.length === 0 ? (
+                                <div className="shelf--tight glass" style={{ padding: '3px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-bg-void)' }}>
+                                    <button 
+                                        className={`btn btn--xs ${browserMode === 'PINS' ? 'btn--active-glass' : 'btn--ghost'}`} 
+                                        onClick={() => setBrowserMode('PINS')}
+                                        style={{ fontSize: '9px', padding: '4px 12px', borderRadius: '6px', border: 'none', background: browserMode === 'PINS' ? 'var(--color-accent)' : 'transparent', color: browserMode === 'PINS' ? 'var(--color-text-inverse)' : 'var(--color-text-primary)' }}
+                                    >
+                                        PINS
+                                    </button>
+                                    <button 
+                                        className={`btn btn--xs ${browserMode === 'REALITY' ? 'btn--active-glass' : 'btn--ghost'}`} 
+                                        onClick={() => setBrowserMode('REALITY')}
+                                        style={{ fontSize: '9px', padding: '4px 12px', borderRadius: '6px', border: 'none', background: browserMode === 'REALITY' ? 'var(--color-accent)' : 'transparent', color: browserMode === 'REALITY' ? 'var(--color-text-inverse)' : 'var(--color-text-primary)' }}
+                                    >
+                                        SERVICIOS
+                                    </button>
+                                </div>
+                            ) : <div />}
+
+                            {availableClasses.length > 0 && (
+                                <div className="shelf--tight" style={{ overflowX: 'auto', padding: 'var(--space-1) 0' }}>
                                     <button
-                                        key={cls}
-                                        onClick={() => setActiveClassFilter(cls)}
-                                        className={`chip ${activeClassFilter === cls ? 'active' : ''}`}
-                                    >{cls}</button>
-                                ))}
-                            </div>
-                        )}
+                                        onClick={() => setActiveClassFilter(null)}
+                                        className={`chip ${!activeClassFilter ? 'active' : ''}`}
+                                    >{t('ALL')}</button>
+                                    {availableClasses.map(cls => (
+                                        <button
+                                            key={cls}
+                                            onClick={() => setActiveClassFilter(cls)}
+                                            className={`chip ${activeClassFilter === cls ? 'active' : ''}`}
+                                        >{cls}</button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* ── BROWSER AREA ── */}
@@ -221,13 +223,18 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                                     if (!matchesSearch || !matchesClass) return null;
 
                                     return (
-                                        <button key={`${projection.provider}_${projection.class}_${projection.id}_${index}`} className="shelf--loose glass-hover-row" onClick={() => handleDrillDown(projection.raw)}>
-                                            <IndraIcon name={projection.theme.icon} size="16px" style={{ opacity: 0.6, color: projection.theme.color }} />
-                                            <div className="stack--tight fill">
-                                                <span style={{ fontSize: '13px', color: 'white' }}>{projection.title}</span>
-                                                <span style={{ fontSize: '8px', opacity: 0.4, fontFamily: 'var(--font-mono)' }}>{projection.subtitle}</span>
+                                        <button 
+                                            key={`${projection.provider}_${projection.class}_${projection.id}_${index}`} 
+                                            className="shelf--loose glass-hover" 
+                                            onClick={() => handleDrillDown(projection.raw)}
+                                            style={{ borderRadius: 'var(--radius-sm)', padding: 'var(--space-3)' }}
+                                        >
+                                            <IndraIcon name={projection.theme.icon} size="16px" style={{ opacity: 1, color: projection.theme.color }} />
+                                            <div className="stack--tight fill" style={{ textAlign: 'left' }}>
+                                                <span style={{ fontSize: '13px', color: 'var(--color-text-primary)', fontWeight: 'bold' }}>{projection.title}</span>
+                                                <span style={{ fontSize: '9px', opacity: 0.5, fontFamily: 'var(--font-mono)' }}>{projection.subtitle}</span>
                                             </div>
-                                            {projection.capabilities.raw.includes('HIERARCHY_TREE') && <IndraIcon name="CHEVRON_RIGHT" size="12px" style={{ opacity: 0.2 }} />}
+                                            {projection.capabilities.raw.includes('HIERARCHY_TREE') && <IndraIcon name="CHEVRON_RIGHT" size="12px" style={{ opacity: 0.3 }} />}
                                         </button>
                                     );
                                 })
@@ -246,36 +253,6 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                     onCancel={() => setTuningArtifact(null)}
                 />
             )}
-            <style>{`
-                .glass-hover-row { 
-                    width: 100%; border: none; background: transparent; text-align: left; border-radius: var(--radius-sm);
-                    cursor: pointer; transition: all 0.2s; display: flex; alignItems: center; gap: var(--space-3); padding: var(--space-3);
-                }
-                .glass-hover-row:hover { background: rgba(255,255,255,0.06); }
-                .btn-icon { background: none; border: none; color: white; cursor: pointer; opacity: 0.5; transition: opacity 0.2s; }
-                .btn-icon:hover { opacity: 1; }
-                .center { display: flex; align-items: center; justify-content: center; }
-                
-                .chip {
-                    background: rgba(255,255,255,0.05);
-                    border: 1px solid var(--color-border);
-                    color: white;
-                    font-size: 8px;
-                    font-family: var(--font-mono);
-                    padding: var(--space-1) var(--space-2);
-                    border-radius: var(--radius-pill);
-                    cursor: pointer;
-                    opacity: 0.6;
-                    transition: all 0.2s;
-                }
-                .chip.active {
-                    background: var(--color-accent);
-                    border-color: var(--color-accent);
-                    opacity: 1;
-                    color: black;
-                }
-                .chip:hover { opacity: 1; border-color: var(--color-accent); }
-            `}</style>
         </>
     );
 }

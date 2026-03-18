@@ -13,6 +13,7 @@
 
     /* @group: Chromatics; @type: color; @label: Surface; @desc: Superficies de paneles y cajas */
     --color-bg-surface: #0d1117;
+    --color-bg-surface-dim: #090c10;
 
     /* @group: Chromatics; @type: color; @label: Elevated; @desc: Paneles elevados */
     --color-bg-elevated: #161b22;
@@ -40,11 +41,12 @@
     /* Verde neón */
 
     /* Texto */
-    --color-text-primary: #e6edf3;
-    --color-text-secondary: #7d8590;
-    --color-text-tertiary: #484f58;
+    --color-text-primary: #f8fafc;
+    --color-text-secondary: #cbd5e1; /* Mayor luminosidad en oscuro */
+    --color-text-tertiary: #94a3b8;
+    --color-text-dim: #64748b;      /* Atómico pero visible */
     --color-text-accent: #00f5d4;
-    --color-text-inverse: #050810;
+    --color-text-inverse: #020408;
 
     /* Bordes */
     --color-border: rgba(255, 255, 255, 0.08);
@@ -87,6 +89,12 @@
     --radius-xl: 20px;
     --radius-pill: 9999px;
 
+    /* ── LAYOUT TOKENS (PROPORCIÓN ÁUREA VERTICAL) ── */
+    /* @group: Metrics; @icon: MAXIMIZE; @type: unit; @label: Header Height; @desc: Altura canónica (~1/16.18 del total) */
+    --indra-header-height: clamp(52px, 6.18vh, 80px);
+    --indra-ui-margin: 12px;
+    --indra-ui-gap: 8px;
+
     /* ── EFECTOS HUD ── */
     /* @group: Atmosphere; @icon: EYE; @type: text; @label: Atmospheric Blur; @desc: Nivel de difuminado canónico (ej: 16px) */
     --blur-glass: blur(16px);
@@ -94,7 +102,7 @@
     /* @group: Atmosphere; @type: text; @label: Glass Material; @desc: Opacidad de superficies blur/glass */
     --glass-bg: rgba(13, 17, 23, 0.7);
 
-    --shadow-float: 0 8px 64px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--color-border);
+    --shadow-float: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--color-border);
     --shadow-glow: 0 0 20px var(--color-accent-glow);
 
     /* Gradientes y Patrones HUD */
@@ -133,32 +141,79 @@
     --indra-ui-gap: 2px;
 
     /* @group: Topology; @type: slider; @label: Global Radius; @min: 0; @max: 24; @unit: px; @desc: Redondez estructural */
-    --indra-ui-radius: 2px;
+    --indra-ui-radius: 4px;
+    --indra-icon-stroke: 1.2;
     
     /* Variables Dinámicas (Placeholders que se inyectan via JS) */
     --indra-dynamic-accent: var(--color-accent);
     --indra-dynamic-bg: var(--color-accent-dim);
     --indra-dynamic-border: var(--color-border-strong);
     --indra-dynamic-glow: var(--color-accent-glow);
+
+    /* ── COMPONENTES INTEGRADOS (Tokens de Estado) ── */
+    --indra-select-bg: var(--color-bg-void);
+    --indra-select-border: var(--color-border);
+    --indra-select-text: var(--color-text-primary);
+    --indra-select-hover: var(--color-bg-deep);
 }
 
-/* TEMA CLARO */
 [data-theme="light"] {
-    --color-bg-void: #f0f2f5;
-    --color-bg-deep: #f4f6fb;
+    --indra-select-bg: #fdfdfd; 
+    --indra-select-text: #0f172a;
+    --indra-select-border: rgba(0,0,0,0.1);
+    --indra-select-hover: #f1f5f9;
+}
+
+/* TEMA CLARO (SOLAR PUNK INDUSTRIAL) */
+[data-theme="light"] {
+    --color-bg-void: #f8fafc;
+    --color-bg-deep: #f1f5f9;
     --color-bg-surface: #ffffff;
-    --color-bg-elevated: #f0f2f5;
-    --color-bg-hover: #e8ecf0;
+    --color-bg-elevated: #e2e8f0;
+    --color-bg-hover: #cbd5e1;
 
-    --color-text-primary: #0d1117;
-    --color-text-secondary: #57606a;
-    --color-text-tertiary: #b0b7c0;
+    /* Acento en modo claro: Gris Industrial Muy Oscuro (según solicitud) */
+    --color-accent: #0f172a; 
+    --color-accent-dim: rgba(15, 23, 42, 0.05);
+    --color-accent-glow: rgba(15, 23, 42, 0.1);
+    --color-accent-rgb: 15, 23, 42;
 
-    --color-border: rgba(0, 0, 0, 0.08);
-    --color-border-active: rgba(0, 245, 212, 0.6);
-    --color-border-strong: rgba(0, 0, 0, 0.15);
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #334155;
+    --color-text-tertiary: #475569;
+    --color-text-dim: #94a3b8;      /* Visible en luz */
+    --color-text-accent: #0f172a;
+    --color-text-inverse: #ffffff;
 
-    --glass-bg: rgba(255, 255, 255, 0.75);
-    --glass-light: rgba(0, 0, 0, 0.02);
-    --glass-border: rgba(0, 0, 0, 0.08);
+    --color-border: rgba(15, 23, 42, 0.1);
+    --color-border-active: #0f172a;
+    --color-border-strong: rgba(15, 23, 42, 0.15);
+
+    /* Semánticos en Claro (Mucho más oscuros para legibilidad) */
+    --color-success: #15803d; /* Verde Bosque */
+    --color-danger: #b91c1c;  /* Rojo Sangre */
+    --color-warm: #b45309;    /* Ámbar Oscuro */
+    --color-cold: #4338ca;    /* Indigo */
+
+    --glass-bg: rgba(255, 255, 255, 0.9);
+    --glass-light: rgba(15, 23, 42, 0.03);
+    --glass-border: rgba(15, 23, 42, 0.15);
+}
+
+/* TEMA INDRA VAPOR (SOLAR PUNK DARK) */
+[data-theme="indra-vapor"] {
+    --color-bg-void: #050510;
+    --color-bg-deep: #0a0a1f;
+    --color-bg-surface: #12122b;
+    --color-bg-elevated: #1a1a3d;
+    --color-bg-hover: #252552;
+
+    --color-accent: #f107a3; /* Magenta Principal */
+    --color-accent-dim: rgba(241, 7, 163, 0.1);
+    --color-accent-glow: rgba(241, 7, 163, 0.3);
+    
+    --color-border-active: #00ead3; /* Cyan de contraste */
+    
+    --color-text-dim: #f107a3; /* Atómico Magenta */
+    --glass-bg: rgba(18, 18, 43, 0.8);
 }

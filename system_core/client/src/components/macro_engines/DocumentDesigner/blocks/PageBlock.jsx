@@ -16,10 +16,10 @@ export function PageBlock({ props, children, isSelected }) {
         display: 'flex',
         flexDirection: props.direction || 'column',
         gap: props.gap || '10px',
-        color: props.color || '#1a1a1a',
+        color: props.color || '#000000',
         boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
         position: 'relative',
-        margin: '0 auto',
+        margin: '20px auto',
         boxSizing: 'border-box',
         overflow: props.overflow || 'visible'
     };
@@ -38,7 +38,7 @@ export function PageBlock({ props, children, isSelected }) {
                 left: '0',
                 fontSize: '9px',
                 fontFamily: 'var(--font-mono)',
-                color: 'var(--color-accent)',
+                color: 'var(--honest-accent)',
                 opacity: 0.6,
                 textTransform: 'uppercase',
                 letterSpacing: '0.1em'

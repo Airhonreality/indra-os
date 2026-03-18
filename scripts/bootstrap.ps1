@@ -192,49 +192,26 @@ if (-not $gitInstalled) {
 }
 
 # ============================================
-# PASO 2: Elegir Carpeta de Instalación
+# PASO 2: Preparar Territorio Efímero (Temporal)
 # ============================================
 
-Write-Header "📂 Carpeta de Instalación"
+Write-Header "🏗️  Zona de Construcción Efímera"
 
-$defaultPath = Join-Path $env:USERPROFILE "INDRA-OS"
-Write-Host "¿Dónde quieres instalar INDRA OS?" -ForegroundColor Yellow
-Write-Host "Ruta por defecto: $defaultPath" -ForegroundColor Cyan
-Write-Host ""
-$installPath = Read-Host "Ruta (Enter para usar default)"
+# Generar una ruta temporal única para el andamio de construcción
+$bootstrapId = [Guid]::NewGuid().ToString().Substring(0,8)
+$installPath = Join-Path $env:TEMP "indra-scaffolding-$bootstrapId"
 
-if ([string]::IsNullOrWhiteSpace($installPath)) {
-    $installPath = $defaultPath
+Write-Info "Creando entorno temporal de despliegue..."
+Write-Info "Ruta: $installPath"
+Write-Warning-Custom "IMPORTANTE: Esta carpeta se autodestruirá al finalizar el despliegue."
+Write-Host "Indra Core nacerá en la nube; no quedará rastro de código en este equipo." -ForegroundColor Yellow
+
+# Crear carpeta temporal
+if (-not (Test-Path $installPath)) {
+    New-Item -ItemType Directory -Path $installPath -Force | Out-Null
 }
 
-# Expandir path si tiene variables
-$installPath = [System.Environment]::ExpandEnvironmentVariables($installPath)
-
-# Verificar si la carpeta ya existe
-if (Test-Path $installPath) {
-    Write-Warning-Custom "La carpeta ya existe: $installPath"
-    $response = Read-Host "¿Quieres eliminarla y reinstalar? (y/N)"
-    
-    if ($response -match '^[Yy]$') {
-        Write-Info "Eliminando carpeta existente..."
-        Remove-Item $installPath -Recurse -Force
-    }
-    else {
-        Write-Host ""
-        Write-Host "Instalación cancelada." -ForegroundColor Yellow
-        Write-Host "Usa una ruta diferente o elimina la carpeta existente manualmente." -ForegroundColor Yellow
-        exit 0
-    }
-}
-
-# Crear carpeta padre si no existe
-$parentPath = Split-Path $installPath -Parent
-if (-not (Test-Path $parentPath)) {
-    Write-Info "Creando carpeta: $parentPath"
-    New-Item -ItemType Directory -Path $parentPath -Force | Out-Null
-}
-
-Write-Success "Instalando en: $installPath"
+Write-Success "Entorno temporal listo."
 
 # ============================================
 # PASO 3: Clonar Repositorio
@@ -247,7 +224,7 @@ Write-Info "Clonando... (esto puede tardar 1-2 minutos)"
 Write-Host ""
 
 try {
-    git clone $REPO_URL $installPath 2>&1 | ForEach-Object { Write-Host $_ }
+    git clone --branch main --single-branch $REPO_URL $installPath 2>&1 | ForEach-Object { Write-Host $_ }
     
     if ($LASTEXITCODE -ne 0) {
         throw "Git clone falló con código: $LASTEXITCODE"
@@ -288,19 +265,32 @@ if (-not (Test-Path $setupScriptPath)) {
     exit 1
 }
 
-# Ejecutar el script de setup
+# Ejecutar el script de setup en bloque de autolimpieza
 try {
+    Write-Info "Ejecutando orquestador de despliegue en nube..."
     & $setupScriptPath
+    
+    Write-Host ""
+    Write-Success "Indra ha sido propulsada exitosamente a tu nube de Google." -ForegroundColor Green
 }
 catch {
-    Write-Error-Custom "Error al ejecutar setup: $_"
+    Write-Error-Custom "Error crítico durante el despliegue: $_"
     Write-Host ""
-    Write-Host "Puedes intentar ejecutarlo manualmente:" -ForegroundColor Yellow
-    Write-Host "  cd `"$installPath`"" -ForegroundColor Cyan
-    Write-Host "  .\scripts\first-time-setup.ps1" -ForegroundColor Cyan
-    Write-Host ""
-    Read-Host "Presiona Enter para salir"
+    Write-Warning-Custom "El proceso se ha detenido. El entorno temporal se mantendrá para diagnóstico."
     exit 1
+}
+finally {
+    # ── ELIMINACIÓN DE RASTRO (Soberanía Física) ──
+    Write-Header "🧹 Autolimpieza Final"
+    Write-Info "Borrando andamio temporal en: $installPath"
+    
+    # Pausa breve para cerrar handles de archivos
+    Start-Sleep -Seconds 2
+    
+    if (Test-Path $installPath) {
+        Remove-Item $installPath -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Success "Rastro local eliminado. Tu PC vuelve a estar limpio."
+    }
 }
 
 # ============================================

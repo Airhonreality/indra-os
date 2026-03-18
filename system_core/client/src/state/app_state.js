@@ -54,12 +54,15 @@ export const useAppState = create((set, get) => ({
     setCoreConnection: async (url, password) => {
         set({ isConnecting: true, error: null });
         try {
-            // Intentamos una operación mínima para validar auth: listar workspaces
-            const result = await executeDirective({
-                provider: 'system',
-                protocol: 'ATOM_READ',
-                context_id: 'workspaces'
-            }, url, password);
+            // Los invitados (PUBLIC_GRANT) se validan contra el ticket específico, no contra workspaces.
+            let result = { items: [] };
+            if (password !== 'PUBLIC_GRANT') {
+                result = await executeDirective({
+                    provider: 'system',
+                    protocol: 'ATOM_READ',
+                    context_id: 'workspaces'
+                }, url, password);
+            }
 
             localStorage.setItem('indra-core-url', url);
             localStorage.setItem('indra-session-secret', password); // Persistir
@@ -536,6 +539,28 @@ export const useAppState = create((set, get) => ({
         if (!isConnected || !coreUrl || !sessionSecret) return;
 
         try {
+            const isGuest = sessionSecret === 'PUBLIC_GRANT';
+            const ticketId = localStorage.getItem('indra-share-ticket');
+
+            if (isGuest && ticketId) {
+                // Modo Resolución Micelar (ADR-019)
+                const res = await fetch(`${coreUrl}?action=getShareTicket&id=${ticketId}`);
+                const data = await res.json();
+                const ticket = data.items?.[0];
+
+                if (ticket) {
+                    // Abrimos el artefacto directamente (con ID ficticio para forzar ATOM_READ)
+                    get().openArtifact({ 
+                        id: ticket.artifact_id, 
+                        class: ticket.artifact_class,
+                        provider: 'system' 
+                    });
+                    set({ isConnected: true });
+                    return;
+                }
+            }
+
+            // Flujo Normal (Dueño)
             const result = await executeDirective({
                 provider: 'system',
                 protocol: 'ATOM_READ',

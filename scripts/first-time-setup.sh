@@ -273,7 +273,7 @@ fi
 print_success "URL capturada: $WEB_APP_URL"
 
 # Guardar configuración
-cd ..
+cd ../..
 echo "$WEB_APP_URL" > .gas-url.txt
 echo "$SCRIPT_ID" > .gas-script-id.txt
 
@@ -383,29 +383,26 @@ else
 fi
 
 # ============================================
-# RESUMEN FINAL
+# RESUMEN FINAL Y AUTOLIMPIEZA
 # ============================================
 
-cd ..
+print_header "🎉 Despliegue Completado Exitosamente"
 
-print_header "🎉 Setup Completado Exitosamente"
+print_info "Estado de Indra: OPERATIVO EN LA NUBE"
+echo "   URL del Core: $WEB_APP_URL"
+echo "   Script ID:     $SCRIPT_ID"
+echo ""
+print_warning "IMPORTANTE: Ahora que el despliegue ha terminado, este entorno ya no es necesario."
+echo "El instalador se borrará para no dejar rastro local."
+echo ""
 
+print_header "🚀 Próximos Pasos en tu Soberanía"
+
+echo "1. Accede a la interfaz web de Indra."
+echo "2. Pega la URL del Core para iniciar el Handshake."
+echo "3. Define tu contraseña maestra (Ignición)."
 echo ""
-echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}                    RESUMEN DE TU INSTALACIÓN                          ${NC}"
-echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo ""
-print_info "Backend (Google Apps Script):"
-echo "   URL:       $WEB_APP_URL"
-echo "   Script ID: $SCRIPT_ID"
-echo "   Editor:    $SCRIPT_URL"
-echo ""
-print_info "Frontend (React + Vite):"
-echo "   Source:    ./INDRA_FRONT DEV/src/"
-echo "   Build:     ./INDRA_FRONT DEV/dist/"
-echo "   Config:    ./INDRA_FRONT DEV/.env"
-echo ""
-echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+print_info "Dharma: 'El hardware es transitorio, la red es eterna.'" 
 echo ""
 
 print_header "🚀 Próximos Pasos"
@@ -414,20 +411,20 @@ echo ""
 echo "Tu instancia INDRA está configurada. Ahora puedes:"
 echo ""
 echo -e "${BLUE}Opción 1: Deploy a Vercel${NC}"
-echo "   cd 'INDRA_FRONT DEV'"
+echo "   cd 'system_core/client'"
 echo "   npm run deploy:vercel"
 echo ""
 echo -e "${BLUE}Opción 2: Deploy a Netlify${NC}"
-echo "   cd 'INDRA_FRONT DEV'"
+echo "   cd 'system_core/client'"
 echo "   npm run deploy:netlify"
 echo ""
 echo -e "${BLUE}Opción 3: Preview Local${NC}"
-echo "   cd 'INDRA_FRONT DEV'"
+echo "   cd 'system_core/client'"
 echo "   npm run preview"
 echo "   # Se abrirá en http://localhost:4173"
 echo ""
 echo -e "${BLUE}Opción 4: Desarrollo Local${NC}"
-echo "   cd 'INDRA_FRONT DEV'"
+echo "   cd 'system_core/client'"
 echo "   npm run dev"
 echo "   # Se abrirá en http://localhost:5173"
 echo ""

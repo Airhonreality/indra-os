@@ -18,7 +18,8 @@ export async function executeDirective(uqo, coreUrl, password) {
     // No se permiten alias de compatibilidad. El UQO debe ser sincero.
     const payload = {
         ...uqo,
-        password: password
+        password: password,
+        share_ticket: localStorage.getItem('indra-share-ticket') || null
     };
 
     const resolvedProtocol = uqo.protocol || uqo.method || 'UNKNOWN';

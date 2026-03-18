@@ -119,6 +119,8 @@ function IndraAppContent() {
 
     // NIVEL 1: Core conectado, sin Workspace seleccionado (NEXUS)
     if (!activeWorkspaceId) {
+        if (sessionSecret === 'PUBLIC_GRANT') return <LandingView />;
+
         return (
             <>
                 <NexusView />
@@ -156,12 +158,17 @@ function IndraAppContent() {
 
 import { SacredField } from './components/utilities/SacredField';
 
+import { ManifestResolver } from './components/shell/ManifestResolver';
+
 export default function App() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasMicelarParams = urlParams.has('u') && urlParams.has('id');
+
     return (
         <NeuralSplitter>
             <ToastProvider>
                 <SacredField>
-                    <IndraAppContent />
+                    {hasMicelarParams ? <ManifestResolver /> : <IndraAppContent />}
                 </SacredField>
             </ToastProvider>
         </NeuralSplitter>

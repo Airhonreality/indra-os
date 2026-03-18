@@ -35,8 +35,8 @@ bash scripts/first-time-setup.sh
 - `OrbitalCore_Codex_v1/.clasp.json` - Configuración del proyecto GAS
 - `.gas-url.txt` - URL del Web App de GAS
 - `.gas-script-id.txt` - ID del script en GAS
-- `INDRA_FRONT DEV/.env` - Configuración del frontend
-- `INDRA_FRONT DEV/dist/` - Build de producción del frontend
+- `system_core/client/.env` - Configuración del frontend
+- `system_core/client/dist/` - Build de producción del frontend
 
 ---
 
@@ -88,7 +88,7 @@ bash scripts/first-time-setup.sh
 
 **Solución:**
 ```bash
-cd "INDRA_FRONT DEV"
+cd "system_core/client"
 rm -rf node_modules package-lock.json
 npm install
 ```
@@ -192,21 +192,21 @@ cat .gas-url.txt
 ### Opción 1: Deploy a Vercel
 
 ```bash
-cd "INDRA_FRONT DEV"
+cd "system_core/client"
 npm run deploy:vercel
 ```
 
 ### Opción 2: Deploy a Netlify
 
 ```bash
-cd "INDRA_FRONT DEV"
+cd "system_core/client"
 npm run deploy:netlify
 ```
 
 ### Opción 3: Preview Local
 
 ```bash
-cd "INDRA_FRONT DEV"
+cd "system_core/client"
 npm run preview
 # Abre http://localhost:4173
 ```
@@ -214,7 +214,7 @@ npm run preview
 ### Opción 4: Desarrollo
 
 ```bash
-cd "INDRA_FRONT DEV"
+cd "system_core/client"
 npm run dev
 # Abre http://localhost:5173
 ```

@@ -18,7 +18,18 @@ export const LandingView = () => {
     
     const isConnected = useAppState(s => s.isConnected);
     const closeDocs = useAppState(s => s.closeDocs);
-    const { theme } = useShell();
+    const { theme, setTheme } = useShell();
+    const [showConnector, setShowConnector] = useState(false);
+
+    const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
+
+    const handleEnter = () => {
+        if (isConnected) {
+            closeDocs();
+        } else {
+            setShowConnector(true);
+        }
+    };
 
     const tabs = [
         { id: 'BIENVENIDA', label: 'INICIO', icon: 'ATOM' },
@@ -28,9 +39,23 @@ export const LandingView = () => {
     ];
 
     const renderContent = () => {
+        if (showConnector) {
+            return (
+                <div style={{ padding: '160px 0' }}>
+                    <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                        <button className="btn btn--ghost btn--mini" onClick={() => setShowConnector(false)}>
+                            <IndraIcon name="BACK" size="10px" style={{ marginRight: '8px' }} />
+                            VOLVER A LA LANDING
+                        </button>
+                    </div>
+                    <CoreConnectionView />
+                </div>
+            );
+        }
+
         switch(activeTab) {
             case 'BIENVENIDA': return <WelcomeTab />;
-            case 'INSTALACION': return <InstalacionTab />;
+            case 'INSTALACION': return <InstalacionTab onStartSync={() => setShowConnector(true)} />;
             case 'ARQUITECTURA': return <ArquitecturaTab />;
             case 'MANUALES': return <ManualesTab />;
             default: return <WelcomeTab />;
@@ -230,23 +255,42 @@ export const LandingView = () => {
                         </div>
                     }
                     rightSlot={
-                        isConnected && (
+                        <div className="shelf" style={{ gap: 'var(--space-4)' }}>
+                            {/* Theme Toggle */}
                             <button 
-                                className="btn btn--xs btn--accent" 
-                                onClick={closeDocs} 
+                                className="btn btn--mini" 
+                                onClick={toggleTheme}
+                                style={{ 
+                                    padding: '8px', 
+                                    borderRadius: 'var(--radius-pill)', 
+                                    background: 'var(--color-bg-surface)',
+                                    border: '1px solid var(--color-border-strong)',
+                                    color: 'var(--color-text-primary)',
+                                    width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}
+                            >
+                                <IndraIcon name={theme === 'dark' ? 'LIGHT' : 'DARK'} size="14px" />
+                            </button>
+
+                            {/* Entry Button: Axiomatic Boot Hierarchy */}
+                            <button 
+                                className={`btn btn--xs ${isConnected ? 'btn--accent' : ''}`} 
+                                onClick={handleEnter} 
                                 style={{ 
                                     padding: '6px 24px', 
                                     borderRadius: 'var(--radius-pill)', 
-                                    border: '1px solid var(--color-accent)',
-                                    background: 'transparent',
-                                    color: 'var(--color-accent)',
-                                    boxShadow: '0 0 10px var(--color-accent-dim)' 
+                                    border: isConnected ? '1px solid var(--color-accent)' : '1px solid var(--color-border-strong)',
+                                    background: isConnected ? 'transparent' : 'var(--color-bg-surface)',
+                                    color: isConnected ? 'var(--color-accent)' : 'var(--color-text-primary)',
+                                    boxShadow: isConnected ? '0 0 10px var(--color-accent-dim)' : 'var(--shadow-float)' 
                                 }}
                             >
-                                <IndraIcon name="CORE" size="10px" style={{marginRight: '8px'}} />
-                                <span style={{ fontSize: '9px', fontWeight: 'bold', letterSpacing: '0.1em' }}>ENTRAR A INDRA</span>
+                                <IndraIcon name={isConnected ? "CORE" : "LINK"} size="10px" style={{marginRight: '8px'}} />
+                                <span style={{ fontSize: '9px', fontWeight: 'bold', letterSpacing: '0.1em' }}>
+                                    {isConnected ? 'ENTRAR A INDRA' : 'ENTRAR / CONECTAR'}
+                                </span>
                             </button>
-                        )
+                        </div>
                     }
                 />
             </div>
@@ -315,44 +359,50 @@ const WelcomeTab = () => (
     </>
 );
 
-const InstalacionTab = () => (
-    <div style={{maxWidth: '1000px', width: '90%', margin: '0 auto', padding: '160px 0 120px 0'}}>
-        <h2 style={{fontSize: '52px', fontWeight: 900, letterSpacing: '-0.04em', marginBottom: '10px'}}>Instalación del Núcleo</h2>
-        <p style={{fontSize: '20px', color: 'var(--color-text-secondary)', marginBottom: '80px'}}>Modelo Solar Punk: Sin instaladores, sin intermediarios.</p>
+const InstalacionTab = ({ onStartSync }) => {
+    return (
+        <div style={{maxWidth: '1000px', width: '90%', margin: '0 auto', padding: '160px 0 120px 0'}}>
+            <h2 style={{fontSize: '52px', fontWeight: 900, letterSpacing: '-0.04em', marginBottom: '10px'}}>Instalación del Núcleo</h2>
+            <p style={{fontSize: '20px', color: 'var(--color-text-secondary)', marginBottom: '80px'}}>Modelo Solar Punk: Sin instaladores, sin intermediarios.</p>
 
-        <div className="stack" style={{gap: '50px'}}>
-            <div className="indra-card" style={{display:'flex', gap: '40px', alignItems: 'center', borderLeft: '8px solid var(--color-accent)'}}>
-                <div className="badge-step">1</div>
-                <div className="stack--tight" style={{flex: 1}}>
-                    <h3 style={{margin:0, fontSize: '20px'}}>IGNICIÓN SOBERANA</h3>
-                    <p className="card-body" style={{marginTop: '10px'}}>
-                        **No necesitas instalar nada.** Abre una terminal de **PowerShell** y pega el comando. INDRA preparará un entorno temporal para inyectar el código en tu Google Apps Script.
-                    </p>
+            <div className="stack" style={{gap: '50px'}}>
+                <div className="indra-card" style={{display:'flex', gap: '40px', alignItems: 'center', borderLeft: '8px solid var(--color-accent)'}}>
+                    <div className="badge-step">1</div>
+                    <div className="stack--tight" style={{flex: 1}}>
+                        <h3 style={{margin:0, fontSize: '20px'}}>IGNICIÓN SOBERANA</h3>
+                        <p className="card-body" style={{marginTop: '10px'}}>
+                            **No necesitas instalar nada.** Abre una terminal de **PowerShell** y pega el comando. INDRA preparará un entorno temporal para inyectar el código en tu Google Apps Script.
+                        </p>
+                    </div>
+                    <div className="code-block">
+                        irm https://raw.githubusercontent.com/Airhonreality/indra-os/main/scripts/bootstrap.ps1 | iex
+                    </div>
                 </div>
-                <div className="code-block">
-                    irm https://raw.githubusercontent.com/Airhonreality/indra-os/main/scripts/bootstrap.ps1 | iex
-                </div>
-            </div>
 
-            <div className="indra-card" style={{display:'flex', gap: '40px', alignItems: 'center'}}>
-                <div className="badge-step">2</div>
-                <div className="stack--tight">
-                    <h3 style={{margin:0, fontSize: '20px'}}>EXTRACCIÓN DE REZONANCIA</h3>
-                    <p className="card-body" style={{marginTop: '10px'}}>
-                        Google te entregará una URL de "Web App" al finalizar. Esa es la antena de tu núcleo. Pégala abajo para materializar tu sistema.
-                    </p>
+                <div className="indra-card" style={{display:'flex', gap: '40px', alignItems: 'center', borderLeft: '8px solid #f107a3'}}>
+                    <div className="badge-step">2</div>
+                    <div className="stack--tight" style={{flex: 1}}>
+                        <h3 style={{margin:0, fontSize: '20px'}}>EXTRACCIÓN DE REZONANCIA</h3>
+                        <p className="card-body" style={{marginTop: '10px'}}>
+                            Google te entregará una URL de "Web App" al finalizar. Esa es la antena de tu núcleo. Pégala y guárdala en un lugar seguro para materializar tu sistema.
+                        </p>
+                        <div style={{ marginTop: '30px', display: 'flex', alignItems: 'center', gap: '20px' }}>
+                            <button 
+                                className="btn btn--accent" 
+                                onClick={onStartSync}
+                                style={{ padding: '12px 30px', borderRadius: 'var(--radius-pill)', fontWeight: '900', letterSpacing: '0.1em', fontSize: '11px' }}
+                            >
+                                <IndraIcon name="SYNC" size="14px" style={{marginRight: '10px'}} />
+                                SINCRONIZAR CORE CON INDRA
+                            </button>
+                            <span style={{ fontSize: '10px', opacity: 0.4, fontWeight: 'bold' }}>OTRO MODO DE "ENTRAR"</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <div style={{marginTop: '40px', padding: '60px', background: 'var(--color-bg-deep)', borderRadius: '40px', border: '2px dashed var(--color-border-strong)'}}>
-                <div style={{textAlign: 'center', marginBottom: '50px'}}>
-                    <span style={{fontSize:'10px', fontWeight: 900, background: 'var(--color-accent)', color: 'var(--color-text-inverse)', padding: '6px 16px', borderRadius: '30px', boxShadow: '0 5px 15px var(--color-accent-glow)'}}>CONECTOR_ACTIVO</span>
-                </div>
-                <CoreConnectionView />
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 const ArquitecturaTab = () => (
     <div style={{maxWidth: '960px', width: '90%', margin: '0 auto', padding: '160px 0'}}>

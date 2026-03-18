@@ -839,23 +839,22 @@ VITE_ENABLE_OFFLINE_MODE=false
 
 Write-Header "📦 Paso 7: Instalar Dependencias del Frontend"
 
-# Verificar si ya existen dependencias instaladas
 if (Test-Path "node_modules") {
-    Write-Success "Dependencias ya instaladas - usando node_modules/ existente"
+    Write-Info "node_modules detectado - verificando y actualizando dependencias..."
 }
 else {
     Write-Info "Instalando dependencias (esto puede tardar 2-3 minutos)..."
-    Write-Host ""
-    
-    try {
-        npm install
-        Write-Success "Dependencias instaladas"
-    }
-    catch {
-        Write-Error-Custom "Error al instalar dependencias"
-        Pop-Location
-        exit 1
-    }
+}
+Write-Host ""
+
+try {
+    npm install
+    Write-Success "Dependencias verificadas/instaladas"
+}
+catch {
+    Write-Error-Custom "Error al instalar dependencias"
+    Pop-Location
+    exit 1
 }
 
 Write-Header "🔨 Paso 8: Generar Build de Producción"

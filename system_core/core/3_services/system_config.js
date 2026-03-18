@@ -26,6 +26,8 @@
 //   ACCOUNT_{provider}_{id}_META→ Metadata JSON de la cuenta (label, created_at)
 // =============================================================================
 
+const HOME_ROOT_FOLDER_NAME_ = '.core_system';
+
 /**
  * Timeout en milisegundos para adquirir el LockService.
  * @const {number}
@@ -137,11 +139,65 @@ function deleteConfig(key) {
 
 /**
  * Indica si el servidor ya ha sido inicializado con un password de acceso.
- * Cuando es `false`, el servidor está en modo BOOTSTRAP.
+ * (ADR-019) Versión Blindada: Detecta conflictos de territorio en Drive.
  * @returns {boolean}
  */
 function isBootstrapped() {
-  return _getStore_().getProperty('SYS_IS_BOOTSTRAPPED') === 'true';
+  const isCerebroBootstrapped = _getStore_().getProperty('SYS_IS_BOOTSTRAPPED') === 'true';
+  
+  // Si el cerebro no está inicializado, verificamos si el "cuerpo" (Drive) ya existe
+  if (!isCerebroBootstrapped) {
+    const territoryExists = _system_checkForExistingTerritory();
+    if (territoryExists) {
+      // Lanzamos una señal de conflicto para que la UI proyecte el "Strike!"
+      throw createError('SOVEREIGNTY_CONFLICT', 
+        '¡BLOQUEO DE SEGURIDAD! Ya existe una carpeta .core_system en este Drive. ' +
+        'Indra no permite dos motores compartiendo el mismo suelo físico. ' +
+        'ATENCIÓN: Si borras manualmente la carpeta .core_system para forzar una nueva instalación, ' +
+        'ELIMINARÁS COMPLETAMENTE todos tus workspaces, configuraciones y datos de forma irreversible.'
+      );
+    }
+  }
+  
+  return isCerebroBootstrapped;
+}
+
+/**
+ * Escaneo preventivo de territorio físico en Drive.
+ * @private
+ */
+function _system_checkForExistingTerritory() {
+  try {
+    const existing = DriveApp.getRootFolder().getFoldersByName(HOME_ROOT_FOLDER_NAME_);
+    return existing.hasNext();
+  } catch (e) {
+    return false; // Error de permisos o Drive inalcanzable
+  }
+}
+
+/**
+ * Recupera el UID (email) del propietario del Core.
+ * Si no existe (legacy), intenta autodescubrirlo si el usuario actual es el dueño.
+ * @returns {string} El email del propietario o 'anonymous@indra-os.com' como fallback.
+ */
+function readCoreOwnerEmail() {
+  const store = _getStore_();
+  let email = store.getProperty('SYS_CORE_OWNER_UID');
+  
+  if (!email && isBootstrapped()) {
+    // Autodescubrimiento para Cores instalados antes de v4.1 (Identidad Retroactiva)
+    try {
+      email = Session.getEffectiveUser().getEmail() || Session.getActiveUser().getEmail();
+      if (email) {
+        store.setProperty('SYS_CORE_OWNER_UID', email);
+        logInfo('[system_config] Identidad Legacy autodescubierta y anclada: ' + email);
+      }
+    } catch (e) {
+      logWarn('[system_config] No se pudo autodescubrir identidad: ' + e.message);
+    }
+  }
+  
+  return email || 'anonymous@indra-os.com';
 }
 
 /**
@@ -154,6 +210,7 @@ function isBootstrapped() {
  * @throws {Error} Si el servidor ya está bootstrapped.
  */
 function bootstrapPassword(plainPassword) {
+  // Doble verificación de territorio antes de la ignición
   if (isBootstrapped()) {
     throw new Error('system_config: El servidor ya fue inicializado. Bootstrap no permitido.');
   }
@@ -162,6 +219,8 @@ function bootstrapPassword(plainPassword) {
   }
 
   const hash = _sha256_(plainPassword);
+  // Capturar la identidad del instalador para el anclaje del Core v4.1
+  const userEmail = Session.getEffectiveUser().getEmail() || Session.getActiveUser().getEmail();
 
   const lock = LockService.getScriptLock();
   try {
@@ -170,8 +229,20 @@ function bootstrapPassword(plainPassword) {
     }
     const store = _getStore_();
     store.setProperty('SYS_ACCESS_PASSWORD_HASH', hash);
+    if (userEmail) {
+      store.setProperty('SYS_CORE_OWNER_UID', userEmail);
+    }
+
+    // ── CRISTALIZACIÓN FÍSICA (Indra v4.1) ──────────────────────────────────
+    // El motor 'se traga' a sí mismo hacia su carpeta de sistema (.core_system)
+    try {
+      _system_anchorEngineToHome();
+    } catch (e) {
+      logWarn('[system_config] Error en anclaje físico (omitiendo): ' + e.message);
+    }
+    
     store.setProperty('SYS_IS_BOOTSTRAPPED', 'true');
-    logInfo('[system_config] Bootstrap completado. Servidor asegurado.');
+    logInfo(`[system_config] Bootstrap completado. Core anclado a: ${userEmail || 'anon'}`);
     return true;
   } finally {
     lock.releaseLock();

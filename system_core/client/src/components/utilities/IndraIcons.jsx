@@ -119,5 +119,7 @@ const ICON_MAP = {
     'SCISSORS': <><circle cx="5" cy="5" r="2" /><circle cx="5" cy="11" r="2" /><path d="M7 6l6 7M7 10l6-7" /></>,
     'FILE': <path d="M3 2h7l3 3v9H3zm7 0v3h3" />,
     'COGNITIVE': <><path d="M8 2a5 5 0 015 5c0 2-1 4-3 5l-2 2-2-2c-2-1-3-3-3-5a5 5 0 015-5z" /><path d="M6 7h4M7 9h2" /></>,
+    'LIGHT': <><circle cx="8" cy="8" r="3" /><path d="M8 1v2m0 10v2M1 8h2m10 0h2m-12-5l1.5 1.5m9.5 9.5l1.5 1.5m-11 0l1.5-1.5m9.5-9.5l1.5-1.5" /></>,
+    'DARK': <path d="M12 9a6 6 0 11-8-8 7 7 0 008 8z" />,
 };
 

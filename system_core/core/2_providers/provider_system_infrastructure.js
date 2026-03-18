@@ -428,6 +428,7 @@ function _system_toAtom(doc, fileId, providerId) {
 
     return {
         id: fileId || doc.id,
+        core_id: readCoreOwnerEmail(), // Inyección dinámica de identidad v4.1
         handle: safeHandle,
         class: doc.class || 'UNKNOWN',
         protocols: Array.isArray(doc.protocols) ? doc.protocols : [],

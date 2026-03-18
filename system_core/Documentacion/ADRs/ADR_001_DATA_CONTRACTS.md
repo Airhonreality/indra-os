@@ -1,6 +1,6 @@
 # ADR_001 — DATA_CONTRACTS: El Contrato Universal de Datos de Indra
 
-> **Versión:** 3.1 (Reconstruido desde código fuente — `provider_system.gs`, `protocol_router.gs`)
+> **Versión:** 4.1 (Evolución ADR-019 — Identidad Hidratada)
 > **Estado:** VIGENTE — Documento Base Fundacional
 > **Alcance:** Toda interacción de datos entre Capa 0 (Gateway), Capa 1 (Logic), Capa 2 (Providers) y el Cliente (Frontend).
 
@@ -23,6 +23,7 @@ La unidad mínima de dato en Indra es el **Átomo Universal**. Todo `item` que v
 ```json
 {
   "id":       "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms",
+  "core_id":  "owner@indra-os.com",
   "class":    "WORKSPACE",
   "handle": {
     "ns":     "com.indra.system.workspace",
@@ -40,10 +41,11 @@ La unidad mínima de dato en Indra es el **Átomo Universal**. Todo `item` que v
 | Campo | Tipo | Restricción |
 |-------|------|-------------|
 | `id` | `string` | **Inmutable. Nunca inventado.** Es el ID nativo del proveedor (Drive ID, Notion Page ID, etc.). |
-| `class` | `string` | Archetype canónico en MAYÚSCULAS. Ej: `WORKSPACE`, `DATA_SCHEMA`, `WORKFLOW`, `DOCUMENT`, `FORMULA`, `DATA_ROW`. |
+| `core_id` | `string` | **Identidad del Propietario.** Email del dueño del Core. Hidratado en runtime. |
+| `class` | `string` | Archetype canónico en MAYÚSCULAS. Ej: `WORKSPACE`, `DATA_SCHEMA`, `WORKFLOW`. |
 | `handle` | `Object` | Siempre presente. Ver §2.3. |
 | `handle.ns` | `string` | Namespace de dominio. Ej: `com.indra.system.workspace`. |
-| `handle.alias` | `string` | Slug funcional. Único dentro del contexto. Sin espacios ni caracteres especiales. |
+| `handle.alias` | `string` | Slug funcional. Único dentro del contexto. |
 | `handle.label` | `string` | Nombre legible para el usuario. Proyectado por el frontend. |
 
 ### 2.3 Sinceridad de Identidad (AXIOMA §2.3)
@@ -224,6 +226,9 @@ En procesos de inducción automática, el sistema asume una **Relación de Ident
 
 ### A10 — Soberanía del Manifiesto de Acceso (ADR-019)
 Todo puente (`BRIDGE`) destinado a ejecución pública mediante enlace compartido DEBE estar firmado por un `ACCESS_TOKEN` generado en el momento de la inducción. La ejecución sin token válido en contexto público resulta en `SECURITY_VIOLATION`.
+
+### A11 — Hidratación de Identidad (ADR-019 §2.3)
+La identidad del propietario (`core_id`) NO se almacena físicamente en los átomos residentes en Drive. El Core inyecta este metadato en tiempo de vuelo (lectura) basándose en la variable maestra `SYS_CORE_OWNER_UID`. Esto garantiza la portabilidad de los archivos y la invarianza de la identidad frente a traslados de soporte físico.
 
 ---
 

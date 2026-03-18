@@ -26,6 +26,8 @@
 //   - error_handler.gs      → createError
 // =============================================================================
 
+const HOME_ROOT_FOLDER_NAME_ = '.core_system';
+
 /**
  * Protocolos de sistema que el gateway maneja directamente (sin provider).
  * @const {string[]}
@@ -35,6 +37,7 @@ const GATEWAY_SYSTEM_PROTOCOLS = Object.freeze([
   'SYSTEM_CONFIG_SCHEMA',
   'SYSTEM_CONFIG_WRITE',
   'SYSTEM_CONFIG_DELETE',
+  'SYSTEM_SHARE_CREATE',
 ]);
 
 // ─── PUNTO DE ENTRADA HTTP ────────────────────────────────────────────────────
@@ -51,33 +54,53 @@ const GATEWAY_SYSTEM_PROTOCOLS = Object.freeze([
  * @returns {GoogleAppsScript.Content.TextOutput}
  */
 function doGet(e) {
-  const mode = e && e.parameter && e.parameter.mode;
+  try {
+    const action = e && e.parameter && e.parameter.action;
+    const mode = e && e.parameter && e.parameter.mode;
+    const id = e && e.parameter && e.parameter.id;
 
-  // Modo diagnóstico: ?mode=echo — para verificar conectividad sin frontend.
-  // NO requiere password — es solo verificación de vida del servidor.
-  if (mode === 'echo') {
+    // ADR-019: Resolución Micelar de Tickets de Compartición (SIN AUTH)
+    if (action === 'getShareTicket' && id) {
+      const ticketResult = _share_getTicket(id);
+      return _buildResponse_(200, ticketResult);
+    }
+
+    // Modo diagnóstico: ?mode=echo — para verificar conectividad sin frontend.
+    if (mode === 'echo') {
+      return _buildResponse_(200, {
+        items: [],
+        metadata: {
+          status: 'ALIVE',
+          bootstrapped: isBootstrapped(),
+          timestamp: new Date().toISOString(),
+          version: 'universal-core-system/1.0',
+          logs: [],
+        },
+      });
+    }
+
+    // Health check estándar: cualquier GET sin modo retorna estado mínimo.
     return _buildResponse_(200, {
       items: [],
       metadata: {
-        status: 'ALIVE',
-        bootstrapped: isBootstrapped(),
+        status: isBootstrapped() ? 'OK' : 'BOOTSTRAP',
+        message: 'Universal Core System activo. Usa POST para interactuar.',
         timestamp: new Date().toISOString(),
-        version: 'universal-core-system/1.0',
+        logs: [],
+      },
+    });
+  } catch (err) {
+    const isConflict = err.code === 'SOVEREIGNTY_CONFLICT';
+    return _buildResponse_(isConflict ? 409 : 500, {
+      items: [],
+      metadata: {
+        status: 'ERROR',
+        error_code: err.code || 'SYSTEM_FAILURE',
+        error: err.message || 'Error crítico en el handshake inicial.',
         logs: [],
       },
     });
   }
-
-  // Health check estándar: cualquier GET sin modo retorna estado mínimo.
-  return _buildResponse_(200, {
-    items: [],
-    metadata: {
-      status: isBootstrapped() ? 'OK' : 'BOOTSTRAP',
-      message: 'Universal Core System activo. Usa POST para interactuar.',
-      timestamp: new Date().toISOString(),
-      logs: [],
-    },
-  });
 }
 
 /**
@@ -112,16 +135,32 @@ function doPost(e) {
     }
 
     // --- 3. Verificación de Password (Muro de Soberanía) ---
-    if (!verifyPassword(payload.password)) {
-      logWarn('[gateway] Intento de acceso con credencial inválida.');
-      return _buildResponse_(401, {
-        items: [],
-        metadata: {
-          status: 'UNAUTHORIZED',
-          error: 'Credencial de acceso inválida.',
-          logs: flushLogs(),
-        },
-      });
+    const isAuthenticated = verifyPassword(payload.password);
+    let ticket = null;
+
+    if (!isAuthenticated) {
+      // ADR-019: ¿Es un acceso de invitado con ticket válido?
+      if (payload.share_ticket && (payload.protocol === 'ATOM_READ' || payload.protocol === 'LOGIC_EXECUTE' || payload.protocol === 'SYSTEM_MANIFEST')) {
+        const artifactId = payload.context_id || (payload.data && payload.data.artifact_id);
+        ticket = _share_validateTicket(payload.share_ticket, artifactId);
+        
+        if (!ticket) {
+          logWarn('[gateway] Intento de acceso público con ticket inválido o caducado.', { ticketId: payload.share_ticket });
+          return _buildResponse_(401, { items: [], metadata: { status: 'UNAUTHORIZED', error: 'Ticket de acceso inválido.' } });
+        }
+        
+        logInfo('[gateway] Acceso de GUEST concedido via ticket.', { ticketId: payload.share_ticket, artifactId });
+      } else {
+        logWarn('[gateway] Intento de acceso sin credencial válida.');
+        return _buildResponse_(401, {
+          items: [],
+          metadata: {
+            status: 'UNAUTHORIZED',
+            error: 'Credencial de acceso inválida o ticket insuficiente.',
+            logs: flushLogs(),
+          },
+        });
+      }
     }
 
     // --- 4. Despacho por tipo de protocolo ---
@@ -340,6 +379,11 @@ function _handleSystemProtocol_(payload) {
   if (protocol === 'SYSTEM_CONFIG_DELETE') {
     logInfo('[gateway] Despachando SYSTEM_CONFIG_DELETE.');
     return handleConfigDelete_(payload); // definido abajo
+  }
+
+  if (protocol === 'SYSTEM_SHARE_CREATE') {
+    logInfo('[gateway] Despachando SYSTEM_SHARE_CREATE.');
+    return _share_createTicket(payload);
   }
 
   // Protocolo de sistema no reconocido

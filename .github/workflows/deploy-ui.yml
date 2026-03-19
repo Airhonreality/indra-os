@@ -3,9 +3,9 @@ name: 🚀 Deploy Frontend to GitHub Pages
 on:
   workflow_dispatch:  # Botón manual en GitHub UI
   push:
-    branches: [master]
+    branches: [main]
     paths:
-      - 'INDRA_OS/INDRA_SKIN/**'
+      - 'system_core/client/**'
       - '.github/workflows/deploy-ui.yml'
 
 permissions:
@@ -25,14 +25,14 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: 'INDRA_OS/INDRA_SKIN/package-lock.json'
+          cache-dependency-path: 'system_core/client/package-lock.json'
       
       - name: 📦 Install dependencies
-        working-directory: INDRA_OS/INDRA_SKIN
+        working-directory: system_core/client
         run: npm ci
       
       - name: 🔨 Build frontend
-        working-directory: INDRA_OS/INDRA_SKIN
+        working-directory: system_core/client
         env:
           VITE_GAS_URL: 'https://placeholder-backend.example.com'
         run: npm run build
@@ -41,7 +41,7 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./INDRA_OS/INDRA_SKIN/dist
+          publish_dir: ./system_core/client/dist
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: 'Deploy INDRA UI'

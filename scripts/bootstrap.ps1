@@ -56,10 +56,11 @@ Write-Host @"
 "@ -ForegroundColor Cyan
 
 Write-Host ""
-Write-Host "Este script descargará e instalará INDRA OS automáticamente." -ForegroundColor Yellow
+Write-Host "Este script construirá un puente temporal para lanzar INDRA OS a tu Google Drive." -ForegroundColor Yellow
+Write-Host "No se instalará ningún software local en tu PC y este proceso no dejará rastro." -ForegroundColor Cyan
 Write-Host "Duración estimada: 15 minutos" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "Presiona Enter para continuar o Ctrl+C para cancelar..." -ForegroundColor Yellow
+Write-Host "Presiona Enter para iniciar la ignición o Ctrl+C para cancelar..." -ForegroundColor Yellow
 $null = Read-Host
 
 # ============================================
@@ -298,7 +299,7 @@ finally {
 # ============================================
 
 Write-Host ""
-Write-Success "Bootstrap completado"
+Write-Success "Secuencia de Ignición y Limpieza finalizada."
 Write-Host ""
-Write-Host "INDRA OS instalado en: $installPath" -ForegroundColor Green
+Write-Host "INDRA OS ahora orbita tu Google Drive. Tu PC está limpio." -ForegroundColor Green
 Write-Host ""

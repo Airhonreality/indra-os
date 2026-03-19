@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { IndraIcon } from '../utilities/IndraIcons';
 import { DataProjector } from '../../services/DataProjector';
 import { useAppState } from '../../state/app_state';
-import { StatusLed, ConfirmModal } from '../utilities/primitives';
+import { StatusLed } from '../utilities/primitives';
+import { IndraActionTrigger } from '../utilities/IndraActionTrigger';
 import { useLexicon } from '../../services/lexicon';
 
 /**
  * AgencyChassis: El contenedor de motores activo para la columna de AGENCIA (44%).
  */
 export function AgencyChassis({ atom, onHoverStart, onHoverEnd }) {
-    const [isDeleting, setIsDeleting] = React.useState(false);
     const t = useLexicon();
     const { openArtifact } = useAppState();
     const projection = DataProjector.projectArtifact(atom);
@@ -17,7 +17,6 @@ export function AgencyChassis({ atom, onHoverStart, onHoverEnd }) {
 
     const handleDelete = () => {
         useAppState.getState().deleteArtifact(atom.id, atom.provider);
-        setIsDeleting(false);
     };
 
     // Extraer fuentes vinculadas (Coupling Port)
@@ -77,29 +76,19 @@ export function AgencyChassis({ atom, onHoverStart, onHoverEnd }) {
                     </div>
                 </div>
                 <div className="shelf--tight">
-                    <button 
-                        className="delete-trigger btn btn--mini"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setIsDeleting(true);
-                        }}
-                    >
-                        <IndraIcon name="DELETE" size="12px" />
-                    </button>
+                    <div className="delete-trigger" onClick={e => e.stopPropagation()}>
+                        <IndraActionTrigger 
+                            variant="destructive"
+                            label="ELIMINAR"
+                            onClick={handleDelete}
+                            size="12px"
+                        />
+                    </div>
                     <StatusLed active={!atom._orphan} color={projection.theme.color} size="5px" />
                 </div>
             </div>
 
-            <ConfirmModal 
-                isOpen={isDeleting}
-                title="ELIMINAR MOTOR AGENTE"
-                message={`¿Estás seguro de que deseas eliminar permanentemente '${projection.title}'? Esta acción no se puede deshacer.`}
-                confirmLabel="ELIMINAR"
-                cancelLabel="CANCELAR"
-                danger={true}
-                onConfirm={handleDelete}
-                onCancel={() => setIsDeleting(false)}
-            />
+
 
             {/* Step Visualizer (Puntos de progreso internos) */}
             <div className="shelf--2xs" style={{ marginTop: 'var(--space-1)', opacity: 0.3 }}>

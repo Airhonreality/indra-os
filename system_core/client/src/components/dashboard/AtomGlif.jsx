@@ -2,7 +2,8 @@ import React from 'react';
 import { IndraIcon } from '../utilities/IndraIcons';
 import { DataProjector } from '../../services/DataProjector';
 import { useAppState } from '../../state/app_state';
-import { StatusLed, ConfirmModal } from '../utilities/primitives';
+import { StatusLed } from '../utilities/primitives';
+import { IndraActionTrigger } from '../utilities/IndraActionTrigger';
 import { SchemaMicroExplorer } from '../utilities/SchemaMicroExplorer';
 import { useShell } from '../../context/ShellContext';
 import { SchemaActionService } from '../../services/SchemaActionService';
@@ -11,7 +12,6 @@ import { SchemaActionService } from '../../services/SchemaActionService';
  * AtomGlif: Versión densa de un átomo para la columna de POTENCIA (20%).
  */
 export function AtomGlif({ atom, onHoverStart, onHoverEnd }) {
-    const [isDeleting, setIsDeleting] = React.useState(false);
     const [isExpanded, setIsExpanded] = React.useState(false);
     const { openArtifact, openContextMenu, lang } = useShell();
     const projection = DataProjector.projectArtifact(atom);
@@ -19,7 +19,6 @@ export function AtomGlif({ atom, onHoverStart, onHoverEnd }) {
 
     const handleDelete = () => {
         useAppState.getState().deleteArtifact(atom.id, atom.provider);
-        setIsDeleting(false);
     };
 
     return (
@@ -104,16 +103,14 @@ export function AtomGlif({ atom, onHoverStart, onHoverEnd }) {
                     </span>
                 )}
 
-                <button 
-                    className="delete-trigger btn btn--mini"
-                    style={{ padding: '4px' }}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setIsDeleting(true);
-                    }}
-                >
-                    <IndraIcon name="DELETE" size="10px" />
-                </button>
+                <div className="delete-trigger" onClick={e => e.stopPropagation()} style={{ padding: '0 4px' }}>
+                    <IndraActionTrigger 
+                        variant="destructive"
+                        label="ELIMINAR"
+                        onClick={handleDelete}
+                        size="10px"
+                    />
+                </div>
 
                 <StatusLed 
                     active={!atom._orphan} 
@@ -136,16 +133,7 @@ export function AtomGlif({ atom, onHoverStart, onHoverEnd }) {
                 </button>
             </div>
 
-            <ConfirmModal 
-                isOpen={isDeleting}
-                title="ELIMINAR ESQUEMA"
-                message={`¿Estás seguro de que deseas eliminar permanentemente '${projection.title}'? Esta acción no se puede deshacer.`}
-                confirmLabel="ELIMINAR"
-                cancelLabel="CANCELAR"
-                danger={true}
-                onConfirm={handleDelete}
-                onCancel={() => setIsDeleting(false)}
-            />
+
 
             {/* Expansion Area (Tree) */}
             {isExpanded && (

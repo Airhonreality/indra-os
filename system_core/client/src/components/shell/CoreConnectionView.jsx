@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppState } from '../../state/app_state';
 import { IndraIcon } from '../utilities/IndraIcons';
+import { IndraActionTrigger } from '../utilities/IndraActionTrigger';
 import { useLexicon } from '../../services/lexicon';
 
 /**
@@ -125,17 +126,15 @@ export function CoreConnectionView() {
                                     </div>
                                     <span className="text-hint opacity-40" style={{ fontSize: '10px' }}>{core.url}</span>
                                 </div>
-                                <div className="shelf--tight">
-                                    <button 
-                                        className="btn btn--warm btn--mini" 
-                                        onClick={(e) => { e.stopPropagation(); if(confirm(`¿Deseas purgar la conexión a ${core.alias}?`)) removeCore(core.url); }}
-                                        title="Purgar Núcleo"
-                                        style={{ width: '28px', height: '28px', padding: 0 }}
-                                    >
-                                        <IndraIcon name="DELETE" size="14px" />
-                                    </button>
-                                    <button className="btn btn--accent btn--mini">VINCULAR</button>
-                                </div>
+                                    <div className="shelf--tight" onClick={e => e.stopPropagation()}>
+                                        <IndraActionTrigger 
+                                            variant="destructive"
+                                            label="PURGAR"
+                                            onClick={() => removeCore(core.url)}
+                                            size="14px"
+                                        />
+                                        <button className="btn btn--accent btn--mini">VINCULAR</button>
+                                    </div>
                             </div>
                         ))}
 

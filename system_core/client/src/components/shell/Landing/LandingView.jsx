@@ -100,6 +100,7 @@ export const LandingView = () => {
         }}>
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&display=swap');
                 
                 .landing-scroll-container {
                     width: 100%;
@@ -112,7 +113,8 @@ export const LandingView = () => {
 
                 .indra-section {
                     width: 100%; min-height: 40vh;
-                    display: flex; flex-direction: column; align-items: center; justify-content: center;
+                    display: flex; flex-direction: column; 
+                    align-items: flex-start; justify-content: center;
                     position: relative; padding: 60px 40px; box-sizing: border-box;
                     background: var(--color-bg-void);
                 }

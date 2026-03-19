@@ -24,7 +24,7 @@ function CONF_SYSTEM() {
       'ACCOUNT_RESOLVE', 'SYSTEM_AUDIT', 'REVISIONS_LIST', 'ATOM_ROLLBACK',
       'GETMCEPMANIFEST', 'INTELLIGENCE_CHAT',
       'INDUCTION_START', 'INDUCTION_INDUCE_FULL_STACK', 'INDUCTION_STATUS', 'INDUCTION_CANCEL', 'INDUCTION_DRIFT_CHECK',
-      'SYSTEM_BLUEPRINT_SYNC'
+      'SYSTEM_BLUEPRINT_SYNC', 'NATIVE_DOCUMENT_RENDER'
     ],
     implements: {
       ATOM_READ: 'handleSystem',
@@ -52,6 +52,7 @@ function CONF_SYSTEM() {
       INDUCTION_CANCEL: 'handleSystem',
       INDUCTION_DRIFT_CHECK: 'handleSystem',
       SYSTEM_BLUEPRINT_SYNC: 'handleSystem',
+      NATIVE_DOCUMENT_RENDER: 'handleSystem',
     },
 
     capabilities: {
@@ -76,6 +77,13 @@ function CONF_SYSTEM() {
     },
 
     protocol_meta: {
+      SYSTEM_BLUEPRINT_SYNC: {
+        desc: "Gestiona el Vault de Blueprints (Plantillas de automatización).",
+        inputs: {
+          action: { type: 'string', required: true, desc: 'SCAN, PUBLISH, o INSTALL' },
+          context_id: { type: 'string', desc: 'ID del átomo (para PUBLISH) o ID del archivo (para INSTALL)' }
+        }
+      },
       SYSTEM_PINS_READ: {
         desc: "Obtiene la lista de todos los átomos anclados al workspace activo.",
         inputs: {
@@ -141,6 +149,13 @@ function CONF_SYSTEM() {
         inputs: {
           context_id: { type: 'string', required: true, desc: 'ID del DATA_SCHEMA inducido' }
         }
+      },
+      NATIVE_DOCUMENT_RENDER: {
+        desc: "Genera un PDF a partir de un Documento Indra (bloques) e inyecta variables.",
+        inputs: {
+          context_id: { type: 'string', required: true, desc: 'ID del Átomo DOCUMENT (Plantilla)' },
+          variables: { type: 'object', desc: 'Mapa de variables para sustituir {{key}}' }
+        }
       }
     }
   });
@@ -170,6 +185,7 @@ function handleSystem(uqo) {
   if (protocol === 'SCHEMA_SUBMIT') return _system_handleSchemaSubmit(uqo);
   if (protocol === 'SCHEMA_FIELD_OPTIONS') return _system_handleSchemaFieldOptions(uqo);
   if (protocol === 'TABULAR_STREAM') return _system_handleTabularStream(uqo);
+  if (protocol === 'NATIVE_DOCUMENT_RENDER') return _system_handleNativeDocumentRender(uqo);
 
   // ─── HANDLER DE DIAGNÓSTICOS (provider_system_diagnostics.gs)
   if (protocol === 'SYSTEM_WORKSPACE_REPAIR') return _system_handleWorkspaceRepair(uqo);

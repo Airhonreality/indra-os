@@ -28,6 +28,7 @@ const CLASS_THEMES = {
     'VIDEO_PROJECT': { color: 'var(--color-cold)', icon: 'PLAY', label: 'PROYECTO_VIDEO' },
     'CALENDAR_HIVE': { color: 'var(--color-cold)', icon: 'CALENDAR', label: 'AGENDA_HIVE' },
     'CALENDAR_EVENT': { color: 'var(--color-cold)', icon: 'CALENDAR', label: 'EVENTO' },
+    'MEDIA': { color: 'var(--color-cold)', icon: 'IMAGE', label: 'MEDIA_ARCHIVO' },      // ADR-023
     
     // SISTEMA / SERVICIOS
     'SERVICE': { color: 'var(--color-success)', icon: 'SERVICE', label: 'SERVICIO' }
@@ -45,6 +46,7 @@ const FIELD_TYPES = {
     'CURRENCY': { label: 'Moneda / Precio', icon: 'MATH', color: 'var(--color-success)' },
     'IMAGE': { label: 'Imagen / Foto', icon: 'IMAGE', color: 'var(--color-info)' },
     'FILE': { label: 'Adjunto / Archivo', icon: 'FILE', color: 'var(--color-text-secondary)' },
+    'FILE_ATTACHMENT': { label: 'Archivo Binario', icon: 'FILE', color: 'var(--color-warm)' }, // ADR-023: SKP, CDR, PDF, etc.
     'LOCATION': { label: 'Ubicación (GPS)', icon: 'TARGET', color: 'var(--color-danger)' },
     'SIGNATURE': { label: 'Firma Digital', icon: 'EDIT', color: 'var(--color-accent)' },
     'RELATION_SELECT': { label: 'Relación (Buscador)', icon: 'BRIDGE', color: 'var(--color-accent)' },
@@ -361,5 +363,57 @@ export class DataProjector {
                 items: items
             };
         });
+    }
+    /**
+     * ADR-023: Proyecta un valor de campo que puede ser INDRA_MEDIA o un string legacy.
+     * Siempre retorna un objeto con canonical_url resuelto y metadatos para la UI.
+     *
+     * @param {any} value - El valor del campo (INDRA_MEDIA object, string URL/base64, Array de INDRA_MEDIA, o null)
+     * @returns {{ canonical_url: string|null, storage: string, mime_type: string|null, is_image: boolean, expires_at: string|null, alt: string|null }[]}
+     */
+    static projectMedia(value) {
+        if (!value) return [];
+
+        const normalize = (v) => {
+            if (!v) return null;
+
+            // Objeto INDRA_MEDIA canónico
+            if (typeof v === 'object' && v.type === 'INDRA_MEDIA') {
+                const url = v.canonical_url;
+                const mime = v.mime_type || '';
+                return {
+                    canonical_url: url,
+                    storage: v.storage || 'url',
+                    mime_type: mime,
+                    is_image: mime.startsWith('image/') || (!mime && /\.(jpg|jpeg|png|gif|webp|svg|avif)$/i.test(url || '')),
+                    expires_at: v.expires_at || null,
+                    is_expired: v.expires_at ? new Date(v.expires_at) < new Date() : false,
+                    file_id: v.file_id || null,
+                    alt: v.alt || null
+                };
+            }
+
+            // String legacy (base64 o URL directa)
+            if (typeof v === 'string' && v.length > 0) {
+                const isBase64 = v.startsWith('data:image/');
+                const mime = isBase64 ? v.split(':')[1]?.split(';')[0] : null;
+                return {
+                    canonical_url: v,
+                    storage: isBase64 ? 'base64' : 'url',
+                    mime_type: mime,
+                    is_image: isBase64 || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(v),
+                    expires_at: null,
+                    is_expired: false,
+                    file_id: null,
+                    alt: null
+                };
+            }
+
+            return null;
+        };
+
+        // Soportar array (Notion files) o valor único
+        const arr = Array.isArray(value) ? value : [value];
+        return arr.map(normalize).filter(Boolean);
     }
 }

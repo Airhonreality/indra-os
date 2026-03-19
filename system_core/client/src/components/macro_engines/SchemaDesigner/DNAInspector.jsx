@@ -201,16 +201,48 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
 
                 {field.type === 'IMAGE' && (
                     <div className="stack--tight">
-                        <label className="dna-label">Límite de Aduana (Tamaño Máximo MB)</label>
-                        <input 
-                            type="number" 
-                            className="dna-input mono" 
-                            value={field.config?.max_size_mb || 5} 
-                            onChange={e => updateConfig('max_size_mb', Number(e.target.value))} 
+                        <label className="dna-label">Límite de Aduana — Tamaño Máximo (MB)</label>
+                        <input
+                            type="number"
+                            className="dna-input mono"
+                            value={field.config?.max_size_mb || 5}
+                            onChange={e => updateConfig('max_size_mb', Number(e.target.value))}
+                        />
+                        <label className="dna-label" style={{ marginTop: 'var(--space-2)' }}>Formatos Permitidos (separados por coma)</label>
+                        <input
+                            type="text"
+                            className="dna-input mono"
+                            value={(field.config?.allowed_formats || ['image/jpeg', 'image/png', 'image/webp']).join(', ')}
+                            onChange={e => updateConfig('allowed_formats', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                            placeholder="image/jpeg, image/png, image/webp"
                         />
                         <div className="shelf--tight" style={{ opacity: 0.5, marginTop: '2px' }}>
                             <IndraIcon name="INFO" size="10px" />
-                            <span style={{ fontSize: '9px' }}>Los archivos que superen este peso serán rechazados en la frontera UI.</span>
+                            <span style={{ fontSize: '9px' }}>Solo imágenes. Para otros archivos (PDF, SKP, CDR...) usa el tipo Archivo Binario.</span>
+                        </div>
+                    </div>
+                )}
+
+                {field.type === 'FILE_ATTACHMENT' && (
+                    <div className="stack--tight">
+                        <label className="dna-label">Límite de Aduana — Tamaño Máximo (MB)</label>
+                        <input
+                            type="number"
+                            className="dna-input mono"
+                            value={field.config?.max_size_mb || 50}
+                            onChange={e => updateConfig('max_size_mb', Number(e.target.value))}
+                        />
+                        <label className="dna-label" style={{ marginTop: 'var(--space-2)' }}>Extensiones Permitidas (sin punto, separadas por coma)</label>
+                        <input
+                            type="text"
+                            className="dna-input mono"
+                            value={(field.config?.allowed_extensions || []).join(', ')}
+                            onChange={e => updateConfig('allowed_extensions', e.target.value.split(',').map(s => s.trim().toLowerCase().replace(/^\./,'')).filter(Boolean))}
+                            placeholder="skp, cdr, pdf, dwg, zip (vacío = cualquiera)"
+                        />
+                        <div className="shelf--tight" style={{ opacity: 0.5, marginTop: '2px' }}>
+                            <IndraIcon name="INFO" size="10px" />
+                            <span style={{ fontSize: '9px' }}>Archivos binarios de cualquier tipo. El widget guiará al usuario a usar Drive ID para archivos grandes (+5MB).</span>
                         </div>
                     </div>
                 )}

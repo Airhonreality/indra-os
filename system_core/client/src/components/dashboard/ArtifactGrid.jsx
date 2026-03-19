@@ -7,6 +7,9 @@ import { useAppState } from '../../state/app_state';
 import { useLexicon } from '../../services/lexicon';
 import { IndraIcon } from '../utilities/IndraIcons';
 import { EmptyState } from '../utilities/primitives';
+import { registry } from '../../services/EngineRegistry';
+import { executeDirective } from '../../services/directive_executor';
+import { toastEmitter } from '../../services/toastEmitter';
 
 /**
  * ArtifactGrid: Implementación del Modelo Tríptico (20/50/30) de Mendoza-Collazos.
@@ -16,11 +19,13 @@ export function ArtifactGrid({ pins, onResonate }) {
     const t = useLexicon();
     const [focusedEngineId, setFocusedEngineId] = useState(null);
     const pendingSyncs = useAppState(s => s.pendingSyncs);
+    const pendingCreations = useAppState(s => s.pendingCreations);
 
-    // Clasificación Semántica via DataProjector
+    // Clasificación Semántica via DataProjector (Integrando creaciones optimistas)
     const { potency, agency, manifestation } = useMemo(() => {
-        return DataProjector.projectAgenticWorkspace(pins || []);
-    }, [pins]);
+        const allAtoms = [...(pins || []), ...(pendingCreations || [])];
+        return DataProjector.projectAgenticWorkspace(allAtoms);
+    }, [pins, pendingCreations]);
 
     // Lógica de Iluminación por Relatividad (Resonancia Universal)
     const resonatesWith = useMemo(() => {
@@ -65,41 +70,33 @@ export function ArtifactGrid({ pins, onResonate }) {
             onMouseLeave={() => setFocusedEngineId(null)}
         >
             {/* Columna I: POTENCIA (28%) - Reserva Sistémica */}
-            <section className="triptych-col-potency no-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <section className="triptych-col-potency no-scrollbar" style={{ display: 'flex', flexDirection: 'column' }}>
+                <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-8)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div className="shelf--tight">
                         <div style={{ width: '4px', height: '4px', background: 'var(--color-text-secondary)', borderRadius: '50%' }}></div>
                         <span style={{ fontSize: '9px', opacity: 0.5, fontWeight: 'var(--font-bold)', fontFamily: 'var(--font-mono)', letterSpacing: '0.2em' }}>{t('ui_column_potency')}</span>
                         <span style={{ fontSize: '9px', opacity: 0.2, fontFamily: 'var(--font-mono)' }}>[ {potency.length} ]</span>
                     </div>
                     
-                    {/* Fractal Invocation: SIEMBRA & RESONANCIA */}
-                    <div className="shelf--tight">
-                        <button 
-                            className="btn btn--xs btn-fractal-invocation shadow-hover" 
-                            onClick={onResonate}
-                            title={t('action_link_reality')}
-                            style={{ 
-                                padding: '4px 8px', 
-                                border: '1px solid var(--color-accent)', 
-                                borderRadius: 'var(--indra-ui-radius)', 
-                                background: 'var(--color-accent-dim)',
-                                color: 'var(--color-accent)' 
-                            }}
-                        >
-                            <IndraIcon name="SEARCH" size="14px" />
-                        </button>
-                        <button 
-                            className="btn btn--xs btn-fractal-invocation" 
-                            onClick={() => useAppState.getState().createArtifact('DATA_SCHEMA', 'NUEVO_ESQUEMA')}
-                            style={{ padding: '4px 12px', border: '1px solid var(--color-border)', borderRadius: 'var(--indra-ui-radius)', fontWeight: '800' }}
-                        >
-                            <IndraIcon name="PLUS" size="14px" />
-                            <span style={{ fontSize: '9px', marginLeft: '6px' }}>{t('action_seed_potency').toUpperCase().split(' ')[0]}</span>
-                        </button>
+                    <div className="shelf--tight" style={{ gap: '4px', position: 'relative' }}>
+                        <CreationMenu 
+                            category={t('ui_column_potency').replace('I. ', '')} 
+                            options={[
+                                { class: 'DATA_SCHEMA', label: t('DATA_SCHEMA'), icon: 'SCHEMA' },
+                                { action: 'SCAN_VAULT', label: "IMPORTAR VAULT", icon: 'VAULT' }
+                            ]} 
+                        />
                     </div>
                 </header>
-                <div className="stack--1 mobile-horizontal-shelf" style={{ flex: 1 }}>
+                <div className="mobile-horizontal-shelf no-scrollbar" style={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: 'var(--space-4)',
+                    padding: '24px var(--space-4)',
+                    overflowY: 'auto',
+                    overflowX: 'hidden'
+                }}>
                     {potency.map(atom => (
                         <div key={atom.id} 
                             data-resonance={pendingSyncs[atom.id] ? "active" : "idle"}
@@ -126,35 +123,34 @@ export function ArtifactGrid({ pins, onResonate }) {
             </section>
 
             {/* Columna II: AGENCIA (44%) - Núcleo de Transformación */}
-            <section className="triptych-col-agency no-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', padding: '0 var(--space-4)' }}>
-                <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <section className="triptych-col-agency no-scrollbar" style={{ display: 'flex', flexDirection: 'column', padding: '0 var(--space-4)' }}>
+                <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-8)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div className="shelf--tight">
                         <div style={{ width: '4px', height: '4px', background: 'var(--color-accent)', borderRadius: '50%' }}></div>
                         <span style={{ fontSize: '9px', opacity: 0.5, fontWeight: 'var(--font-bold)', fontFamily: 'var(--font-mono)', letterSpacing: '0.2em' }}>{t('ui_column_agency')}</span>
                         <span style={{ fontSize: '9px', opacity: 0.2, fontFamily: 'var(--font-mono)' }}>[ {agency.length} ]</span>
                     </div>
 
-                    {/* Fractal Invocation: IGNICIÓN */}
-                    <div className="shelf--tight">
-                        <button 
-                            className="btn btn--xs btn-fractal-invocation" 
-                            onClick={() => useAppState.getState().createArtifact('BRIDGE', 'NUEVO_PUENTE')}
-                            style={{ padding: '4px 12px', border: '1px solid var(--color-border)', borderRadius: 'var(--indra-ui-radius)', fontWeight: '800' }}
-                        >
-                            <IndraIcon name="BRIDGE" size="14px" />
-                            <span style={{ fontSize: '9px', marginLeft: '6px' }}>{t('ui_bridge').toUpperCase() || 'PUENTE'}</span>
-                        </button>
-                        <button 
-                            className="btn btn--xs btn-fractal-invocation" 
-                            onClick={() => useAppState.getState().createArtifact('WORKFLOW', 'NUEVO_FLUJO')}
-                            style={{ padding: '4px 12px', border: '1px solid var(--color-border)', borderRadius: 'var(--indra-ui-radius)', fontWeight: '800' }}
-                        >
-                            <IndraIcon name="WORKFLOW" size="14px" />
-                            <span style={{ fontSize: '9px', marginLeft: '6px' }}>{t('ui_workflow').toUpperCase() || 'FLUJO'}</span>
-                        </button>
+                    <div className="shelf--tight" style={{ gap: '4px', position: 'relative' }}>
+                        <CreationMenu 
+                            category="LÓGICA" 
+                            options={[
+                                { class: 'LOGIC_BRIDGE', label: t('LOGIC_BRIDGE'), icon: 'BRIDGE' },
+                                { class: 'WORKFLOW', label: t('WORKFLOW_DESIGNER'), icon: 'WORKFLOW' },
+                                { class: 'AEE_RUNNER', label: t('AEE_RUNNER'), icon: 'PLAY' }
+                            ]} 
+                        />
                     </div>
                 </header>
-                <div className="stack--md mobile-horizontal-shelf" style={{ flex: 1 }}>
+                <div className="mobile-horizontal-shelf no-scrollbar" style={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: 'var(--space-8)',
+                    padding: '24px var(--space-4)',
+                    overflowY: 'auto',
+                    overflowX: 'hidden'
+                }}>
                     {agency.map(atom => (
                         <div key={atom.id} 
                             data-resonance={pendingSyncs[atom.id] ? "active" : "idle"}
@@ -181,25 +177,34 @@ export function ArtifactGrid({ pins, onResonate }) {
             </section>
 
             {/* Columna III: MANIFESTACIÓN (28%) - Prisma de Resultados */}
-            <section className="triptych-col-manifest no-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <section className="triptych-col-manifest no-scrollbar" style={{ display: 'flex', flexDirection: 'column' }}>
+                <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-8)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div className="shelf--tight">
                         <div style={{ width: '4px', height: '4px', background: 'var(--color-cold)', borderRadius: '50%' }}></div>
                         <span style={{ fontSize: '9px', opacity: 0.5, fontWeight: 'var(--font-bold)', fontFamily: 'var(--font-mono)', letterSpacing: '0.2em' }}>{t('ui_column_manifestation')}</span>
                         <span style={{ fontSize: '9px', opacity: 0.2, fontFamily: 'var(--font-mono)' }}>[ {manifestation.length} ]</span>
                     </div>
 
-                    {/* Fractal Invocation: COSECHA */}
-                    <button 
-                        className="btn btn--xs btn-fractal-invocation" 
-                        onClick={() => useAppState.getState().createArtifact('DOCUMENT', 'NUEVO_LOGRO')}
-                        style={{ padding: '4px 12px', border: '1px solid var(--color-border)', borderRadius: 'var(--indra-ui-radius)', fontWeight: '800' }}
-                    >
-                        <IndraIcon name="TARGET" size="14px" />
-                        <span style={{ fontSize: '9px', marginLeft: '6px' }}>{t('action_harvest').toUpperCase() || 'COSECHA'}</span>
-                    </button>
+                    <div className="shelf--tight" style={{ gap: '4px', position: 'relative' }}>
+                        <CreationMenu 
+                            category="RESULTADOS" 
+                            options={[
+                                { class: 'DOCUMENT', label: t('DOCUMENT_DESIGNER'), icon: 'DOCUMENT' },
+                                { class: 'VIDEO_PROJECT', label: t('VIDEO_PROJECT'), icon: 'VIDEO_PROJECT' },
+                                { class: 'CALENDAR_HIVE', label: t('CALENDAR_HIVE'), icon: 'CALENDAR' }
+                            ]} 
+                        />
+                    </div>
                 </header>
-                <div className="mobile-horizontal-shelf no-scrollbar" style={{ display: 'grid', gridTemplateColumns: manifestation.length > 3 ? '1fr 1fr' : '1fr', gap: 'var(--space-2)', flex: 1, overflowY: 'auto' }}>
+                <div className="mobile-horizontal-shelf no-scrollbar" style={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: 'var(--space-4)',
+                    padding: '24px var(--space-4)',
+                    overflowY: 'auto',
+                    overflowX: 'hidden'
+                }}>
                     {manifestation.map(atom => (
                         <div key={atom.id} 
                             data-resonance={pendingSyncs[atom.id] ? "active" : "idle"}
@@ -224,6 +229,78 @@ export function ArtifactGrid({ pins, onResonate }) {
                     )}
                 </div>
             </section>
+        </div>
+    );
+}
+
+/**
+ * CreationMenu Component 
+ * Un menú desplegable minimalista (Fractal Invocator)
+ */
+function CreationMenu({ category, options }) {
+    const [isOpen, setIsOpen] = React.useState(false);
+    
+    return (
+        <div className="creation-invocator" style={{ position: 'relative' }}>
+            <button 
+                className={`btn btn--xs ${isOpen ? 'btn--active-glass' : 'btn-fractal-invocation'}`}
+                onClick={() => setIsOpen(!isOpen)}
+                style={{ 
+                    padding: '4px 8px', 
+                    border: '1px solid var(--color-border)', 
+                    borderRadius: 'var(--indra-ui-radius)',
+                    background: isOpen ? 'var(--color-accent-dim)' : 'transparent'
+                }}
+            >
+                <IndraIcon name={isOpen ? "CLOSE" : "PLUS"} size="14px" />
+            </button>
+
+            {isOpen && (
+                <div className="glass shadow-glow" style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    zIndex: 200,
+                    marginTop: '8px',
+                    minWidth: '180px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-border)',
+                    overflow: 'hidden',
+                    animation: 'slideInDown 0.2s ease-out'
+                }}>
+                    <div style={{ padding: '8px', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--color-border)' }}>
+                        <span style={{ fontSize: '8px', fontWeight: '800', opacity: 0.5, letterSpacing: '0.1em' }}>{category}</span>
+                    </div>
+                    <div className="stack--tight" style={{ padding: '4px' }}>
+                        {options.map(opt => (
+                            <button 
+                                key={opt.class}
+                                className="btn btn--block btn--ghost shelf--tight"
+                                style={{ justifyContent: 'flex-start', padding: '8px 12px', textAlign: 'left' }}
+                                onClick={() => {
+                                    if (opt.action === 'SCAN_VAULT') {
+                                        executeDirective({
+                                            provider: 'system',
+                                            protocol: 'SYSTEM_BLUEPRINT_SYNC',
+                                            data: { action: 'SCAN' }
+                                        }, useAppState.getState().coreUrl, useAppState.getState().sessionSecret)
+                                        .then(res => {
+                                            if (res.items) toastEmitter.success("Blueprints detectados: " + res.items.length);
+                                        });
+                                    } else {
+                                        const label = `${opt.label}_${Date.now().toString().slice(-4)}`;
+                                        useAppState.getState().createArtifact(opt.class, label);
+                                    }
+                                    setIsOpen(false);
+                                }}
+                            >
+                                <IndraIcon name={opt.icon} size="14px" style={{ opacity: 0.7, color: opt.action === 'SCAN_VAULT' ? 'var(--color-warm)' : 'inherit' }} />
+                                <span style={{ fontSize: '10px', marginLeft: '10px', color: opt.action === 'SCAN_VAULT' ? 'var(--color-warm)' : 'inherit' }}>{opt.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -78,6 +78,26 @@ export function ArtifactCard({ atom }) {
         }
     };
 
+    const handlePublish = async (e) => {
+        e.stopPropagation();
+        try {
+            const res = await executeDirective({
+                provider: 'system',
+                protocol: 'SYSTEM_BLUEPRINT_SYNC',
+                context_id: projection.id,
+                data: { action: 'PUBLISH' }
+            }, coreUrl, sessionSecret);
+
+            if (res.metadata?.status === 'OK') {
+                alert(`✅ Blueprint publicado en el Vault:\n${res.metadata.message}`);
+            } else {
+                alert(`❌ Error al publicar blueprint: ${res.metadata?.error}`);
+            }
+        } catch (err) {
+            alert(`❌ Fallo de publicación: ${err.message}`);
+        }
+    };
+
     return (
         <div
             className={`mca-surface stack ${isOrphan ? 'is-orphan' : ''} ${isSyncing ? 'is-syncing' : ''}`}
@@ -146,6 +166,16 @@ export function ArtifactCard({ atom }) {
                             label="PUBLICAR"
                             onClick={handleShare}
                             size="12px"
+                        />
+                    )}
+                    {capabilities.raw?.includes('SYSTEM_BLUEPRINT_SYNC') && (
+                        <IndraActionTrigger
+                            variant="primary"
+                            label="BP"
+                            icon="VAULT"
+                            onClick={handlePublish}
+                            size="12px"
+                            title="Guardar como Blueprint"
                         />
                     )}
                     {capabilities.canDelete && (

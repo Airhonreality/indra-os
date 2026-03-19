@@ -2,14 +2,14 @@ import React from 'react';
 import { IndraIcon } from '../utilities/IndraIcons';
 import { DataProjector } from '../../services/DataProjector';
 import { useAppState } from '../../state/app_state';
-import { Badge, ConfirmModal } from '../utilities/primitives';
+import { IndraActionTrigger } from '../utilities/IndraActionTrigger';
+import { Badge } from '../utilities/primitives';
 import { useLexicon } from '../../services/lexicon';
 
 /**
  * ResultGalleryCard: Visualización de resultados para la columna de MANIFESTACIÓN (30%).
  */
 export function ResultGalleryCard({ atom, onHoverStart, onHoverEnd }) {
-    const [isDeleting, setIsDeleting] = React.useState(false);
     const t = useLexicon();
     const { openArtifact } = useAppState();
     const projection = DataProjector.projectArtifact(atom);
@@ -17,7 +17,6 @@ export function ResultGalleryCard({ atom, onHoverStart, onHoverEnd }) {
 
     const handleDelete = () => {
         useAppState.getState().deleteArtifact(atom.id, atom.provider);
-        setIsDeleting(false);
     };
 
     const timestamp = new Date(projection.timestamp).toLocaleDateString();
@@ -64,27 +63,14 @@ export function ResultGalleryCard({ atom, onHoverStart, onHoverEnd }) {
                 `}
             </style>
 
-            <button 
-                className="delete-trigger btn btn--mini"
-                style={{ background: 'transparent', padding: '0', width: '16px', height: '16px' }}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    setIsDeleting(true);
-                }}
-            >
-                <IndraIcon name="DELETE" size="12px" />
-            </button>
-
-            <ConfirmModal 
-                isOpen={isDeleting}
-                title="ELIMINAR MANIFESTACIÓN"
-                message={`¿Estás seguro de que deseas eliminar permanentemente el logro '${projection.title}'? Esta acción no se puede deshacer.`}
-                confirmLabel="ELIMINAR"
-                cancelLabel="CANCELAR"
-                danger={true}
-                onConfirm={handleDelete}
-                onCancel={() => setIsDeleting(false)}
-            />
+            <div className="delete-trigger" onClick={e => e.stopPropagation()}>
+                <IndraActionTrigger 
+                    variant="destructive"
+                    label={t('action_delete')}
+                    onClick={handleDelete}
+                    size="10px"
+                />
+            </div>
 
             {/* Compact Indicator */}
             <div style={{ 

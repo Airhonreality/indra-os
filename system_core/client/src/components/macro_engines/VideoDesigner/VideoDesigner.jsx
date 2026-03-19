@@ -120,10 +120,7 @@ export function VideoDesigner({ atom, bridge }) {
             const { vaultId } = e.detail;
             const opfs = actions.getOpfsManager();
             if (opfs) {
-                // SOBERANÍA TOTAL: Confirmar antes de destruir
-                const confirmLocal = window.confirm(`¿DESTRUIR ACTIVO LOCAL: ${vaultId}? Esta acción es irreversible en la OPFS.`);
-                if (!confirmLocal) return;
-
+                // SOBERANÍA TOTAL: La confirmación ya ocurrió vía el trigger (long press)
                 await opfs.removeFile(vaultId);
                 fetchVault();
                 
@@ -133,19 +130,16 @@ export function VideoDesigner({ atom, bridge }) {
                     const remoteProvider = parts[1];
                     const remoteId = parts.slice(2).join('_');
 
-                    const confirmRemote = window.confirm(`HEMOS ELIMINADO EL CACHÉ. ¿Deseas purgar también el archivo original del SILO (${remoteProvider.toUpperCase()})?`);
-                    if (confirmRemote) {
-                        try {
-                            console.log(`[VideoDesigner] Purga remota en curso: ${remoteId}`);
-                            await executeDirective({
-                                provider: remoteProvider,
-                                protocol: 'ATOM_DELETE',
-                                context_id: remoteId
-                            }, coreUrl, sessionSecret);
-                            alert("Soberanía ejercida: Activo eliminado del Silo.");
-                        } catch (err) {
-                            console.error("[VideoDesigner] Error en purga remota:", err);
-                        }
+                    // Purgar también remota si es un activo del silo
+                    try {
+                        console.log(`[VideoDesigner] Purga remota sincronizada: ${remoteId}`);
+                        await executeDirective({
+                            provider: remoteProvider,
+                            protocol: 'ATOM_DELETE',
+                            context_id: remoteId
+                        }, coreUrl, sessionSecret);
+                    } catch (err) {
+                        console.error("[VideoDesigner] Error en purga remota:", err);
                     }
                 }
             }

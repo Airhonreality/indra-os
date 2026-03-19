@@ -165,3 +165,64 @@ function _system_handleTabularStream(uqo) {
         }
     };
 }
+
+/**
+ * NATIVE_DOCUMENT_RENDER: Procesa un Documento Indra y genera un PDF en memoria.
+ * context_id: ID del átomo DOCUMENT (plantilla).
+ * data.variables: Mapa de variables para inyección {{key}}.
+ * 
+ * @private
+ */
+function _system_handleNativeDocumentRender(uqo) {
+    const docId = uqo.context_id;
+    if (!docId) {
+        return { items: [], metadata: { status: 'ERROR', error: 'NATIVE_DOCUMENT_RENDER requiere context_id (Document ID).' } };
+    }
+
+    try {
+        // 1. Cargar el Átomo del sistema (Soberanía Indra)
+        const docFile = _system_findAtomFile(docId);
+        const docAtom = JSON.parse(docFile.getBlob().getDataAsString());
+
+        if (docAtom.class !== 'DOCUMENT') {
+            return { items: [], metadata: { status: 'ERROR', error: 'El átomo no es de clase DOCUMENT.' } };
+        }
+
+        // 2. Ejecutar el motor de renderizado nativo
+        const variables = (uqo.data && uqo.data.variables) || {};
+        const pdfBlob = NativeDocumentEngine.renderToPdf(docAtom, variables);
+
+        // 3. Retornar el Blob en Base64 para transporte agnóstico por el Workflow Engine
+        const base64 = Utilities.base64Encode(pdfBlob.getBytes());
+        const fileName = pdfBlob.getName();
+        const mimeType = pdfBlob.getContentType();
+
+        return {
+            items: [{
+                id: 'generated_pdf_blob',
+                handle: { 
+                  ns: 'com.indra.system.pdf', 
+                  alias: _system_slugify_(fileName.replace('.pdf', '')), 
+                  label: fileName 
+                },
+                class: 'DATA',
+                mime_type: mimeType,
+                file_name: fileName,
+                file_base64: base64,
+                payload: {
+                    source_doc_id: docId,
+                    size: pdfBlob.getSize()
+                }
+            }],
+            metadata: { 
+                status: 'OK', 
+                file_name: fileName,
+                mime_type: mimeType
+            }
+        };
+
+    } catch (e) {
+        logError(`[system_logic] Error en render documento ${docId}:`, e);
+        return { items: [], metadata: { status: 'ERROR', error: e.message } };
+    }
+}

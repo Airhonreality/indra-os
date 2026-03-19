@@ -87,18 +87,28 @@ function handleWorkflowExecute(uqo) {
     }
 
     // 2. Construir el UQO del step (DATA_CONTRACTS §3.1 — firma estándar)
+    // AXIOMA DE RESOLUCIÓN: Antes de ejecutar, resolvemos variables dinámicas en context_id, query y data.
+    const resolutionContext = {
+      ...uqo.data?.trigger_data, // Datos del disparador (ej: form payload)
+      $payload: uqo.data?.trigger_data || {},
+      $trigger_data: uqo.data?.trigger_data || {},
+      $steps: stepOutputs
+    };
+
     const stepUqo = {
       workspace_id: uqo.workspace_id,
       provider:     step.provider,
       protocol:     step.protocol,
-      context_id:   step.context_id,
-      query:        step.query || {},
+      context_id:   _wf_resolveValue(step.context_id, resolutionContext),
+      query:        _wf_resolveObject(step.query || {}, resolutionContext),
+      data:         _wf_resolveObject(step.data || {}, resolutionContext)
     };
 
-    // Para protocolos de escritura (ATOM_CREATE): inyectar los items del paso anterior
+    // Para protocolos de escritura (ATOM_CREATE): inyectar los items del paso anterior si no se definió data explícita
     // El provider de destino recibe los items en stepUqo.data.items (Return Law §2.3)
-    if (inputItems && inputItems.length > 0) {
-      stepUqo.data = { items: inputItems };
+    if (inputItems && inputItems.length > 0 && (!stepUqo.data || !stepUqo.data.items)) {
+      stepUqo.data = stepUqo.data || {};
+      stepUqo.data.items = inputItems;
     }
 
     // 3. Ejecutar a través del router (mismo pipeline de validación de contrato)
@@ -110,16 +120,17 @@ function handleWorkflowExecute(uqo) {
       const WRITE_PROTOCOLS = ['ATOM_CREATE', 'ATOM_UPDATE'];
       const isWriteStep     = WRITE_PROTOCOLS.indexOf(step.protocol) !== -1;
 
-      if (isWriteStep && inputItems && inputItems.length > 0) {
+      if (isWriteStep && stepUqo.data?.items && stepUqo.data.items.length > 0) {
+        const inputForBurst = stepUqo.data.items;
         const destConf  = getProviderConf(step.provider);
         const burstSize = (destConf && destConf.burst_config && destConf.burst_config.max_records_per_burst) || 100;
-        const chunks    = _wf_chunkArray_(inputItems, burstSize);
+        const chunks    = _wf_chunkArray_(inputForBurst, burstSize);
 
-        logInfo('[workflow_executor] Burst mode: ' + inputItems.length + ' items ÷ ' + burstSize + ' = ' + chunks.length + ' chunks.');
+        logInfo('[workflow_executor] Burst mode: ' + inputForBurst.length + ' items ÷ ' + burstSize + ' = ' + chunks.length + ' chunks.');
 
         var burstItems = [];
         for (var ci = 0; ci < chunks.length; ci++) {
-          stepUqo.data = { items: chunks[ci] };
+          stepUqo.data.items = chunks[ci];
           var chunkResult = route(stepUqo);
           if (chunkResult.metadata && chunkResult.metadata.status === 'ERROR') {
             return {
@@ -251,4 +262,34 @@ function _wf_topologicalSort(steps) {
   }
 
   return ordered;
+}
+
+/* ── HELPER RESOLUTION FUNCTIONS ────────────────────────────────────────────── */
+
+/**
+ * Resuelve recursivamente un objeto que contiene expresiones dinámicas.
+ * @private
+ */
+function _wf_resolveObject(obj, context) {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(item => _wf_resolveObject(item, context));
+
+  const resolved = {};
+  for (const key in obj) {
+    resolved[key] = _wf_resolveValue(obj[key], context);
+  }
+  return resolved;
+}
+
+/**
+ * Resuelve un valor individual. Si empieza por '=', usa IndraParser.
+ * @private
+ */
+function _wf_resolveValue(val, context) {
+  if (typeof val !== 'string') return val;
+  if (val.startsWith('=')) {
+    // Axioma: Motor de Fórmulas Indra (Core Logic layer 1)
+    return IndraParser.evaluate(val.substring(1), context);
+  }
+  return val;
 }

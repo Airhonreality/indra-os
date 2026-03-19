@@ -27,59 +27,71 @@ export const WelcomeTab = () => (
             <FractalLogo active={true} />
         </div>
 
-        {/* METADATA FLOTANTE (PROGRAMMATIC LOOK) */}
-        <div style={{
-            position: 'absolute',
-            top: '120px',
-            left: '8vw',
-            zIndex: 20,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            opacity: 0.4
-        }}>
-            <div style={{ fontSize: '9px', letterSpacing: '0.4em', fontWeight: 600 }}>v8.0.0_STABLE</div>
-            <div style={{ fontSize: '9px', letterSpacing: '0.4em' }}>SYSTEM_ENGINE_ACTIVE [TRUE]</div>
-            <div style={{ fontSize: '9px', letterSpacing: '0.4em', color: '#00f3ff' }}>● LATENCY_REDUNDANCY_OK</div>
-        </div>
-
-        {/* CONTENIDO TEXTUAL (Hollow Typography) */}
         <div style={{ 
-            flex: '0 0 45%', 
+            flex: '1', 
             zIndex: 10, 
-            paddingLeft: '8vw',
+            paddingLeft: '8vw', 
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            position: 'relative'
+            alignItems: 'flex-start',
+            position: 'relative',
+            width: '100%',
+            overflow: 'visible' 
         }}>
-            <h1 style={{
-                fontSize: 'clamp(80px, 16vw, 240px)',
-                fontWeight: 900,
-                letterSpacing: '-0.02em',
-                marginBottom: '5px',
-                lineHeight: 0.8,
-                color: 'transparent',
-                WebkitTextStroke: '1px rgba(var(--color-accent-rgb), 0.6)',
-                filter: 'drop-shadow(0 0 30px rgba(var(--color-accent-rgb), 0.3))',
-                textTransform: 'uppercase'
-            }}>
-                INDRA
-            </h1>
+            {/* Título INDRA - Reconstrucción Blindada (Posicionamiento Interno en X=400) */}
+            <div style={{ width: '100%', maxWidth: '1200px', overflow: 'visible' }}>
+                <svg viewBox="-100 -50 2000 400" style={{ width: '100%', height: 'auto', overflow: 'visible', marginBottom: '-5px' }}>
+                    <defs>
+                        <linearGradient id="indra-title-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#7b2ff7" />
+                            <stop offset="50%" stopColor="#8a2be2" />
+                            <stop offset="100%" stopColor="#2196f3" />
+                        </linearGradient>
+                        
+                        <filter id="indra-title-glow" x="-200%" y="-200%" width="600%" height="600%" filterUnits="userSpaceOnUse">
+                            <feGaussianBlur stdDeviation="15" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+
+                        <mask id="hollow-mask">
+                            <rect x="-200" y="-100" width="2400" height="700" fill="white" />
+                            <g stroke="black" strokeWidth="15" strokeLinecap="round" strokeLinejoin="round" fill="none">
+                                {/* EL 'CORAZÓN' DEL TUBO - INDRA COMPLETO DESDE X=400 */}
+                                <path d="M 400 40 L 400 200" /> {/* I */}
+                                <path d="M 510 200 L 510 60 A 20 20 0 0 1 530 40 L 560 40 A 20 20 0 0 1 575 50 L 675 190 A 20 20 0 0 0 690 200 L 700 200 A 20 20 0 0 0 720 180 L 720 40" /> {/* N */}
+                                <path d="M 810 40 L 810 200 L 890 200 A 80 80 0 0 0 890 40 L 810 40 Z" /> {/* D */}
+                                <path d="M 1050 200 L 1050 40 L 1140 40 A 35 35 0 0 1 1140 110 L 1050 110 M 1110 110 L 1180 200" /> {/* R */}
+                                <path d="M 1270 200 L 1350 57 A 25 25 0 0 1 1395 57 L 1475 200 M 1305 137 L 1440 137" /> {/* A */}
+                            </g>
+                        </mask>
+                    </defs>
+
+                    {/* Logo Body con máscara Venus y Glow Infinito */}
+                    <g mask="url(#hollow-mask)" stroke="url(#indra-title-grad)" strokeWidth="20" strokeLinecap="round" strokeLinejoin="round" fill="none" filter="url(#indra-title-glow)">
+                        <path d="M 400 40 L 400 200" />
+                        <path d="M 510 200 L 510 60 A 20 20 0 0 1 530 40 L 560 40 A 20 20 0 0 1 575 50 L 675 190 A 20 20 0 0 0 690 200 L 700 200 A 20 20 0 0 0 720 180 L 720 40" />
+                        <path d="M 810 40 L 810 200 L 890 200 A 80 80 0 0 0 890 40 L 810 40 Z" />
+                        <path d="M 1050 200 L 1050 40 L 1140 40 A 35 35 0 0 1 1140 110 L 1050 110 M 1110 110 L 1180 200" />
+                        <path d="M 1270 200 L 1350 57 A 25 25 0 0 1 1395 57 L 1475 200 M 1305 137 L 1440 137" />
+                    </g>
+                </svg>
+            </div>
             
             <p style={{ 
-                letterSpacing: '0.8em', 
+                letterSpacing: '0.82em', 
                 fontSize: '11px', 
                 opacity: 0.8, 
-                fontWeight: 300,
+                fontWeight: 100,
                 textTransform: 'uppercase',
                 maxWidth: '600px',
                 lineHeight: '2.4',
                 color: 'var(--color-text-primary)',
-                marginTop: '10px',
-                paddingLeft: '5px'
+                marginTop: '-15px', 
+                textAlign: 'left',
+                paddingLeft: '390px' 
             }}>
-                AQUÍ TERMINAN TODAS LAS <br/> <span style={{ opacity: 0.4 }}>BANALIDADES DEL MUNDO</span>
+                Aquí terminan todas las <br/> <span style={{ opacity: 0.4 }}>BANALIDADES DEL MUNDO</span>
             </p>
         </div>
 

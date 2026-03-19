@@ -733,9 +733,29 @@ function _notion_flattenProperties(properties) {
         flat[key] = prop.people ? prop.people.map(function (p) { return p.name || p.id; }) : [];
         break;
       case 'files':
-        // CORRECCIÓN: Extraer solo la URL del archivo como string, no el objeto completo.
+        // ADR-023: Canonicalizar archivos/imágenes como INDRA_MEDIA.
+        // Las URLs de Notion son temporales (~1 hora). Se incluye expires_at para que el
+        // Bridge o Workflow pueda detectarlo y refrescar si es necesario.
         flat[key] = prop.files ? prop.files.map(function (f) {
-          return f.file ? f.file.url : (f.external ? f.external.url : f.name || null);
+          const rawUrl = f.file ? f.file.url : (f.external ? f.external.url : null);
+          if (!rawUrl) return null;
+
+          const isImage = f.name && /\.(jpg|jpeg|png|gif|webp|svg|avif)$/i.test(f.name);
+          const mimeGuess = isImage
+            ? ('image/' + (f.name.split('.').pop().toLowerCase().replace('jpg', 'jpeg')))
+            : null;
+
+          return {
+            type: 'INDRA_MEDIA',
+            storage: f.file ? 'notion' : 'url',
+            canonical_url: rawUrl,
+            file_id: null,          // Notion no tiene File IDs directos para refrescar
+            mime_type: mimeGuess,
+            expires_at: f.file      // Las URLs internas de Notion expiran
+              ? new Date(Date.now() + 55 * 60 * 1000).toISOString()  // ~55 min de margen
+              : null,
+            alt: f.name || null
+          };
         }).filter(Boolean) : [];
         break;
       case 'created_time':

@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndraEngineHood } from '../../../utilities/IndraEngineHood';
 import { IndraIcon } from '../../../utilities/IndraIcons';
+import { IndraActionTrigger } from '../../../utilities/IndraActionTrigger';
 
 /**
  * Módulo: InspectorSidebar
@@ -270,10 +271,15 @@ export const InspectorSidebar = ({ selectedClip, project, onUpdateClip, onRemove
 
                             <div className="spacer" style={{ height: '20px' }} />
                             
-                            <button className="btn btn--danger btn--xs w-full mt-4" onClick={() => onRemoveClip(selectedClip.id)}>
-                                <IndraIcon name="DELETE" size="10px" />
-                                <span className="font-mono ml-2 uppercase" style={{ fontSize: '10px' }}>REMOVE_CLIP_DEFINITIVE</span>
-                            </button>
+                            <div className="mt-4" onClick={e => e.stopPropagation()}>
+                                <IndraActionTrigger 
+                                    variant="destructive"
+                                    label="REMOVE_CLIP_DEFINITIVE"
+                                    onClick={() => onRemoveClip(selectedClip.id)}
+                                    size="10px"
+                                    style={{ width: '100%', height: '32px' }}
+                                />
+                            </div>
                         </div>
                     ) : (
                         <div className="center fill opacity-30 font-mono text-xs uppercase">SELECT_A_CLIP_TO_INSPECT</div>
@@ -358,9 +364,10 @@ export const InspectorSidebar = ({ selectedClip, project, onUpdateClip, onRemove
                                          </div>
                                          <span className="font-mono opacity-20" style={{ fontSize: '7px' }}>{file.name}</span>
                                      </div>
-                                     <div className="shelf--tight" style={{ opacity: 0, transition: 'opacity 0.15s' }}
-                                         onMouseEnter={e => e.currentTarget.style.opacity = 1}
-                                         onMouseLeave={e => e.currentTarget.style.opacity = 0}
+                                     <div className="shelf--tight vault-item-actions" 
+                                          style={{ opacity: 0, transition: 'opacity 0.15s' }}
+                                          onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                                          onMouseLeave={e => e.currentTarget.style.opacity = 0}
                                      >
                                          <IndraIcon 
                                              name="PLUS" 
@@ -373,17 +380,17 @@ export const InspectorSidebar = ({ selectedClip, project, onUpdateClip, onRemove
                                                  window.dispatchEvent(event);
                                              }}
                                          />
-                                         <IndraIcon 
-                                             name="DELETE" 
-                                             size="10px" 
-                                             className="cursor-pointer hover-text-danger" 
-                                             title="Eliminar del caché"
-                                             onClick={(e) => {
-                                                 e.stopPropagation();
-                                                 const event = new CustomEvent('delete-vault-asset', { detail: { vaultId: file.id } });
-                                                 window.dispatchEvent(event);
-                                             }}
-                                         />
+                                         <div onClick={e => e.stopPropagation()}>
+                                             <IndraActionTrigger 
+                                                 variant="destructive"
+                                                 label="ELIMINAR"
+                                                 onClick={() => {
+                                                     const event = new CustomEvent('delete-vault-asset', { detail: { vaultId: file.id } });
+                                                     window.dispatchEvent(event);
+                                                 }}
+                                                 size="10px"
+                                             />
+                                         </div>
                                      </div>
                                  </div>
                              );

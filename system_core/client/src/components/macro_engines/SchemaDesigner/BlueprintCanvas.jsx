@@ -107,22 +107,51 @@ function BlueprintField({ field, selectedId, onSelect, previewMode }) {
                 <span style={{ fontSize: '8px', opacity: 0.3, fontFamily: 'var(--font-mono)' }}>{projection.theme.label.toUpperCase()}</span>
             </div>
 
-            {/* Simulación del Input o Contenedor */}
-            {!isContainer ? (
-                <div style={{
-                    height: '36px',
-                    background: 'var(--color-bg-void)',
-                    border: '1px solid var(--color-border-strong)',
-                    borderRadius: 'var(--radius-sm)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '0 var(--space-3)',
-                    fontSize: '11px',
-                    opacity: 0.5
-                }}>
-                    {projection.config?.default_value || projection.config?.placeholder || 'Esperando entrada...'}
-                </div>
-            ) : (
+            {/* Simulación del Input o Contenedor — fiel al widget real */}
+            {!isContainer ? (() => {
+                if (projection.type === 'IMAGE') return (
+                    <div style={{
+                        height: '80px',
+                        background: 'var(--color-bg-void)',
+                        border: '1px dashed var(--color-border-strong)',
+                        borderRadius: 'var(--radius-sm)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        gap: 'var(--space-2)', opacity: 0.4, flexDirection: 'column'
+                    }}>
+                        <IndraIcon name="IMAGE" size="20px" />
+                        <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>IMAGEN / FOTO</span>
+                    </div>
+                );
+                if (projection.type === 'FILE_ATTACHMENT' || projection.type === 'FILE') return (
+                    <div style={{
+                        height: '44px',
+                        background: 'var(--color-bg-void)',
+                        border: '1px solid var(--color-border-strong)',
+                        borderRadius: 'var(--radius-sm)',
+                        display: 'flex', alignItems: 'center', padding: '0 var(--space-3)',
+                        gap: 'var(--space-3)', opacity: 0.5
+                    }}>
+                        <div style={{ width: '24px', height: '24px', background: 'var(--color-warm)', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontFamily: 'var(--font-mono)', color: 'black' }}>
+                            {(projection.config?.allowed_extensions?.[0] || 'FILE').toUpperCase().substring(0, 4)}
+                        </div>
+                        <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)' }}>Archivo binario vinculado</span>
+                    </div>
+                );
+                // Default: input genérico
+                return (
+                    <div style={{
+                        height: '36px',
+                        background: 'var(--color-bg-void)',
+                        border: '1px solid var(--color-border-strong)',
+                        borderRadius: 'var(--radius-sm)',
+                        display: 'flex', alignItems: 'center',
+                        padding: '0 var(--space-3)',
+                        fontSize: '11px', opacity: 0.5
+                    }}>
+                        {projection.config?.default_value || projection.config?.placeholder || 'Esperando entrada...'}
+                    </div>
+                );
+            })() : (
                 <div className="stack" style={{
                     padding: 'var(--space-6)',
                     border: '1px solid var(--color-border-strong)',

@@ -47,6 +47,7 @@ export const useAppState = create((set, get) => ({
     activeArtifact: null, // Átomo en edición/ejecución (Nivel 3)
     isMaterializing: false, // Estado de transición para hidratación de átomos
     pendingSyncs: {}, // { atomId: boolean } - Rastreo de resonancia en segundo plano
+    pendingCreations: [], // [ { class, handle, status: 'PROVISIONING' } ] - Creación optimista
     inductionTicketId: localStorage.getItem('indra-induction-ticket-id') || null,
     inductionTicketSnapshot: _loadInductionSnapshot_(),
     
@@ -354,6 +355,23 @@ export const useAppState = create((set, get) => ({
      */
     createArtifact: async (atomClass, label) => {
         const { coreUrl, sessionSecret, pinAtom, openArtifact } = get();
+        
+        // ── AXIOMA DE RETROALIMENTACIÓN INMEDIATA (Optimismo UI) ──
+        const tempId = `temp_${Date.now()}`;
+        const provisionalAtom = {
+            id: tempId,
+            class: atomClass,
+            handle: { label: label || 'NUEVO_ARTEFACTO' },
+            status: 'PROVISIONING',
+            updated_at: new Date().toISOString(),
+            _provisional: true // Marca interna
+        };
+
+        set(state => ({
+            pendingCreations: [...state.pendingCreations, provisionalAtom],
+            pendingSyncs: { ...state.pendingSyncs, [tempId]: true }
+        }));
+
         try {
             // ADR-008: Provisión de cuna para tipos estructurados
             const initialPayload = {};
@@ -372,12 +390,29 @@ export const useAppState = create((set, get) => ({
             }, coreUrl, sessionSecret);
 
             const newAtom = result.items?.[0];
+            
+            // Limpiar estado optimista
+            set(state => {
+                const newPending = state.pendingCreations.filter(a => a.id !== tempId);
+                const newSyncs = { ...state.pendingSyncs };
+                delete newSyncs[tempId];
+                return { pendingCreations: newPending, pendingSyncs: newSyncs };
+            });
+
             if (newAtom) {
                 await pinAtom(newAtom);
                 openArtifact(newAtom);
                 toastEmitter.success(`${atomClass} creado correctamente`);
             }
         } catch (err) {
+            // Limpiar estado optimista en error
+            set(state => {
+                const newPending = state.pendingCreations.filter(a => a.id !== tempId);
+                const newSyncs = { ...state.pendingSyncs };
+                delete newSyncs[tempId];
+                return { pendingCreations: newPending, pendingSyncs: newSyncs };
+            });
+
             console.error('[app_state] createArtifact failed:', err);
             toastEmitter.error(`Error al crear ${atomClass}: ${err.message}`);
             throw err;

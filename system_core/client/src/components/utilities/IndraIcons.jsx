@@ -33,12 +33,12 @@ const ICON_MAP = {
     // ── ENTIDADES ──
     'ATOM': <><circle cx="8" cy="8" r="7" /><circle cx="8" cy="8" r="2" /></>,
     'WORKSPACE': <><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z" /></>,
-    'SCHEMA': <path d="M2 2h12v12H2zm3 4h6m-6 3h6m-6 3h3" />,
-    'BRIDGE': <><circle cx="4" cy="8" r="2" /><circle cx="12" cy="8" r="2" /><path d="M6 8h4" /></>,
-    'DOCUMENT': <path d="M3 2h7l3 3v9H3zm7 0v3h3" />,
-    'SERVICE': <path d="M8 2l6 3.5v7L8 14 2 10.5v-7L8 2zm0 3.5v5M5 6.5l6 3m0-3l-6 3" />,
-    'FOLDER': <path d="M1 3h5l2 2h7v9H1V3z" />,
-    'VAULT': <><rect x="2" y="4" width="12" height="10" rx="1" /><circle cx="8" cy="9" r="2" /><path d="M8 7v1" /></>,
+    'SCHEMA': <><path d="M2 4h12M2 8h12M2 12h12M5 2v12M11 2v12" /><rect x="2" y="2" width="12" height="12" rx="1" /></>,
+    'BRIDGE': <><path d="M1 8h14M4 8c0-3 2-6 4-6s4 3 4 6M4 8c0 3 2 6 4 6s4-3 4-6" /><circle cx="4" cy="8" r="1" /><circle cx="12" cy="8" r="1" /></>,
+    'DOCUMENT': <><path d="M4 2h8l3 3v9a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z" /><path d="M11 2v4h4" /><path d="M6 7h4M6 10h6" /></>,
+    'SERVICE': <><circle cx="8" cy="8" r="3" /><circle cx="8" cy="8" r="6" strokeDasharray="2 2" /><path d="M8 2v1M8 13v1M2 8h1M13 8h1" /></>,
+    'FOLDER': <><path d="M1 4a1 1 0 011-1h4l2 2h7a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4z" /><path d="M1 7h14" /></>,
+    'VAULT': <><rect x="3" y="5" width="10" height="9" rx="1" /><path d="M4 5V3a2 2 0 014 0v2" /><circle cx="8" cy="10" r="1.5" /></>,
 
     // ── ACCIONES ──
     'PLUS': <path d="M8 3v10M3 8h10" />,
@@ -110,11 +110,22 @@ const ICON_MAP = {
     'IMAGE':    <><rect x="2" y="3" width="12" height="10" rx="1" /><path d="M2 10l3-3 3 3 2-3 4 6" /><circle cx="11" cy="6" r="1.5" /></>,
     'EXPAND':   <path d="M6 4l-4 4 4 4m4-8l4 4-4 4" />,
 
+    // ── NUEVOS ICONOS POÉTICOS ──
+    'DNA': <path d="M4 2c2 2 8 10 8 12M12 2C10 4 4 12 4 14M4 5h8M4 8h8M4 11h8" />,
+    'BOLT': <path d="M9 1L4 9h4l-1 6 5-8h-4l1-6z" />,
+    'MAP_ROUTE': <><circle cx="3" cy="3" r="1.5" /><circle cx="13" cy="13" r="1.5" /><path d="M4.5 3.5l7 9" strokeDasharray="2 2" /><path d="M3 4.5v3l4 4h3v2.5" /></>,
+    'FILM': <><rect x="1" y="4" width="10" height="8" rx="1" /><path d="M14 5l-3 3 3 3V5z" /><circle cx="4" cy="8" r="1" /><circle cx="8" cy="8" r="1" /></>,
+    'HEART_BEAT': <path d="M1 8h3l2-5 3 10 2-5h4" />,
+    'PIVOT': <><circle cx="8" cy="8" r="1.5" /><path d="M8 3v2M8 11v2M3 8h2m6 0h2" /><path d="M4 4l1.5 1.5M10.5 10.5L12 12" /></>,
+    'HEXAGON': <path d="M8 1l6 3.5v7L8 15 2 11.5v-7L8 1z" />,
+
     // ── ALIASES DE CLASE (para atom.class → icono) ──
-    'DATA_SCHEMA': <path d="M2 2h12v12H2zm3 4h6m-6 3h6m-6 3h3" />,
-    'WORKFLOW': <path d="M2 4h4v4H2zm8 0h4v4h-4zM4 8v4h8V8" />,
-    'EXPRESSION': <path d="M2 8h2m2-4l4 8m0-8l-4 8m5-4h2" />,
-    'VIDEO_PROJECT': <><path d="M2 3h8l4 3v7H2V3z" /><path d="M10 3v3h4" /><circle cx="6" cy="9" r="2" /></>,
+    'DATA_SCHEMA': <path d="M8 1l6 3.5v7L8 15 2 11.5v-7L8 1z" />, // HEXAGON
+    'WORKFLOW': <><circle cx="3" cy="3" r="1.5" /><circle cx="13" cy="13" r="1.5" /><path d="M4.5 3.5l7 9" strokeDasharray="2 2" /><path d="M3 4.5v3l4 4h3v2.5" /></>, // MAP_ROUTE
+    'VIDEO_PROJECT': <><rect x="1" y="4" width="10" height="8" rx="1" /><path d="M14 5l-3 3 3 3V5z" /><circle cx="4" cy="8" r="1" /><circle cx="8" cy="8" r="1" /></>, // FILM
+    'CALENDAR_HIVE': <path d="M1 8h3l2-5 3 10 2-5h4" />, // HEART_BEAT
+    'AEE_RUNNER': <path d="M9 1L4 9h4l-1 6 5-8h-4l1-6z" />, // BOLT
+    'VIRTUAL_SERVICE': <><circle cx="8" cy="8" r="3" /><circle cx="8" cy="8" r="6" strokeDasharray="2 2" /><path d="M8 2v1M8 13v1M2 8h1M13 8h1" /></>, // ORBIT
     'TIMELINE': <path d="M1 13h14M3 13V9m3 4V7m3 6V10m3 3V6m3 7V11" />,
     'SCISSORS': <><circle cx="5" cy="5" r="2" /><circle cx="5" cy="11" r="2" /><path d="M7 6l6 7M7 10l6-7" /></>,
     'FILE': <path d="M3 2h7l3 3v9H3zm7 0v3h3" />,

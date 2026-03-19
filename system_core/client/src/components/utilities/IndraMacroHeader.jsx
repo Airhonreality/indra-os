@@ -137,6 +137,17 @@ export function IndraMacroHeader({
                     gap: '12px',
                     marginRight: 'auto' // AXIOMA: Empujar el resto a la derecha
                 }}>
+                    <button 
+                        className="btn btn--mini"
+                        style={{ width: '32px', height: '32px', padding: '0' }}
+                        onClick={() => useAppState.getState().openSelector()} 
+                        title="Global Workspace Search"
+                    >
+                        <IndraIcon name="SEARCH" size="14px" />
+                    </button>
+
+                    <div style={{ width: '1px', height: '16px', background: 'var(--color-border)', opacity: 0.2 }} />
+
                     {/* CORE CONNECTIVITY (Link Directo) */}
                     <button 
                         className={`btn btn--mini ${useAppState.getState().docsTab === 'INSTALACION' && useAppState.getState().isDocsOpen ? 'btn--active-glass' : ''}`}

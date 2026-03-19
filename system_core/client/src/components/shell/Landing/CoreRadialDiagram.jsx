@@ -32,10 +32,10 @@ export const CoreRadialDiagram = () => {
 
             {/* ── ANILLO I: MÓDULOS DEL MOTOR (CORE) ── */}
             {[
-                { angle: -90, label: 'SYSTEM_ASSEMBLER' },
-                { angle: 0, label: 'PROJECTION_KERNEL' },
-                { angle: 90, label: 'HTTP_ENTRYPOINT' },
-                { angle: 180, label: 'CONTRACT_REGISTRY' }
+                { angle: -90, label: 'ORQUESTADOR' },
+                { angle: 0, label: 'NÚCLEO' },
+                { angle: 90, label: 'ENTRADA' },
+                { angle: 180, label: 'REGISTRO' }
             ].map((node, i) => {
                 const rad = (node.angle * Math.PI) / 180;
                 const x = 600 + Math.cos(rad) * 180;
@@ -56,10 +56,11 @@ export const CoreRadialDiagram = () => {
 
             {/* ── ANILLO II: PROVIDERS (ADAPTER) ── */}
             {[
-                { angle: -135, label: 'SQL_HOST' },
-                { angle: -45, label: 'G_DRIVE' },
-                { angle: 45, label: 'NEURAL_ORACLE' },
-                { angle: 135, label: 'DOCUMENT_VAULT' }
+                { angle: -90, label: 'PROVEEDOR_NOTION' },
+                { angle: -18, label: 'PROVEEDOR_DRIVE' },
+                { angle: 54, label: 'PROVEEDOR_SQL' },
+                { angle: 126, label: 'PROVEEDOR_MAIL' },
+                { angle: 198, label: 'PROVEEDOR_CALENDAR' }
             ].map((node, i) => {
                 const rad = (node.angle * Math.PI) / 180;
                 const x = 600 + Math.cos(rad) * 360;
@@ -74,8 +75,9 @@ export const CoreRadialDiagram = () => {
 
             {/* ── ANILLO III: CLIENTS (PROYECT) ── */}
             {[
-                { angle: -15, label: 'INDRA_DASHBOARD' },
-                { angle: 195, label: 'SATELLITE_REMOTE' }
+                { angle: -90, label: 'INDRA_APP' },
+                { angle: 30, label: 'WEB_BACKEND' },
+                { angle: 150, label: 'SATÉLITE_REMOTO' }
             ].map((node, i) => {
                 const rad = (node.angle * Math.PI) / 180;
                 const x = 600 + Math.cos(rad) * 540;

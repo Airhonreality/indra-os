@@ -426,10 +426,13 @@ function _system_toAtom(doc, fileId, providerId) {
         payload.operators = [];
     }
 
-    // AXIOMA: Inject SYSTEM_SHARE_CREATE for shareable artifacts
+    // AXIOMA: Inject SYSTEM_SHARE_CREATE & SYSTEM_BLUEPRINT_SYNC for shareable and publishable artifacts
     let protocols = Array.isArray(doc.protocols) ? doc.protocols : [];
-    if (['DATA_SCHEMA', 'DOCUMENT'].includes(doc.class)) {
-        if (!protocols.includes('SYSTEM_SHARE_CREATE')) protocols.push('SYSTEM_SHARE_CREATE');
+    if (['DATA_SCHEMA', 'DOCUMENT', 'BRIDGE', 'WORKFLOW'].includes(doc.class)) {
+        if (!protocols.includes('SYSTEM_BLUEPRINT_SYNC')) protocols.push('SYSTEM_BLUEPRINT_SYNC');
+        if (['DATA_SCHEMA', 'DOCUMENT'].includes(doc.class)) {
+            if (!protocols.includes('SYSTEM_SHARE_CREATE')) protocols.push('SYSTEM_SHARE_CREATE');
+        }
     }
 
     return {

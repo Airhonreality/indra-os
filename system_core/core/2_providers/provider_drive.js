@@ -42,9 +42,9 @@ function CONF_DRIVE() {
       alias: 'drive',
       label: 'Google Drive'
     },
-    class: 'FOLDER',         // class del átomo-silo en el manifest
-    version: '1.0',
-    protocols: ['HIERARCHY_TREE', 'ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 'SEARCH_DEEP', 'TABULAR_STREAM'],
+    class: 'FOLDER',
+    version: '1.1',
+    protocols: ['HIERARCHY_TREE', 'ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 'SEARCH_DEEP', 'TABULAR_STREAM', 'DRIVE_FILE_URL'],
     implements: {
       HIERARCHY_TREE: 'handleDrive',
       ATOM_READ: 'handleDrive',
@@ -53,13 +53,15 @@ function CONF_DRIVE() {
       ATOM_UPDATE: 'handleDrive',
       ATOM_DELETE: 'handleDrive',
       SEARCH_DEEP: 'handleDrive',
+      DRIVE_FILE_URL: 'handleDrive',       // ADR-023: Resolución de URL canónica de media
     },
     config_schema: [],
     capabilities: {
       ATOM_CREATE: { sync: 'BLOCKING', purge: 'ALL' },
       ATOM_UPDATE: { sync: 'BLOCKING', purge: 'ID' },
       ATOM_DELETE: { sync: 'BLOCKING', purge: 'ALL' },
-      HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE' }
+      HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE' },
+      DRIVE_FILE_URL: { sync: 'BLOCKING', purge: 'NONE' },
     },
     protocol_meta: {
       SEARCH_DEEP: {
@@ -69,6 +71,10 @@ function CONF_DRIVE() {
       ATOM_READ: {
         desc: "Lee la metadata detallada de un archivo o carpeta de Drive.",
         inputs: { context_id: { type: 'string', required: true } }
+      },
+      DRIVE_FILE_URL: {
+        desc: "(ADR-023) Dado un File ID de Drive, retorna el átomo con payload.media de tipo INDRA_MEDIA.",
+        inputs: { context_id: { type: 'string', required: true, desc: 'Google Drive File ID' } }
       }
     }
   });
@@ -133,12 +139,14 @@ function handleDrive(uqo) {
   logInfo(`[provider_drive] Dispatching: ${protocol}`, { context_id: uqo.context_id });
 
   if (protocol === 'HIERARCHY_TREE') return _drive_handleHierarchyTree(uqo);
-  if (protocol === 'ATOM_READ') return _drive_handleAtomRead(uqo);
+  if (protocol === 'ATOM_READ')      return _drive_handleAtomRead(uqo);
   if (protocol === 'TABULAR_STREAM') return _drive_handleTabularStream(uqo);
-  if (protocol === 'ATOM_CREATE') return _drive_handleAtomCreate(uqo);
-  if (protocol === 'ATOM_UPDATE') return _drive_handleAtomUpdate(uqo);
-  if (protocol === 'ATOM_DELETE') return _drive_handleAtomDelete(uqo);
-  if (protocol === 'SEARCH_DEEP') return _drive_handleSearchDeep(uqo);
+  if (protocol === 'ATOM_CREATE')    return _drive_handleAtomCreate(uqo);
+  if (protocol === 'ATOM_UPDATE')    return _drive_handleAtomUpdate(uqo);
+  if (protocol === 'ATOM_DELETE')    return _drive_handleAtomDelete(uqo);
+  if (protocol === 'SEARCH_DEEP')    return _drive_handleSearchDeep(uqo);
+  // ADR-023: Media Canónica
+  if (protocol === 'DRIVE_FILE_URL')       return _drive_handleFileUrl(uqo);
 
   const err = createError('PROTOCOL_NOT_FOUND',
     `El Silo "Drive" no soporta el protocolo: "${protocol}".`
@@ -260,17 +268,23 @@ function _drive_handleAtomRead(uqo) {
 }
 
 /**
- * ATOM_CREATE: Crea una carpeta en Drive.
- * data.name     → nombre de la carpeta (requerido).
- * context_id    → ID de la carpeta padre (opcional, default: ROOT).
+ * ATOM_CREATE: Crea una carpeta o un archivo en Drive.
+ * data.name           → nombre del elemento (requerido).
+ * context_id          → ID de la carpeta padre (opcional, default: ROOT).
+ * data.file_base64    → contenido del archivo en base64 (opcional, si existe crea archivo, si no carpeta)
+ * data.mime_type      → tipo mime (opcional, requerido si hay file_base64)
  *
  * @private
  */
 function _drive_handleAtomCreate(uqo) {
   const data = uqo.data || {};
-  const label = data.handle?.label || data.name || '';
+  
+  // AXIOMA DE FLUJO: Si venimos de un paso anterior en el workflow, resolvemos del array de items.
+  const source = (data.items && data.items.length > 0) ? data.items[0] : data;
+
+  const label = source.handle?.label || source.name || source.file_name || '';
   if (!label || typeof label !== 'string' || label.trim() === '') {
-    const err = createError('INVALID_INPUT', 'ATOM_CREATE requiere data.handle.label o data.name.');
+    const err = createError('INVALID_INPUT', 'ATOM_CREATE requiere data.name o datos del paso anterior.');
     return { items: [], metadata: { status: 'ERROR', error: err.message } };
   }
 
@@ -281,10 +295,22 @@ function _drive_handleAtomCreate(uqo) {
       return { items: [], metadata: { status: 'ERROR', error: err.message } };
     }
 
-    const newFolder = parentFolder.createFolder(label.trim());
-    const atom = _drive_folderToAtom(newFolder, uqo.provider);
+    let atom;
+    if (source.file_base64) {
+      // ── MODO ARCHIVO: Crear archivo a partir de Base64 (Axioma de Transporte)
+      const mimeType = source.mime_type || 'application/octet-stream';
+      const decoded = Utilities.base64Decode(source.file_base64);
+      const blob = Utilities.newBlob(decoded, mimeType, label.trim());
+      const newFile = parentFolder.createFile(blob);
+      atom = _drive_fileToAtom(newFile, uqo.provider, false);
+      logInfo(`[provider_drive] Archivo generado: "${label}" (${mimeType}) en "${parentFolder.getName()}"`);
+    } else {
+      // ── MODO CARPETA: Comportamiento original
+      const newFolder = parentFolder.createFolder(label.trim());
+      atom = _drive_folderToAtom(newFolder, uqo.provider);
+      logInfo(`[provider_drive] Carpeta creada: "${label}" en "${parentFolder.getName()}"`);
+    }
 
-    logInfo(`[provider_drive] Carpeta creada: "${label}" en "${parentFolder.getName()}"`);
     return { items: [atom], metadata: { status: 'OK' } };
 
   } catch (err) {
@@ -481,6 +507,20 @@ function _drive_fileToAtom(file, providerId, includeFields) {
     }
   }
 
+  // ADR-023: Si el archivo es una imagen, construir el tipo INDRA_MEDIA canónico.
+  if (mimeType && mimeType.startsWith('image/')) {
+    const fileId = file.getId();
+    payload.media = {
+      type: 'INDRA_MEDIA',
+      storage: 'drive',
+      // URL de thumbnail/visualización: funciona para archivos compartidos (ver ADR-023 §Riesgos)
+      canonical_url: `https://lh3.googleusercontent.com/d/${fileId}`,
+      file_id: fileId,
+      mime_type: mimeType,
+      expires_at: null // Drive no tiene URLs temporales — es permanente si el archivo está compartido
+    };
+  }
+
   return {
     id: file.getId(),
     handle: {
@@ -605,3 +645,72 @@ function _drive_spreadsheetToFields(file) {
     type: 'STRING' // Default para Drive, ya que no hay metadata rica
   }));
 }
+
+// =============================================================================
+// ADR-023: HANDLERS DE MEDIA CANÓNICA
+// =============================================================================
+
+/**
+ * DRIVE_FILE_URL: Dado un File ID de Drive, retorna un átomo INDRA_MEDIA canónico.
+ * Permite que el Bridge o el Workflow resuelvan la URL visual de un archivo
+ * sin conocer los detalles de Drive.
+ * 
+ * UQO requerido: { context_id: 'DRIVE_FILE_ID' }
+ * @private
+ */
+function _drive_handleFileUrl(uqo) {
+  if (!uqo.context_id) {
+    return { items: [], metadata: { status: 'ERROR', error: 'DRIVE_FILE_URL requiere context_id (Drive File ID).' } };
+  }
+
+  try {
+    const file = DriveApp.getFileById(uqo.context_id);
+    const mimeType = file.getMimeType();
+    const fileId = file.getId();
+    const name = file.getName();
+
+    // Construir URL canónica según el tipo de archivo
+    let canonicalUrl;
+    if (mimeType.startsWith('image/')) {
+      canonicalUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
+    } else if (mimeType === 'application/pdf') {
+      canonicalUrl = `https://drive.google.com/file/d/${fileId}/view`;
+    } else {
+      // Fallback a URL de exportación genérica
+      canonicalUrl = file.getDownloadUrl();
+    }
+
+    const mediaAtom = {
+      id: fileId,
+      handle: {
+        ns: 'com.indra.media',
+        alias: _system_slugify_(name) || 'media_file',
+        label: name
+      },
+      class: 'MEDIA',
+      provider: uqo.provider || 'drive',
+      protocols: ['ATOM_READ'],
+      mime_type: mimeType,
+      payload: {
+        media: {
+          type: 'INDRA_MEDIA',
+          storage: 'drive',
+          canonical_url: canonicalUrl,
+          file_id: fileId,
+          mime_type: mimeType,
+          expires_at: null // Drive no usa URLs temporales si el archivo está compartido
+        }
+      }
+    };
+
+    logInfo(`[provider_drive] DRIVE_FILE_URL resuelto: ${fileId} → ${canonicalUrl}`);
+    return { items: [mediaAtom], metadata: { status: 'OK' } };
+
+  } catch (err) {
+    logError('[provider_drive] Error en DRIVE_FILE_URL.', err);
+    return { items: [], metadata: { status: 'ERROR', error: `Archivo no encontrado o sin acceso: ${err.message}` } };
+  }
+}
+
+
+

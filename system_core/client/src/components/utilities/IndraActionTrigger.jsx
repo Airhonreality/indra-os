@@ -26,7 +26,8 @@ export function IndraActionTrigger({
     activeColor = 'var(--color-accent)',
     size = '12px',
     loading = false,
-    variant = 'default' // 'default' | 'destructive'
+    variant = 'default', // 'default' | 'destructive'
+    style = {}
 }) {
     const isDestructive = variant === 'destructive';
     const effectiveColor = isDestructive ? 'var(--color-danger)' : color;
@@ -86,7 +87,7 @@ export function IndraActionTrigger({
 
     return (
         <button
-            className={`indra-trigger ${loading ? 'indra-trigger--loading' : ''} ${isDestructive ? 'indra-trigger--destructive' : ''}`}
+            className={`indra-trigger ${loading ? 'indra-trigger--loading' : ''} ${isDestructive ? 'indra-trigger--destructive' : ''} ${label ? 'indra-trigger--with-label' : ''}`}
             onMouseDown={effectiveRequiresHold && !loading ? startHold : undefined}
             onMouseUp={effectiveRequiresHold && !loading ? stopHold : undefined}
             onMouseLeave={effectiveRequiresHold && !loading ? stopHold : undefined}
@@ -98,17 +99,20 @@ export function IndraActionTrigger({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '24px',
+                gap: label ? 'var(--space-2)' : '0',
+                width: label ? 'auto' : '24px',
+                minWidth: '24px',
                 height: '24px',
-                padding: 0,
+                padding: label ? '0 var(--space-3)' : '0',
                 border: '1px solid var(--color-border)',
                 borderRadius: 'var(--radius-sm)',
-                background: isHolding ? 'var(--color-bg-hover)' : 'transparent',
+                background: isHolding ? 'rgba(255,255,255,0.05)' : 'transparent',
                 cursor: loading ? 'wait' : 'pointer',
                 transition: 'all var(--transition-fast)',
                 overflow: 'hidden',
                 color: (isHolding || loading) ? effectiveActiveColor : effectiveColor,
-                opacity: loading ? 0.8 : 1
+                opacity: loading ? 0.8 : 1,
+                ...style
             }}
         >
             {/* Progress Bar Background (Hold) */}
@@ -135,7 +139,20 @@ export function IndraActionTrigger({
                     animation: 'indra-spin 0.6s linear infinite'
                 }} />
             ) : (
-                <IndraIcon name={effectiveIcon} size={size} />
+                <>
+                    <IndraIcon name={effectiveIcon} size={size} />
+                    {label && (
+                        <span style={{ 
+                            fontSize: '9px', 
+                            fontFamily: 'var(--font-mono)', 
+                            fontWeight: '600', 
+                            letterSpacing: '0.05em',
+                            textTransform: 'uppercase'
+                        }}>
+                            {label}
+                        </span>
+                    )}
+                </>
             )}
 
             <style>{`
@@ -144,14 +161,12 @@ export function IndraActionTrigger({
                 }
                 .indra-trigger:hover:not(:disabled) {
                     border-color: ${effectiveActiveColor};
+                    background: ${effectiveActiveColor}10 !important;
                     box-shadow: 0 0 10px ${effectiveActiveColor}33;
-                    transform: scale(1.05);
-                }
-                .indra-trigger--destructive:hover:not(:disabled) {
-                    background: rgba(var(--rgb-danger), 0.1) !important;
+                    transform: scale(1.02);
                 }
                 .indra-trigger:active:not(:disabled) {
-                    transform: scale(0.95);
+                    transform: scale(0.98);
                 }
                 .indra-trigger--loading {
                     border-color: ${effectiveActiveColor}66 !important;

@@ -59,18 +59,18 @@ export const ArquitecturaTab = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', marginTop: '64px', gap: '32px', textAlign: 'left' }}>
                         <div style={{ background: 'var(--glass-light)', padding: '32px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--color-border)' }}>
-                            <h4 style={{ color: 'var(--diag-core)', fontSize: 'var(--text-sm)', marginBottom: '12px', letterSpacing: '0.2em' }}>CORE_MODULES (INNER)</h4>
+                            <h4 style={{ color: 'var(--diag-core)', fontSize: 'var(--text-sm)', marginBottom: '12px', letterSpacing: '0.2em' }}>NÚCLEO Y ORQUESTACIÓN (INNER)</h4>
                             <div style={{ fontSize: 'var(--text-sm)', fontWeight: 300, color: 'var(--color-text-secondary)', lineHeight: '2' }}>
-                                • SystemAssembler: Orquestación y descubrimiento de servicios.<br/>
-                                • ProjectionKernel: Motor de transformación de materia y genes.<br/>
-                                • HttpEntrypoint: El único túnel de comunicación segura (HTTPS).<br/>
-                                • ContractRegistry: El libro mayor de todas las verdades del sistema.
+                                • Orquestador: Ejecución y descubrimiento de servicios.<br/>
+                                • Núcleo: Motor de transformación de materia y lógica central.<br/>
+                                • Entrada: El único túnel de entrada y comunicación segura (HTTPS).<br/>
+                                • Registro: El libro mayor y directorio universal del sistema.
                             </div>
                         </div>
                         <div style={{ background: 'var(--glass-light)', padding: '32px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--color-border)' }}>
-                            <h4 style={{ color: 'var(--color-text-primary)', fontSize: 'var(--text-sm)', marginBottom: '12px', letterSpacing: '0.2em' }}>ADAPTER_LAYER (MIDDLE)</h4>
+                            <h4 style={{ color: 'var(--color-text-primary)', fontSize: 'var(--text-sm)', marginBottom: '12px', letterSpacing: '0.2em' }}>PROVEEDORES EXTERNOS (MIDDLE)</h4>
                             <p style={{ fontSize: 'var(--text-sm)', fontWeight: 300, color: 'var(--color-text-secondary)', lineHeight: '2' }}>
-                                La capa donde el mundo exterior se conecta con INDRA. Mediante adaptadores desacoplados, puedes inyectar datos de SQL, Notion o Drive directamente al motor sin comprometer la integridad del núcleo.
+                                La capa donde el ecosistema exterior se conecta. Mediante adaptadores desacoplados, puedes inyectar capacidades de proveedores como SQL, Notion, Calendar o Drive directamente al motor sin comprometer su integridad.
                             </p>
                         </div>
                     </div>
@@ -89,21 +89,21 @@ export const ArquitecturaTab = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', marginTop: '64px', gap: '24px', textAlign: 'left' }}>
                         <div style={{ padding: '24px', borderLeft: '1px solid var(--color-border)' }}>
-                            <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '12px' }}>NEXUS_MANAGER</h4>
+                            <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '12px', letterSpacing: '0.1em' }}>01. LA MATERIA (ORIGEN)</h4>
                             <p style={{ fontSize: 'var(--text-xs)', fontWeight: 300, color: 'var(--color-text-soft)', opacity: 0.7, lineHeight: '1.8' }}>
-                                Control de realidades autónomas (Workspaces). Permite instanciar núcleos independientes desde una única interfaz centralizada.
+                                Columna de hidratación de datos. Aquí es donde INDRA sincroniza tus fuentes externas (SQL, Sheets, Notion) y las convierte en átomos estructurados listos para ser procesados. Tu información, tus reglas.
                             </p>
                         </div>
                         <div style={{ padding: '24px', borderLeft: '1px solid var(--color-border)' }}>
-                            <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '12px' }}>ARTIFACT_VAULT</h4>
+                            <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '12px', letterSpacing: '0.1em' }}>02. EL PROCESO (LÓGICA)</h4>
                             <p style={{ fontSize: 'var(--text-xs)', fontWeight: 300, color: 'var(--color-text-soft)', opacity: 0.7, lineHeight: '1.8' }}>
-                                Gestión genómica de Pins. Los objetos digitales son inanimados hasta que el Vault los hidrata mediante su herencia y clase.
+                                El corazón del puente lógico. En esta fase, los átomos de datos se encuentran con tus flujos de automatización. Ingeniería de procesos sin código para transformar la materia en inteligencia operativa.
                             </p>
                         </div>
                         <div style={{ padding: '24px', borderLeft: '1px solid var(--color-border)' }}>
-                            <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '12px' }}>ENGINE_VIEWPORT</h4>
+                            <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '12px', letterSpacing: '0.1em' }}>03. EL RESULTADO (ARTEFACTOS)</h4>
                             <p style={{ fontSize: 'var(--text-xs)', fontWeight: 300, color: 'var(--color-text-soft)', opacity: 0.7, lineHeight: '1.8' }}>
-                                Renderizado solar de artefactos. Un solo visor capaz de interpretar video, documentos o automatizaciones basado en metadatos soberanos.
+                                La salida final de valor. Los datos procesados se proyectan como artefactos terminados: un PDF diagramado, un video renderizado o un canvas dinámico. De la lógica invisible al impacto tangible.
                             </p>
                         </div>
                     </div>

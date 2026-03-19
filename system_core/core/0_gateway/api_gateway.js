@@ -509,9 +509,17 @@ function _buildResponse_(_statusCode, body, headers = {}) {
 
   body.metadata = body.metadata || {};
 
-  // 1. Inyección de Meta-Headers Indra v4.0 (Deltas)
+  // 1. Inyección de Meta-Headers Indra v4.0 (Deltas e Identidad)
   if (headers['X-Indra-Update-Type']) {
     body.metadata.update_type = headers['X-Indra-Update-Type'];
+  }
+  
+  // AXIOMA DE IDENTIDAD: El Core siempre firma quién es (Sinceridad de Origen)
+  // readCoreOwnerEmail() está definido en system_config.gs
+  try {
+    body.metadata.core_id = readCoreOwnerEmail();
+  } catch (e) {
+    body.metadata.core_id = 'discovery_pending';
   }
 
   // 2. Inyección de Traza Transaccional (UQO Echo v4.1)

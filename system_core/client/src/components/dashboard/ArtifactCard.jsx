@@ -51,6 +51,33 @@ export function ArtifactCard({ atom }) {
         }
     };
 
+    const handleShare = async (e) => {
+        e.stopPropagation();
+        try {
+            const res = await executeDirective({
+                provider: 'system',
+                protocol: 'SYSTEM_SHARE_CREATE',
+                data: {
+                    artifact_id: projection.id,
+                    artifact_class: projection.class,
+                    auth_mode: 'public'
+                }
+            }, coreUrl, sessionSecret);
+
+            if (res.metadata?.status === 'OK' && res.items?.[0]) {
+                const ticketId = res.items[0].ticket_id;
+                // Construct public URL
+                const publicUrl = `${window.location.origin}${window.location.pathname}#/run?u=${encodeURIComponent(coreUrl)}&id=${ticketId}`;
+                await navigator.clipboard.writeText(publicUrl);
+                alert(`✅ Enlace público copiado al portapapeles:\n\n${publicUrl}`);
+            } else {
+                alert(`❌ Error al crear enlace: ${res.metadata?.error}`);
+            }
+        } catch (err) {
+            alert(`❌ Fallo de compartición: ${err.message}`);
+        }
+    };
+
     return (
         <div
             className={`mca-surface stack ${isOrphan ? 'is-orphan' : ''} ${isSyncing ? 'is-syncing' : ''}`}
@@ -113,10 +140,18 @@ export function ArtifactCard({ atom }) {
             {/* Footer: Protocol Triggers */}
             <div className="spread mca-surface__footer">
                 <div className="shelf--tight" onClick={e => e.stopPropagation()}>
+                    {capabilities.raw?.includes('SYSTEM_SHARE_CREATE') && (
+                        <IndraActionTrigger
+                            variant="primary"
+                            label="PUBLICAR"
+                            onClick={handleShare}
+                            size="12px"
+                        />
+                    )}
                     {capabilities.canDelete && (
                         <IndraActionTrigger
                             variant="destructive"
-                            label="ATOM_DELETE"
+                            label="BORRAR"
                             onClick={() => handleAction('ATOM_DELETE')}
                             size="12px"
                         />

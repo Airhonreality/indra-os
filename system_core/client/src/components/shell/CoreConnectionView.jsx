@@ -11,31 +11,39 @@ export function CoreConnectionView() {
     const t = useLexicon();
     const setCoreConnection = useAppState((s) => s.setCoreConnection);
     const isConnecting = useAppState((s) => s.isConnecting);
+    const coreId = useAppState((s) => s.coreId);
     const systemError = useAppState((s) => s.error);
     const clearError = useAppState((s) => s.clearError);
 
-    // Cargar persistencia del Link desde localStorage
-    const [alias, setAlias] = useState(() => localStorage.getItem('indra-core-alias') || '');
-    const [url, setUrl] = useState(() => localStorage.getItem('indra-core-url') || '');
+    // Estado de la Bóveda Local
+    const coreRegistry = useAppState((s) => s.coreRegistry);
+    const removeCore = useAppState((s) => s.removeCoreFromRegistry);
+    const [viewMode, setViewMode] = useState(coreRegistry.length > 0 ? 'EXISTING' : 'NEW');
+
+    const [alias, setAlias] = useState('');
+    const [url, setUrl] = useState('');
     const [password, setPassword] = useState('');
 
-    const onInputChange = (setter, storageKey) => (e) => {
-        const value = e.target.value;
-        setter(value);
-        if (storageKey) localStorage.setItem(storageKey, value);
+    const onInputChange = (setter) => (e) => {
+        setter(e.target.value);
         if (systemError) clearError();
     };
 
     const handleConnect = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         if (!url || !password) return;
         try {
-            // Asegurar persistencia al momento de conectar
-            localStorage.setItem('indra-core-alias', alias);
-            localStorage.setItem('indra-core-url', url);
-            await setCoreConnection(url, password);
+            await setCoreConnection(url, password, alias);
         } catch (err) {
             console.error('Connection failed:', err);
+        }
+    };
+
+    const handleQuickConnect = async (core) => {
+        try {
+            await setCoreConnection(core.url, core.secret, core.alias);
+        } catch (err) {
+            console.error('Quick connection failed:', err);
         }
     };
 
@@ -84,125 +92,178 @@ export function CoreConnectionView() {
                     </div>
                 </div>
 
-                {/* ── SECCIÓN CENTRAL: GRID DE CONFIGURACIÓN ── */}
-                <form onSubmit={handleConnect} className="stack" style={{ gap: 'var(--space-6)' }}>
+                {/* ── SELECTOR DE MODO (TABS) ── */}
+                <div className="shelf" style={{ borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-2)' }}>
+                    <button 
+                        className={`btn btn--mini ${viewMode === 'EXISTING' ? 'btn--accent' : 'btn--ghost'}`}
+                        onClick={() => setViewMode('EXISTING')}
+                        style={{ borderBottom: viewMode === 'EXISTING' ? '2px solid var(--color-accent)' : 'none', borderRadius: 0 }}
+                    >
+                        BÓVEDA_EXISTENTE [{coreRegistry.length}]
+                    </button>
+                    <button 
+                        className={`btn btn--mini ${viewMode === 'NEW' ? 'btn--accent' : 'btn--ghost'}`}
+                        onClick={() => setViewMode('NEW')}
+                        style={{ borderBottom: viewMode === 'NEW' ? '2px solid var(--color-accent)' : 'none', borderRadius: 0 }}
+                    >
+                        VÍNCULO_NUEVO
+                    </button>
+                </div>
 
-                    {/* Item 01: Identificador */}
-                    <div className="grid-split">
-                        <div className="stack--tight">
-                            <label className="text-label">{t('ui_identity_config')}</label>
-                            <p className="text-hint" style={{ fontSize: '10px', lineHeight: '1.4' }}>
-                                {t('ui_identity_desc')}
-                            </p>
-                        </div>
-                        <div className="slot-small glass-light">
-                            <input
-                                className="input-base"
-                                style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)' }}
-                                placeholder={t('ui_identity_placeholder')}
-                                value={alias}
-                                onChange={onInputChange(setAlias, 'indra-core-alias')}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Item 02: Endpoint */}
-                    <div className="grid-split">
-                        <div className="stack--tight">
-                            <label className="text-label">{t('ui_resonance_config')}</label>
-                            <p className="text-hint" style={{ fontSize: '10px', lineHeight: '1.4' }}>
-                                {t('ui_resonance_desc')}
-                            </p>
-                        </div>
-                        <div className="slot-small glass-light">
-                            <input
-                                className="input-base"
-                                style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)' }}
-                                placeholder="https://script.google.com/macros/s/..."
-                                required
-                                value={url}
-                                onChange={onInputChange(setUrl, 'indra-core-url')}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Item 03: Access Secret */}
-                    <div className="grid-split">
-                        <div className="stack--tight">
-                            <label className="text-label">{t('ui_secret_config')}</label>
-                            <p className="text-hint" style={{ fontSize: '10px', lineHeight: '1.4' }}>
-                                {t('ui_secret_desc')}
-                            </p>
-                        </div>
-                        <div className="slot-small glass-light">
-                            <input
-                                className="input-base"
-                                type="password"
-                                style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)' }}
-                                placeholder="••••••••••••••••"
-                                required
-                                value={password}
-                                onChange={onInputChange(setPassword)}
-                            />
-                        </div>
-                    </div>
-
-                    {/* ── FOOTER DE ACCIÓN SOFISTICADA ── */}
-                    <div className="spread" style={{ marginTop: 'var(--space-4)', alignItems: 'flex-end' }}>
-                        <div className="stack--tight">
-                            {systemError && (
-                                <div className="text-warm shelf" style={{
-                                    fontSize: '10px',
-                                    fontFamily: 'var(--font-mono)',
-                                    marginBottom: 'var(--space-2)',
-                                    background: 'rgba(239, 68, 68, 0.05)',
-                                    padding: 'var(--space-2) var(--space-3)',
-                                    border: '1px solid rgba(239, 68, 68, 0.2)',
-                                    borderLeft: '4px solid var(--color-warm)',
-                                    borderRadius: '0 2px 2px 0',
-                                    gap: 'var(--space-3)',
-                                    animation: 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both'
-                                }}>
-                                    <div style={{ padding: '2px', background: 'var(--color-warm)', borderRadius: '1px', display: 'flex' }}>
-                                        <IndraIcon name="PLUS" size="10px" style={{ transform: 'rotate(45deg)', color: 'black' }} />
+                {viewMode === 'EXISTING' ? (
+                    <div className="stack" style={{ gap: 'var(--space-4)', maxHeight: '300px', overflowY: 'auto', paddingRight: 'var(--space-2)' }}>
+                        {coreRegistry.map(core => (
+                            <div key={core.url} className="glass-light shelf--loose pointer ripple" 
+                                style={{ padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}
+                                onClick={() => handleQuickConnect(core)}
+                            >
+                                <div className="stack--tight fill">
+                                    <div className="shelf">
+                                        <span className="text-label" style={{ color: 'var(--color-accent)' }}>{core.alias}</span>
+                                        <div className="hud-line" style={{ width: '40px' }}></div>
+                                        <span className="text-hint" style={{ fontSize: '9px' }}>{core.coreId}</span>
                                     </div>
-                                    <div className="stack--tight">
-                                        <span style={{ fontWeight: 'bold', letterSpacing: '0.1em' }}>ACCESS_DENIED // INFRA_FAILURE</span>
-                                        <span style={{ opacity: 0.7 }}>{`CODE: ${systemError.toUpperCase()}`}</span>
-                                    </div>
+                                    <span className="text-hint opacity-40" style={{ fontSize: '10px' }}>{core.url}</span>
                                 </div>
-                            )}
-                            <span className="text-hint" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
-                                {`[ ${t('status_encrypted')}: ${isConnecting ? t('status_establishing') : t('status_inactive')} ]`}
-                            </span>
-                            <span className="text-hint" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>[ PROTOCOL: UQO_V4.1 ]</span>
-                        </div>
+                                <div className="shelf--tight">
+                                    <button 
+                                        className="btn btn--warm btn--mini" 
+                                        onClick={(e) => { e.stopPropagation(); if(confirm(`¿Deseas purgar la conexión a ${core.alias}?`)) removeCore(core.url); }}
+                                        title="Purgar Núcleo"
+                                        style={{ width: '28px', height: '28px', padding: 0 }}
+                                    >
+                                        <IndraIcon name="DELETE" size="14px" />
+                                    </button>
+                                    <button className="btn btn--accent btn--mini">VINCULAR</button>
+                                </div>
+                            </div>
+                        ))}
 
-                        <button
-                            type="submit"
-                            className={`btn ${isConnecting ? 'btn--ghost' : 'btn--accent'}`}
-                            disabled={isConnecting}
-                            style={{
-                                padding: 'var(--space-4) var(--space-8)',
-                                borderRadius: '0 var(--radius-lg) 0 var(--radius-lg)',
-                                fontSize: 'var(--text-sm)',
-                                letterSpacing: '0.2em',
-                                position: 'relative',
-                                overflow: 'hidden'
-                            }}
+                        {/* Botón para saltar a Vínculo Nuevo */}
+                        <button 
+                            className="btn btn--ghost btn--full" 
+                            style={{ borderStyle: 'dashed', marginTop: 'var(--space-2)' }}
+                            onClick={() => setViewMode('NEW')}
                         >
-                            <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'rgba(255,255,255,0.3)' }}></div>
-                            <span className="shelf">
-                                {isConnecting ? (
-                                    <IndraIcon name="SYNC" style={{ animation: 'spin 1s linear infinite' }} />
-                                ) : (
-                                    <IndraIcon name="LINK" />
-                                )}
-                                {isConnecting ? t('status_loading') : t('ui_connect_action')}
-                            </span>
+                            <IndraIcon name="PLUS" size="14px" />
+                            AÑADIR_NUEVO_NÚCLEO
                         </button>
                     </div>
-                </form>
+                ) : (
+                    <form onSubmit={handleConnect} className="stack" style={{ gap: 'var(--space-6)' }}>
+                        {/* Item 01: Identificador */}
+                        <div className="grid-split">
+                            <div className="stack--tight">
+                                <label className="text-label">{t('ui_identity_config')}</label>
+                                <p className="text-hint" style={{ fontSize: '10px', lineHeight: '1.4' }}>
+                                    {t('ui_identity_desc')}
+                                </p>
+                            </div>
+                            <div className="slot-small glass-light">
+                                <input
+                                    className="input-base"
+                                    style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)' }}
+                                    placeholder={t('ui_identity_placeholder')}
+                                    required
+                                    value={alias}
+                                    onChange={onInputChange(setAlias)}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Item 02: Endpoint */}
+                        <div className="grid-split">
+                            <div className="stack--tight">
+                                <label className="text-label">{t('ui_resonance_config')}</label>
+                                <p className="text-hint" style={{ fontSize: '10px', lineHeight: '1.4' }}>
+                                    {t('ui_resonance_desc')}
+                                </p>
+                            </div>
+                            <div className="slot-small glass-light">
+                                <input
+                                    className="input-base"
+                                    style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)' }}
+                                    placeholder="https://script.google.com/macros/s/..."
+                                    required
+                                    value={url}
+                                    onChange={onInputChange(setUrl)}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Item 03: Access Secret */}
+                        <div className="grid-split">
+                            <div className="stack--tight">
+                                <label className="text-label">{t('ui_secret_config')}</label>
+                                <p className="text-hint" style={{ fontSize: '10px', lineHeight: '1.4' }}>
+                                    {t('ui_secret_desc')}
+                                </p>
+                            </div>
+                            <div className="slot-small glass-light">
+                                <input
+                                    className="input-base"
+                                    type="password"
+                                    style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)' }}
+                                    placeholder="••••••••••••••••"
+                                    required
+                                    value={password}
+                                    onChange={onInputChange(setPassword)}
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="spread" style={{ marginTop: 'var(--space-4)', alignItems: 'flex-end' }}>
+                            <div className="stack--tight">
+                                {systemError && (
+                                    <div className="text-warm shelf" style={{
+                                        fontSize: '10px',
+                                        fontFamily: 'var(--font-mono)',
+                                        marginBottom: 'var(--space-2)',
+                                        background: 'rgba(239, 68, 68, 0.05)',
+                                        padding: 'var(--space-2) var(--space-3)',
+                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                        borderLeft: '4px solid var(--color-warm)',
+                                        borderRadius: '0 2px 2px 0',
+                                        gap: 'var(--space-3)'
+                                    }}>
+                                        <div className="stack--tight">
+                                            <span style={{ fontWeight: 'bold', letterSpacing: '0.1em' }}>ACCESS_DENIED // INFRA_FAILURE</span>
+                                            <span style={{ opacity: 0.7 }}>{`CODE: ${systemError.toUpperCase()}`}</span>
+                                        </div>
+                                    </div>
+                                )}
+                                <span className="text-hint" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
+                                    {`[ ${t('status_encrypted')}: ${isConnecting ? t('status_establishing') : t('status_inactive')} ]`}
+                                </span>
+                                <span className="text-hint" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: 'var(--color-accent)' }}>
+                                    {`[ ID_SOBERANO: ${coreId || 'CAPTURA_PENDIENTE'} ]`}
+                                </span>
+                                <span className="text-hint" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>[ PROTOCOL: UQO_V4.1 ]</span>
+                            </div>
+
+                            <button
+                                type="submit"
+                                className={`btn ${isConnecting ? 'btn--ghost' : 'btn--accent'}`}
+                                disabled={isConnecting}
+                                style={{
+                                    padding: 'var(--space-4) var(--space-8)',
+                                    borderRadius: '0 var(--radius-lg) 0 var(--radius-lg)',
+                                    fontSize: 'var(--text-sm)',
+                                    letterSpacing: '0.2em'
+                                }}
+                            >
+                                <span className="shelf">
+                                    {isConnecting ? (
+                                        <IndraIcon name="SYNC" style={{ animation: 'spin 1s linear infinite' }} />
+                                    ) : (
+                                        <IndraIcon name="LINK" />
+                                    )}
+                                    {isConnecting ? t('status_loading') : t('ui_connect_action')}
+                                </span>
+                            </button>
+                        </div>
+                    </form>
+                )}
 
                 {/* Adornos HUD Minimalistas */}
                 <div style={{ position: 'absolute', bottom: 'var(--space-4)', left: 'var(--space-8)', opacity: 0.3 }}>

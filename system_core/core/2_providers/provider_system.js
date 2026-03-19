@@ -23,7 +23,8 @@ function CONF_SYSTEM() {
       'TABULAR_STREAM', 'FORMULA_EVAL', 'SCHEMA_SUBMIT', 'SCHEMA_FIELD_OPTIONS',
       'ACCOUNT_RESOLVE', 'SYSTEM_AUDIT', 'REVISIONS_LIST', 'ATOM_ROLLBACK',
       'GETMCEPMANIFEST', 'INTELLIGENCE_CHAT',
-      'INDUCTION_START', 'INDUCTION_INDUCE_FULL_STACK', 'INDUCTION_STATUS', 'INDUCTION_CANCEL', 'INDUCTION_DRIFT_CHECK'
+      'INDUCTION_START', 'INDUCTION_INDUCE_FULL_STACK', 'INDUCTION_STATUS', 'INDUCTION_CANCEL', 'INDUCTION_DRIFT_CHECK',
+      'SYSTEM_BLUEPRINT_SYNC'
     ],
     implements: {
       ATOM_READ: 'handleSystem',
@@ -50,6 +51,7 @@ function CONF_SYSTEM() {
       INDUCTION_STATUS: 'handleSystem',
       INDUCTION_CANCEL: 'handleSystem',
       INDUCTION_DRIFT_CHECK: 'handleSystem',
+      SYSTEM_BLUEPRINT_SYNC: 'handleSystem',
     },
 
     capabilities: {
@@ -69,7 +71,8 @@ function CONF_SYSTEM() {
       INDUCTION_INDUCE_FULL_STACK: { sync: 'BLOCKING', purge: 'ALL' },
       INDUCTION_STATUS: { sync: 'BLOCKING', purge: 'NONE' },
       INDUCTION_CANCEL: { sync: 'BLOCKING', purge: 'NONE' },
-      INDUCTION_DRIFT_CHECK: { sync: 'BLOCKING', purge: 'NONE' }
+      INDUCTION_DRIFT_CHECK: { sync: 'BLOCKING', purge: 'NONE' },
+      SYSTEM_BLUEPRINT_SYNC: { sync: 'BLOCKING', purge: 'ALL' }
     },
 
     protocol_meta: {
@@ -186,6 +189,8 @@ function handleSystem(uqo) {
   if (protocol === 'INDUCTION_CANCEL') return _system_induction_cancel(uqo);
   if (protocol === 'INDUCTION_DRIFT_CHECK') return _system_induction_driftCheck(uqo);
 
+  // ─── HANDLER DE BLUEPRINTS (blueprint_manager.gs)
+  if (protocol === 'SYSTEM_BLUEPRINT_SYNC') return system_blueprint_sync(uqo);
 
   const err = createError('PROTOCOL_NOT_FOUND', `System no soporta: ${protocol}`);
   return { items: [], metadata: { status: 'ERROR', error: err.message, code: err.code } };

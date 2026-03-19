@@ -19,8 +19,19 @@ function _loadInductionSnapshot_() {
 export const useAppState = create((set, get) => ({
     // Identidad del Core
     coreUrl: localStorage.getItem('indra-core-url') || null,
+    coreId: localStorage.getItem('indra-core-id') || null,
     sessionSecret: localStorage.getItem('indra-session-secret') || null,
-    lang: localStorage.getItem('indra-lang') || 'es', // Axioma de Neutralidad
+    
+    // Registro Multi-Core (Bóveda de Realidades) - ADR-002
+    coreRegistry: (() => {
+        try {
+            return JSON.parse(localStorage.getItem('indra-core-registry')) || [];
+        } catch (e) {
+            return [];
+        }
+    })(),
+
+    lang: localStorage.getItem('indra-lang') || 'es', 
     isConnected: !!localStorage.getItem('indra-session-secret'),
     isConnecting: false,
     error: null,
@@ -50,40 +61,51 @@ export const useAppState = create((set, get) => ({
 
     /**
      * Establece la conexión inicial y valida la contraseña.
+     * Soporta registro automático en la Bóveda de Núcleos (Multi-Core).
      */
-    setCoreConnection: async (url, password) => {
+    setCoreConnection: async (url, password, alias = 'Core') => {
         set({ isConnecting: true, error: null });
         try {
-            // Los invitados (PUBLIC_GRANT) se validan contra el ticket específico, no contra workspaces.
-            let result = { items: [] };
-            if (password !== 'PUBLIC_GRANT') {
-                result = await executeDirective({
-                    provider: 'system',
-                    protocol: 'ATOM_READ',
-                    context_id: 'workspaces'
-                }, url, password);
-            }
+            const result = await executeDirective({
+                provider: 'system',
+                protocol: 'ATOM_READ',
+                context_id: 'workspaces'
+            }, url, password);
 
+            const coreId = result.metadata?.core_id || 'unidentified_sovereign';
+            
+            // ── ACTUALIZAR REGISTRO (BÓVEDA) ──
+            const { coreRegistry } = get();
+            const newRegistry = [...coreRegistry.filter(c => c.url !== url)];
+            newRegistry.unshift({
+                alias: alias || 'Indra_Core',
+                url: url,
+                coreId: coreId,
+                secret: password, // Persistido localmente (Soberanía de Usuario)
+                lastActive: new Date().toISOString()
+            });
+
+            localStorage.setItem('indra-core-registry', JSON.stringify(newRegistry));
             localStorage.setItem('indra-core-url', url);
-            localStorage.setItem('indra-session-secret', password); // Persistir
+            localStorage.setItem('indra-core-id', coreId);
+            localStorage.setItem('indra-session-secret', password);
 
             set({
                 coreUrl: url,
+                coreId: coreId,
                 sessionSecret: password,
+                coreRegistry: newRegistry,
                 isConnected: true,
                 isConnecting: false,
-                workspaces: result.items
+                workspaces: result.items,
+                activeWorkspaceId: null // Reseteo de seguridad al cambiar de núcleo
             });
 
-            // Cargamos el manifest en background
             get().hydrateManifest();
 
         } catch (err) {
-            localStorage.removeItem('indra-session-secret');
             set({
                 isConnecting: false,
-                isConnected: false,
-                sessionSecret: null,
                 error: err.message || 'CONNECTION_FAILED'
             });
             throw err;
@@ -132,15 +154,27 @@ export const useAppState = create((set, get) => ({
             console.error('[app_state] Failed to hydrate manifest:', err);
         }
     },
+    
+    /**
+     * Elimina un núcleo del registro local.
+     */
+    removeCoreFromRegistry: (url) => {
+        const { coreRegistry } = get();
+        const next = coreRegistry.filter(c => c.url !== url);
+        localStorage.setItem('indra-core-registry', JSON.stringify(next));
+        set({ coreRegistry: next });
+    },
 
     disconnect: () => {
         localStorage.removeItem('indra-core-url');
+        localStorage.removeItem('indra-core-id');
         localStorage.removeItem('indra-session-secret');
         localStorage.removeItem('indra-active-workspace-id');
         localStorage.removeItem('indra-induction-ticket-id');
         localStorage.removeItem('indra-induction-ticket-snapshot');
         set({
             coreUrl: null,
+            coreId: null,
             isConnected: false,
             activeWorkspaceId: null,
             sessionSecret: null,

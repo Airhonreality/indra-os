@@ -130,7 +130,7 @@ export const FractalLogo = ({ active = true, theme = 'light' }) => {
         // Init Rays
         for (let i = 0; i < rayCount; i++) {
             const angle = (i / rayCount) * Math.PI * 2;
-            createRhizome(new THREE.Vector3(0,0,0), angle, 4, 0.8);
+            createRhizome(new THREE.Vector3(0,0,0), angle, 4, 1.5);
         }
         mainGroup.add(raysGroup);
 
@@ -144,10 +144,9 @@ export const FractalLogo = ({ active = true, theme = 'light' }) => {
 
             const time = clock.getElapsedTime();
             
-            // IRIDISCENT COLOR MUTATION (Axiomatic Shift)
-            // Cycle between Gold (45), Magenta (300), and Cyan (180)
+            // IRIDISCENT COLOR MUTATION (Axiomatic Shift) - Gold to Purple
             const hueShift = (Math.sin(time * 0.2) * 0.5 + 0.5); // 0 to 1
-            const baseHue = 35 + (hueShift * 60); // Shifts around Gold/Orange to Magenta-tinted
+            const baseHue = 40 + (hueShift * 240); // 40 (Gold) to 280 (Purple)
             
             // Apply to materials
             mainGroup.traverse(child => {

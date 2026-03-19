@@ -139,6 +139,43 @@ var LogicEngine = {
       return;
     }
 
+    // --- NODO HYDRATE_DOC (Document Generation Engine) ---
+    // AXIOMA: Independence & Information. Inyecta DataRow en el AST sin persistir.
+    if (type === 'HYDRATE_DOC') {
+      const sourceData = this._get_(context, input_a) || context.source || {};
+      const templateDoc = this._get_(context, input_b);
+      
+      if (!templateDoc || templateDoc.class !== 'DOCUMENT') {
+         logError("[LogicEngine] HYDRATE_DOC requiere un átomo DOCUMENT en input_b.");
+         return;
+      }
+
+      // Clonar AST para no mutar plantilla
+      const hydratedAst = JSON.parse(JSON.stringify(templateDoc.payload?.blocks || []));
+      
+      const hydrateNode = (node) => {
+         if (node.type === 'TEXT' && typeof node.content === 'string') {
+             node.content = node.content.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (match, path) => {
+                 const val = this._get_(sourceData, path);
+                 return val !== undefined && val !== null ? String(val) : match;
+             });
+         }
+         if (node.children && Array.isArray(node.children)) {
+             node.children.forEach(hydrateNode);
+         }
+      };
+
+      hydratedAst.forEach(hydrateNode);
+      
+      const resultDoc = JSON.parse(JSON.stringify(templateDoc));
+      resultDoc.payload.blocks = hydratedAst;
+      resultDoc._hydrated = true;
+
+      this._set_(context, "op." + id, resultDoc);
+      if (alias) this._set_(context, "op." + alias, resultDoc);
+      return;
+    }
+
     // --- OPERADORES MATH & TEXT ---
     const isStandard = ["ADD", "SUBTRACT", "MULTIPLY", "DIVIDE"].includes(operation);
     

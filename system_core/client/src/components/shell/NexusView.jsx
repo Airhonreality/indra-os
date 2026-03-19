@@ -68,10 +68,40 @@ export function NexusView() {
                 {/* COLUMNA A: STATUS SISTÉMICO */}
                 <aside className="stack" style={{ gap: 'var(--space-8)' }}>
 
+                    {/* Monitoreo del Núcleo (Core Status) */}
+                    <div className="stack" style={{ gap: 'var(--space-4)' }}>
+                        <div className="shelf--loose">
+                            <span className="util-label">01 //</span>
+                            <label className="text-label" style={{ opacity: 0.8 }}>IDENTIDAD_CORE</label>
+                        </div>
+                        <div className="glass-light stack--tight" style={{ padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                            <div className="shelf">
+                                <span className="text-label" style={{ color: 'var(--color-accent)', fontSize: '11px' }}>
+                                    {useAppState.getState().coreRegistry.find(c => c.url === coreUrl)?.alias || 'CORE_ACTIVO'}
+                                </span>
+                                <div className="service-dot breathing-pulse" style={{ background: 'var(--color-success)', boxShadow: '0 0 10px var(--color-success)' }}></div>
+                            </div>
+                            <span className="text-hint truncate" style={{ fontSize: '9px', opacity: 0.5 }}>{useAppState.getState().coreId}</span>
+                            
+                            <button 
+                                className="btn btn--ghost btn--mini btn--full" 
+                                style={{ marginTop: 'var(--space-3)', fontSize: '9px' }}
+                                onClick={() => {
+                                    // Desconectamos para volver al selector (Nivel 0)
+                                    // pero sin borrar el registro. Solo limpia la sesión actual.
+                                    useAppState.getState().disconnect();
+                                }}
+                            >
+                                <IndraIcon name="LINK" size="10px" />
+                                CAMBIAR_NÚCLEO
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Status de Servicios */}
                     <div className="stack" style={{ gap: 'var(--space-5)' }}>
                         <div className="shelf--loose">
-                            <span className="util-label">01 //</span>
+                            <span className="util-label">02 //</span>
                             <label className="text-label" style={{ opacity: 0.8 }}>{t('hud_service_fabric')}</label>
                         </div>
                         <div className="stack--tight">

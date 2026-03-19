@@ -155,6 +155,15 @@
     --indra-select-border: var(--color-border);
     --indra-select-text: var(--color-text-primary);
     --indra-select-hover: var(--color-bg-deep);
+
+    /* ── PALETA DE DIAGNÓSTICO (AXIOMÁTICA) ── */
+    --diag-core: #00f3ff;
+    --diag-adapter: #ffffff;
+    --diag-proyect: #FFD700;
+    --diag-ring-guide: rgba(255, 255, 255, 0.25);
+    --diag-text-primary: var(--color-text-primary);
+    --diag-text-secondary: var(--color-text-secondary);
+    --diag-node-bg: #000000;
 }
 
 [data-theme="light"] {
@@ -162,6 +171,15 @@
     --indra-select-text: #0f172a;
     --indra-select-border: rgba(0,0,0,0.1);
     --indra-select-hover: #f1f5f9;
+
+    /* ── PALETA DE DIAGNÓSTICO (AXIOMÁTICA - LUZ) ── */
+    --diag-core: #008b94;
+    --diag-adapter: #000000;
+    --diag-proyect: #b39400;
+    --diag-ring-guide: rgba(0, 0, 0, 0.15);
+    --diag-text-primary: #0f172a;
+    --diag-text-secondary: #475569;
+    --diag-node-bg: #ffffff;
 }
 
 /* TEMA CLARO (SOLAR PUNK INDUSTRIAL) */

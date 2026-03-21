@@ -70,7 +70,7 @@ export function UQOEditor() {
             try {
                 // Importación dinámica: Si el archivo no existe en el sistema (production), el catch lo ignora.
                 // Esto es compatible con Vite base paths.
-                const module = await import('../../../smoke_tests_local.js');
+                const module = await import('../../../../smoke_tests_local.js');
                 if (module && module.SMOKE_TESTS) {
                     setSmokeTests(module.SMOKE_TESTS);
                 }

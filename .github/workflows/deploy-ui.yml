@@ -50,3 +50,4 @@ jobs:
         run: |
           echo "::notice::Frontend deployed successfully!"
           echo "::notice::URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+

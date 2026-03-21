@@ -111,7 +111,6 @@ const ICON_MAP = {
     'EXPAND':   <path d="M6 4l-4 4 4 4m4-8l4 4-4 4" />,
 
     // ── NUEVOS ICONOS POÉTICOS ──
-    'DNA': <path d="M4 2c2 2 8 10 8 12M12 2C10 4 4 12 4 14M4 5h8M4 8h8M4 11h8" />,
     'BOLT': <path d="M9 1L4 9h4l-1 6 5-8h-4l1-6z" />,
     'MAP_ROUTE': <><circle cx="3" cy="3" r="1.5" /><circle cx="13" cy="13" r="1.5" /><path d="M4.5 3.5l7 9" strokeDasharray="2 2" /><path d="M3 4.5v3l4 4h3v2.5" /></>,
     'FILM': <><rect x="1" y="4" width="10" height="8" rx="1" /><path d="M14 5l-3 3 3 3V5z" /><circle cx="4" cy="8" r="1" /><circle cx="8" cy="8" r="1" /></>,

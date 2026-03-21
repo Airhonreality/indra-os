@@ -26,7 +26,7 @@
 //   - error_handler.gs      → createError
 // =============================================================================
 
-const HOME_ROOT_FOLDER_NAME_ = '.core_system';
+
 
 /**
  * Protocolos de sistema que el gateway maneja directamente (sin provider).
@@ -38,6 +38,11 @@ const GATEWAY_SYSTEM_PROTOCOLS = Object.freeze([
   'SYSTEM_CONFIG_WRITE',
   'SYSTEM_CONFIG_DELETE',
   'SYSTEM_SHARE_CREATE',
+  'SYSTEM_QUEUE_READ',
+  'SYSTEM_TRIGGER_HUB_GENERATE',
+  'PULSE_WAKEUP',
+  'RESOURCE_INGEST',
+  'RESOURCE_RESOLVE'
 ]);
 
 // ─── PUNTO DE ENTRADA HTTP ────────────────────────────────────────────────────
@@ -112,6 +117,40 @@ function doGet(e) {
  */
 function doPost(e) {
   try {
+    // --- 0. Detección de Ignición de Pulsos (The Boomerang | ADR-018) ---
+    // Si detectamos el header de ignición, procedemos directamente a la ejecución
+    // sin pasar por la validación de password del cliente.
+    const igniteHeader = e && e.parameter && e.parameter.ignite === 'true' || 
+                         e && e.headers && e.headers['X-Indra-Ignite'] === 'true';
+    
+    if (igniteHeader) {
+      logInfo('[gateway] Boomerang detectado. Iniciando Red de Pulsos.');
+      try {
+        const pulseResult = pulse_service_process_next(); // → pulse_service.gs
+        return _buildResponse_(200, { items: [], metadata: { status: 'OK', message: 'Ignición completada.', pulse_executed: !!pulseResult } });
+      } catch (err) {
+        logError('[gateway] Error en ignición del Boomerang.', err);
+        return _buildResponse_(500, { items: [], metadata: { status: 'ERROR', error: err.message } });
+      }
+    }
+
+    // --- 0.1 Detección de Webhooks de Soberanía (ADR-018) ---
+    // Si detectamos el parámetro webhook_id en la URL, activamos el Trigger Hub.
+    const webhookId = e && e.parameter && e.parameter.webhook_id;
+    if (webhookId) {
+      logInfo('[gateway] Webhook de Soberanía detectado.', { webhookId });
+      try {
+        const pulseId = trigger_hub_activate(webhookId); // → trigger_hub.gs
+        return _buildResponse_(202, { 
+          items: [], 
+          metadata: { status: 'OK', message: 'Trigger aceptado. Pulso encolado.', pulse_id: pulseId } 
+        });
+      } catch (err) {
+        logError('[gateway] Error en activación de Webhook de Soberanía.', err);
+        return _buildResponse_(404, { items: [], metadata: { status: 'ERROR', error: err.message } });
+      }
+    }
+
     // --- 1. Parseo defensivo del body ---
     let payload;
     try {
@@ -243,6 +282,10 @@ function _enforceAtomContract_(result, providerId, protocol) {
 
   for (let i = 0; i < result.items.length; i++) {
     const atom = result.items[i];
+    
+    // EXCEPCIÓN PROBE_SIGNAL: Las señales de prospección no son átomos y no tienen contrato rígido.
+    if (_isProbeSignal_(atom)) continue;
+
     if (!atom || typeof atom !== 'object') {
       return {
         items: [],
@@ -384,6 +427,58 @@ function _handleSystemProtocol_(payload) {
   if (protocol === 'SYSTEM_SHARE_CREATE') {
     logInfo('[gateway] Despachando SYSTEM_SHARE_CREATE.');
     return _share_createTicket(payload);
+  }
+
+  if (protocol === 'SYSTEM_QUEUE_READ') {
+    logInfo('[gateway] Despachando SYSTEM_QUEUE_READ.');
+    try {
+      const items = pulse_ledger_getPending(); // → pulse_ledger.gs
+      return { items, metadata: { status: 'OK', total: items.length } };
+    } catch (queueError) {
+      logWarn('[gateway] SYSTEM_QUEUE_READ fallo (ledger unavailable)', queueError);
+      // Graceful fallback: retorne empty queue sin lanzar error
+      return { items: [], metadata: { status: 'OK', queue_unavailable: true, message: 'Queue backend unavailable' } };
+    }
+  }
+  
+  if (protocol === 'PULSE_WAKEUP') {
+    logInfo('[gateway] Despachando PULSE_WAKEUP.');
+    pulse_service_process_next();
+    return { items: [], metadata: { status: 'OK' } };
+  }
+
+  if (protocol === 'SYSTEM_TRIGGER_HUB_GENERATE') {
+    logInfo('[gateway] Despachando SYSTEM_TRIGGER_HUB_GENERATE.');
+    const workflowId = payload.data?.workflow_id;
+    if (!workflowId) throw createError('INVALID_INPUT', 'Requiere workflow_id.');
+    const webhookId = trigger_hub_getWebhookId(workflowId);
+    const selfUrl = ScriptApp.getService().getUrl();
+    return { 
+      items: [{ id: webhookId, url: `${selfUrl}?webhook_id=${webhookId}` }], 
+      metadata: { status: 'OK' } 
+    };
+  }
+
+  if (protocol === 'RESOURCE_INGEST') {
+    logInfo('[gateway] Despachando RESOURCE_INGEST.');
+    const data = payload.data || {};
+    if (!data.base64) throw createError('INVALID_INPUT', 'Requiere base64.');
+    const grid = resource_broker_ingest(data.base64, data.mimeType, data.fileName);
+    return {
+      items: [],
+      metadata: { status: 'OK', grid: grid }
+    };
+  }
+
+  if (protocol === 'RESOURCE_RESOLVE') {
+    logInfo('[gateway] Despachando RESOURCE_RESOLVE.');
+    const grid = payload.context_id || payload.data?.grid;
+    if (!grid) throw createError('INVALID_INPUT', 'Requiere grid en context_id.');
+    const url = resource_broker_resolve(grid);
+    return {
+      items: [],
+      metadata: { status: 'OK', url: url }
+    };
   }
 
   // Protocolo de sistema no reconocido

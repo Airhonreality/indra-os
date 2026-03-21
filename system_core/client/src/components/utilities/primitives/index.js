@@ -12,5 +12,6 @@ export { Badge } from './Badge';
 export { EditableLabel } from './EditableLabel';
 export { DragHandle } from './DragHandle';
 export { ConfirmModal } from './ConfirmModal';
+export { RenameDryRunModal } from './RenameDryRunModal';
 export { StatusLed } from './StatusLed';
 export { ToastNotification, ToastProvider, useToast } from './ToastNotification';

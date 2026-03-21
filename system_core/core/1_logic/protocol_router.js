@@ -41,6 +41,16 @@
  * @param {string} protocol   - El protocolo ejecutado (para modular rigor de validación).
  * @throws {Object} Error estructurado `CONTRACT_VIOLATION` si algún átomo es inválido.
  * @private
+/**
+ * Valida que cada ítem del array retornado por el provider cumple el
+ * contrato mínimo del Átomo Universal (v3.0 IUH).
+ * Excepciones: Los ítems de tipo PROBE (Señal de Estado) están exentos.
+ *
+ * @param {Array} items       - Array de ítems retornado por el provider.
+ * @param {string} providerId - ID del provider que generó los ítems.
+ * @param {string} protocol   - El protocolo ejecutado.
+ * @throws {Object} Error estructurado si algún átomo viola el contrato.
+ * @private
  */
 function _validateAtomContract_(items, providerId, protocol) {
   if (!items || !Array.isArray(items)) {
@@ -51,60 +61,66 @@ function _validateAtomContract_(items, providerId, protocol) {
     );
   }
 
-  // Lista de protocolos "ligeros" que devuelven punteros o vistas parciales (no átomos completos)
-  const LIGHTWEIGHT_PROTOCOLS = ['SYSTEM_PINS_READ', 'SYSTEM_PIN', 'ATOM_CREATE', 'SCHEMA_FIELD_OPTIONS', 'HIERARCHY_TREE', 'REVISIONS_LIST', 'SCHEMA_MUTATE', 'DRIVE_FILE_URL', 'NATIVE_DOCUMENT_RENDER'];
-  const isFullDataProtocol = !LIGHTWEIGHT_PROTOCOLS.includes(protocol);
-
   items.forEach((item, index) => {
-    // 1. SINCERIDAD DE IDENTIDAD (ADR-001): Zero Pity Validation
-    // El ítem debe venir con su handle completo desde el origen.
-    const handle = item.handle;
+    // PROBE_SIGNAL: Las señales de estado del sistema están exentas de validación de identidad.
+    // Son respuestas a preguntas (¿existe?, ¿está bloqueado?), no datos persistentes.
+    if (_isProbeSignal_(item)) return;
 
+    // 1. Validación de Identidad (handle completo)
+    const handle = item.handle;
     if (!handle || !handle.ns || !handle.alias || !handle.label) {
       throw createError(
         'CONTRACT_VIOLATION',
-        `LEY_DE_ADUANA: El provider "${providerId}" entregó materia sin identidad sincera (handle.ns/alias/label requeridos).`,
+        `LEY_DE_ADUANA: El provider "${providerId}" entregó un átomo sin identidad completa (handle.ns/alias/label requeridos). Protocolo: ${protocol}`,
         { providerId, atomId: item.id, proto: protocol, handle }
       );
     }
 
-    // 2. Validar campos estructurales obligatorios (Capa 2)
+    // 2. Validación de campos estructurales obligatorios
     const REQUIRED_BASE = ['id', 'class'];
     const missing = REQUIRED_BASE.filter(field => !item[field]);
     if (missing.length > 0) {
       throw createError(
         'CONTRACT_VIOLATION',
-        `LEY_DE_ADUANA: El provider "${providerId}" entregó materia no canónica. Faltan campos base: [${missing.join(', ')}].`,
+        `LEY_DE_ADUANA: El provider "${providerId}" entregó un átomo sin campos base: [${missing.join(', ')}]. Protocolo: ${protocol}`,
         { item_index: index, item }
       );
     }
 
-    // 3. ADR_008: VALIDACIÓN COERCITIVA ESTRUCTURAL (Capa 3 - Payload)
-    if (isFullDataProtocol) {
-      if (item.class === 'DATA_SCHEMA' || item.class === 'TABULAR') {
-        const fields = item.payload?.fields;
-        if (!fields || !Array.isArray(fields)) {
-          throw createError(
-            'CONTRACT_VIOLATION',
-            `LEY_DE_ADUANA: El provider "${providerId}" entregó un ${item.class} inválido (payload.fields es requerido).`,
-            { providerId, atomId: item.id, proto: protocol }
-          );
-        }
+    // 3. Validación de estructura interna (Payload) para clases conocidas
+    if (item.class === 'DATA_SCHEMA' || item.class === 'TABULAR') {
+      const fields = item.payload?.fields;
+      if (!fields || !Array.isArray(fields)) {
+        throw createError(
+          'CONTRACT_VIOLATION',
+          `LEY_DE_ADUANA: "${item.class}" requiere payload.fields (Array). Provider: "${providerId}".`,
+          { providerId, atomId: item.id, proto: protocol }
+        );
       }
     }
 
-    // 4. PROHIBICIÓN DE MATERIA OSCURA (LEGACY)
+    // 4. Prohibición de Materia Legada (formato antiguo con "columns")
     if (item.columns || (item.payload && item.payload.columns)) {
       throw createError(
         'CONTRACT_VIOLATION',
-        `LEY_DE_ADUANA_LEGACY: El provider "${providerId}" intentó cruzar la aduana con "columns". Materia contaminada.`,
+        `LEY_DE_ADUANA: El provider "${providerId}" intentó transmitir un átomo con "columns" (formato legado). Bloqueado.`,
         { atomId: item.id }
       );
+    }
+
+    // 5. Validación de INDRA_MEDIA para MEDIA_RESOLVE (ADR-024)
+    if (protocol === 'MEDIA_RESOLVE') {
+      const media = item.payload?.media;
+      if (!media) throw createError('CONTRACT_VIOLATION', `LEY_DE_ADUANA (ADR-024): MEDIA_RESOLVE requiere payload.media.`, { providerId, atomId: item.id });
+      if (media.type !== 'INDRA_MEDIA') throw createError('CONTRACT_VIOLATION', `LEY_DE_ADUANA (ADR-024): payload.media.type debe ser 'INDRA_MEDIA'.`, { providerId, atomId: item.id });
+      if (!media.canonical_url) throw createError('CONTRACT_VIOLATION', `LEY_DE_ADUANA (ADR-024): payload.media.canonical_url es requerido.`, { providerId, atomId: item.id });
+      if (!media.storage) throw createError('CONTRACT_VIOLATION', `LEY_DE_ADUANA (ADR-024): payload.media.storage es requerido (drive|notion|url|opfs).`, { providerId, atomId: item.id });
     }
   });
 }
 
 // ─── VALIDACIÓN DE ENTRADA (MEMBRANA CELULAR - ADR_008) ───────────────────────
+
 
 /**
  * Define los requisitos mínimos de estructura por clase de Átomo.
@@ -165,7 +181,11 @@ function _validateInputContract_(uqo) {
   }
 
   // ── AXIOMA 3: Aduana de Sincronía (Mirror vs Sovereign) ──
-  const WRITE_PROTOCOLS = ['ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 'CALENDAR_BATCH', 'TABULAR_WRITE'];
+  const WRITE_PROTOCOLS = [
+    'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE',
+    'ATOM_ALIAS_RENAME', 'SCHEMA_FIELD_ALIAS_RENAME',
+    'CALENDAR_BATCH', 'TABULAR_WRITE'
+  ];
   if (WRITE_PROTOCOLS.includes(protocol)) {
     // Si el UQO trae una instrucción de resonancia en modo Espejo, bloqueamos la escritura física.
     if (uqo.resonance_mode === 'MIRROR') {

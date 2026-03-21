@@ -19,30 +19,33 @@ export function SlotSelector({ contextStack, onSelect, onCancel, filterType = nu
     // contextStack debe ser: { sources: { alias: [fields] }, ops: { alias: [fields/value] } }
     const flatSlots = [];
 
-    // 1. Procesar Sources
+    // 1. Procesar Sources (Gatillos/Trigger)
     Object.entries(contextStack.sources || {}).forEach(([alias, schema]) => {
-        schema.fields.forEach(f => {
+        (schema.fields || []).forEach(f => {
+            const isRoot = f.id === 'all';
             flatSlots.push({
-                id: `source.${alias}.${f.id}`,
+                id: isRoot ? `$payload` : `$payload.${f.id}`,
                 label: f.label || f.id,
-                path: `source.${alias}.${f.id}`,
-                group: `INPUT: ${alias.toUpperCase()}`,
+                path: isRoot ? `$payload` : `$payload.${f.id}`,
+                group: `ENTRADA: ${alias.toUpperCase()}`,
                 type: f.type,
                 icon: 'EYE'
             });
         });
     });
 
-    // 2. Procesar Operadores (Anteriores)
+    // 2. Procesar Operadores (Pasos Anteriores)
     Object.entries(contextStack.ops || {}).forEach(([alias, opResult]) => {
-        // Si el operador produce un valor simple
-        flatSlots.push({
-            id: `op.${alias}`,
-            label: alias.toUpperCase() + '_RESULT',
-            path: `op.${alias}`,
-            group: `PIPELINE: ${alias.toUpperCase()}`,
-            type: opResult.type || 'UNKNOWN',
-            icon: 'LOGIC'
+        (opResult.fields || []).forEach(f => {
+            const isRoot = f.id === 'all';
+            flatSlots.push({
+                id: `$steps.${alias}.${f.id}`,
+                label: f.label || f.id,
+                path: isRoot ? `$steps.${alias}.0` : `$steps.${alias}.0.${f.id}`,
+                group: `FLUJO: ${alias.toUpperCase()}`,
+                type: f.type,
+                icon: 'LOGIC'
+            });
         });
     });
 
@@ -65,13 +68,13 @@ export function SlotSelector({ contextStack, onSelect, onCancel, filterType = nu
                 {/* Search Header */}
                 <div className="stack" style={{ padding: 'var(--space-6)', borderBottom: '1px solid var(--color-border)' }}>
                     <div className="spread">
-                        <span style={{ fontSize: '10px', fontWeight: 'bold', fontFamily: 'var(--font-mono)' }}>SELECT_VARIABLE_SLOT</span>
-                        <span style={{ fontSize: '9px', opacity: 0.5 }}>{filterType || 'ANY_TYPE'}</span>
+                        <span style={{ fontSize: '10px', fontWeight: 'bold', fontFamily: 'var(--font-mono)' }}>VINCULAR_DATO_AL_NODO</span>
+                        <span style={{ fontSize: '9px', opacity: 0.5 }}>{filterType === 'ANY_TYPE' ? 'CUALQUIER_TIPO' : filterType || 'DATO_UNIVERSAL'}</span>
                     </div>
                     <input
                         autoFocus
                         type="text"
-                        placeholder="SEARCH_CONTEXT_PATH..."
+                        placeholder="BUSCAR_RUTA_DE_DATOS..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         style={{
@@ -82,13 +85,14 @@ export function SlotSelector({ contextStack, onSelect, onCancel, filterType = nu
                             color: 'white',
                             marginTop: 'var(--space-4)',
                             outline: 'none',
-                            fontFamily: 'var(--font-mono)'
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: '11px'
                         }}
                     />
                 </div>
 
                 {/* Listado Jerárquico */}
-                <div className="fill stack" style={{ overflowY: 'auto', padding: 'var(--space-2)' }}>
+                <div className="fill stack" style={{ overflowY: 'auto', padding: 'var(--space-2)', minHeight: '120px' }}>
                     {Object.entries(filtered.reduce((acc, slot) => {
                         if (!acc[slot.group]) acc[slot.group] = [];
                         acc[slot.group].push(slot);
@@ -102,8 +106,8 @@ export function SlotSelector({ contextStack, onSelect, onCancel, filterType = nu
                                 fontSize: '10px',
                                 fontFamily: 'var(--font-mono)'
                             }}>
-                                <IndraIcon name={groupName.startsWith('OP') ? 'LOGIC' : 'EYE'} size="12px" />
-                                <span>{groupName}</span>
+                                <IndraIcon name={groupName.startsWith('PIPELINE') ? 'LOGIC' : 'EYE'} size="12px" />
+                                <span>{groupName.replace('INPUT:', 'ENTRADA:').replace('PIPELINE:', 'FLUJO:')}</span>
                             </div>
 
                             <div className="stack--tight" style={{ paddingLeft: 'var(--space-4)' }}>
@@ -125,9 +129,6 @@ export function SlotSelector({ contextStack, onSelect, onCancel, filterType = nu
                                             <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)' }}>{slot.label}</span>
                                             <span style={{ fontSize: '7px', opacity: 0.3 }}>{slot.path}</span>
                                         </div>
-                                        <span style={{ fontSize: '7px', opacity: 0.5, fontFamily: 'var(--font-mono)', border: '1px solid rgba(255,255,255,0.1)', padding: '2px 4px', borderRadius: '4px' }}>
-                                            {slot.type}
-                                        </span>
                                     </div>
                                 ))}
                             </div>
@@ -135,8 +136,14 @@ export function SlotSelector({ contextStack, onSelect, onCancel, filterType = nu
                     ))}
 
                     {filtered.length === 0 && (
-                        <div className="center stack" style={{ padding: 'var(--space-8)', opacity: 0.2 }}>
-                            <span style={{ fontSize: '10px' }}>NO_SLOTS_MATCH_CRITERIA</span>
+                        <div className="center stack" style={{ padding: 'var(--space-8)', opacity: 0.4 }}>
+                            <IndraIcon name="SEARCH" size="24px" style={{ marginBottom: '12px', opacity: 0.2 }} />
+                            <span style={{ fontSize: '9px', textAlign: 'center', letterSpacing: '0.1em' }}>
+                                NO_HAY_VARIABLES_DISPONIBLES_AQUÍ
+                            </span>
+                            <span style={{ fontSize: '7px', opacity: 0.5, marginTop: '4px', textAlign: 'center' }}>
+                                CONECTA_UN_DISPARADOR_O_HAY_PASOS_PREVIOS_CON_SALIDA
+                            </span>
                         </div>
                     )}
                 </div>

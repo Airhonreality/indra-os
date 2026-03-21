@@ -58,7 +58,14 @@ function _system_handleUnpin(uqo) {
     try {
         const file = _system_findAtomFile(workspaceId);
         const doc = JSON.parse(file.getBlob().getDataAsString());
-        doc.pins = (doc.pins || []).filter(p => !(p.id === data.atom_id && p.provider === data.provider));
+        doc.pins = (doc.pins || []).filter(p => {
+          const isMatchId = p.id === data.atom_id;
+          const isMatchProvider = p.provider === data.provider || 
+                                  p.provider.startsWith(data.provider + ':') ||
+                                  data.provider.startsWith(p.provider + ':');
+                                  
+          return !(isMatchId && isMatchProvider);
+        });
         doc.updated_at = new Date().toISOString();
         file.setContent(JSON.stringify(doc, null, 2));
         return { items: [], metadata: { status: 'OK' } };
@@ -91,17 +98,31 @@ function _system_handlePinsRead(uqo) {
                 // Las extensiones .json se limpian.
                 const physicalLabel = atomFile.getName().replace(/\.json$/i, '').replace(/_/g, ' ');
 
+                // ── AXIOMA DE SINCERIDAD TOTAL ──
+                // Si es un DATA_SCHEMA, entregamos la materia completa (campos)
+                // para evitar fallbacks de hidratación perezosa en el frontend.
+                let enhancedPin = { ...pin };
+                if (pin.class === 'DATA_SCHEMA') {
+                    try {
+                        const content = JSON.parse(atomFile.getBlob().getDataAsString());
+                        enhancedPin.payload = content.payload;
+                    } catch (e) {
+                        logWarn(`[infrastructure] Error parseando payload de Schema ${pin.id}`, e);
+                    }
+                }
+
                 // Si el label del Pin es distinto al físico, hay una asincronía (Entropía)
                 if (pin.handle?.label !== physicalLabel) {
                     needsWorkspaceSync = true;
                     return { 
-                        ...pin, 
+                        ...enhancedPin, 
                         handle: { ...pin.handle, label: physicalLabel },
-                        _reconciled: true 
+                        _reconciled: true,
+                        _orphan: false
                     };
                 }
 
-                return { ...pin, _orphan: false };
+                return { ...enhancedPin, _orphan: false };
 
             } catch (e) {
                 // Si el archivo no existe, es un huérfano real
@@ -111,7 +132,8 @@ function _system_handlePinsRead(uqo) {
 
         // Axioma de Curación: Si detectamos desincronía, re-escribimos el Workspace
         if (needsWorkspaceSync) {
-            doc.pins = sincerePins.map(({ _orphan, _reconciled, ...p }) => p); // Limpiar flags
+            // Limpiamos flags efímeros y el 'payload' para mantener el Workspace súper ligero.
+            doc.pins = sincerePins.map(({ _orphan, _reconciled, payload, ...p }) => p); 
             file.setContent(JSON.stringify(doc, null, 2));
             logInfo(`[homeostasis] Workspace ${workspaceId} curado automáticamente. Punteros sincronizados.`);
         }

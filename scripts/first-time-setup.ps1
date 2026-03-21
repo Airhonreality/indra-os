@@ -572,6 +572,27 @@ catch {
     exit 1
 }
 
+# ============================================
+# PASO 4.5: Seed Demo Automático
+# ============================================
+
+Write-Header "🌱 Paso 4.5: Cargando Demo automáticamente"
+
+Write-Info "Sembrando artefactos de demostración..."
+
+try {
+    # Ejecutar seed_loader.gs para crear átomos demo
+    clasp run seedDemo
+    Write-Success "Demo seed completado - artefactos creados y anclados"
+}
+catch {
+    Write-Warning-Custom "No se pudo ejecutar seed automáticamente"
+    Write-Info "Esto es opcional. Puedes cargar la demo manualmente después con:"
+    Write-Host "  cd ""$backendPath""" -ForegroundColor Cyan
+    Write-Host "  clasp run seedDemo" -ForegroundColor Cyan
+    Write-Info "Continuando con setup..."
+}
+
 # Volver al directorio raíz
 Pop-Location
 

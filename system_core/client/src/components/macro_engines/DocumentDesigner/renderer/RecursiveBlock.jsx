@@ -33,7 +33,7 @@ const assertValidBlockContract = (block) => {
     }
 };
 
-export function RecursiveBlock({ block, depth = 0, pageIndex = 1, readOnly = false, keyPrefix = '' }) {
+export function RecursiveBlock({ block, depth = 0, pageIndex = 1, readOnly = false, keyPrefix = '', bridge = null }) {
     assertValidBlockContract(block);
 
     const { updateNode } = useAST();
@@ -44,6 +44,10 @@ export function RecursiveBlock({ block, depth = 0, pageIndex = 1, readOnly = fal
 
     const Component = BLOCK_COMPONENTS[block.type];
     const hasChildren = block.children && block.children.length > 0;
+    const supportsAbsolute = ['FRAME', 'TEXT', 'IMAGE'].includes(block.type);
+    const isAbsolute = supportsAbsolute && block.props?.layoutMode === 'absolute';
+    const parsedZIndex = Number.parseInt(String(block.props?.zIndex), 10);
+    const nodeZIndex = Number.isFinite(parsedZIndex) ? parsedZIndex : 1;
 
     if (!Component) {
         return <div style={{ color: 'red' }}>[UNKNOWN_BLOCK_TYPE: {block.type}]</div>;
@@ -63,14 +67,18 @@ export function RecursiveBlock({ block, depth = 0, pageIndex = 1, readOnly = fal
             onMouseLeave={() => { if (!readOnly) setHover(null); }}
             className="block-wrapper"
             style={{
-                position: 'relative',
+                position: isAbsolute ? 'absolute' : 'relative',
+                top: isAbsolute ? (block.props?.top || '0px') : undefined,
+                left: isAbsolute ? (block.props?.left || '0px') : undefined,
+                right: isAbsolute ? (block.props?.right || undefined) : undefined,
+                bottom: isAbsolute ? (block.props?.bottom || undefined) : undefined,
                 cursor: readOnly ? 'default' : 'pointer',
                 pointerEvents: readOnly ? 'none' : 'auto',
                 outline: isSelected ? '1px solid var(--color-accent)' :
                     isHovered ? '1px dashed var(--color-border-strong)' : '1px dashed transparent',
                 outlineOffset: '-1px',
                 transition: 'outline var(--transition-fast)',
-                zIndex: isSelected ? 10 : 1
+                zIndex: isSelected ? Math.max(nodeZIndex, 10) : nodeZIndex
             }}
         >
             <Component
@@ -78,6 +86,7 @@ export function RecursiveBlock({ block, depth = 0, pageIndex = 1, readOnly = fal
                 isSelected={isSelected}
                 updateNode={updateNode}
                 pageIndex={pageIndex}
+                bridge={bridge}
             >
                 {hasChildren && (
                     block.children.map(child => (
@@ -88,6 +97,7 @@ export function RecursiveBlock({ block, depth = 0, pageIndex = 1, readOnly = fal
                             pageIndex={pageIndex}
                             readOnly={readOnly}
                             keyPrefix={keyPrefix}
+                            bridge={bridge}
                         />
                     ))
                 )}

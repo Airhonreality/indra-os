@@ -13,6 +13,8 @@
 # Credenciales de Clasp (usuario debe mantenerlas localmente)
 .clasp.json
 .clasprc.json
+**/smoke_tests.json
+**/smoke_tests_local.js
 
 # Node modules
 node_modules/

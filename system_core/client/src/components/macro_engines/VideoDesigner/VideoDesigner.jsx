@@ -5,6 +5,8 @@ import { IndraIcon } from '../../utilities/IndraIcons';
 import { useAssetIngestor } from './hooks/useAssetIngestor';
 import { useWorkspace } from '../../../context/WorkspaceContext';
 import { useLexicon } from '../../../services/lexicon';
+import { RenameDryRunModal } from '../../utilities/primitives';
+import { prepareCanonicalRename, commitCanonicalRename } from '../../../services/rename_protocol_runtime';
 
 // NEW MODULAR COMPONENTS
 import { EngineHood } from './components/EngineHood';
@@ -40,8 +42,14 @@ export function VideoDesigner({ atom, bridge }) {
         actions
     } = useVideoEngine(atom?.payload);
 
-    const [localLabel, setLocalLabel] = React.useState(atom?.handle?.label || 'UNTITLED_VIDEO');
+    const [localHandle, setLocalHandle] = React.useState({
+        ...(atom?.handle || {}),
+        label: atom?.handle?.label || 'UNTITLED_VIDEO'
+    });
     const [isSaving, setIsSaving] = React.useState(false);
+    const [pendingRename, setPendingRename] = React.useState(null);
+    const [isCommittingRename, setIsCommittingRename] = React.useState(false);
+    const [renameError, setRenameError] = React.useState('');
     const [selectedClip, setSelectedClip] = React.useState(null);
     const [vaultFiles, setVaultFiles] = React.useState([]);
     const [showSilo, setShowSilo] = React.useState(false);
@@ -216,15 +224,19 @@ export function VideoDesigner({ atom, bridge }) {
     };
 
     // --- ACCIONES DE PERSISTENCIA ---
-    const handleManualSave = async (overrideLabel = null) => {
+    const handleManualSave = async (overrideHandle = null) => {
         if (!project) return;
         setIsSaving(true);
         try {
-            const labelToSave = overrideLabel !== null ? overrideLabel : localLabel;
+            const handleToSave = {
+                ...localHandle,
+                ...(overrideHandle || {}),
+                label: (overrideHandle?.label ?? localHandle?.label) || 'UNTITLED_VIDEO'
+            };
             const sincereAtom = {
                 ...atom,
                 payload: project,
-                handle: { ...atom.handle, label: labelToSave }
+                handle: { ...atom.handle, ...handleToSave }
             };
             await bridge.save(sincereAtom);
         } catch (err) {
@@ -234,11 +246,96 @@ export function VideoDesigner({ atom, bridge }) {
         }
     };
 
-    const handleTitleChange = (newLabel) => {
+    const handleIdentityChange = async ({ label: newLabel, alias: newAlias }) => {
         const cleanLabel = newLabel === '' ? 'UNTITLED_VIDEO' : newLabel;
-        setLocalLabel(cleanLabel);
-        updatePinIdentity(atom.id, atom.provider, { label: cleanLabel });
-        handleManualSave(cleanLabel);
+        const cleanAlias = String(newAlias || '').trim() || localHandle?.alias;
+        const prevAlias = String(localHandle?.alias || '').trim();
+        const aliasChanged = !!cleanAlias && cleanAlias !== prevAlias;
+
+        if (aliasChanged) {
+            try {
+                const prepared = await prepareCanonicalRename({
+                    bridge,
+                    provider: atom.provider || 'system',
+                    protocol: 'ATOM_ALIAS_RENAME',
+                    contextId: atom.id,
+                    kind: 'ATOM_ALIAS',
+                    data: {
+                        old_alias: prevAlias || undefined,
+                        new_alias: cleanAlias,
+                        new_label: cleanLabel,
+                    },
+                });
+
+                if (prepared.status === 'PENDING') {
+                    setRenameError('');
+                    setPendingRename(prepared.pendingRename);
+                    return;
+                }
+
+                if (prepared.status === 'NOOP' && prepared.result?.items?.[0]) {
+                    const syncedAtom = prepared.result.items[0];
+                    const syncedHandle = {
+                        ...(syncedAtom.handle || {}),
+                        label: syncedAtom.handle?.label || 'UNTITLED_VIDEO'
+                    };
+                    setLocalHandle(syncedHandle);
+                    updatePinIdentity(atom.id, atom.provider, {
+                        label: syncedHandle.label,
+                        alias: syncedHandle.alias,
+                        handle: syncedHandle
+                    });
+                    return;
+                }
+            } catch (err) {
+                setRenameError(String(err?.message || 'No se pudo validar el renombrado.'));
+                return;
+            }
+        }
+
+        const nextHandle = {
+            ...localHandle,
+            label: cleanLabel,
+            ...(cleanAlias ? { alias: cleanAlias } : {})
+        };
+        setLocalHandle(nextHandle);
+        updatePinIdentity(atom.id, atom.provider, {
+            label: cleanLabel,
+            ...(cleanAlias ? { alias: cleanAlias } : {}),
+            handle: nextHandle
+        });
+        handleManualSave(nextHandle);
+    };
+
+    const cancelPendingRename = () => {
+        setPendingRename(null);
+        setIsCommittingRename(false);
+        setRenameError('');
+    };
+
+    const confirmPendingRename = async () => {
+        if (!pendingRename || pendingRename?.preview?.has_blockers) return;
+        setIsCommittingRename(true);
+        setRenameError('');
+        try {
+            const result = await commitCanonicalRename({ bridge, pendingRename });
+            const syncedAtom = result.items[0];
+            const syncedHandle = {
+                ...(syncedAtom.handle || {}),
+                label: syncedAtom.handle?.label || 'UNTITLED_VIDEO'
+            };
+            setLocalHandle(syncedHandle);
+            updatePinIdentity(atom.id, atom.provider, {
+                label: syncedHandle.label,
+                alias: syncedHandle.alias,
+                handle: syncedHandle
+            });
+            setPendingRename(null);
+            setIsCommittingRename(false);
+        } catch (err) {
+            setRenameError(String(err?.message || 'No se pudo ejecutar el commit del renombrado.'));
+            setIsCommittingRename(false);
+        }
     };
 
     // --- ACCIONES DE LÍNEA DE TIEMPO ---
@@ -379,10 +476,10 @@ export function VideoDesigner({ atom, bridge }) {
 
             {/* 0. INDRA MACRO HEADER (Canónico) */}
             <IndraMacroHeader
-                atom={{ ...atom, handle: { ...atom.handle, label: localLabel } }}
+                atom={{ ...atom, handle: { ...atom.handle, ...localHandle } }}
                 onClose={() => bridge?.close?.()}
                 isLive={atom?.raw?.status === 'LIVE'}
-                onTitleChange={handleTitleChange}
+                onIdentityChange={handleIdentityChange}
                 isSaving={isSaving}
             />
 
@@ -474,6 +571,14 @@ export function VideoDesigner({ atom, bridge }) {
                 />
                 </div>
             </div>
+
+            <RenameDryRunModal
+                pendingRename={pendingRename}
+                isCommitting={isCommittingRename}
+                error={renameError}
+                onCancel={cancelPendingRename}
+                onConfirm={confirmPendingRename}
+            />
         </div>
     );
 }

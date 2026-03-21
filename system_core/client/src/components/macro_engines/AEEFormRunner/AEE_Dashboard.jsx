@@ -3,12 +3,9 @@
  * ARTEFACTO: AEE_Dashboard.jsx
  * RESPONSABILIDAD: Orquestador del AEE (Agnostic Execution Engine).
  *
- * AXIOMA DE DOS MODOS:
- *   [CONFIG]  → Selección de Schema + Bridge + generación de link público.
- *   [EXECUTE] → Formulario puro proyectado desde el Schema, ejecutado por el Bridge.
- *
- * Un AEE sin configurar muestra el panel CONFIG.
- * Un AEE configurado muestra el formulario, con atajos de acceso al CONFIG.
+ * AXIOMA DE GESTACIÓN REACTIVA (30/70):
+ *   - Izquierda (30%): Configuración en tiempo real.
+ *   - Derecha (70%): Preview de manifestación pura.
  * =============================================================================
  */
 
@@ -27,17 +24,22 @@ export function AEEDashboard({ atom, bridge }) {
     const coreUrl = useAppState(s => s.coreUrl);
     const sessionSecret = useAppState(s => s.sessionSecret);
 
-    // ── MODO ACTIVO: 'CONFIG' | 'EXECUTE' ──
-    const isConfigured = !!(atom?.payload?.schema_id && atom?.payload?.bridge_id);
-    const [mode, setMode] = React.useState(isConfigured ? 'EXECUTE' : 'CONFIG');
-    const [localAtom, setLocalAtom] = React.useState(atom);
+    const [liveConfig, setLiveConfig] = React.useState({});
 
-    // Sincronizar si el atom exterior cambia (ej: tras guardar configuración)
-    React.useEffect(() => {
-        setLocalAtom(atom);
-        const nowConfigured = !!(atom?.payload?.schema_id && atom?.payload?.bridge_id);
-        if (nowConfigured && mode === 'CONFIG') setMode('EXECUTE');
-    }, [atom]);
+    // Mimetismo: Creamos un átomo fantasma (preview) que fusiona la DB con los cambios en vivo del inspector
+    const previewAtom = React.useMemo(() => {
+        if (!atom) return atom;
+        return {
+            ...atom,
+            payload: {
+                ...atom.payload,
+                ...liveConfig,
+                schema_id: liveConfig.schema_id || atom.payload?.schema_id,
+                executor_id: liveConfig.executor_id || atom.payload?.executor_id || atom.payload?.bridge_id,
+                bridge_id: liveConfig.executor_type === 'BRIDGE' ? liveConfig.executor_id : null
+            }
+        };
+    }, [atom, liveConfig]);
 
     const {
         effectiveSchema,
@@ -49,19 +51,85 @@ export function AEEDashboard({ atom, bridge }) {
         error,
         executeLogic,
         reset
-    } = useAEESession(localAtom);
+    } = useAEESession(previewAtom);
+
+    const isConfigured = !!previewAtom?.payload?.schema_id;
+    const isDirty = (
+        previewAtom.payload?.schema_id !== atom?.payload?.schema_id ||
+        previewAtom.payload?.executor_id !== (atom?.payload?.executor_id || atom?.payload?.bridge_id) ||
+        previewAtom.payload?.button_label !== atom?.payload?.button_label ||
+        previewAtom.payload?.button_variant !== atom?.payload?.button_variant
+    );
+
+    const [isSaving, setIsSaving] = React.useState(false);
+    const [isPublishing, setIsPublishing] = React.useState(false);
+    
+    const { updatePinIdentity } = useAppState();
+    const [localTitle, setLocalTitle] = React.useState(atom?.handle?.label || atom?.label || 'AEE Runner');
+
+    // Sincronizar título local si el átomo cambia externamente
+    React.useEffect(() => {
+        setLocalTitle(atom?.handle?.label || atom?.label || 'AEE Runner');
+    }, [atom?.handle?.label, atom?.label]);
+
+    // Función Canónica: GUARDAR
+    const handleSave = async () => {
+        if (!isDirty || !isConfigured) return;
+        
+        // AXIOMA: Delegamos la persistencia al Bridge Agnóstico.
+        // Esto garantiza que si el Alias cambió, el Bridge use la dirección correcta.
+        try {
+            await bridge.save(previewAtom.payload);
+            // La resonancia global se encarga de refrescar el átomo.
+        } catch (err) {
+            console.error('[AEE] Fallo de persistencia axiomática:', err);
+        }
+    };
+
+    // Función Canónica: PUBLICAR
+    const handlePublish = async () => {
+        if (!isConfigured) return;
+        setIsPublishing(true);
+        try {
+            const res = await executeDirective({
+                provider: 'system',
+                protocol: 'SYSTEM_SHARE_CREATE',
+                data: {
+                    artifact_id: atom.id,
+                    artifact_class: atom.class,
+                    auth_mode: 'public'
+                }
+            }, coreUrl, sessionSecret);
+
+            if (res.metadata?.status === 'OK' && res.items?.[0]) {
+                const ticketId = res.items[0].ticket_id;
+                const url = `${window.location.origin}${window.location.pathname}?u=${encodeURIComponent(coreUrl)}&id=${ticketId}`;
+                await navigator.clipboard.writeText(url);
+                // toastEmitter.success('¡Link público generado y copiado!');
+                alert("Enlace público copiado: " + url);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsPublishing(false);
+        }
+    };
 
     const [driftState, setDriftState] = React.useState({ status: 'IDLE', message: null, details: null });
+    
+    // Estados de Maquetación Profesional (Micro-Apps)
+    const [viewMode, setViewMode] = React.useState('FORM'); // 'FORM' | 'SUCCESS'
+    const [previewDevice, setPreviewDevice] = React.useState('DESKTOP'); // 'DESKTOP' | 'MOBILE'
 
     React.useEffect(() => {
         const checkDrift = async () => {
-            if (!localAtom?.id || localAtom?.class !== 'DATA_SCHEMA') return;
+            if (!previewAtom?.id || previewAtom?.class !== 'DATA_SCHEMA') return;
             setDriftState({ status: 'CHECKING', message: 'Verificando evolución del origen...', details: null });
             try {
                 const result = await executeDirective({
                     provider: 'system',
                     protocol: 'INDUCTION_DRIFT_CHECK',
-                    context_id: localAtom.id
+                    context_id: previewAtom.id
                 }, coreUrl, sessionSecret);
 
                 if (result.metadata?.status !== 'OK') throw new Error(result.metadata?.error || 'DRIFT_CHECK_FAILED');
@@ -75,129 +143,244 @@ export function AEEDashboard({ atom, bridge }) {
             }
         };
         checkDrift();
-    }, [localAtom?.id, coreUrl, sessionSecret]);
+    }, [previewAtom?.id, coreUrl, sessionSecret]);
 
-    const accentColor = localAtom?.color || '#00f5d4';
+    React.useEffect(() => {
+        const handleInsert = (e) => {
+            const { field, schema } = e.detail;
+            const targetProp = viewMode === 'SUCCESS' ? 'success_view' : 'custom_fields';
+            const currentFields = previewAtom.payload?.[targetProp] || [];
+            
+            let newFields = [];
+            if (field.alias === 'all' && field.children) {
+                newFields = field.children.map(c => ({...c, __origin_schema: schema.id}));
+            } else {
+                newFields = [{...field, __origin_schema: schema.id}];
+            }
+
+            const uniqueIds = new Set(currentFields.map(f => f.id));
+            const toAdd = newFields.filter(f => !uniqueIds.has(f.id));
+            
+            if (toAdd.length > 0) {
+                setLiveConfig(prev => ({
+                    ...prev,
+                    [targetProp]: [...currentFields, ...toAdd]
+                }));
+            }
+        };
+
+        const handleInsertStatic = (e) => {
+            const { type } = e.detail;
+            const targetProp = viewMode === 'SUCCESS' ? 'success_view' : 'custom_fields';
+            const currentFields = previewAtom.payload?.[targetProp] || [];
+            
+            const staticBlock = {
+                id: `${type}_${Date.now()}`,
+                alias: `${type}_${Date.now()}`,
+                type: type,
+                label: type === 'STATIC_TEXT' ? '# Nuevo Bloque\nEscribe tu contenido aquí...' : 'https://tu-imagen.com/logo.png',
+            };
+
+            setLiveConfig(prev => ({
+                ...prev,
+                [targetProp]: [...currentFields, staticBlock]
+            }));
+        };
+
+        const handleRemoveField = (e) => {
+            const { id } = e.detail;
+            const targetProp = viewMode === 'SUCCESS' ? 'success_view' : 'custom_fields';
+            setLiveConfig(prev => ({
+                ...prev,
+                [targetProp]: (previewAtom.payload?.[targetProp] || []).filter(f => f.id !== id)
+            }));
+        };
+
+        window.addEventListener('AEE_INSERT_FIELD', handleInsert);
+        window.addEventListener('AEE_INSERT_STATIC', handleInsertStatic);
+        window.addEventListener('AEE_REMOVE_FIELD', handleRemoveField);
+        return () => {
+            window.removeEventListener('AEE_INSERT_FIELD', handleInsert);
+            window.removeEventListener('AEE_INSERT_STATIC', handleInsertStatic);
+            window.removeEventListener('AEE_REMOVE_FIELD', handleRemoveField);
+        };
+    }, [previewAtom, viewMode]);
+
+    // Aplicar estilos agnósticos persistentes (Módulo B)
+    const graphics = previewAtom?.payload?.graphics || null;
+    const accentColor = graphics?.colors?.primary || previewAtom?.color || '#00f5d4';
+    
+    // Variables mapeadas para el scope local
     const dynamicStyles = {
         '--indra-dynamic-accent': accentColor,
         '--indra-dynamic-border': `${accentColor}26`,
         '--indra-dynamic-bg': `${accentColor}08`,
+        '--color-bg-base': graphics?.colors?.bg_surface || 'var(--color-bg-void)',
+        '--color-text-primary': graphics?.colors?.text || 'inherit',
+        '--font-system': graphics?.typography?.fontFamily || 'inherit',
+        '--font-mono': graphics?.typography?.fontFamily || 'inherit',
+        '--radius-md': graphics?.typography?.radius || '8px',
     };
 
+    // Resolutión del Schema Efectivo según el modo actual
+    const syntheticSchema = React.useMemo(() => {
+        const targetFields = viewMode === 'SUCCESS' || status === 'SUCCESS' 
+            ? (effectiveSchema?.payload?.success_view || []) 
+            : (effectiveSchema?.payload?.custom_fields || effectiveSchema?.payload?.fields || []);
+            
+        return {
+            ...effectiveSchema,
+            payload: {
+                ...effectiveSchema?.payload,
+                custom_fields: targetFields, // Interceptado por FormRunner
+                __view_mode: viewMode === 'SUCCESS' || status === 'SUCCESS' ? 'SUCCESS' : 'FORM'
+            }
+        };
+    }, [effectiveSchema, viewMode, status]);
+
     return (
-        <div className="macro-designer-wrapper fill" style={dynamicStyles}>
+        <div className="macro-designer-wrapper fill stack" style={dynamicStyles}>
             <IndraMacroHeader
-                atom={localAtom}
+                atom={previewAtom}
+                bridge={bridge}
+                title={localTitle}
+                defaultTitle="AEE Runner"
                 onClose={() => bridge?.close?.() || window.parent.postMessage({ type: 'CLOSE_MACRO' }, '*')}
-                isSaving={status === 'EXECUTING'}
+                isSaving={status === 'EXECUTING' || isSaving}
                 rightSlot={
                     <div className="shelf--tight">
-                        {/* Toggle CONFIG / EXECUTE */}
-                        {isConfigured && (
-                            <button
-                                className={`btn btn--xs ${mode === 'CONFIG' ? 'btn--accent' : 'btn--ghost'}`}
-                                onClick={() => setMode(m => m === 'CONFIG' ? 'EXECUTE' : 'CONFIG')}
-                                style={{ fontSize: '9px', letterSpacing: '0.05em' }}
-                                title={mode === 'CONFIG' ? 'Ver formulario' : 'Ver configuración'}
-                            >
-                                <IndraIcon name={mode === 'CONFIG' ? 'PLAY' : 'SETTINGS'} size="12px" />
-                                <span>{mode === 'CONFIG' ? 'VER_FORM' : 'CONFIGURAR'}</span>
-                            </button>
-                        )}
-
-                        {/* Reset de sesión (solo en modo EXECUTE con estado) */}
-                        {mode === 'EXECUTE' && status !== 'IDLE' && (
+                        {status !== 'IDLE' && (
                             <button
                                 className="btn btn--ghost btn--xs"
                                 onClick={reset}
-                                style={{ fontSize: '9px' }}
+                                style={{ fontSize: '9px', marginRight: '8px' }}
                             >
                                 <IndraIcon name="SYNC" size="12px" />
-                                <span>RESET</span>
+                                <span>RESET SANDBOX</span>
                             </button>
                         )}
+                        <button
+                            className={`btn btn--xs ${isDirty ? 'btn--accent pulse' : 'btn--ghost'}`}
+                            onClick={handleSave}
+                            disabled={!isConfigured || isSaving || !isDirty}
+                            style={{ fontSize: '9px', fontWeight: 'bold' }}
+                        >
+                            {isSaving ? 'GUARDANDO…' : 'GUARDAR'}
+                        </button>
+                        <button
+                            className="btn btn--xs btn--success"
+                            onClick={handlePublish}
+                            disabled={!isConfigured || isDirty || isPublishing}
+                            style={{ fontSize: '9px', fontWeight: 'bold', minWidth: '85px', justifyContent: 'center' }}
+                            title={isDirty ? "Guarda los cambios antes de publicar" : "Generar enlace público"}
+                        >
+                            {isPublishing ? 'EMITIENDO…' : 'PUBLICAR'}
+                            <IndraIcon name="LINK" size="10px" style={{ marginLeft: '4px' }} />
+                        </button>
                     </div>
                 }
             />
 
-            <div className="designer-body fill center relative overflow-hidden" style={{ padding: 'var(--space-8)' }}>
+            {/* ── ALINEACIÓN AÚREA (30/70) ── */}
+            <div className="designer-body fill spread relative overflow-hidden" style={{ flexDirection: 'row', alignItems: 'stretch' }}>
+                
+                {/* PANEL DE ESCRUTINIO (30%) */}
+                <AEEConfigPanel
+                    atom={previewAtom}
+                    onConfigChange={setLiveConfig}
+                />
 
-                {/* ── MODO CONFIG ── */}
-                {mode === 'CONFIG' && (
-                    <AEEConfigPanel
-                        atom={localAtom}
-                        onConfigSaved={({ schemaId, bridgeId }) => {
-                            // Actualizar atom local con el payload persistido
-                            setLocalAtom(prev => ({
-                                ...prev,
-                                payload: {
-                                    ...prev.payload,
-                                    schema_id: schemaId,
-                                    bridge_id: bridgeId
-                                }
-                            }));
-                            setMode('EXECUTE');
-                        }}
-                    />
-                )}
+                {/* LIENZO DE MANIFESTACIÓN (70%) */}
+                <div className="aee-projection-panel fill relative overflow-auto center" style={{ background: 'var(--color-bg-deep)', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
+                    
+                    {/* Toolbar de Maquetación Profesional */}
+                    <div className="shelf--tight shadow-glow" style={{ 
+                        position: 'absolute', top: '24px', left: '50%', transform: 'translateX(-50%)', 
+                        padding: '6px', borderRadius: '24px', border: '1px solid var(--color-border)', zIndex: 10,
+                        gap: '8px', background: 'var(--glass-bg)', backdropFilter: 'var(--blur-glass)'
+                    }}>
+                        <div className="shelf--tight" style={{ background: 'var(--color-bg-base)', borderRadius: '16px', padding: '2px' }}>
+                            <button 
+                                onClick={() => setViewMode('FORM')}
+                                style={{
+                                    height: '24px', padding: '0 16px', fontSize: '10px', fontWeight: 'bold', fontFamily: 'var(--font-mono)',
+                                    background: viewMode === 'FORM' ? 'var(--color-text-primary)' : 'transparent',
+                                    color: viewMode === 'FORM' ? 'var(--color-bg-base)' : 'var(--color-text-secondary)',
+                                    borderRadius: '14px', transition: 'all 0.2s ease', border: 'none', cursor: 'pointer'
+                                }}
+                            >
+                                /FORMULARIO
+                            </button>
+                            <button 
+                                onClick={() => setViewMode('SUCCESS')}
+                                style={{
+                                    height: '24px', padding: '0 16px', fontSize: '10px', fontWeight: 'bold', fontFamily: 'var(--font-mono)',
+                                    background: viewMode === 'SUCCESS' ? 'var(--color-text-primary)' : 'transparent',
+                                    color: viewMode === 'SUCCESS' ? 'var(--color-bg-base)' : 'var(--color-text-secondary)',
+                                    borderRadius: '14px', transition: 'all 0.2s ease', border: 'none', cursor: 'pointer'
+                                }}
+                            >
+                                /ÉXITO_VISUAL
+                            </button>
+                        </div>
+                        <div style={{ width: '1px', height: '14px', background: 'var(--color-border)' }} />
+                        <div className="shelf--tight">
+                            <button 
+                                className="center hover-accent"
+                                onClick={() => setPreviewDevice('DESKTOP')}
+                                style={{ 
+                                    opacity: previewDevice === 'DESKTOP' ? 1 : 0.4, 
+                                    width: '28px', height: '28px', borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer',
+                                    color: previewDevice === 'DESKTOP' ? 'var(--color-accent)' : 'var(--color-text-primary)'
+                                }}
+                                title="Vista de Escritorio"
+                            >
+                                <IndraIcon name="LAYOUT" size="14px" />
+                            </button>
+                            <button 
+                                className="center hover-accent"
+                                onClick={() => setPreviewDevice('MOBILE')}
+                                style={{ 
+                                    opacity: previewDevice === 'MOBILE' ? 1 : 0.4, 
+                                    width: '28px', height: '28px', borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer',
+                                    color: previewDevice === 'MOBILE' ? 'var(--color-accent)' : 'var(--color-text-primary)'
+                                }}
+                                title="Vista Móvil"
+                            >
+                                <IndraIcon name="VAULT" size="14px" />
+                            </button>
+                        </div>
+                    </div>
 
-                {/* ── MODO EXECUTE ── */}
-                {mode === 'EXECUTE' && (
-                    <div className="indra-container" style={{ width: '100%', maxWidth: '800px', height: 'fit-content', maxHeight: '100%' }}>
-                        <div className="indra-header-label">EXECUTION_ENGINE_PROJECTION</div>
+                    {/* Simulación del Dispositivo / Lienzo */}
+                    <div className="aee-device-simulator" style={{ 
+                        width: '100%',
+                        maxWidth: previewDevice === 'MOBILE' ? '375px' : '700px',
+                        height: previewDevice === 'MOBILE' ? '700px' : 'auto',
+                        minHeight: '300px',
+                        background: 'var(--color-bg-base)',
+                        border: previewDevice === 'MOBILE' ? '8px solid var(--color-bg-void)' : '1px solid var(--color-border)',
+                        borderRadius: previewDevice === 'MOBILE' ? '32px' : 'var(--radius-lg)',
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                        overflowY: 'auto',
+                        transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
 
-                        {/* Alerta de Drift */}
-                        {(driftState.status === 'DRIFT' || driftState.status === 'ERROR' || driftState.status === 'CHECKING') && (
-                            <div style={{
-                                margin: 'var(--space-4) var(--space-8) 0',
-                                padding: 'var(--space-3)',
-                                border: '1px solid var(--color-border)',
-                                borderRadius: 'var(--radius-sm)',
-                                background: driftState.status === 'DRIFT' ? 'rgba(255, 191, 0, 0.08)' : 'rgba(255, 255, 255, 0.03)'
-                            }}>
-                                <div className="shelf--tight">
-                                    <IndraIcon name={driftState.status === 'DRIFT' ? 'WARN' : 'SYNC'} size="12px" />
-                                    <span style={{ fontSize: '10px' }}>{driftState.message}</span>
-                                </div>
-                                {driftState.status === 'DRIFT' && driftState.details && (
-                                    <span style={{ fontSize: '9px', opacity: 0.7 }}>
-                                        Nuevos campos: {(driftState.details.added_fields || []).length} | Removidos: {(driftState.details.removed_fields || []).length}
-                                    </span>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Sin configuración → prompt para ir a config */}
-                        {!isConfigured && (
-                            <div className="fill center stack--tight" style={{ padding: 'var(--space-12)', opacity: 0.5 }}>
-                                <IndraIcon name="SETTINGS" size="32px" />
-                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px' }}>EJECUTOR_SIN_CONFIGURAR</span>
-                                <button
-                                    className="btn btn--accent btn--xs"
-                                    onClick={() => setMode('CONFIG')}
-                                >
-                                    CONFIGURAR AHORA
-                                </button>
-                            </div>
-                        )}
-
-                        {isConfigured && isLoadingSchema && (
-                            <div className="fill center stack--tight" style={{ padding: 'var(--space-12)', opacity: 0.6 }}>
-                                <IndraIcon name="SYNC" size="24px" className="spin" style={{ color: 'var(--color-accent)' }} />
-                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px' }}>HIDRATANDO_SCHEMA…</span>
-                            </div>
-                        )}
-
-                        {/* Formulario o resultado */}
+                        {/* Estado: Proyección Activa */}
                         {isConfigured && !isLoadingSchema && (
-                            <main className="fill overflow-auto" style={{ padding: 'var(--space-8)' }}>
-                                {status !== 'SUCCESS' && status !== 'ERROR' && status !== 'EXECUTING' ? (
+                            <main className="fill" style={{ padding: previewDevice === 'MOBILE' ? '24px 16px' : 'var(--space-8)' }}>
+                                {status !== 'SUCCESS' || (status === 'SUCCESS' && (syntheticSchema.payload.custom_fields||[]).length > 0) ? (
                                     <FormRunner
-                                        schema={effectiveSchema || localAtom}
+                                        schema={syntheticSchema}
                                         formData={formData}
                                         onFieldChange={updateField}
                                         onExecute={executeLogic}
                                         status={status}
+                                        customButtonLabel={previewAtom.payload?.button_label}
+                                        customButtonVariant={previewAtom.payload?.button_variant}
+                                        isDesignMode={true}
                                     />
                                 ) : (
                                     <ResultPanel
@@ -209,9 +392,20 @@ export function AEEDashboard({ atom, bridge }) {
                                 )}
                             </main>
                         )}
+                        
+                        {/* Estado: Sin Configurar / Alerta Drift */}
+                        {(!isConfigured || driftState.status === 'DRIFT') && (
+                            <div className="fill center stack--tight" style={{ padding: 'var(--space-12)', opacity: 0.5 }}>
+                                <IndraIcon name="SCHEMA" size="32px" />
+                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px' }}>
+                                    {isConfigured ? driftState.message : 'ESPERANDO_CONFIGURACIÓN...'}
+                                </span>
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );
 }
+

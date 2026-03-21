@@ -255,13 +255,6 @@ export const useAppState = create((set, get) => ({
      */
     openArtifact: async (atom) => {
         const { coreUrl, sessionSecret } = get();
-        
-        // AXIOMA: Si ya tiene payload, la materia es sincera.
-        if (atom.payload && (atom.payload.blocks || atom.payload.fields || atom.payload.stations)) {
-            set({ activeArtifact: atom });
-            return;
-        }
-
         set({ isMaterializing: true });
         try {
             const result = await executeDirective({
@@ -280,7 +273,7 @@ export const useAppState = create((set, get) => ({
         } catch (err) {
             console.error('[app_state] Materialization failed:', err);
             toastEmitter.error('Fallo de Sinceridad: No se pudo materializar el contenido.');
-            set({ isMaterializing: false });
+            set({ activeArtifact: atom, isMaterializing: false });
         }
     },
     closeArtifact: () => set({ activeArtifact: null }),
@@ -293,21 +286,25 @@ export const useAppState = create((set, get) => ({
         
         registerSync(id);
         try {
-            await executeDirective({
-                provider: provider,
+            const result = await executeDirective({
+                provider: provider || 'system',
                 protocol: 'ATOM_UPDATE',
                 context_id: id,
                 data: updates
             }, coreUrl, sessionSecret);
 
+            const updatedAtom = result.items?.[0] || { ...updates };
+
             // Refrescar activo si es el mismo
             if (activeArtifact && activeArtifact.id === id) {
-                set({ activeArtifact: { ...activeArtifact, ...updates } });
+                set({ activeArtifact: { ...activeArtifact, ...updatedAtom } });
             }
 
             // Refrescar en la lista de pins
             const updatedPins = pins.map(p => 
-                (p.id === id && p.provider === provider) ? { ...p, ...updates } : p
+                (p.id === id && (p.provider || 'system') === (provider || 'system')) 
+                    ? { ...p, ...updatedAtom } 
+                    : p
             );
             set({ pins: updatedPins });
 
@@ -320,6 +317,40 @@ export const useAppState = create((set, get) => ({
             finishSync(id);
         }
     },
+
+    /**
+     * Actualiza la identidad axiomática de un átomo en todas las capas del frontend.
+     * RESONANCIA GLOBAL: Sincroniza tanto el Pin (Nivel 2) como el Artefacto Activo (Nivel 3).
+     */
+    updateAxiomaticIdentity: (id, provider, updates) => {
+        const { pins, activeArtifact } = get();
+        const cleanProvider = provider || 'system';
+        
+        // 1. Mutar Pins (Nivel 2)
+        const updatedPins = pins.map(p => 
+            (p.id === id && (p.provider || 'system') === cleanProvider) 
+                ? { ...p, ...updates, handle: { ...p.handle, ...updates.handle } } 
+                : p
+        );
+
+        // 2. Mutar Artefacto Activo (Nivel 3) si es el mismo
+        let nextActiveArtifact = activeArtifact;
+        if (activeArtifact && activeArtifact.id === id && (activeArtifact.provider || 'system') === cleanProvider) {
+            nextActiveArtifact = { 
+                ...activeArtifact, 
+                ...updates, 
+                handle: { ...activeArtifact.handle, ...updates.handle } 
+            };
+        }
+
+        set({ 
+            pins: updatedPins, 
+            activeArtifact: nextActiveArtifact 
+        });
+
+        // AXIOMA: Si mutamos la identidad, el sistema debe re-reaccionar a través del puente reactivo.
+    },
+
 
     /**
      * Registra un artefacto en proceso de sincronización global.
@@ -467,12 +498,13 @@ export const useAppState = create((set, get) => ({
      * Elimina físicamente un átomo del core y purga sus pins.
      * ADR-008: La eliminación es atómica: primero desancla, luego borra.
      */
-    deleteArtifact: async (atomId, provider) => {
+    deleteArtifact: async (atomId, provider = 'system') => {
+        const cleanProvider = provider || 'system';
         const { coreUrl, sessionSecret, activeWorkspaceId, pins } = get();
 
         // ── 1. OPTIMISTIC: Quitar de la UI inmediatamente ──
         const previousPins = [...pins];
-        set({ pins: pins.filter(p => !(p.id === atomId && p.provider === provider)) });
+        set({ pins: pins.filter(p => !(p.id === atomId && (p.provider || 'system') === cleanProvider)) });
 
         try {
             // ── 2. SYSTEM_UNPIN: Limpiar referencia en el workspace (doble seguro) ──
@@ -481,22 +513,34 @@ export const useAppState = create((set, get) => ({
                     provider: 'system',
                     protocol: 'SYSTEM_UNPIN',
                     workspace_id: activeWorkspaceId,
-                    data: { atom_id: atomId, provider }
+                    data: { atom_id: atomId, provider: cleanProvider }
                 }, coreUrl, sessionSecret);
             } catch (unpinErr) {
                 console.warn('[app_state] SYSTEM_UNPIN pre-delete falló (no crítico):', unpinErr.message);
             }
 
             // ── 3. ATOM_DELETE: Eliminar el archivo y que el backend purgue el resto ──
-            await executeDirective({
-                provider: provider,
-                protocol: 'ATOM_DELETE',
-                context_id: atomId
-            }, coreUrl, sessionSecret);
+            try {
+                await executeDirective({
+                    provider: cleanProvider,
+                    protocol: 'ATOM_DELETE',
+                    context_id: atomId
+                }, coreUrl, sessionSecret);
+            } catch (deleteErr) {
+                // AXIOMA DE HOMEOSTASIS: Si el átomo no existe (NOT_FOUND) o es un ID de error (err_),
+                // el objetivo del usuario era "limpiar el fantasma" y ya está cumplido en el Core.
+                // Permitimos que el flujo continúe para que el UNPIN del Paso 2 sea permanente.
+                const wasGhost = deleteErr.message.includes('No encontrado') || 
+                                 deleteErr.message.includes('NOT_FOUND') ||
+                                 atomId.startsWith('err_');
+                
+                if (!wasGhost) throw deleteErr;
+                console.info('[app_state] Purificando fantasma:', atomId);
+            }
 
             // ── 4. Recargar pins para confirmar estado limpio ──
             get().loadPins();
-            toastEmitter.success('Artefacto eliminado');
+            toastEmitter.success('Artefacto purificado del workspace');
         } catch (err) {
             console.error('[app_state] deleteArtifact failed, reverting:', err);
             set({ pins: previousPins });
@@ -508,12 +552,13 @@ export const useAppState = create((set, get) => ({
     /**
      * Desancla un átomo del workspace activo.
      */
-    unpinAtom: async (atomId, provider) => {
+    unpinAtom: async (atomId, provider = 'system') => {
+        const cleanProvider = provider || 'system';
         const { coreUrl, sessionSecret, activeWorkspaceId, pins } = get();
 
         // ── OPTIMISTIC UNPIN ──
         const previousPins = [...pins];
-        const filteredPins = pins.filter(p => !(p.id === atomId && p.provider === provider));
+        const filteredPins = pins.filter(p => !(p.id === atomId && (p.provider || 'system') === cleanProvider));
         set({ pins: filteredPins });
 
         try {
@@ -521,7 +566,7 @@ export const useAppState = create((set, get) => ({
                 provider: 'system',
                 protocol: 'SYSTEM_UNPIN',
                 workspace_id: activeWorkspaceId,
-                data: { atom_id: atomId, provider }
+                data: { atom_id: atomId, provider: cleanProvider }
             }, coreUrl, sessionSecret);
 
             get().loadPins();

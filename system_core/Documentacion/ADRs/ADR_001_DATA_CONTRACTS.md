@@ -145,6 +145,11 @@ Los protocolos son las operaciones atómicas que un silo puede declarar. Cada pr
 | `SYSTEM_UNPIN` | Desancla un átomo del workspace. |
 | `SYSTEM_PINS_READ` | Lee todos los pines anclados + bridges del workspace activo. |
 | `SYSTEM_WORKSPACE_REPAIR` | Saneamiento: detecta y elimina Ghost Pins (pines cuyo recurso ya no existe). |
+| `ATOM_ALIAS_RENAME` | Renombra canónicamente `handle.alias` (y opcionalmente `handle.label`) de un átomo con soporte `dry_run` y propagación a pines. |
+| `SCHEMA_FIELD_ALIAS_RENAME` | Renombra alias de campo en `DATA_SCHEMA` con análisis de impacto y cascada tipada hacia artefactos dependientes. |
+| `ALIAS_COLLISION_SCAN` | Sensor canónico de colisiones de alias (intra-schema, cross-schema, sistema) con clasificación de severidad. |
+
+> Detalle operacional completo del sistema de alias y renombrado: ver `ADR_025_ALIAS_RENAME_CANONICAL_ORCHESTRATION.md`.
 
 ### 5.4 Protocolos de Lógica (Despacho Especial)
 

@@ -18,12 +18,8 @@ import { useAST } from '../context/ASTContext';
 import { WorkspaceResourcePanel } from './WorkspaceResourcePanel';
 import { useSelection } from '../context/SelectionContext';
 
-const CONTAINER_TYPES = new Set(['PAGE', 'FRAME', 'ITERATOR']);
-
-const isContainerNode = (node) => Boolean(node && CONTAINER_TYPES.has(node.type));
-
-export function NavigatorPanel({ atom, onNotify, activeTab: controlledTab, onTabChange }) {
-    const { blocks, addNode, removeNode, findNode } = useAST();
+export function NavigatorPanel({ atom, bridge, onNotify, activeTab: controlledTab, onTabChange }) {
+    const { blocks, removeNode } = useAST();
     const { selectedId, deselect } = useSelection();
     
     // ADR-002 §8.2: componente controlado — el shell eleva el estado del tab.
@@ -42,21 +38,15 @@ export function NavigatorPanel({ atom, onNotify, activeTab: controlledTab, onTab
     if (!Array.isArray(blocks)) {
         throw new Error('[NavigatorPanel] Contrato inválido: `blocks` debe ser un array.');
     }
-    if (typeof addNode !== 'function' || typeof removeNode !== 'function' || typeof findNode !== 'function') {
+    if (typeof removeNode !== 'function') {
         throw new Error('[NavigatorPanel] Contrato inválido: API de mutación AST incompleta.');
     }
 
-    const createEntityFromLayers = (type) => {
-        const selectedNode = selectedId ? findNode(selectedId) : null;
-        const parentId = isContainerNode(selectedNode)
-            ? selectedNode.id
-            : (blocks[0]?.id || null);
-
-        const newId = addNode(type, parentId);
+    const goToInsertTab = () => {
+        setTab('WORKSPACE');
         if (typeof onNotify === 'function') {
-            onNotify(`ENTITY_CREATED: ${type}`);
+            onNotify('MODO_INSERTAR_ACTIVO');
         }
-        return newId;
     };
 
     const deleteSelectedEntity = () => {
@@ -92,10 +82,10 @@ export function NavigatorPanel({ atom, onNotify, activeTab: controlledTab, onTab
                     onClick={() => setTab('WORKSPACE')}
                     data-active={tab === 'WORKSPACE'}
                     className="nav-tab-btn shelf--tight center"
-                    title="RESOURCES"
+                    title="INSERTAR"
                 >
                     <IndraIcon name="LAYER_STRICT" size="10px" />
-                    <span>RESOURCES</span>
+                    <span>INSERTAR</span>
                 </button>
                 <button
                     onClick={() => setTab('STYLES')}
@@ -114,29 +104,15 @@ export function NavigatorPanel({ atom, onNotify, activeTab: controlledTab, onTab
                     <div className="stack--none" style={{ padding: 'var(--space-2)' }}>
                         <header className="navigator-header">
                             <IndraIcon name="ATOM" size="10px" />
-                            <span>DOCUMENT_HIERARCHY</span>
+                            <span>JERARQUIA_DOCUMENTO</span>
+                            <div style={{ flex: 1 }} />
                         </header>
 
                         {/*
-                          Toolbar de acciones canónicas del árbol.
-                          Axioma de conexión real: cada botón dispara un mutador AST explícito.
+                          Toolbar canónica de capas: solo mantenimiento estructural.
                         */}
                         <div className="layer-toolbar" role="toolbar" aria-label="LAYERS_ACTIONS">
-                            <button className="layer-toolbar-btn" title="NEW_PAGE" onClick={() => createEntityFromLayers('PAGE')}>
-                                <IndraIcon name="DOCUMENT" size="10px" />
-                            </button>
-                            <button className="layer-toolbar-btn" title="NEW_FRAME" onClick={() => createEntityFromLayers('FRAME')}>
-                                <IndraIcon name="FRAME" size="10px" />
-                            </button>
-                            <button className="layer-toolbar-btn" title="NEW_TEXT" onClick={() => createEntityFromLayers('TEXT')}>
-                                <IndraIcon name="TEXT" size="10px" />
-                            </button>
-                            <button className="layer-toolbar-btn" title="NEW_IMAGE" onClick={() => createEntityFromLayers('IMAGE')}>
-                                <IndraIcon name="IMAGE" size="10px" />
-                            </button>
-                            <button className="layer-toolbar-btn" title="NEW_ITERATOR" onClick={() => createEntityFromLayers('ITERATOR')}>
-                                <IndraIcon name="REPEATER" size="10px" />
-                            </button>
+                            <span className="layer-toolbar__hint">LAYERS_ORGANIZA // INSERTAR_MANIFIESTA</span>
                             <button className="layer-toolbar-btn layer-toolbar-btn--danger" title="DELETE_SELECTED" onClick={deleteSelectedEntity}>
                                 <IndraIcon name="DELETE" size="10px" />
                             </button>
@@ -157,6 +133,7 @@ export function NavigatorPanel({ atom, onNotify, activeTab: controlledTab, onTab
                 {tab === 'WORKSPACE' && (
                     <WorkspaceResourcePanel 
                         atom={atom} 
+                        bridge={bridge}
                         onNotify={onNotify} 
                     />
                 )}
@@ -194,6 +171,12 @@ export function NavigatorPanel({ atom, onNotify, activeTab: controlledTab, onTab
                     letter-spacing: 0.05em;
                 }
 
+                .nav-tab-btn--create {
+                    flex: 0.9;
+                    color: var(--color-accent);
+                    border-left: 1px solid var(--color-border);
+                }
+
                 .nav-tab-btn:hover {
                     background: var(--color-bg-hover);
                     color: var(--color-text-primary);
@@ -221,6 +204,14 @@ export function NavigatorPanel({ atom, onNotify, activeTab: controlledTab, onTab
                     align-items: center;
                     gap: var(--space-1);
                     padding: 0 var(--space-2) var(--space-2);
+                }
+
+                .layer-toolbar__hint {
+                    font-size: 8px;
+                    font-family: var(--font-mono);
+                    opacity: 0.45;
+                    letter-spacing: 0.06em;
+                    margin-right: auto;
                 }
 
                 .layer-toolbar-btn {

@@ -18,19 +18,27 @@ export class DesignerBridge {
 
     /**
      * Persistir cambios en el Core (ATOM_UPDATE).
+     * AXIOMA DE FRONTERA SOBERANA: El motor solo gestiona Materia (Payload).
+     * El Bridge inyecta la Identidad (Handle) desde la Verdad Global.
      */
     async save(data) {
-        // ADR-001: Purgar identidad inmutable antes de cruzar la frontera del ATOM_UPDATE
-        const { id, class: atomClass, ...mutableData } = data;
         const contextId = this.atom.id;
-
+        
+        // 1. Aislamiento de Materia: Extraer el payload ignorando metadatos de identidad del motor
+        const cleanPayload = data?.payload || data;
+        
+        // 2. Notificación de sincronía (Nivel 2/3)
         if (this.shell.onSyncStart) this.shell.onSyncStart(contextId);
         
         try {
+            // AXIOMA: Construcción Determinista. El motor pierde el voto sobre su ID y Clase.
             return await this.request({
                 protocol: 'ATOM_UPDATE',
                 context_id: contextId,
-                data: { ...mutableData, strategy: 'OVERWRITE' }
+                data: { 
+                    payload: cleanPayload, 
+                    strategy: 'OVERWRITE' 
+                }
             });
         } finally {
             if (this.shell.onSyncEnd) this.shell.onSyncEnd(contextId);

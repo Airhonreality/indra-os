@@ -12,7 +12,7 @@ import { executeDirective } from '../../services/directive_executor';
 import { toastEmitter } from '../../services/toastEmitter';
 
 /**
- * ArtifactGrid: Implementación del Modelo Tríptico (20/50/30) de Mendoza-Collazos.
+ * ArtifactGrid: Implementación del Modelo Tríptico Áureo (28/44/28) de Mendoza-Collazos.
  * 🧬 AXIOMA DE RESONANCIA: El Grid inyecta la conciencia sistémica a través de data-attributes.
  */
 export function ArtifactGrid({ pins, onResonate }) {

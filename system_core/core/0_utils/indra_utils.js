@@ -25,15 +25,10 @@ function _system_slugify_(text) {
 }
 
 /**
- * Realiza un merge profundo de dos objetos.
- * Protege la estructura original.
+ * Indica si un ítem es una Señal de Prospección (Probe), no un Átomo.
+ * @param {Object} item
+ * @returns {boolean}
  */
-function _indra_deepMerge_(target, source) {
-    for (const key in source) {
-        if (source[key] instanceof Object && key in target) {
-            Object.assign(source[key], _indra_deepMerge_(target[key], source[key]));
-        }
-    }
-    Object.assign(target || {}, source);
-    return target;
+function _isProbeSignal_(item) {
+    return item && item.type === 'PROBE';
 }

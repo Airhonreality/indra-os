@@ -113,7 +113,8 @@ function _system_handleSchemaFieldOptions(uqo) {
                 label: item.handle?.label || item.name || String(item.id)
             },
             class: 'OPTION',
-            protocols: []
+            protocols: [],
+            type: 'PROBE'
         }));
 
         return { items: options, metadata: { status: 'OK' } };

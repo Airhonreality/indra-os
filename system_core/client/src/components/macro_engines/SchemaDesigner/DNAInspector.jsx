@@ -14,8 +14,13 @@ import { IndraMicroHeader } from '../../utilities/IndraMicroHeader';
 import ArtifactSelector from '../../utilities/ArtifactSelector';
 import { DataProjector } from '../../../services/DataProjector';
 
-export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge }) {
+export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge, aliasResetNonce = 0 }) {
     const [showArtifactSelector, setShowArtifactSelector] = useState(false);
+    const [aliasDraft, setAliasDraft] = useState(field.alias || '');
+
+    React.useEffect(() => {
+        setAliasDraft(field.alias || '');
+    }, [field.id, field.alias, aliasResetNonce]);
 
     // 1. Proyectar el ADN del campo
     const projection = DataProjector.projectFieldDefinition(field);
@@ -26,6 +31,21 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
             ...field,
             config: { ...field.config, [key]: value }
         });
+    };
+
+    const sanitizeAlias = (value) => String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9_\-]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+
+    const commitAlias = () => {
+        const cleanAlias = sanitizeAlias(aliasDraft);
+        if (cleanAlias !== (field.alias || '')) {
+            onUpdate({ ...field, alias: cleanAlias });
+        }
+        setAliasDraft(cleanAlias);
     };
 
     const handleArtifactSelect = (atom) => {
@@ -111,8 +131,20 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge })
                     <input
                         type="text"
                         className="dna-input mono"
-                        value={field.alias || ''}
-                        onChange={e => onUpdate({ ...field, alias: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
+                        value={aliasDraft}
+                        onChange={e => setAliasDraft(sanitizeAlias(e.target.value))}
+                        onBlur={commitAlias}
+                        onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                commitAlias();
+                                e.currentTarget.blur();
+                            }
+                            if (e.key === 'Escape') {
+                                setAliasDraft(field.alias || '');
+                                e.currentTarget.blur();
+                            }
+                        }}
                         style={{ color: projection.theme.color }}
                     />
                 </div>

@@ -188,6 +188,12 @@ function LayerRow({ node, depth, isRoot }) {
                     #{node.id.slice(-4)}
                 </span>
 
+                {node.props?.layoutMode === 'absolute' && (
+                    <span className="layer-row__badge layer-row__badge--abs" title="POSICION_ABSOLUTA_ACTIVA">
+                        ABS
+                    </span>
+                )}
+
                 {/* Badge HEAD_LOCKED para el root */}
                 {isRoot && (
                     <span className="layer-row__badge" title="PAGE_IS_THE_ROOT">
@@ -395,6 +401,12 @@ export const LAYER_TREE_STYLES = `
         opacity: 0.5;
         flex-shrink: 0;
         letter-spacing: 0.08em;
+    }
+
+    .layer-row__badge--abs {
+        color: var(--color-text-primary);
+        border-color: var(--color-border);
+        opacity: 0.8;
     }
 
     /* ── Chevron zona de click ───────────────────────────────────────── */

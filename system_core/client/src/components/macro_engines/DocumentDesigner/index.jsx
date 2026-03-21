@@ -22,6 +22,7 @@ import { DataProjector } from '../../../services/DataProjector';
 import { useWorkspace } from '../../../context/WorkspaceContext';
 import { useLexicon } from '../../../services/lexicon';
 import { HonestProvider } from './renderer/HonestProvider';
+import { IndraLoadingBar } from './layout/IndraLoadingBar';
 import { Crystallizer } from './Crystallizer';
 import { TokenDiscovery } from '../../../services/TokenDiscovery';
 import { AxiomRegistry } from '../../../services/AxiomRegistry';
@@ -122,12 +123,10 @@ function DocumentDesignerShell({ atom, bridge }) {
     }, [resize, stopResizing]);
 
     // ── Handlers ──────────────────────────────────────────────────────────────
-    const handleTitleChange = (newLabel) => {
-        const cleanLabel = newLabel === '' ? 'UNTITLED_DOCUMENT' : newLabel;
-        setLocalLabel(cleanLabel);
-        updatePinIdentity(atom.id, atom.provider, { label: cleanLabel });
-        handleManualSave(cleanLabel);
-    };
+    // Sincronizar título local si el átomo cambia externamente
+    useEffect(() => {
+        setLocalLabel(projection.title);
+    }, [projection.title]);
 
     const showToast = (message) => {
         setToast(message);
@@ -421,9 +420,7 @@ function DocumentDesignerShell({ atom, bridge }) {
 
     if (!isReady) return (
         <div className="fill center stack text-hint font-mono">
-            <div className="mini-spinner" style={{ animation: 'indra-spin 1s linear infinite', border: '2px solid var(--color-accent)', width: 24, height: 24, borderTopColor: 'transparent', borderRadius: '50%' }} />
-            <br />
-            <span>CALIBRANDO_REALIDAD...</span>
+            <IndraLoadingBar width="180px" height="5px" />
         </div>
     );
 
@@ -438,36 +435,39 @@ function DocumentDesignerShell({ atom, bridge }) {
         >
             <IndraMacroHeader
                 atom={atom}
+                bridge={bridge}
                 onClose={() => bridge.close()}
                 isSaving={isSaving}
-                onTitleChange={handleTitleChange}
                 rightSlot={
-                    <div className="shelf--tight" style={{ gap: 'var(--space-2)' }}>
-                        <button 
-                            className={`btn btn--xs ${previewMode ? 'btn--accent' : 'btn--ghost'}`}
-                            onClick={() => setPreviewMode(!previewMode)}
-                            style={{ padding: '0 12px', height: '32px', gap: '8px', borderRadius: 'var(--radius-md)' }}
-                        >
-                            <IndraIcon name={previewMode ? "EDIT" : "EYE"} size="12px" />
-                            <span style={{ fontSize: '9px', fontWeight: '900' }}>{previewMode ? 'MODO_EDICION' : 'VISTA_PREVIA'}</span>
-                        </button>
+                    <div className="stack--none" style={{ gap: '6px', minWidth: '320px' }}>
+                        <div className="shelf--tight" style={{ gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+                            <button 
+                                className={`btn btn--xs ${previewMode ? 'btn--accent' : 'btn--ghost'}`}
+                                onClick={() => setPreviewMode(!previewMode)}
+                                style={{ padding: '0 12px', height: '32px', gap: '8px', borderRadius: 'var(--radius-md)' }}
+                            >
+                                <IndraIcon name={previewMode ? "EDIT" : "EYE"} size="12px" />
+                                <span style={{ fontSize: '9px', fontWeight: '900' }}>{previewMode ? 'MODO_EDICION' : 'VISTA_PREVIA'}</span>
+                            </button>
 
-                        <div className="macro-header__divider-block" style={{ width: '1px', height: '16px', background: 'var(--color-border)', opacity: 0.3, margin: '0 4px' }} />
+                            <div className="macro-header__divider-block" style={{ width: '1px', height: '16px', background: 'var(--color-border)', opacity: 0.3, margin: '0 4px' }} />
 
-                        <button 
-                            className="btn btn--xs btn--accent shadow-hover" 
-                            onClick={() => handleManualSave()}
-                            style={{ 
-                                height: '32px',
-                                padding: '0 16px',
-                                borderRadius: 'var(--radius-md)',
-                                border: '1px solid var(--indra-dynamic-accent)',
-                                boxShadow: '0 0 15px var(--indra-dynamic-glow)'
-                            }}
-                        >
-                            <IndraIcon name="SAVE" size="12px" />
-                            <span style={{ marginLeft: "8px", fontWeight: '900', fontSize: '9px', letterSpacing: '0.05em' }}>GUARDAR</span>
-                        </button>
+                            <button 
+                                className="btn btn--xs btn--accent shadow-hover" 
+                                onClick={() => handleManualSave()}
+                                style={{ 
+                                    height: '32px',
+                                    padding: '0 16px',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: '1px solid var(--indra-dynamic-accent)',
+                                    boxShadow: '0 0 15px var(--indra-dynamic-glow)'
+                                }}
+                            >
+                                <IndraIcon name="SAVE" size="12px" />
+                                <span style={{ marginLeft: "8px", fontWeight: '900', fontSize: '9px', letterSpacing: '0.05em' }}>GUARDAR</span>
+                            </button>
+                        </div>
+
                     </div>
                 }
             />
@@ -503,6 +503,7 @@ function DocumentDesignerShell({ atom, bridge }) {
                                                         pageIndex={entry.pageNumber || (index + 1)}
                                                         readOnly={entry.virtual === true}
                                                         keyPrefix={`${entry.renderKey}::`}
+                                                        bridge={bridge}
                                                     />
                                                 </div>
                                             ))}
@@ -539,6 +540,7 @@ function DocumentDesignerShell({ atom, bridge }) {
                                 <div className="navigator-zone indra-slot-nav" style={{ height: window.innerWidth > 900 ? `${navHeight}px` : 'auto', flexShrink: 0 }}>
                                     <NavigatorPanel
                                         atom={atom}
+                                        bridge={bridge}
                                         onNotify={showToast}
                                         activeTab={navigatorTab}
                                         onTabChange={setNavigatorTab}
@@ -563,7 +565,7 @@ function DocumentDesignerShell({ atom, bridge }) {
                 </div>
             </div>
 
-            {/* HUD DE DERIVA DE REALIDAD */}
+            {/* HUD DE DISCREPANCIAS DE DISEÑO */}
             {discrepanciasVisibles && (
                 <div className="hud-deriva-realidad" style={{
                     position: 'fixed',
@@ -583,15 +585,15 @@ function DocumentDesignerShell({ atom, bridge }) {
                 }}>
                     <IndraIcon name="ALERT" size="14px" color="var(--color-accent)" />
                     <div className="stack--none">
-                        <span className="font-mono text-hint" style={{ fontSize: '9px', fontWeight: 'bold' }}>DERIVA_DE_REALIDAD_DETECTADA</span>
-                        <p className="font-mono" style={{ fontSize: '7px', opacity: 0.6, margin: 0 }}>HAY_ATRIBUTOS_FUERA_DE_SINCRONÍA_CON_LA_MARCA</p>
+                        <span className="font-mono text-hint" style={{ fontSize: '9px', fontWeight: 'bold' }}>CAMBIOS_DE_MARCA_DETECTADOS</span>
+                        <p className="font-mono" style={{ fontSize: '7px', opacity: 0.6, margin: 0 }}>HAY_ATRIBUTOS_FUERA_DE_SINCRONÍA_CON_LA_MARCA_ACTUAL</p>
                     </div>
                     <button 
                         className="btn btn--xs btn--accent"
                         onClick={sincronizarMarcaActual}
                         style={{ height: '24px', fontSize: '8px', padding: '0 10px' }}
                     >
-                        SINCRONIZAR_CANON
+                        SINCRONIZAR_MARCA
                     </button>
                 </div>
             )}

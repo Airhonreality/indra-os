@@ -21,7 +21,8 @@ export function useWorkflowHydration(workflow) {
         const verifyDependencies = async () => {
             // 1. Recolectar todas las dependencias (IDs de Schemas y Bridges)
             const depIds = new Set();
-            if (workflow.payload?.trigger?.source_id) depIds.add(workflow.payload.trigger.source_id);
+            const triggerSourceId = workflow.payload?.trigger?.source_id || workflow.payload?.trigger?.source?.id;
+            if (triggerSourceId) depIds.add(triggerSourceId);
 
             (workflow.payload?.stations || []).forEach(s => {
                 if (s.config?.bridge_id) depIds.add(s.config.bridge_id);
@@ -43,8 +44,11 @@ export function useWorkflowHydration(workflow) {
                 }, coreUrl, sessionSecret);
 
                 const map = {};
+                // PROBE_SIGNAL: los ítems de ATOM_EXISTS tienen { type: 'PROBE', status, ref_id }
                 (result.items || []).forEach(item => {
-                    map[item.id] = item.exists;
+                    if (item.type === 'PROBE') {
+                        map[item.ref_id] = item.status === 'EXISTS';
+                    }
                 });
                 setIntegrityMap(map);
             } catch (err) {

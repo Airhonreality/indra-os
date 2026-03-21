@@ -20,6 +20,8 @@ import { IndraIcon } from '../../utilities/IndraIcons';
 import { useAppState } from '../../../state/app_state';
 import { executeDirective } from '../../../services/directive_executor';
 import { toastEmitter } from '../../../services/toastEmitter';
+import { SchemaMicroExplorer } from '../../utilities/SchemaMicroExplorer';
+import { AEEGraphicPanel } from './AEEGraphicPanel';
 
 /**
  * Selector de átomo por clase — proyecta los pins del workspace activo
@@ -65,229 +67,233 @@ function AtomSelector({ label, atomClass, value, onSelect }) {
     );
 }
 
-export function AEEConfigPanel({ atom, onConfigSaved }) {
-    const { coreUrl, sessionSecret, updateArtifact } = useAppState();
-
-    const [schemaId, setSchemaId] = React.useState(atom?.payload?.schema_id || null);
-    const [executorId, setExecutorId] = React.useState(atom?.payload?.executor_id || atom?.payload?.bridge_id || null);
-    const [executorType, setExecutorType] = React.useState(atom?.payload?.executor_type || 'BRIDGE');
-    const [isSaving, setIsSaving] = React.useState(false);
-    const [shareUrl, setShareUrl] = React.useState(null);
-    const [isGeneratingLink, setIsGeneratingLink] = React.useState(false);
-
+export function AEEConfigPanel({ atom, onConfigChange }) {
     const pins = useAppState(s => s.pins);
+    
+    const schemaId = atom?.payload?.schema_id || null;
+    const executorId = atom?.payload?.executor_id || atom?.payload?.bridge_id || null;
+    const executorType = atom?.payload?.executor_type || 'BRIDGE';
+    const localButtonLabel = atom?.payload?.button_label || 'ENVIAR';
+
     const selectedSchema = pins.find(p => p.id === schemaId);
     const selectedExecutor = pins.find(p => p.id === executorId);
+    
+    // Todos los schemas del workspace
+    const workspaceSchemas = pins.filter(p => p.class === 'DATA_SCHEMA');
 
-    const isConfigured = !!schemaId && !!executorId;
-    const isDirty = schemaId !== (atom?.payload?.schema_id || null)
-        || executorId !== (atom?.payload?.executor_id || atom?.payload?.bridge_id || null)
-        || executorType !== (atom?.payload?.executor_type || 'BRIDGE');
+    const handleChange = (key, value) => {
 
-    const handleSave = async () => {
-        if (!isConfigured) return;
-        setIsSaving(true);
-        try {
-            await updateArtifact(atom.id, atom.provider, {
-                payload: {
-                    ...atom.payload,
-                    schema_id: schemaId,
-                    executor_id: executorId,
-                    executor_type: executorType,
-                    // Compat legacy
-                    bridge_id: executorType === 'BRIDGE' ? executorId : null,
-                }
-            });
-            toastEmitter.success('Configuración guardada');
-            onConfigSaved?.({ schemaId, executorId, executorType });
-        } catch (err) {
-            toastEmitter.error('Error al guardar configuración');
-        } finally {
-            setIsSaving(false);
-        }
+        onConfigChange?.(prev => ({ ...prev, [key]: value }));
     };
 
-    const handleGenerateLink = async () => {
-        if (!isConfigured || isDirty) {
-            toastEmitter.warning('Guarda la configuración antes de publicar.');
-            return;
-        }
-        setIsGeneratingLink(true);
-        setShareUrl(null);
-        try {
-            const res = await executeDirective({
-                provider: 'system',
-                protocol: 'SYSTEM_SHARE_CREATE',
-                data: {
-                    artifact_id: atom.id,
-                    artifact_class: atom.class,
-                    auth_mode: 'public'
-                }
-            }, coreUrl, sessionSecret);
+    // Agregar un campo al lienzo
+    const handleInsertField = (field, schemaInfo) => {
+        handleChange('schema_id', schemaInfo.id); 
+        window.dispatchEvent(new CustomEvent('AEE_INSERT_FIELD', { detail: { field, schema: schemaInfo } }));
+        toastEmitter.info(`Añadido al Lienzo: ${field.label || field.alias}`);
+    };
 
-            if (res.metadata?.status === 'OK' && res.items?.[0]) {
-                const ticketId = res.items[0].ticket_id;
-                const url = `${window.location.origin}${window.location.pathname}?u=${encodeURIComponent(coreUrl)}&id=${ticketId}`;
-                setShareUrl(url);
-                await navigator.clipboard.writeText(url);
-                toastEmitter.success('¡Link copiado al portapapeles!');
-            } else {
-                throw new Error(res.metadata?.error || 'SHARE_CREATE_FAILED');
-            }
-        } catch (err) {
-            toastEmitter.error(`Error al generar link: ${err.message}`);
-        } finally {
-            setIsGeneratingLink(false);
+    const [isUploading, setIsUploading] = React.useState(false);
+    const fileInputRef = React.useRef(null);
+
+    const handleFileUpload = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setIsUploading(true);
+            toastEmitter.emit('INFO', `Subiendo ${file.name}...`);
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const base64Data = e.target.result;
+                    const response = await executeDirective('system', 'RESOURCE_INGEST', undefined, {
+                        base64: base64Data,
+                        mimeType: file.type,
+                        fileName: file.name
+                    });
+
+                    if (response.metadata?.status === 'OK' && response.metadata?.grid) {
+                        window.dispatchEvent(new CustomEvent('AEE_INSERT_STATIC', { 
+                            detail: { type: 'STATIC_IMAGE', label: response.metadata.grid } 
+                        }));
+                        toastEmitter.emit('SUCCESS', 'Asset cristalizado en Local Vault.');
+                    } else {
+                        toastEmitter.emit('ERROR', response.metadata?.error || 'Falló la ingestión del recurso.');
+                    }
+                } catch(err) {
+                    toastEmitter.emit('ERROR', 'Error al invocar API de ingestión.');
+                } finally {
+                    setIsUploading(false);
+                }
+            };
+            reader.readAsDataURL(file);
+        } catch (error) {
+            setIsUploading(false);
+            toastEmitter.emit('ERROR', 'Error al procesar el archivo.');
         }
     };
 
     return (
-        <div className="stack" style={{ gap: 'var(--space-6)', maxWidth: '560px', width: '100%' }}>
-
-            {/* ── HEADER ── */}
-            <div className="stack--tight">
+        <div className="inspector-content stack fill" style={{ overflowY: 'auto', padding: 'var(--space-4)', borderRight: '1px solid var(--color-border)', minWidth: '320px', maxWidth: '380px', width: '30%' }}>
+            
+            <div className="inspector-master-header spread" style={{ marginBottom: 'var(--space-6)', padding: '0 4px' }}>
                 <div className="shelf--tight">
-                    <IndraIcon name="PLAY" size="14px" style={{ color: 'var(--color-success)' }} />
-                    <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', opacity: 0.5, letterSpacing: '0.15em' }}>
-                        AEE // CONFIGURACIÓN DEL EJECUTOR
-                    </span>
-                </div>
-                <p style={{ fontSize: '11px', opacity: 0.5, lineHeight: '1.5' }}>
-                    Vincula un <strong>Esquema</strong> (define los campos del formulario) y un <strong>Bridge</strong> (define la lógica de ejecución). Una vez configurado, genera un link público que proyecta solo el formulario.
-                </p>
-            </div>
-
-            {/* ── SELECCIÓN DE SCHEMA ── */}
-            <div className="indra-container stack" style={{ gap: 'var(--space-3)' }}>
-                <div className="indra-header-label" style={{ color: 'var(--color-warm)' }}>
-                    <IndraIcon name="SCHEMA" size="10px" /> FUENTE DE DATOS (SCHEMA)
-                </div>
-                <AtomSelector
-                    label="Esquema de datos que define los campos del formulario"
-                    atomClass="DATA_SCHEMA"
-                    value={schemaId}
-                    onSelect={setSchemaId}
-                />
-                {selectedSchema && (
-                    <div className="shelf--tight" style={{ opacity: 0.6 }}>
-                        <IndraIcon name="CHECK" size="10px" style={{ color: 'var(--color-success)' }} />
-                        <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
-                            {selectedSchema.handle?.label} vinculado
-                        </span>
+                    <IndraIcon name="PLAY" size="14px" style={{ color: 'var(--indra-dynamic-accent)' }} />
+                    <div className="stack--tight">
+                        <span className="font-mono" style={{ fontSize: '10px', fontWeight: 'bold' }}>CONFIGURACIÓN_AEE</span>
+                        <span className="text-hint" style={{ fontSize: '8px', opacity: 0.5, letterSpacing: '0.05em' }}>PROPIEDADES // ENTORNO</span>
                     </div>
-                )}
-            </div>
-
-            {/* ── SELECCIÓN DE EJECUTOR ── */}
-            <div className="indra-container stack" style={{ gap: 'var(--space-3)' }}>
-                <div className="indra-header-label" style={{ color: 'var(--color-accent)' }}>
-                    <IndraIcon name="PLAY" size="10px" /> LÓGICA DE EJECUCIÓN (EXECUTOR)
                 </div>
-
-                {/* Toggle Bridge / Workflow */}
-                <div className="shelf--tight" style={{ gap: 'var(--space-2)' }}>
-                    {[{ type: 'BRIDGE', label: 'Bridge', desc: 'Transformación en memoria', color: 'var(--color-cold)' },
-                      { type: 'WORKFLOW', label: 'Workflow', desc: 'Secuencia con efectos externos', color: 'var(--color-success)' }
-                    ].map(opt => (
-                        <button
-                            key={opt.type}
-                            className={`btn btn--xs ${executorType === opt.type ? 'btn--accent' : 'btn--ghost'}`}
-                            onClick={() => { setExecutorType(opt.type); setExecutorId(null); }}
-                            style={{ fontSize: '9px', borderColor: executorType === opt.type ? opt.color : undefined, color: executorType === opt.type ? opt.color : undefined }}
-                        >
-                            {opt.label}
-                        </button>
-                    ))}
-                </div>
-                <p style={{ fontSize: '9px', opacity: 0.4, fontFamily: 'var(--font-mono)' }}>
-                    {executorType === 'BRIDGE' ? 'Transformación pura en memoria. No tiene efectos externos.' : 'Secuencia orquestada. Puede escribir en Drive, enviar emails, generar PDFs.'}
-                </p>
-
-                <AtomSelector
-                    label={`${executorType === 'BRIDGE' ? 'Bridge' : 'Workflow'} que se ejecutará al enviar el formulario`}
-                    atomClass={executorType}
-                    value={executorId}
-                    onSelect={setExecutorId}
-                />
-                {selectedExecutor && (
-                    <div className="shelf--tight" style={{ opacity: 0.6 }}>
-                        <IndraIcon name="CHECK" size="10px" style={{ color: 'var(--color-success)' }} />
-                        <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
-                            {selectedExecutor.handle?.label} vinculado ({executorType})
-                        </span>
-                    </div>
-                )}
             </div>
 
-            {/* ── ACCIONES ── */}
-            <div className="shelf" style={{ gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-                <button
-                    className="btn btn--accent"
-                    onClick={handleSave}
-                    disabled={!isConfigured || isSaving || !isDirty}
-                    style={{ fontSize: '10px', letterSpacing: '0.1em' }}
-                >
-                    {isSaving
-                        ? <><IndraIcon name="SYNC" size="12px" className="spin" /> GUARDANDO…</>
-                        : <><IndraIcon name="CHECK" size="12px" /> GUARDAR CONFIGURACIÓN</>
-                    }
-                </button>
-            </div>
-
-            {/* ── PUBLICAR LINK ── */}
-            {isConfigured && !isDirty && (
-                <div className="indra-container stack" style={{ gap: 'var(--space-4)', borderColor: 'var(--color-success)', background: 'rgba(0, 255, 128, 0.03)' }}>
-                    <div className="indra-header-label" style={{ color: 'var(--color-success)' }}>
-                        <IndraIcon name="LINK" size="10px" /> PUBLICAR FORMULARIO
-                    </div>
-                    <p style={{ fontSize: '10px', opacity: 0.6, lineHeight: '1.5' }}>
-                        Genera un link público que abre el formulario puro — sin workspace, sin configuración. Cualquier persona con el link puede llenarlo y ejecutar el flujo.
-                    </p>
-
-                    <button
-                        className="btn btn--accent"
-                        onClick={handleGenerateLink}
-                        disabled={isGeneratingLink}
-                        style={{ fontSize: '10px', letterSpacing: '0.1em', borderColor: 'var(--color-success)', color: 'var(--color-success)', background: 'rgba(0, 255, 128, 0.08)' }}
-                    >
-                        {isGeneratingLink
-                            ? <><IndraIcon name="SYNC" size="12px" className="spin" /> GENERANDO LINK…</>
-                            : <><IndraIcon name="LINK" size="12px" /> GENERAR Y COPIAR LINK PÚBLICO</>
-                        }
-                    </button>
-
-                    {shareUrl && (
-                        <div className="stack--tight" style={{ background: 'var(--color-bg-void)', padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-success)' }}>
-                            <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', opacity: 0.5 }}>LINK ACTIVO:</span>
-                            <div className="shelf--tight">
-                                <span style={{
-                                    fontSize: '9px',
-                                    fontFamily: 'var(--font-mono)',
-                                    color: 'var(--color-success)',
-                                    wordBreak: 'break-all',
-                                    flex: 1
-                                }}>{shareUrl}</span>
-                                <button
-                                    className="btn btn--ghost btn--xs"
-                                    onClick={() => { navigator.clipboard.writeText(shareUrl); toastEmitter.success('Copiado'); }}
-                                    title="Copiar URL"
-                                >
-                                    <IndraIcon name="COPY" size="10px" />
-                                </button>
-                            </div>
+            <div className="stack" style={{ gap: 'var(--space-6)', paddingBottom: '40px' }}>
+                
+                {/* ── 00 // ELEMENTOS ESTÁTICOS ── */}
+                <section className="inspector-module stack--tight">
+                    <header className="module-header" style={{ marginBottom: 'var(--space-3)' }} title="Añade bloques no interactivos (Textos, Imágenes).">
+                        <div className="indra-field-label">00 // ELEMENTOS_VISUALES</div>
+                    </header>
+                    <div className="module-content glass-light stack--tight" style={{ padding: '8px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                        <div className="shelf--tight" style={{ gap: '4px' }}>
+                            <button 
+                                className="btn--mini btn--ghost" 
+                                style={{ flex: 1, padding: '6px', fontSize: '8px' }}
+                                onClick={() => window.dispatchEvent(new CustomEvent('AEE_INSERT_STATIC', { detail: { type: 'STATIC_TEXT' } }))}
+                            >
+                                <IndraIcon name="ALIGN_LEFT" size="10px" />
+                                <span style={{ marginLeft: '4px' }}>TEXTO</span>
+                            </button>
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                style={{ display: 'none' }} 
+                                accept="image/*" 
+                                onChange={handleFileUpload}
+                            />
+                            <button 
+                                className="btn--mini btn--ghost" 
+                                style={{ flex: 1, padding: '6px', fontSize: '8px', backgroundColor: isUploading ? 'var(--color-bg-void)' : undefined }}
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isUploading}
+                            >
+                                <IndraIcon name={isUploading ? "SYNC" : "IMAGE"} size="10px" className={isUploading ? "spin" : ""} />
+                                <span style={{ marginLeft: '4px' }}>{isUploading ? 'INGIRIENDO...' : 'IMAGEN'}</span>
+                            </button>
                         </div>
-                    )}
-                </div>
-            )}
+                    </div>
+                </section>
 
-            {isConfigured && isDirty && (
-                <div className="shelf--tight" style={{ opacity: 0.5 }}>
-                    <IndraIcon name="WARN" size="10px" />
-                    <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
-                        Guarda la configuración para poder publicar.
-                    </span>
-                </div>
-            )}
+                {/* ── 01 // VISOR UNIVERSAL DE SCHEMAS ── */}
+                <section className="inspector-module stack--tight">
+                    <header className="module-header" style={{ marginBottom: 'var(--space-3)' }} title="Busca y explora los Schemas disponibles. Presiona [+] para dibujarlos en el lienzo.">
+                        <div className="indra-field-label">01 // TABLAS_DE_DATOS</div>
+                    </header>
+                    <div className="module-content stack--tight" style={{ gap: 'var(--space-2)' }}>
+                        {workspaceSchemas.length === 0 && (
+                            <div className="glass-light center" style={{ opacity: 0.4, fontSize: '9px', padding: '16px', borderRadius: '8px', border: '1px dashed var(--color-border)' }}>
+                                NO HAY SCHEMAS EN ESTE WORKSPACE
+                            </div>
+                        )}
+                        {workspaceSchemas.map(schemaAsset => (
+                            <div key={schemaAsset.id} className="glass stack--tight" style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                                <div className="shelf--tight" style={{ paddingBottom: '4px', borderBottom: '1px solid var(--color-border)', opacity: schemaId === schemaAsset.id ? 1 : 0.6 }}>
+                                    <IndraIcon name="SCHEMA" size="10px" />
+                                    <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>{schemaAsset.handle?.label?.toUpperCase() || schemaAsset.id}</span>
+                                    <div className="fill" />
+                                    {/* Botón para insertar el schema COMPLETO al lienzo */}
+                                    <button 
+                                        className="btn btn--xs btn--ghost" 
+                                        onClick={() => handleInsertField({ 
+                                            type: 'FRAME', 
+                                            alias: schemaAsset.handle?.alias || 'data', 
+                                            label: schemaAsset.handle?.label || 'GRUPO',
+                                            children: schemaAsset.payload?.fields || [] 
+                                        }, schemaAsset)}
+                                        title="Dibujar TODO el Schema en el Lienzo"
+                                    >
+                                        <IndraIcon name="PLUS" size="10px" color="var(--color-accent)" />
+                                    </button>
+                                </div>
+                                <SchemaMicroExplorer 
+                                    schema={schemaAsset}
+                                    onInsertField={(field) => handleInsertField(field, schemaAsset)}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                {/* ── 02 // ESTÉTICA GLOBAL ── */}
+                <section className="inspector-module stack--tight">
+                    <header className="module-header" style={{ marginBottom: 'var(--space-3)' }} title="Propiedades gráficas mutantes de este micro-apliación.">
+                        <div className="indra-field-label">02 // ESTÉTICA_Y_DISEÑO</div>
+                    </header>
+                    <div className="module-content glass-light stack--tight" style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                        <AEEGraphicPanel 
+                            config={atom?.payload} 
+                            onChange={(updatedConfig) => {
+                                // Mapeamos las actualizaciones de graphic settings a live config completas
+                                onConfigChange?.(prev => ({ ...prev, graphics: updatedConfig.graphics }));
+                            }} 
+                        />
+                    </div>
+                </section>
+
+                {/* ── 03 // DESTINO DE DATOS (EXECUTOR) ── */}
+                <section className="inspector-module stack--tight">
+                    <header className="module-header" style={{ marginBottom: 'var(--space-3)' }} title="El motor que procesará el formulario al envío.">
+                        <div className="indra-field-label">03 // DESTINO_DE_DATOS</div>
+                    </header>
+                    <div className="module-content glass-light stack--tight" style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                        <div className="shelf--tight" style={{ gap: '4px', marginBottom: '8px' }}>
+                            {['BRIDGE', 'WORKFLOW'].map(opt => (
+                                <button
+                                    key={opt}
+                                    className={`btn--mini ${executorType === opt ? (opt === 'BRIDGE' ? 'btn--accent' : 'btn--success') : 'btn--ghost'}`}
+                                    onClick={() => { handleChange('executor_type', opt); handleChange('executor_id', null); }}
+                                    style={{ flex: 1, fontSize: '8px', padding: '6px' }}
+                                >
+                                    {opt}
+                                </button>
+                            ))}
+                        </div>
+                        <AtomSelector
+                            label="EJECUTOR_ENLAZADO"
+                            atomClass={executorType}
+                            value={executorId}
+                            onSelect={(val) => handleChange('executor_id', val)}
+                        />
+                        {selectedExecutor && (
+                            <div className="shelf--tight" style={{ opacity: 0.6, marginTop: '4px' }}>
+                                <IndraIcon name="CHECK" size="10px" style={{ color: 'var(--color-success)' }} />
+                                <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)' }}>{selectedExecutor.handle?.label}_VINCULADO</span>
+                            </div>
+                        )}
+                    </div>
+                </section>
+
+                {/* ── 04 // ANATOMÍA DEL GATILLO ── */}
+                <section className="inspector-module stack--tight">
+                    <header className="module-header" style={{ marginBottom: 'var(--space-3)' }} title="Propiedades del botón de acción principal.">
+                        <div className="indra-field-label">04 // CONFIGURACIÓN_DEL_BOTÓN</div>
+                    </header>
+                    <div className="module-content glass-light stack--tight" style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                        <div className="stack--tight">
+                            <label className="font-mono" style={{ fontSize: '8px', opacity: 0.5 }}>LABEL_DEL_BOTÓN</label>
+                            <input 
+                                className="input-base font-mono"
+                                type="text"
+                                style={{ fontSize: '10px', padding: '6px' }}
+                                placeholder="ENVIAR DATOS"
+                                value={localButtonLabel}
+                                onChange={(e) => handleChange('button_label', e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </section>
+            </div>
         </div>
     );
 }

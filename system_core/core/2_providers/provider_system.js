@@ -19,6 +19,7 @@ function CONF_SYSTEM() {
     version: '1.2 (Fractal)',
     protocols: [
       'ATOM_READ', 'ATOM_CREATE', 'ATOM_DELETE', 'ATOM_UPDATE', 'ATOM_EXISTS',
+      'ATOM_ALIAS_RENAME', 'SCHEMA_FIELD_ALIAS_RENAME', 'ALIAS_COLLISION_SCAN',
       'SYSTEM_PIN', 'SYSTEM_UNPIN', 'SYSTEM_PINS_READ', 'SYSTEM_WORKSPACE_REPAIR',
       'TABULAR_STREAM', 'FORMULA_EVAL', 'SCHEMA_SUBMIT', 'SCHEMA_FIELD_OPTIONS',
       'ACCOUNT_RESOLVE', 'SYSTEM_AUDIT', 'REVISIONS_LIST', 'ATOM_ROLLBACK',
@@ -32,6 +33,9 @@ function CONF_SYSTEM() {
       ATOM_DELETE: 'handleSystem',
       ATOM_UPDATE: 'handleSystem',
       ATOM_EXISTS: 'handleSystem',
+      ATOM_ALIAS_RENAME: 'handleSystem',
+      SCHEMA_FIELD_ALIAS_RENAME: 'handleSystem',
+      ALIAS_COLLISION_SCAN: 'handleSystem',
       SYSTEM_PIN: 'handleSystem',
       SYSTEM_UNPIN: 'handleSystem',
       SYSTEM_PINS_READ: 'handleSystem',
@@ -61,6 +65,9 @@ function CONF_SYSTEM() {
       ATOM_UPDATE: { sync: 'BLOCKING', purge: 'ID' },
       ATOM_DELETE: { sync: 'BLOCKING', purge: 'ALL' },
       ATOM_EXISTS: { sync: 'BLOCKING', purge: 'NONE' },
+      ATOM_ALIAS_RENAME: { sync: 'BLOCKING', purge: 'ALL' },
+      SCHEMA_FIELD_ALIAS_RENAME: { sync: 'BLOCKING', purge: 'ALL' },
+      ALIAS_COLLISION_SCAN: { sync: 'BLOCKING', purge: 'NONE' },
       SYSTEM_PIN: { sync: 'BLOCKING', purge: 'ALL' },
       SYSTEM_UNPIN: { sync: 'BLOCKING', purge: 'ALL' },
       SYSTEM_PINS_READ: { sync: 'BLOCKING', purge: 'NONE' },
@@ -118,6 +125,27 @@ function CONF_SYSTEM() {
         desc: "Lee la metadata y contenido de un átomo/archivo específico del sistema.",
         inputs: { context_id: { type: 'string', required: true } }
       },
+      ATOM_ALIAS_RENAME: {
+        desc: "Renombra de forma canónica el handle.alias de un átomo y propaga a pins de workspaces.",
+        inputs: {
+          context_id: { type: 'string', required: true, desc: 'ID del átomo a renombrar.' },
+          data: { type: 'object', required: true, desc: '{ old_alias?, new_alias, new_label?, dry_run? }' }
+        }
+      },
+      SCHEMA_FIELD_ALIAS_RENAME: {
+        desc: "Renombra alias de campo en DATA_SCHEMA y actualiza referencias tipadas en artefactos dependientes.",
+        inputs: {
+          context_id: { type: 'string', required: true, desc: 'ID del DATA_SCHEMA.' },
+          data: { type: 'object', required: true, desc: '{ field_id?, old_alias?, new_alias, dry_run? }' }
+        }
+      },
+      ALIAS_COLLISION_SCAN: {
+        desc: "Escanea colisiones de alias (intra-schema, cross-schema o global de átomos) y clasifica severidad.",
+        inputs: {
+          context_id: { type: 'string', desc: 'ID del DATA_SCHEMA cuando target=FIELD_ALIAS.' },
+          data: { type: 'object', required: true, desc: '{ target: FIELD_ALIAS|ATOM_ALIAS, alias, field_id?, atom_id? }' }
+        }
+      },
       INDUCTION_START: {
         desc: "Alias canónico para iniciar inducción industrial y devolver ticket.",
         inputs: {
@@ -174,6 +202,9 @@ function handleSystem(uqo) {
   if (protocol === 'ATOM_DELETE') return _system_handleDelete(uqo);
   if (protocol === 'ATOM_UPDATE') return _system_handleUpdate(uqo);
   if (protocol === 'ATOM_EXISTS') return _system_handleExists(uqo);
+  if (protocol === 'ATOM_ALIAS_RENAME') return _system_handleAliasRename(uqo);
+  if (protocol === 'SCHEMA_FIELD_ALIAS_RENAME') return _system_handleSchemaFieldAliasRename(uqo);
+  if (protocol === 'ALIAS_COLLISION_SCAN') return _system_handleAliasCollisionScan(uqo);
 
   // ─── HANDLER DE WORKSPACE (provider_system_workspace.gs)
   if (protocol === 'SYSTEM_PIN') return _system_handlePin(uqo);

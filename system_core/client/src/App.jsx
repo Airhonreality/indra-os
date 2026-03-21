@@ -53,7 +53,46 @@ function EngineViewport({ activeArtifact, closeArtifact, coreUrl, sessionSecret,
             data-resonance={isSyncing ? "active" : "idle"}
             style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', overflow: 'hidden', zIndex: 100 }}
         >
-            <Engine atom={activeArtifact} bridge={bridge} />
+            {/* LÍNEA DE RESONANCIA GLOBAL (Top Bar) */}
+            {isSyncing && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '2px',
+                    background: 'var(--indra-dynamic-accent, var(--color-accent))',
+                    zIndex: 1000,
+                    boxShadow: '0 0 10px var(--indra-dynamic-accent)',
+                    animation: 'indra-scan-line 1.5s infinite linear'
+                }} />
+            )}
+
+            {/* VELO DE MATERIALIZACIÓN (Transmisión de Datos) */}
+            <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'var(--color-bg-void)',
+                opacity: isSyncing ? 0.3 : 0,
+                pointerEvents: isSyncing ? 'all' : 'none',
+                transition: 'opacity 0.4s ease',
+                zIndex: 999,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}>
+                {isSyncing && (
+                    <div className="center stack--tight" style={{ color: 'var(--indra-dynamic-accent)' }}>
+                        <IndraIcon name="SYNC" size="32px" className="spin" />
+                        <span className="font-mono" style={{ fontSize: '9px', fontWeight: 'bold', letterSpacing: '0.2em', marginTop: '12px' }}>GUARDANDO_EN_CORE</span>
+                    </div>
+                )}
+            </div>
+
+            <Engine key={activeArtifact.id} atom={activeArtifact} bridge={bridge} />
         </div>
     );
 }

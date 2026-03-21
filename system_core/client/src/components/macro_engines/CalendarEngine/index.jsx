@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { useWorkspace } from '../../../context/WorkspaceContext';
-import { Spinner } from '../../utilities/primitives';
+import { Spinner, RenameDryRunModal } from '../../utilities/primitives';
 import { NexusServiceSlot } from '../../utilities/NexusServiceSlot';
+import { useLexicon } from '../../../services/lexicon';
+import { prepareCanonicalRename, commitCanonicalRename } from '../../../services/rename_protocol_runtime';
 
 import { useCalendarHydration } from './hooks/useCalendarHydration';
 import { TimelineGrid } from './components/TimelineGrid';
@@ -27,19 +29,110 @@ export function CalendarEngine({ atom, bridge }) {
     const [viewMode, setViewMode] = useState('MULTI_REALITY'); // MULTI_REALITY | ATOMIC
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedEvent, setSelectedEvent] = useState(null);
+    const [pendingRename, setPendingRename] = useState(null);
+    const [isCommittingRename, setIsCommittingRename] = useState(false);
+    const [renameError, setRenameError] = useState('');
     
-    const [localLabel, setLocalLabel] = useState(atom?.handle?.label || 'UNIVERSAL_CALENDAR');
+    const [localHandle, setLocalHandle] = useState({
+        ...(atom?.handle || {}),
+        label: atom?.handle?.label || 'UNIVERSAL_CALENDAR'
+    });
 
-    const handleTitleChange = (newLabel) => {
+    const handleIdentityChange = async ({ label: newLabel, alias: newAlias }) => {
         const cleanLabel = newLabel || 'UNIVERSAL_CALENDAR';
-        setLocalLabel(cleanLabel);
-        updatePinIdentity(atom.id, atom.provider, { label: cleanLabel });
+        const cleanAlias = String(newAlias || '').trim() || localHandle?.alias;
+        const prevAlias = String(localHandle?.alias || '').trim();
+        const aliasChanged = !!cleanAlias && cleanAlias !== prevAlias;
+
+        if (aliasChanged) {
+            try {
+                const prepared = await prepareCanonicalRename({
+                    bridge,
+                    provider: atom.provider || 'system',
+                    protocol: 'ATOM_ALIAS_RENAME',
+                    contextId: atom.id,
+                    kind: 'ATOM_ALIAS',
+                    data: {
+                        old_alias: prevAlias || undefined,
+                        new_alias: cleanAlias,
+                        new_label: cleanLabel,
+                    },
+                });
+
+                if (prepared.status === 'PENDING') {
+                    setRenameError('');
+                    setPendingRename(prepared.pendingRename);
+                    return;
+                }
+
+                if (prepared.status === 'NOOP' && prepared.result?.items?.[0]) {
+                    const syncedAtom = prepared.result.items[0];
+                    const syncedHandle = {
+                        ...(syncedAtom.handle || {}),
+                        label: syncedAtom.handle?.label || 'UNIVERSAL_CALENDAR'
+                    };
+                    setLocalHandle(syncedHandle);
+                    updatePinIdentity(atom.id, atom.provider, {
+                        label: syncedHandle.label,
+                        alias: syncedHandle.alias,
+                        handle: syncedHandle
+                    });
+                    return;
+                }
+            } catch (err) {
+                setRenameError(String(err?.message || 'No se pudo validar el renombrado.'));
+                return;
+            }
+        }
+
+        const nextHandle = {
+            ...localHandle,
+            label: cleanLabel,
+            ...(cleanAlias ? { alias: cleanAlias } : {})
+        };
+        setLocalHandle(nextHandle);
+        updatePinIdentity(atom.id, atom.provider, {
+            label: cleanLabel,
+            ...(cleanAlias ? { alias: cleanAlias } : {}),
+            handle: nextHandle
+        });
         
         // PUREZA: Persistir identidad
         bridge.save({
             ...atom,
-            handle: { ...atom.handle, label: cleanLabel }
+            handle: { ...atom.handle, ...nextHandle }
         });
+    };
+
+    const cancelPendingRename = () => {
+        setPendingRename(null);
+        setIsCommittingRename(false);
+        setRenameError('');
+    };
+
+    const confirmPendingRename = async () => {
+        if (!pendingRename || pendingRename?.preview?.has_blockers) return;
+        setIsCommittingRename(true);
+        setRenameError('');
+        try {
+            const result = await commitCanonicalRename({ bridge, pendingRename });
+            const syncedAtom = result.items[0];
+            const syncedHandle = {
+                ...(syncedAtom.handle || {}),
+                label: syncedAtom.handle?.label || 'UNIVERSAL_CALENDAR'
+            };
+            setLocalHandle(syncedHandle);
+            updatePinIdentity(atom.id, atom.provider, {
+                label: syncedHandle.label,
+                alias: syncedHandle.alias,
+                handle: syncedHandle
+            });
+            setPendingRename(null);
+            setIsCommittingRename(false);
+        } catch (err) {
+            setRenameError(String(err?.message || 'No se pudo ejecutar el commit del renombrado.'));
+            setIsCommittingRename(false);
+        }
     };
 
     const moveDate = (days) => {
@@ -52,9 +145,9 @@ export function CalendarEngine({ atom, bridge }) {
         <div className="macro-designer fill calendar-engine stack" style={{ backgroundColor: 'var(--color-bg-void)', overflow: 'hidden' }}>
             {/* 0. INDRA MACRO HEADER (Consumo Automático de Identidad) */}
             <IndraMacroHeader
-                atom={{ ...atom, handle: { ...atom.handle, label: localLabel } }}
+                atom={{ ...atom, handle: { ...atom.handle, ...localHandle } }}
                 onClose={() => bridge?.close?.()}
-                onTitleChange={handleTitleChange}
+                onIdentityChange={handleIdentityChange}
                 isSaving={false}
             />
 
@@ -249,6 +342,14 @@ export function CalendarEngine({ atom, bridge }) {
                     <span className="font-mono text-3xs">v2.0_INDUSTRIAL</span>
                 </div>
             </div>
+
+            <RenameDryRunModal
+                pendingRename={pendingRename}
+                isCommitting={isCommittingRename}
+                error={renameError}
+                onCancel={cancelPendingRename}
+                onConfirm={confirmPendingRename}
+            />
         </div>
     );
 }

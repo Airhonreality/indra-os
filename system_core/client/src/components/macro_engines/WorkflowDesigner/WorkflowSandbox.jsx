@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useWorkflow } from './context/WorkflowContext';
-import { useWorkflowExecution } from './useWorkflowExecution';
 import { IndraIcon } from '../../utilities/IndraIcons';
 
 export function WorkflowSandbox({ status, traceLogs, runTrace }) {
@@ -58,7 +57,7 @@ export function WorkflowSandbox({ status, traceLogs, runTrace }) {
                             <div key={i} className="trace-line shelf--tight font-mono" style={{ fontSize: '10px' }}>
                                 <span className="timestamp" style={{ opacity: 0.4 }}>[{log.timestamp}]</span>
                                 <span className={`status ${log.status.toLowerCase()}`} style={{
-                                    color: log.status === 'OK' ? 'var(--color-accent)' : log.status === 'ERROR' ? 'var(--color-warm)' : 'var(--color-text)'
+                                    color: log.status === 'OK' ? 'var(--color-accent)' : log.status === 'ERROR' ? 'var(--color-warm)' : 'var(--color-text-primary)'
                                 }}>
                                     {log.message}
                                 </span>

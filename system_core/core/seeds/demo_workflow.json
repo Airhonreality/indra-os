@@ -1,0 +1,69 @@
+{
+  "handle": {
+    "label": "Flujo Demo: Formulario → PDF en Google Drive",
+    "alias": "demo_workflow_form_to_pdf"
+  },
+  "payload": {
+    "trigger": {
+      "type": "SCHEMA_SUBMIT"
+    },
+    "stations": [
+      {
+        "id": "s1",
+        "label": "Captura de datos (Formulario)",
+        "engine": "AEE_RUNNER",
+        "schema_id": "=PLACEHOLDER_SCHEMA_ID"
+      },
+      {
+        "id": "s_oauth",
+        "label": "Autoriza acceso a tu Google Drive",
+        "engine": "OAUTH_HANDLER",
+        "provider": "drive",
+        "scopes": ["drive.file"],
+        "depends_on": ["s1"],
+        "on_success": "PAUSE_FOR_USER_AUTH"
+      },
+      {
+        "id": "s2",
+        "label": "Crear carpeta destino",
+        "engine": "DRIVE_ENGINE",
+        "protocol": "ATOM_CREATE",
+        "context_id": "ROOT",
+        "data": {
+          "name": "=payload.folder_destination"
+        },
+        "depends_on": ["s_oauth"],
+        "use_oauth_token": "drive",
+        "export_as": "created_folder"
+      },
+      {
+        "id": "s3",
+        "label": "Generar PDF desde plantilla",
+        "engine": "DOCUMENT_ENGINE",
+        "protocol": "NATIVE_DOCUMENT_RENDER",
+        "context_id": "=PLACEHOLDER_DOCUMENT_ID",
+        "data": {
+          "variables": {
+            "report_title": "=$steps.s1.items[0].handle.report_title",
+            "report_content": "=$steps.s1.items[0].handle.report_content",
+            "generated_date": "=new Date().toLocaleDateString('es-ES')"
+          }
+        },
+        "depends_on": ["s1"],
+        "export_as": "rendered_pdf"
+      },
+      {
+        "id": "s4",
+        "label": "Guardar PDF en la carpeta creada",
+        "engine": "DRIVE_ENGINE",
+        "protocol": "ATOM_CREATE",
+        "context_id": "=$steps.s2.items[0].id",
+        "data": {
+          "items": "=$steps.s3.items"
+        },
+        "depends_on": ["s2", "s3"],
+        "use_oauth_token": "drive"
+      }
+    ]
+  }
+}

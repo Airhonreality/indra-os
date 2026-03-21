@@ -75,7 +75,7 @@ export function TextBlock({ block, updateNode, isSelected }) {
             <div
                 ref={textRef}
                 className={`indra-text-block ${isSelected ? 'selected' : ''}`}
-                contentEditable={!isSelected ? false : true}
+                contentEditable={true}
                 suppressContentEditableWarning={true}
                 onFocus={() => setIsFocused(true)}
                 onBlur={(e) => {

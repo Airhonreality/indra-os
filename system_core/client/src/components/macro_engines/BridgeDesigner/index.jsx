@@ -16,11 +16,12 @@ import { OperatorCard } from './OperatorCard';
 import { SandboxPanel } from './SandboxPanel';
 import ArtifactSelector from '../../utilities/ArtifactSelector';
 import { IndraIcon } from '../../utilities/IndraIcons';
-import { Spinner, EmptyState } from '../../utilities/primitives';
+import { Spinner, EmptyState, RenameDryRunModal } from '../../utilities/primitives';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
 import { IndraEngineHood } from '../../utilities/IndraEngineHood';
 import { useWorkspace } from '../../../context/WorkspaceContext';
 import { useLexicon } from '../../../services/lexicon';
+import { prepareCanonicalRename, commitCanonicalRename } from '../../../services/rename_protocol_runtime';
 import { useShell } from '../../../context/ShellContext';
 export function BridgeDesigner({ atom, bridge }) {
     const shell = useShell();
@@ -29,6 +30,9 @@ export function BridgeDesigner({ atom, bridge }) {
     const { updatePinIdentity } = useWorkspace();
     const [isSaving, setIsSaving] = useState(false);
     const [showSelector, setShowSelector] = useState(null); // 'FUENTE' | 'DESTINO'
+    const [pendingRename, setPendingRename] = useState(null);
+    const [isCommittingRename, setIsCommittingRename] = useState(false);
+    const [renameError, setRenameError] = useState('');
 
     // 1. Hidratación y Alambrado Técnico
     const { localAtom, setLocalAtom, schemas, isLoading } = useBridgeHydration(atom, bridge);
@@ -327,15 +331,96 @@ export function BridgeDesigner({ atom, bridge }) {
         });
     };
 
-    const updateLabel = (newLabel) => {
+    const updateIdentity = async ({ label: newLabel, alias: newAlias }) => {
         const cleanLabel = newLabel === '' ? 'PUENTE SIN TÍTULO' : newLabel;
+        const cleanAlias = String(newAlias || '').trim() || localAtom?.handle?.alias;
+        const prevAlias = String(localAtom?.handle?.alias || '').trim();
+        const aliasChanged = !!cleanAlias && cleanAlias !== prevAlias;
+
+        if (aliasChanged) {
+            try {
+                const prepared = await prepareCanonicalRename({
+                    bridge,
+                    provider: localAtom.provider || 'system',
+                    protocol: 'ATOM_ALIAS_RENAME',
+                    contextId: localAtom.id,
+                    kind: 'ATOM_ALIAS',
+                    data: {
+                        old_alias: prevAlias || undefined,
+                        new_alias: cleanAlias,
+                        new_label: cleanLabel,
+                    },
+                });
+
+                if (prepared.status === 'PENDING') {
+                    setRenameError('');
+                    setPendingRename(prepared.pendingRename);
+                    return;
+                }
+
+                if (prepared.status === 'NOOP' && prepared.result?.items?.[0]) {
+                    const syncedAtom = prepared.result.items[0];
+                    setLocalAtom(syncedAtom);
+                    pushToHistory(syncedAtom);
+                    updatePinIdentity(localAtom.id, localAtom.provider, {
+                        label: syncedAtom.handle?.label,
+                        alias: syncedAtom.handle?.alias,
+                        handle: syncedAtom.handle
+                    });
+                    lastSavedRef.current = JSON.stringify(syncedAtom);
+                    return;
+                }
+            } catch (err) {
+                setRenameError(String(err?.message || 'No se pudo validar el renombrado.'));
+                return;
+            }
+        }
+
+        const nextHandle = {
+            ...localAtom.handle,
+            label: cleanLabel,
+            ...(cleanAlias ? { alias: cleanAlias } : {})
+        };
         const newAtom = {
             ...localAtom,
-            handle: { ...localAtom.handle, label: cleanLabel }
+            handle: nextHandle
         };
         setLocalAtom(newAtom);
-        updatePinIdentity(localAtom.id, localAtom.provider, { label: cleanLabel });
+        updatePinIdentity(localAtom.id, localAtom.provider, {
+            label: cleanLabel,
+            ...(cleanAlias ? { alias: cleanAlias } : {}),
+            handle: nextHandle
+        });
         handleManualSave(newAtom);
+    };
+
+    const cancelPendingRename = () => {
+        setPendingRename(null);
+        setIsCommittingRename(false);
+        setRenameError('');
+    };
+
+    const confirmPendingRename = async () => {
+        if (!pendingRename || pendingRename?.preview?.has_blockers) return;
+        setIsCommittingRename(true);
+        setRenameError('');
+        try {
+            const result = await commitCanonicalRename({ bridge, pendingRename });
+            const syncedAtom = result.items[0];
+            setLocalAtom(syncedAtom);
+            pushToHistory(syncedAtom);
+            updatePinIdentity(localAtom.id, localAtom.provider, {
+                label: syncedAtom.handle?.label,
+                alias: syncedAtom.handle?.alias,
+                handle: syncedAtom.handle
+            });
+            lastSavedRef.current = JSON.stringify(syncedAtom);
+            setPendingRename(null);
+            setIsCommittingRename(false);
+        } catch (err) {
+            setRenameError(String(err?.message || 'No se pudo ejecutar el commit del renombrado.'));
+            setIsCommittingRename(false);
+        }
     };
 
     if (isLoading) return (
@@ -352,7 +437,7 @@ export function BridgeDesigner({ atom, bridge }) {
                 atom={localAtom}
                 onClose={() => bridge.close()}
                 isSaving={isSaving}
-                onTitleChange={updateLabel}
+                onIdentityChange={updateIdentity}
             />
 
             {/* ENVOLTURA TOPOLÓGICA DEL MOTOR */}
@@ -513,6 +598,14 @@ export function BridgeDesigner({ atom, bridge }) {
                     onCancel={() => setShowSelector(null)} 
                 />
             )}
+
+            <RenameDryRunModal
+                pendingRename={pendingRename}
+                isCommitting={isCommittingRename}
+                error={renameError}
+                onCancel={cancelPendingRename}
+                onConfirm={confirmPendingRename}
+            />
         </div>
     );
 }

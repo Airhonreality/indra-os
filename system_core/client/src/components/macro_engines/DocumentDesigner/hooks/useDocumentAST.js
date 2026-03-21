@@ -200,7 +200,9 @@ export function useDocumentAST(initialBlocks = [], initialVariables = null, init
 
     const updateNode = useCallback((id, newData) => {
         setBlocks(prev => {
-            const newTree = updateNodeInTree(prev, id, newData);
+            const original = findNode(prev, id);
+            const nextData = sanitizeNodeMutation(original, newData);
+            const newTree = updateNodeInTree(prev, id, nextData);
             commitToHistory(newTree, docVariables, layoutMeta);
             return newTree;
         });
@@ -461,21 +463,39 @@ function getDefaultProps(type) {
                 gap: 'var(--space-4)',
                 background: 'transparent',
                 width: '100%',
-                overflow: 'visible'
+                overflow: 'visible',
+                layoutMode: 'flow',
+                top: '',
+                left: '',
+                right: '',
+                bottom: '',
+                zIndex: 1
             };
         case 'TEXT':
             return {
                 content: 'AXIOMATIC_TEXT_BLOCK...',
                 fontSize: '12pt',
                 color: '#000000',
-                fontFamily: 'Inter, sans-serif'
+                fontFamily: 'Inter, sans-serif',
+                layoutMode: 'flow',
+                top: '',
+                left: '',
+                right: '',
+                bottom: '',
+                zIndex: 1
             };
         case 'IMAGE':
             return {
                 src: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400',
                 width: '100mm',
                 height: '60mm',
-                objectFit: 'cover'
+                objectFit: 'cover',
+                layoutMode: 'flow',
+                top: '',
+                left: '',
+                right: '',
+                bottom: '',
+                zIndex: 1
             };
         case 'ITERATOR':
             return {
@@ -486,4 +506,31 @@ function getDefaultProps(type) {
         default:
             return {};
     }
+}
+
+function sanitizeNodeMutation(originalNode, mutation) {
+    if (!originalNode || !mutation?.props || typeof mutation.props !== 'object') {
+        return mutation;
+    }
+
+    const allowedAbsoluteTypes = ['FRAME', 'TEXT', 'IMAGE'];
+    const nextProps = { ...mutation.props };
+    const isAllowed = allowedAbsoluteTypes.includes(originalNode.type);
+
+    if (!isAllowed) {
+        nextProps.layoutMode = 'flow';
+        return { ...mutation, props: nextProps };
+    }
+
+    const mode = nextProps.layoutMode;
+    if (mode !== 'absolute' && mode !== 'flow') {
+        nextProps.layoutMode = 'flow';
+    }
+
+    if (nextProps.zIndex !== undefined) {
+        const parsed = Number.parseInt(String(nextProps.zIndex), 10);
+        nextProps.zIndex = Number.isFinite(parsed) ? parsed : 1;
+    }
+
+    return { ...mutation, props: nextProps };
 }

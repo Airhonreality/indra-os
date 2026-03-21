@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
+import { executeDirective } from '../../../../services/directive_executor';
+import { useIndraResource } from '../../../../hooks/useIndraResource';
 
 /**
  * FileAttachmentWidget — ADR-023
@@ -21,6 +23,7 @@ export function FileAttachmentWidget({ field, value, onChange, disabled }) {
     const [mode, setMode] = useState('DRIVE_ID'); // Default: Drive ID (más común para binarios pesados)
     const [textInput, setTextInput] = useState('');
     const [error, setError] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
     const fileRef = useRef(null);
 
     const maxSizeMb = config.max_size_mb || 50;
@@ -50,7 +53,7 @@ export function FileAttachmentWidget({ field, value, onChange, disabled }) {
         return allowedExts.map(e => e.toLowerCase()).includes(ext);
     };
 
-    // ── MODO UPLOAD ────────────────────────────────────────────────
+    // ── MODO UPLOAD: Ingestión ARP ─────────────────────────────────
     const handleFile = (file) => {
         if (!file) return;
         if (!validateExt(file.name)) {
@@ -61,30 +64,40 @@ export function FileAttachmentWidget({ field, value, onChange, disabled }) {
             setError(`Archivo demasiado grande. Máximo ${maxSizeMb}MB.`);
             return;
         }
+        
         setError(null);
+        setIsUploading(true);
 
-        // Para archivos grandes usar solo metadatos (el upload real va via Backend)
-        // Para archivos pequeños (<5MB) se puede incluir base64
-        const isSmall = file.size < 5 * 1024 * 1024;
-        if (isSmall) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                onChange(field.alias, {
-                    type: 'INDRA_MEDIA',
-                    storage: 'base64',
-                    canonical_url: e.target.result,
-                    file_id: null,
-                    mime_type: file.type,
-                    expires_at: null,
-                    alt: file.name
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const base64Data = e.target.result;
+                const response = await executeDirective('system', 'RESOURCE_INGEST', undefined, {
+                    base64: base64Data,
+                    mimeType: file.type,
+                    fileName: file.name
                 });
-            };
-            reader.readAsDataURL(file);
-        } else {
-            // Para archivos grandes: solo emitir metadatos, sin base64
-            // El Bridge debe solicitar al usuario que lo suba a Drive primero
-            setError(`Archivo grande (${(file.size / (1024 * 1024)).toFixed(1)}MB). Súbelo a Drive y usa el modo Drive ID.`);
-        }
+
+                if (response.metadata?.status === 'OK' && response.metadata?.grid) {
+                    onChange(field.alias, {
+                        type: 'INDRA_MEDIA',
+                        storage: 'system',
+                        canonical_url: response.metadata.grid,
+                        file_id: null,
+                        mime_type: file.type,
+                        expires_at: null,
+                        alt: file.name
+                    });
+                } else {
+                    setError(response.metadata?.error || 'Falló la ingestión del recurso.');
+                }
+            } catch (err) {
+                setError('Error al invocar API de ingestión.');
+            } finally {
+                setIsUploading(false);
+            }
+        };
+        reader.readAsDataURL(file);
     };
 
     // ── MODO DRIVE_ID / URL ────────────────────────────────────────
@@ -147,52 +160,51 @@ export function FileAttachmentWidget({ field, value, onChange, disabled }) {
                 ))}
             </div>
 
-            {/* Archivo vinculado actual */}
-            {current && (
+            {/* Archivo vinculado actual o subiendo */}
+            {(current || isUploading) && (
                 <div className="shelf--tight glass" style={{
                     padding: 'var(--space-3)',
                     borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--color-border)',
-                    background: 'rgba(var(--rgb-accent), 0.05)'
+                    background: 'rgba(var(--rgb-accent), 0.05)',
+                    position: 'relative'
                 }}>
-                    {/* Badge de tipo de archivo */}
-                    <div style={{
-                        width: '32px', height: '32px',
-                        background: 'var(--color-accent)', borderRadius: '4px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '8px', fontFamily: 'var(--font-mono)', fontWeight: 'bold',
-                        color: 'black', flexShrink: 0
-                    }}>
-                        {getExt(current.alt || current.canonical_url)}
-                    </div>
+                    {isUploading ? (
+                         <div style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <IndraIcon name="SYNC" className="spin" size="16px" style={{ opacity: 0.5 }} />
+                         </div>
+                    ) : (
+                        <div style={{
+                            width: '32px', height: '32px',
+                            background: 'var(--color-accent)', borderRadius: '4px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '8px', fontFamily: 'var(--font-mono)', fontWeight: 'bold',
+                            color: 'black', flexShrink: 0
+                        }}>
+                            {getExt(current.alt || current.canonical_url)}
+                        </div>
+                    )}
+                    
                     <div className="stack--tight fill" style={{ minWidth: 0 }}>
                         <span style={{ fontSize: '10px', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {current.alt || 'Archivo vinculado'}
+                            {isUploading ? 'INGIRIENDO RECURSO...' : (current.alt || 'Archivo vinculado')}
                         </span>
                         <div className="shelf--tight" style={{ opacity: 0.5 }}>
-                            <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)' }}>{current.storage?.toUpperCase()}</span>
-                            {current.file_id && <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)' }}>· {current.file_id.substring(0, 12)}...</span>}
+                            <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)' }}>{isUploading ? 'CAS_SYSTEM' : current.storage?.toUpperCase()}</span>
+                            {!isUploading && current.file_id && <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)' }}>· {current.file_id.substring(0, 12)}...</span>}
                         </div>
                     </div>
-                    <div className="shelf--tight" style={{ flexShrink: 0 }}>
-                        {current.canonical_url && (
-                            <a
-                                href={current.canonical_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="btn btn--ghost btn--xs btn--icon"
-                                title="Abrir archivo"
-                                style={{ fontSize: '9px' }}
-                            >
-                                <IndraIcon name="BRIDGE" size="10px" />
-                            </a>
-                        )}
-                        {!disabled && (
-                            <button className="btn btn--danger btn--xs btn--icon" onClick={clearValue} title="Quitar archivo">
-                                <IndraIcon name="CLOSE" size="10px" />
-                            </button>
-                        )}
-                    </div>
+
+                    {!isUploading && (
+                        <div className="shelf--tight" style={{ flexShrink: 0 }}>
+                            <ResourceLink url={current.canonical_url} />
+                            {!disabled && (
+                                <button className="btn btn--danger btn--xs btn--icon" onClick={clearValue} title="Quitar archivo">
+                                    <IndraIcon name="CLOSE" size="10px" />
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -274,5 +286,28 @@ export function FileAttachmentWidget({ field, value, onChange, disabled }) {
                 </div>
             )}
         </div>
+    );
+}
+
+/**
+ * Sub-componente para resolver el link de forma asíncrona (si es GRID)
+ */
+function ResourceLink({ url }) {
+    const { url: resolvedUrl, isLoading } = useIndraResource(url);
+
+    if (isLoading) return <IndraIcon name="SYNC" className="spin" size="10px" style={{ opacity: 0.3 }} />;
+    if (!resolvedUrl) return null;
+
+    return (
+        <a
+            href={resolvedUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn--ghost btn--xs btn--icon"
+            title="Abrir archivo"
+            style={{ fontSize: '9px' }}
+        >
+            <IndraIcon name="BRIDGE" size="10px" />
+        </a>
     );
 }

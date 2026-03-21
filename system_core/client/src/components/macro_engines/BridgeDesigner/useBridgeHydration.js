@@ -42,15 +42,16 @@ export function useBridgeHydration(bridgeAtom, bridge) {
                 let projection = null;
                 try {
                     const provider = getProviderForId(id);
-                    // 1. INTENTO DE SINCERIDAD MÁXIMA (ATOM_READ)
-                    const isLocalAtom = pins?.some(p => p.id === id) || provider === 'system';
-
-                    if (isLocalAtom) {
+                    const pin = pins?.find(p => p.id === id);
+                    
+                    // Si el Workspace ya nos trajo la materia entera, NO iteramos la red.
+                    if (pin?.payload?.fields) {
+                        projection = DataProjector.projectSchema(pin);
+                    } else if (pin || provider === 'system') {
+                        // Solo como salvaguarda absoluta en caso de que sea un ID técnico no pined
                         try {
                             const atomResult = await bridge.request({ protocol: 'ATOM_READ', context_id: id });
-                            // AXIOMA DE SINCERIDAD: La materia está en el Átomo (items[0]), no en el sobre.
                             const sourceAtom = atomResult?.items?.[0];
-                            
                             if (sourceAtom?.payload?.fields) {
                                 projection = DataProjector.projectSchema(sourceAtom);
                             }

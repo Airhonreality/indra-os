@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
+import { executeDirective } from '../../../../services/directive_executor';
+import { useIndraResource } from '../../../../hooks/useIndraResource';
 
 /**
  * ImageUploader: Widget de "Aduana" para medios visuales.
@@ -17,22 +19,18 @@ export function ImageUploader({ field, value, onChange, disabled }) {
     const [mode, setMode] = useState('UPLOAD'); // 'UPLOAD' | 'DRIVE_ID' | 'URL'
     const [textInput, setTextInput] = useState('');
     const [error, setError] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
     const fileRef = useRef(null);
 
     // Resolver la URL de preview desde el valor actual (INDRA_MEDIA o string legacy)
-    const getPreviewUrl = () => {
-        if (!value) return null;
-        if (typeof value === 'string') return value; // base64 o URL legacy
-        if (value?.type === 'INDRA_MEDIA') return value.canonical_url;
-        return null;
-    };
-
-    const previewUrl = getPreviewUrl();
+    // Resolver la URL de preview usando el hook agnóstico ARP
+    const resValue = value?.type === 'INDRA_MEDIA' ? value.canonical_url : value;
+    const { url: previewUrl, isLoading: isResolving } = useIndraResource(resValue);
 
     const maxSize = config.max_size_mb || 5;
     const allowedTypes = config.allowed_formats || ['image/jpeg', 'image/png', 'image/webp'];
 
-    // ── MODO UPLOAD: archivo local → base64 ──────────────────────────────────
+    // ── MODO UPLOAD: archivo local → Ingestión ARP (Soberanía) ──────────────
     const handleFile = (file) => {
         if (!file) return;
         if (!allowedTypes.includes(file.type)) {
@@ -44,18 +42,36 @@ export function ImageUploader({ field, value, onChange, disabled }) {
             return;
         }
         setError(null);
+        setIsUploading(true);
+
         const reader = new FileReader();
-        reader.onload = (e) => {
-            // Para uploads directos, emitir base64 (el Bridge puede manejarlo)
-            const media = {
-                type: 'INDRA_MEDIA',
-                storage: 'base64',
-                canonical_url: e.target.result,
-                mime_type: file.type,
-                expires_at: null,
-                alt: file.name
-            };
-            onChange(field.alias, media);
+        reader.onload = async (e) => {
+            try {
+                const base64Data = e.target.result;
+                const response = await executeDirective('system', 'RESOURCE_INGEST', undefined, {
+                    base64: base64Data,
+                    mimeType: file.type,
+                    fileName: file.name
+                });
+
+                if (response.metadata?.status === 'OK' && response.metadata?.grid) {
+                    const media = {
+                        type: 'INDRA_MEDIA',
+                        storage: 'system',
+                        canonical_url: response.metadata.grid,
+                        mime_type: file.type,
+                        expires_at: null,
+                        alt: file.name
+                    };
+                    onChange(field.alias, media);
+                } else {
+                    setError(response.metadata?.error || 'Falló la ingestión del recurso.');
+                }
+            } catch (err) {
+                setError('Error de comunicación con el Core.');
+            } finally {
+                setIsUploading(false);
+            }
         };
         reader.readAsDataURL(file);
     };
@@ -126,16 +142,23 @@ export function ImageUploader({ field, value, onChange, disabled }) {
                 ))}
             </div>
 
-            {/* Preview si hay valor */}
-            {previewUrl && (
-                <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <img
-                        src={previewUrl}
-                        alt="Preview"
-                        style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '4px', objectFit: 'contain', border: '1px solid var(--color-border)' }}
-                        onError={e => { e.target.style.display = 'none'; }}
-                    />
-                    {!disabled && (
+            {/* Preview si hay valor o está cargando */}
+            {(previewUrl || isResolving || isUploading) && (
+                <div style={{ position: 'relative', display: 'inline-block', minWidth: '60px', minHeight: '60px' }}>
+                    {(isResolving || isUploading) ? (
+                        <div className="center fill glass" style={{ border: '1px solid var(--color-border)', borderRadius: '4px' }}>
+                            <IndraIcon name="SYNC" className="spin" size="16px" style={{ opacity: 0.5 }} />
+                        </div>
+                    ) : (
+                        <img
+                            src={previewUrl}
+                            alt="Preview"
+                            style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '4px', objectFit: 'contain', border: '1px solid var(--color-border)' }}
+                            onError={e => { e.target.style.display = 'none'; }}
+                        />
+                    )}
+                    
+                    {!disabled && !isUploading && (
                         <button
                             className="btn btn--danger btn--xs btn--icon"
                             onClick={clearValue}

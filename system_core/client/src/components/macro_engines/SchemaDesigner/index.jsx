@@ -20,7 +20,9 @@ import { DNAInspector } from './DNAInspector';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
 import { IndraEngineHood } from '../../utilities/IndraEngineHood';
 import { IndraIcon } from '../../utilities/IndraIcons';
+import { RenameDryRunModal } from '../../utilities/primitives';
 import { useLexicon } from '../../../services/lexicon';
+import { prepareCanonicalRename, commitCanonicalRename } from '../../../services/rename_protocol_runtime';
 import { useWorkspace } from '../../../context/WorkspaceContext';
 
 export function SchemaDesigner({ atom, bridge }) {
@@ -29,9 +31,13 @@ export function SchemaDesigner({ atom, bridge }) {
     const [selectedFieldId, setSelectedFieldId] = useState(null);
     const [activeSlot, setActiveSlot] = useState('CORE');
     const [isSaving, setIsSaving] = useState(false);
+    const [pendingRename, setPendingRename] = useState(null);
+    const [isCommittingRename, setIsCommittingRename] = useState(false);
+    const [renameError, setRenameError] = useState('');
     const [previewMode, setPreviewMode] = useState(false);
     const [history, setHistory] = useState([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
+    const [aliasResetNonce, setAliasResetNonce] = useState(0);
 
     const t = useLexicon(bridge.protocol.lang || 'es');
 
@@ -107,41 +113,94 @@ export function SchemaDesigner({ atom, bridge }) {
         };
     }, [bridge]); // Solo al desmontar o si el bridge cambia
 
-    // 1. Hidratación con Deduplicación
-    // Reset hasHydrated cuando cambia el atom (permite cambiar de schema sin cerrar el motor)
-    useEffect(() => { hasHydrated.current = false; }, [atom.id]);
+    const hydrate = async () => {
+        if (hasHydrated.current && localAtom.id === atom.id) return;
+        try {
+            const result = await bridge.read({ raw: true });
+            if (result) {
+                let fullAtom = result;
+
+                const slugifyAlias = (value) => String(value || '')
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9_\-]+/g, '_')
+                    .replace(/^_+|_+$/g, '');
+
+                const normalizeLegacyAliases = (fields) => {
+                    const used = new Set();
+
+                    const collect = (list) => {
+                        (list || []).forEach(field => {
+                            const alias = String(field?.alias || '').trim().toLowerCase();
+                            if (alias) used.add(alias);
+                            if (Array.isArray(field?.children)) collect(field.children);
+                        });
+                    };
+
+                    const ensure = (list, prefix = 'field') => {
+                        return (list || []).map((field, idx) => {
+                            const cloned = { ...field };
+                            let alias = String(cloned?.alias || '').trim().toLowerCase();
+
+                            if (!alias) {
+                                const rawBase = cloned?.id || cloned?.label || `${prefix}_${idx + 1}`;
+                                const base = slugifyAlias(rawBase) || `${prefix}_${idx + 1}`;
+                                let candidate = base;
+                                let seq = 2;
+                                while (used.has(candidate)) {
+                                    candidate = `${base}_${seq}`;
+                                    seq += 1;
+                                }
+                                alias = candidate;
+                                cloned.alias = alias;
+                            }
+
+                            used.add(alias);
+                            if (Array.isArray(cloned?.children)) {
+                                cloned.children = ensure(cloned.children, `${prefix}_${idx + 1}`);
+                            }
+                            return cloned;
+                        });
+                    };
+
+                    collect(fields || []);
+                    return ensure(fields || []);
+                };
+                
+                // SEGURIDAD: Deduplicar campos raíz por ID (Evitar triplicación de carga)
+                if (fullAtom.payload?.fields) {
+                    const seen = new Set();
+                    fullAtom.payload.fields = fullAtom.payload.fields.filter(f => {
+                        if (seen.has(f.id)) return false;
+                        seen.add(f.id);
+                        return true;
+                    });
+
+                    fullAtom.payload.fields = normalizeLegacyAliases(fullAtom.payload.fields);
+                }
+
+                setLocalAtom(fullAtom);
+                setHistory([fullAtom]);
+                setHistoryIndex(0);
+                lastSavedRef.current = JSON.stringify(fullAtom);
+                hasHydrated.current = true;
+            }
+        } catch (err) {
+            console.error('[SchemaDesigner] Hydration failed:', err);
+        }
+    };
 
     useEffect(() => {
-        if (hasHydrated.current && localAtom.id === atom.id) return;
-
-        const hydrate = async () => {
-            try {
-                const result = await bridge.read({ raw: true });
-                if (result) {
-                    let fullAtom = result;
-                    
-                    // SEGURIDAD: Deduplicar campos raíz por ID (Evitar triplicación de carga)
-                    if (fullAtom.payload?.fields) {
-                        const seen = new Set();
-                        fullAtom.payload.fields = fullAtom.payload.fields.filter(f => {
-                            if (seen.has(f.id)) return false;
-                            seen.add(f.id);
-                            return true;
-                        });
-                    }
-
-                    setLocalAtom(fullAtom);
-                    setHistory([fullAtom]);
-                    setHistoryIndex(0);
-                    lastSavedRef.current = JSON.stringify(fullAtom);
-                    hasHydrated.current = true;
-                }
-            } catch (err) {
-                console.error('[SchemaDesigner] Hydration failed:', err);
-            }
-        };
         hydrate();
     }, [atom.id, bridge]);
+
+    // Resonancia de Identidad: Si el Header renombra el átomo, sincronizamos el handle local
+    useEffect(() => {
+        if (atom?.handle && JSON.stringify(atom.handle) !== JSON.stringify(localAtom.handle)) {
+            setLocalAtom(prev => ({ ...prev, handle: atom.handle }));
+        }
+    }, [atom?.handle]);
 
     const status = localAtom.payload?.status || 'DRAFT';
     const isLive = status === 'LIVE';
@@ -158,6 +217,11 @@ export function SchemaDesigner({ atom, bridge }) {
     // Hotkeys
     useEffect(() => {
         const handleKeys = (e) => {
+            // AXIOMA DE AISLAMIENTO: Si el usuario está escribiendo en un INPUT o TEXTAREA,
+            // no debemos interceptar las teclas de borrado o comandos.
+            const isInputField = ['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable;
+            if (isInputField) return;
+
             // Undo/Redo
             if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); }
             if (e.ctrlKey && e.key === 'y') { e.preventDefault(); redo(); }
@@ -186,6 +250,36 @@ export function SchemaDesigner({ atom, bridge }) {
 
     const fields = localAtom.payload?.fields || [];
 
+    const findFieldById = (list, id) => {
+        for (const field of (list || [])) {
+            if (field.id === id) return field;
+            if (Array.isArray(field.children)) {
+                const found = findFieldById(field.children, id);
+                if (found) return found;
+            }
+        }
+        return null;
+    };
+
+    const recursiveUpdate = (list, id, updatedField) => {
+        return (list || []).map((field) => {
+            if (field.id === id) {
+                return {
+                    ...field,
+                    ...updatedField,
+                    children: updatedField?.children ?? field.children,
+                };
+            }
+            if (Array.isArray(field.children)) {
+                return {
+                    ...field,
+                    children: recursiveUpdate(field.children, id, updatedField)
+                };
+            }
+            return field;
+        });
+    };
+
     // Validación de Colisiones de Alias
     const checkAliasCollisions = (list) => {
         const aliases = new Set();
@@ -203,6 +297,37 @@ export function SchemaDesigner({ atom, bridge }) {
 
     const duplicateAliases = checkAliasCollisions(fields);
     const _hasCollisions = duplicateAliases.length > 0;
+
+    const cancelPendingRename = () => {
+        setPendingRename(null);
+        setIsCommittingRename(false);
+        setRenameError('');
+        setAliasResetNonce(v => v + 1);
+    };
+
+    const confirmPendingRename = async () => {
+        if (!pendingRename || pendingRename?.preview?.has_blockers) return;
+        setIsCommittingRename(true);
+        setRenameError('');
+        try {
+            const result = await commitCanonicalRename({ bridge, pendingRename });
+            const syncedAtom = result.items[0];
+            setLocalAtom(syncedAtom);
+            pushToHistory(syncedAtom);
+            updatePinIdentity(localAtom.id, localAtom.provider, {
+                label: syncedAtom.handle?.label,
+                alias: syncedAtom.handle?.alias,
+                handle: syncedAtom.handle,
+            });
+            lastSavedRef.current = JSON.stringify(syncedAtom);
+            setPendingRename(null);
+            setIsCommittingRename(false);
+        } catch (err) {
+            setRenameError(String(err?.message || 'No se pudo ejecutar el commit del renombrado.'));
+            setIsCommittingRename(false);
+            setAliasResetNonce(v => v + 1);
+        }
+    };
 
     const updateFields = (newFields) => {
         const newAtom = {
@@ -320,37 +445,6 @@ export function SchemaDesigner({ atom, bridge }) {
         updateFields(newFields);
     };
 
-    const updateLabel = (newLabel) => {
-        const cleanLabel = newLabel === '' ? 'UNTITLED_SCHEMA' : newLabel;
-        const newAtom = {
-            ...localAtom,
-            handle: { ...localAtom.handle, label: cleanLabel }
-        };
-        setLocalAtom(newAtom);
-        pushToHistory(newAtom);
-        updatePinIdentity(localAtom.id, localAtom.provider, { label: cleanLabel });
-        handleManualSave(newAtom);
-    };
-
-    function findFieldById(list, id) {
-        for (const item of list) {
-            if (item.id === id) return item;
-            if (item.children) {
-                const found = findFieldById(item.children, id);
-                if (found) return found;
-            }
-        }
-        return null;
-    }
-
-    const recursiveUpdate = (list, id, updatedField) => {
-        return list.map(f => {
-            if (f.id === id) return updatedField;
-            if (f.children) return { ...f, children: recursiveUpdate(f.children, id, updatedField) };
-            return f;
-        });
-    };
-
     const accentColor = localAtom?.color || '#00f5d4';
     const dynamicStyles = {
         '--indra-dynamic-accent': accentColor,
@@ -363,10 +457,10 @@ export function SchemaDesigner({ atom, bridge }) {
             {/* 0. INDRA MACRO HEADER */}
             <IndraMacroHeader
                 atom={localAtom}
+                bridge={bridge}
                 onClose={() => bridge.close()}
                 isSaving={isSaving}
                 isLive={isLive}
-                onTitleChange={updateLabel}
                 rightSlot={
                     <div className="shelf--tight" style={{ gap: 'var(--space-2)' }}>
                         {/* Status Toggles (Industrial Pills) */}
@@ -435,7 +529,7 @@ export function SchemaDesigner({ atom, bridge }) {
 
                 <div className={`fill indra-engine-body designer-body indra-layout-bipartite ${previewMode ? 'preview-mode' : ''}`}>
                     <div className="bipartite-side indra-container indra-slot-nav">
-                        <div className="indra-header-label">ESTRUCTURA_DATOS</div>
+                        <div className="indra-header-label">ESTRUCTURA</div>
                         <LayersPanel
                             fields={fields}
                             selectedId={selectedFieldId}
@@ -461,7 +555,49 @@ export function SchemaDesigner({ atom, bridge }) {
                                     field={findFieldById(fields, selectedFieldId)}
                                     allFields={fields}
                                     bridge={bridge}
-                                    onUpdate={(updatedField) => {
+                                    aliasResetNonce={aliasResetNonce}
+                                    onUpdate={async (updatedField) => {
+                                        const currentField = findFieldById(fields, selectedFieldId);
+                                        const oldAlias = String(currentField?.alias || '').trim();
+                                        const nextAlias = String(updatedField?.alias || '').trim();
+                                        const aliasChanged = !!nextAlias && nextAlias !== oldAlias;
+
+                                        if (aliasChanged && currentField?.id === updatedField?.id) {
+                                            try {
+                                                const prepared = await prepareCanonicalRename({
+                                                    bridge,
+                                                    provider: localAtom.provider || 'system',
+                                                    protocol: 'SCHEMA_FIELD_ALIAS_RENAME',
+                                                    contextId: localAtom.id,
+                                                    kind: 'FIELD_ALIAS',
+                                                    data: {
+                                                        field_id: updatedField.id,
+                                                        old_alias: oldAlias || undefined,
+                                                        new_alias: nextAlias,
+                                                    },
+                                                });
+
+                                                if (prepared.status === 'PENDING') {
+                                                    setRenameError('');
+                                                    setPendingRename(prepared.pendingRename);
+                                                    return;
+                                                }
+
+                                                if (prepared.status === 'NOOP' && prepared.result?.items?.[0]) {
+                                                    const syncedAtom = prepared.result.items[0];
+                                                    setLocalAtom(syncedAtom);
+                                                    pushToHistory(syncedAtom);
+                                                    lastSavedRef.current = JSON.stringify(syncedAtom);
+                                                    return;
+                                                }
+                                            } catch (err) {
+                                                console.error('[SchemaDesigner] SCHEMA_FIELD_ALIAS_RENAME dry_run failed:', err);
+                                                setRenameError(String(err?.message || 'No se pudo validar el renombrado de campo.'));
+                                                setAliasResetNonce(v => v + 1);
+                                                return;
+                                            }
+                                        }
+
                                         const newFields = recursiveUpdate(fields, selectedFieldId, updatedField);
                                         updateFields(newFields);
                                     }}
@@ -511,6 +647,14 @@ export function SchemaDesigner({ atom, bridge }) {
                     </div>
                 </div>
             </div>
+
+            <RenameDryRunModal
+                pendingRename={pendingRename}
+                isCommitting={isCommittingRename}
+                error={renameError}
+                onCancel={cancelPendingRename}
+                onConfirm={confirmPendingRename}
+            />
         </div>
     );
 }

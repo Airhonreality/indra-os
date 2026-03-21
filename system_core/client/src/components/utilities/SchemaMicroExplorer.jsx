@@ -16,15 +16,18 @@ export function SchemaMicroExplorer({
     schema, 
     onFieldClick, 
     onAddClick, 
+    onInsertField,
+    onCopyField,
     onContextMenu, 
     selectedId 
 }) {
-    const [expandedIds, setExpandedIds] = useState(new Set());
+    // Suportar tanto atom.payload.fields como schema.fields (Normalización)
+    const fields = schema?.payload?.fields || schema?.fields || [];
+    
+    // Auto-expandir el primer nivel para que no parezca vacío
+    const [expandedIds, setExpandedIds] = useState(() => new Set(fields.map(f => f.id)));
 
     if (!schema) return null;
-    
-    // Suportar tanto atom.payload.fields como schema.fields (Normalización)
-    const fields = schema.payload?.fields || schema.fields || [];
     if (fields.length === 0) return (
         <div style={{ padding: '8px', opacity: 0.3, fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
             [EMPTY_SCHEMA]
@@ -47,6 +50,8 @@ export function SchemaMicroExplorer({
                 depth={0} 
                 onFieldClick={onFieldClick}
                 onAddClick={onAddClick}
+                onInsertField={onInsertField}
+                onCopyField={onCopyField}
                 onContextMenu={onContextMenu}
                 selectedId={selectedId}
                 expandedIds={expandedIds}
@@ -56,7 +61,7 @@ export function SchemaMicroExplorer({
     );
 }
 
-function RecursiveTree({ fields, depth, onFieldClick, onAddClick, onContextMenu, selectedId, expandedIds, onToggleExpand }) {
+function RecursiveTree({ fields, depth, onFieldClick, onAddClick, onInsertField, onCopyField, onContextMenu, selectedId, expandedIds, onToggleExpand }) {
     return fields.map(field => {
         const isExpanded = expandedIds.has(field.id);
         const hasChildren = field.children && field.children.length > 0;
@@ -68,6 +73,8 @@ function RecursiveTree({ fields, depth, onFieldClick, onAddClick, onContextMenu,
                     depth={depth} 
                     onFieldClick={onFieldClick}
                     onAddClick={onAddClick}
+                    onInsertField={onInsertField}
+                    onCopyField={onCopyField}
                     onContextMenu={onContextMenu}
                     isSelected={selectedId === field.id}
                     isExpanded={isExpanded}
@@ -79,6 +86,8 @@ function RecursiveTree({ fields, depth, onFieldClick, onAddClick, onContextMenu,
                         depth={depth + 1} 
                         onFieldClick={onFieldClick}
                         onAddClick={onAddClick}
+                        onInsertField={onInsertField}
+                        onCopyField={onCopyField}
                         onContextMenu={onContextMenu}
                         selectedId={selectedId}
                         expandedIds={expandedIds}
@@ -90,7 +99,7 @@ function RecursiveTree({ fields, depth, onFieldClick, onAddClick, onContextMenu,
     });
 }
 
-function SchemaTreeItem({ field, depth, onFieldClick, onAddClick, onContextMenu, isSelected, isExpanded, onToggleExpand }) {
+function SchemaTreeItem({ field, depth, onFieldClick, onAddClick, onInsertField, onCopyField, onContextMenu, isSelected, isExpanded, onToggleExpand }) {
     const projection = DataProjector.projectFieldDefinition(field);
     const isContainer = field.type === 'FRAME' || field.type === 'REPEATER';
     const hasChildren = field.children && field.children.length > 0;
@@ -150,18 +159,47 @@ function SchemaTreeItem({ field, depth, onFieldClick, onAddClick, onContextMenu,
                 {field.alias?.toUpperCase() || field.label?.toUpperCase()}
             </span>
 
-            {isContainer && onAddClick && (
-                <button 
-                    className="btn btn--ghost btn--xs opacity-0 hover-opacity-100"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onAddClick(field.id);
-                    }}
-                    style={{ padding: '0 4px', border: 'none', background: 'transparent' }}
-                >
-                    <IndraIcon name="PLUS" size="8px" />
-                </button>
-            )}
+            <div className="shelf--tight" style={{ gap: '2px' }}>
+                {onCopyField && (
+                    <button
+                        className="btn btn--ghost btn--xs"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onCopyField(field);
+                        }}
+                        title="COPY_PLACEHOLDER"
+                        style={{ padding: '0 4px', border: 'none', background: 'transparent', opacity: 0.75 }}
+                    >
+                        <IndraIcon name="COPY" size="9px" />
+                    </button>
+                )}
+                {onInsertField && (
+                    <button
+                        className="btn btn--ghost btn--xs"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onInsertField(field);
+                        }}
+                        title="INSERT_PLACEHOLDER"
+                        style={{ padding: '0 4px', border: 'none', background: 'transparent', opacity: 0.85, color: 'var(--color-accent)' }}
+                    >
+                        <IndraIcon name="PLUS" size="9px" />
+                    </button>
+                )}
+                {isContainer && onAddClick && (
+                    <button 
+                        className="btn btn--ghost btn--xs"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onAddClick(field.id);
+                        }}
+                        title="ADD_CHILD_FIELD"
+                        style={{ padding: '0 4px', border: 'none', background: 'transparent', opacity: 0.75 }}
+                    >
+                        <IndraIcon name="PLUS" size="8px" />
+                    </button>
+                )}
+            </div>
         </div>
     );
 }

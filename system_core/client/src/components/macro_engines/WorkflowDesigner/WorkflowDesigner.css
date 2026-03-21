@@ -5,32 +5,61 @@
  * =============================================================================
  */
 
-.workflow-designer {
-    display: grid;
-    grid-template-columns: minmax(280px, 320px) 1fr minmax(280px, 340px);
-    height: 100%;
-    background: var(--color-bg-deep);
-    color: var(--color-text-primary);
+/* ── REFINAMIENTO CANÓNICO (AXIOMA MODULAR) ── */
+.indra-field-label {
+    font-family: var(--font-mono);
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-text);
+    opacity: 0.4;
+    padding-bottom: 2px;
+    border-bottom: 1px solid rgba(0,0,0,0.03);
+    margin-bottom: var(--space-4);
+}
+
+.station-node {
+    width: 240px;
+    max-width: 240px;
     overflow: hidden;
 }
 
-.engine-sidebar {
-    background: var(--color-bg-surface);
-    border-right: 1px solid var(--color-border);
-    display: flex;
-    flex-direction: column;
+.station-node span, 
+.station-node div, 
+.workflow-trigger-node span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.inspector-panel {
-    border-right: none;
-    border-left: 1px solid var(--color-border);
-    background: linear-gradient(to right, rgba(0, 0, 0, 0.2), transparent);
+.workflow-designer {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #f8fafc; /* Fondo Dashboard Alpha */
+    color: #2c3e50;
+    overflow: hidden;
+}
+
+.workflow-triptych-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Antiguos selectores de sidebar integrados en columnas triples */
+.engine-sidebar {
+    background: transparent;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
 }
 
 .panel-header {
     padding: var(--mca-padding);
-    border-bottom: 1px solid var(--color-border);
-    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    background: rgba(255, 255, 255, 0.5);
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -51,6 +80,148 @@
     padding: var(--mca-padding);
     flex: 1;
     overflow-y: auto;
+    background: rgba(255,255,255,0.02);
+}
+
+.workflow-layout-shell {
+    background: var(--color-bg-void);
+}
+
+.workflow-triptych-body {
+    display: flex;
+    flex-direction: row-reverse; /* LEGO a la derecha, Canvas a la izquierda */
+    gap: 0;
+    padding: 0;
+    background: var(--color-bg-void);
+}
+
+.workflow-controls-shell {
+    flex-shrink: 0;
+    position: relative;
+}
+
+.workflow-controls-label {
+    position: absolute;
+    top: -10px;
+    left: 20px;
+    background: var(--color-bg-void);
+}
+
+.workflow-status-toggle {
+    gap: var(--space-2);
+}
+
+.workflow-status-btn {
+    font-size: 8px;
+    padding: 2px 10px;
+    border-radius: var(--indra-ui-radius);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--color-text-secondary);
+}
+
+.workflow-status-btn.active {
+    background: var(--indra-dynamic-bg);
+    color: var(--indra-dynamic-accent);
+    border-color: var(--indra-dynamic-accent);
+}
+
+.workflow-status-btn--live.active {
+    background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+.workflow-save-btn {
+    border-radius: var(--indra-ui-radius);
+    padding: 2px 12px;
+    background-color: var(--indra-dynamic-bg);
+    border: 1px solid var(--indra-dynamic-accent);
+    color: var(--indra-dynamic-accent);
+}
+
+.workflow-save-label {
+    margin-left: 6px;
+}
+
+/* ── DISEÑO DUAL (70% / 30%) ── */
+.workflow-column-canvas {
+    flex: 1;
+    background: #fbfcfd;
+    background-image: 
+        radial-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+        linear-gradient(rgba(0,0,0,0.01) 1px, transparent 1px);
+    background-size: 32px 32px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Scroll controlado por pipeline-viewport */
+    position: relative;
+}
+
+.pipeline-viewport {
+    flex: 1;
+    width: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    scroll-behavior: smooth;
+}
+
+.workflow-column-multimodal {
+    width: 30%;
+    min-width: 360px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(60px);
+    border-left: 1px solid rgba(0,0,0,0.08);
+    box-shadow: -15px 0 35px rgba(0,0,0,0.03);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; /* Scroll habilitado para herramientas e inspector */
+    z-index: 100;
+}
+
+.multimodal-header {
+    background: rgba(0,0,0,0.01);
+}
+
+.lego-tool {
+    flex: 1;
+    padding: var(--space-4);
+    background: white;
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+.lego-tool:hover {
+    transform: translateY(-4px);
+    border-color: var(--indra-dynamic-accent);
+    box-shadow: 0 10px 20px var(--indra-dynamic-glow);
+}
+
+.lego-tool span {
+    font-size: 8px;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    opacity: 0.6;
+}
+
+.workflow-pipeline-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.workflow-sandbox-shell {
+    border-color: var(--indra-dynamic-border);
 }
 
 /* ── TRIGGER CARD ── */
@@ -87,6 +258,61 @@
     font-size: 1.5rem;
 }
 
+.trigger-modes {
+    background: var(--glass-light);
+    padding: 2px;
+    border-radius: var(--radius-sm);
+}
+
+.mode-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: var(--space-2);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-tertiary);
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.mode-btn.active {
+    background: var(--color-bg-elevated);
+    color: var(--color-accent);
+    box-shadow: var(--shadow-float);
+}
+
+.trigger-config {
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.webhook-box {
+    padding: var(--space-2);
+    background: var(--color-bg-void);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 9px;
+}
+
+.webhook-box input {
+    background: transparent;
+    border: none;
+    color: var(--color-accent);
+    outline: none;
+}
+
+.webhook-box button {
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+
+.webhook-box button:hover {
+    color: var(--color-accent);
+}
+
 .trigger-card .info label {
     display: block;
     font-size: var(--text-sm);
@@ -107,15 +333,13 @@
 
 /* ── CANVAS & FLOW ── */
 .engine-canvas {
-    padding: var(--space-8);
-    background-image:
-        radial-gradient(var(--color-border) 1px, transparent 1px),
-        linear-gradient(to right, rgba(255, 255, 255, 0.01) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
-    background-size: 30px 30px, 120px 120px, 120px 120px;
+    flex: 1;
+    background-image: 
+        radial-gradient(var(--color-border) 1px, transparent 0);
+    background-size: 24px 24px;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    overflow: hidden;
 }
 
 .canvas-header {
@@ -128,53 +352,73 @@
 }
 
 .pipeline-scroll {
-    width: 100%;
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
     display: flex;
-    flex-direction: column;
     align-items: center;
+    padding: var(--space-8) !important;
+    direction: rtl; /* Direccionalidad Persa: El inicio es la Derecha */
 }
 
 .station-stack {
-    width: 100%;
-    max-width: 600px;
     display: flex;
-    flex-direction: column;
-    gap: var(--space-6);
+    flex-direction: row; /* En RTL, esto fluye de derecha a izquierda */
+    align-items: center;
+    gap: 0;
+    min-width: 100%;
+    justify-content: flex-start;
     position: relative;
+    padding-right: var(--space-8);
 }
 
 /* Connector Line */
-.station-stack::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 2px;
-    height: 100%;
-    background: linear-gradient(to bottom,
-            transparent,
-            var(--color-accent) 20%,
-            var(--color-accent) 80%,
-            transparent);
-    z-index: 0;
-    opacity: 0.1;
+/* Tubería Hidráulica Lógica (Timeline) */
+.flow-line-connector {
+    height: 3px;
+    min-width: 40px;
+    background: linear-gradient(to left, var(--indra-dynamic-accent), transparent);
+    opacity: 0.2;
+    margin: 0 -4px;
 }
 
 /* Energy Pulse Animation */
-.station-stack::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 2px;
-    height: 40px;
-    background: var(--color-accent);
-    filter: blur(2px);
-    z-index: 0;
-    opacity: 0.5;
-    animation: energyFlow 3s infinite linear;
+/* LEGO LIBRARY STYLES */
+.lego-library {
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    flex: 1;
+    overflow-y: auto;
+}
+
+.lego-piece {
+    background: rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.05);
+    padding: var(--space-3);
+    border-radius: var(--radius-sm);
+    color: #2c3e50;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    transition: all 0.2s ease;
+}
+
+.lego-piece:hover {
+    border-color: var(--indra-dynamic-accent);
+    background: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    transform: translateX(-4px);
+}
+
+.lego-piece span {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.8;
 }
 
 @keyframes energyFlow {
@@ -198,38 +442,38 @@
 }
 
 
-/* ── CARDS & DECOS ── */
+/* ── NODO DE ESTACIÓN (CANÓNICO) ── */
 .station-node {
-    background: var(--color-bg-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: var(--space-6);
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0,0,0,0.06);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
     display: flex;
-    gap: var(--space-6);
-    align-items: center;
+    flex-direction: column;
     position: relative;
-    z-index: 1;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
+    transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
     cursor: pointer;
-    overflow: hidden;
+    min-width: 170px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
 }
 
 .station-node:hover {
-    border-color: var(--color-accent-dim);
-    background: rgba(var(--color-accent-rgb), 0.02);
-    transform: translateX(4px);
+    border-color: var(--indra-dynamic-accent);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.05);
 }
 
 .station-node.selected {
-    border-color: var(--color-accent);
-    background: rgba(var(--color-accent-rgb), 0.05);
-    box-shadow: 0 0 20px rgba(var(--color-accent-rgb), 0.1);
+    border-color: var(--indra-dynamic-accent);
+    background: white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
 }
 
 .station-node.executing {
-    border-color: var(--color-accent);
-    background: rgba(var(--color-accent-rgb), 0.08);
-    box-shadow: 0 0 25px rgba(var(--color-accent-rgb), 0.2);
+    border-color: var(--indra-dynamic-accent);
+    box-shadow: 0 0 15px var(--indra-dynamic-border);
     animation: executing-pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
 }
 
@@ -490,16 +734,37 @@
     font-weight: bold;
 }
 
-/* ── SANDBOX TERMINAL ── */
-.workflow-sandbox {
-    margin-top: auto;
-    width: 100%;
-    max-width: 900px;
-    background: var(--color-bg-void);
-    border: 1px solid var(--color-border-strong);
+/* ── SANDBOX TERMINAL (HUD COLAPSABLE) ── */
+.workflow-sandbox-hud {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 80px);
+    max-width: 1000px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: none;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.05);
+    z-index: 1000;
+    transition: all 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+    height: 36px; /* Altura mínima para la pestaña */
+}
+
+.workflow-sandbox-hud.active {
+    height: 320px; /* Expandido */
+}
+
+.workflow-sandbox-hud .indra-header-label {
+    cursor: pointer;
+    pointer-events: auto;
+    border: none;
+    height: 40px;
+    display: flex;
+    align-items: center;
 }
 
 .workflow-sandbox.running {
@@ -575,4 +840,51 @@
 .pipeline-viewport::-webkit-scrollbar-thumb {
     background: var(--color-border-strong);
     border-radius: 2px;
+}
+
+/* ── PULSE MONITOR ── */
+.pulse-monitor {
+    background: var(--glass-bg);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+}
+
+.pulse-row {
+    padding: var(--space-2);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    border-left: 2px solid transparent;
+}
+
+.pulse-id {
+    opacity: 0.5;
+}
+
+.pulse-status {
+    font-weight: bold;
+    font-size: 9px;
+}
+
+.pulse-meta {
+    opacity: 0.4;
+    font-size: 8px;
+}
+
+.status-indicator {
+    width: 4px;
+    height: 100%;
+    min-height: 20px;
+    border-radius: 2px;
+}
+
+.glow-violet {
+    box-shadow: 0 0 10px color-mix(in srgb, var(--color-cold) 30%, transparent);
+    border-color: color-mix(in srgb, var(--color-cold) 35%, transparent);
+}
+
+.glow-red {
+    box-shadow: 0 0 10px color-mix(in srgb, var(--color-danger) 30%, transparent);
+    border-color: color-mix(in srgb, var(--color-danger) 35%, transparent);
 }

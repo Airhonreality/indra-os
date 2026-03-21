@@ -42,6 +42,7 @@ export function FrameBlock({ block, children }) {
     };
 
     const estaVacio = !children || (Array.isArray(children) && children.length === 0);
+    const esForma = p.kind === 'SHAPE';
 
     return (
         <div style={estiloFinal} className="indra-frame-block relative">
@@ -62,7 +63,7 @@ export function FrameBlock({ block, children }) {
                 />
             )}
             
-            {estaVacio ? (
+            {estaVacio && !esForma ? (
                 <div style={{
                     flex: 1,
                     display: 'flex',

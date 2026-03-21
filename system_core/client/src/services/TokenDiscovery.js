@@ -15,7 +15,7 @@ export const TokenDiscovery = {
         try {
             // En Indra, cargamos el CSS como texto para parsear sus comentarios
             // Nota: En producción esto podría venir de una ruta estática pre-procesada
-            const response = await fetch('/src/styles/design_tokens.css');
+            const response = await fetch('/indra-os/src/styles/design_tokens.css');
             const cssText = await response.text();
             
             return this.parse(cssText);

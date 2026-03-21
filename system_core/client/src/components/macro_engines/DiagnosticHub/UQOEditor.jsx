@@ -10,7 +10,7 @@
  * =============================================================================
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { executeDirective } from '../../../services/directive_executor';
 import { useAppState } from '../../../state/app_state';
@@ -61,6 +61,25 @@ export function UQOEditor() {
     const [rawJson, setRawJson] = useState('{\n  "provider": "system",\n  "protocol": "SYSTEM_MANIFEST"\n}');
     const [isValid, setIsValid] = useState(true);
     const [isPulsing, setIsPulsing] = useState(false);
+    const [smokeTests, setSmokeTests] = useState([]);
+    const [selectedSmokeIdx, setSelectedSmokeIdx] = useState(-1);
+
+    // Carga asíncrona de Smoke Tests (Solo dev local)
+    useEffect(() => {
+        const loadSmokeTests = async () => {
+            try {
+                // Importación dinámica: Si el archivo no existe en el sistema (production), el catch lo ignora.
+                // Esto es compatible con Vite base paths.
+                const module = await import('../../../smoke_tests_local.js');
+                if (module && module.SMOKE_TESTS) {
+                    setSmokeTests(module.SMOKE_TESTS);
+                }
+            } catch (e) {
+                // Fallo silencioso si no existe (Axioma de Supervivencia)
+            }
+        };
+        loadSmokeTests();
+    }, []);
 
     // Handler de cambio en el editor
     const handleJsonChange = (val) => {
@@ -93,6 +112,42 @@ export function UQOEditor() {
             
         } catch (err) {
             console.error('[UQOEditor] Pulse Failure:', err);
+        } finally {
+            setIsPulsing(false);
+        }
+    };
+
+    // Ejecución de Smoke Test (JS dinámico)
+    const runSmokeTest = async () => {
+        if (selectedSmokeIdx < 0 || isPulsing) return;
+        
+        setIsPulsing(true);
+        const test = smokeTests[selectedSmokeIdx];
+        
+        // AXIOMA DE SINCERIDAD: Creamos una "Traza Virtual" para que el usuario vea el inicio en el Roster
+        console.log(`🚀 IGNICIÓN: ${test.label}`);
+        
+        try {
+            // Evaluamos el código pasando el contexto de conexión y una función de logueo
+            const scriptFunc = new Function('context', 'sendDirective', `
+                return (async () => {
+                    ${test.code}
+                })();
+            `);
+            
+            // Pasamos executeDirective directamente para que cada paso genere su propia traza real en el Roster
+            const result = await scriptFunc(
+                { coreUrl, sessionSecret }, 
+                (uqo) => executeDirective(uqo, coreUrl, sessionSecret)
+            );
+            
+            console.log('🏁 RESULTADO SMOKE:', result);
+            if (!result.success) throw new Error(result.error);
+            
+            alert(`SUCCESS: ${result.message}`);
+        } catch (err) {
+            console.error('[SmokeTest] Execution Error:', err);
+            alert(`CRITICAL_SMOKE_ERROR: ${err.message}`);
         } finally {
             setIsPulsing(false);
         }
@@ -153,6 +208,33 @@ export function UQOEditor() {
 
                 {/* Presets / Quick Actions */}
                 <div className="presets-grid">
+                    {smokeTests.length > 0 && (
+                        <div className="smoke-test-section stack--3xs border-bottom--thin" style={{ paddingBottom: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+                            <span className="section-label" style={{ color: '#ff00ff' }}>DEV_SMOKE_VALUATION</span>
+                            <div className="shelf--tight fill">
+                                <select 
+                                    className="smoke-select fill h-100"
+                                    value={selectedSmokeIdx}
+                                    onChange={(e) => setSelectedSmokeIdx(parseInt(e.target.value))}
+                                    style={{ background: 'rgba(255,0,255,0.05)', border: '1px solid rgba(255,0,255,0.2)', color: '#ff00ff', fontSize: '10px', height: '30px' }}
+                                >
+                                    <option value={-1}>SELECT_SMOKE_SCRIPT...</option>
+                                    {smokeTests.map((t, i) => (
+                                        <option key={i} value={i}>{t.label}</option>
+                                    ))}
+                                </select>
+                                <button 
+                                    className="btn btn--active-glass h-100"
+                                    style={{ borderColor: '#ff00ff', color: '#ff00ff' }}
+                                    onClick={runSmokeTest}
+                                    disabled={selectedSmokeIdx < 0 || isPulsing}
+                                >
+                                    IGNITE
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <span className="section-label">AXIOMATIC_SUITES</span>
                     <div className="presets-list">
                         {PRESETS.map((p, i) => (

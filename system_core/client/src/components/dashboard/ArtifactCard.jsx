@@ -109,8 +109,9 @@ export function ArtifactCard({ atom }) {
                         ? 'rgba(255,255,255,0.02)'
                         : `linear-gradient(135deg, ${theme.color}10 0%, transparent 100%)`),
                 '--theme-color': isSyncing ? 'var(--color-accent)' : (isOrphan ? 'var(--color-text-dim)' : theme.color),
-                opacity: (isOrphan && !isSyncing) ? 0.6 : 1,
-                cursor: (isOrphan || isSyncing) ? 'wait' : 'pointer'
+                opacity: (isOrphan || isSyncing) ? 0.6 : 1,
+                cursor: (isOrphan || isSyncing) ? 'wait' : 'pointer',
+                pointerEvents: isSyncing ? 'none' : 'auto'
             }}
             onClick={handleOpen}
         >

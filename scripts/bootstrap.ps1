@@ -12,8 +12,40 @@ $REPO_OWNER = "Airhonreality"
 $REPO_NAME = "indra-os"
 $REPO_URL = "https://github.com/$REPO_OWNER/$REPO_NAME.git"
 $RAW_URL_BASE = "https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main"
+$BOOTSTRAP_RUN_ID = [Guid]::NewGuid().ToString().Substring(0, 8)
+$BOOTSTRAP_LOG_PATH = Join-Path $env:TEMP "indra-bootstrap-$BOOTSTRAP_RUN_ID.log"
 
 # Colores
+function Write-Log {
+    param(
+        [string]$Level,
+        [string]$Message
+    )
+
+    $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+    "$timestamp [$Level] $Message" | Out-File -FilePath $BOOTSTRAP_LOG_PATH -Append -Encoding UTF8
+}
+
+function Write-ExceptionDetails {
+    param(
+        [string]$Context,
+        [System.Management.Automation.ErrorRecord]$ErrorRecord
+    )
+
+    if (-not $ErrorRecord) {
+        Write-Log -Level "ERROR" -Message "$Context | ErrorRecord vacío"
+        return
+    }
+
+    Write-Log -Level "ERROR" -Message "$Context | Message: $($ErrorRecord.Exception.Message)"
+    Write-Log -Level "ERROR" -Message "$Context | Type: $($ErrorRecord.Exception.GetType().FullName)"
+    Write-Log -Level "ERROR" -Message "$Context | Category: $($ErrorRecord.CategoryInfo)"
+    Write-Log -Level "ERROR" -Message "$Context | FQID: $($ErrorRecord.FullyQualifiedErrorId)"
+    if ($ErrorRecord.InvocationInfo -and $ErrorRecord.InvocationInfo.PositionMessage) {
+        Write-Log -Level "ERROR" -Message "$Context | Position: $($ErrorRecord.InvocationInfo.PositionMessage.Replace([Environment]::NewLine, ' '))"
+    }
+}
+
 function Write-Header {
     param([string]$Message)
     Write-Host ""
@@ -21,26 +53,31 @@ function Write-Header {
     Write-Host $Message -ForegroundColor Cyan
     Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
     Write-Host ""
+    Write-Log -Level "STAGE" -Message $Message
 }
 
 function Write-Success {
     param([string]$Message)
     Write-Host "✅ $Message" -ForegroundColor Green
+    Write-Log -Level "SUCCESS" -Message $Message
 }
 
 function Write-Info {
     param([string]$Message)
     Write-Host "ℹ️  $Message" -ForegroundColor Blue
+    Write-Log -Level "INFO" -Message $Message
 }
 
 function Write-Warning-Custom {
     param([string]$Message)
     Write-Host "⚠️  $Message" -ForegroundColor Yellow
+    Write-Log -Level "WARN" -Message $Message
 }
 
 function Write-Error-Custom {
     param([string]$Message)
     Write-Host "❌ $Message" -ForegroundColor Red
+    Write-Log -Level "ERROR" -Message $Message
 }
 
 function Test-GitReady {
@@ -162,6 +199,7 @@ if ($modeInput -eq "D") {
     $ExecutionMode = "non-dev"
     Write-Info "Modo seleccionado: usuario final (ZIP-first)."
 }
+Write-Info "Log de ejecución: $BOOTSTRAP_LOG_PATH"
 
 # ============================================
 # FUNCIÓN: Instalar Git automáticamente
@@ -297,6 +335,7 @@ function Install-Git {
                 } catch {
                     $errorMsg = $_.Exception.Message
                     Write-Warning-Custom "Error en intento $attempt`: $errorMsg"
+                    Write-ExceptionDetails -Context "Install-Git descarga intento $attempt" -ErrorRecord $_
                     Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
 
                     if ($attempt -lt $maxAttempts) {
@@ -375,6 +414,7 @@ function Install-Git {
             }
         } catch {
             Write-Error-Custom "Error durante la instalación: $($_.Exception.Message)"
+            Write-ExceptionDetails -Context "Install-Git instalación silenciosa" -ErrorRecord $_
             $recoveryAction = Start-GitManualRecovery
             if ($recoveryAction -eq "retry") {
                 continue
@@ -414,7 +454,7 @@ try {
     }
 }
 catch {
-    # No detectado
+    Write-Log -Level "INFO" -Message "Git no detectado en PATH durante verificación inicial"
 }
 
 if (-not $gitInstalled) {
@@ -586,6 +626,7 @@ Write-Host ""
         $lastZipError = $_.Exception.Message
         Write-Warning-Custom "ZIP-first falló."
         Write-Host "Detalle ZIP: $lastZipError" -ForegroundColor Yellow
+        Write-ExceptionDetails -Context "Get-RepositoryFromZip non-dev" -ErrorRecord $_
 
         if ($gitInstalled) {
             Write-Info "Git está disponible; intentando clone como fallback..."
@@ -612,6 +653,7 @@ Write-Host ""
         }
         catch {
             $lastZipError = $_.Exception.Message
+            Write-ExceptionDetails -Context "Get-RepositoryFromZip fallback dev" -ErrorRecord $_
         }
     }
  }
@@ -669,6 +711,7 @@ try {
 }
 catch {
     Write-Error-Custom "Error crítico durante el despliegue: $_"
+    Write-ExceptionDetails -Context "Ejecución setup principal" -ErrorRecord $_
     Write-Host ""
     Write-Warning-Custom "El proceso se ha detenido. El entorno temporal se mantendrá para diagnóstico."
     exit 1
@@ -696,3 +739,4 @@ Write-Success "Secuencia de Ignición y Limpieza finalizada."
 Write-Host ""
 Write-Host "INDRA OS ahora orbita tu Google Drive. Tu PC está limpio." -ForegroundColor Green
 Write-Host ""
+Write-Info "Log final disponible en: $BOOTSTRAP_LOG_PATH"

@@ -461,28 +461,114 @@ Write-Success "Entorno temporal listo."
 Write-Header "📥 Descargando INDRA OS desde GitHub"
 
 Write-Info "Repositorio: $REPO_URL"
-Write-Info "Clonando... (esto puede tardar 1-2 minutos)"
+Write-Info "Preparando descarga del repositorio..."
 Write-Host ""
 
-try {
-    git clone --branch main --single-branch $REPO_URL $installPath 2>&1 | ForEach-Object { Write-Host $_ }
-    
-    if ($LASTEXITCODE -ne 0) {
-        throw "Git clone falló con código: $LASTEXITCODE"
+ $repoReady = $false
+ $lastCloneError = $null
+
+for ($cloneAttempt = 1; $cloneAttempt -le 3; $cloneAttempt++) {
+    try {
+        Write-Info "Clonando con Git (intento $cloneAttempt/3)..."
+        $cloneOutput = git clone --branch main --single-branch $REPO_URL $installPath 2>&1
+        $cloneOutput | ForEach-Object { Write-Host $_ }
+
+        if ($LASTEXITCODE -eq 0 -and (Test-Path (Join-Path $installPath ".git"))) {
+            $repoReady = $true
+            break
+        }
+
+        $lastCloneError = ($cloneOutput | Out-String).Trim()
     }
-    
-    Write-Success "Repositorio clonado exitosamente"
+    catch {
+        $lastCloneError = $_.Exception.Message
+    }
+
+    Write-Warning-Custom "Fallo en git clone (intento $cloneAttempt/3)."
+    if ($lastCloneError) {
+        Write-Host "Detalle: $lastCloneError" -ForegroundColor Yellow
+    }
+
+    if (Test-Path $installPath) {
+        Remove-Item $installPath -Recurse -Force -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Path $installPath -Force | Out-Null
+    }
+
+    if ($cloneAttempt -lt 3) {
+        Start-Sleep -Seconds $cloneAttempt
+    }
 }
-catch {
-    Write-Error-Custom "Error al clonar repositorio: $_"
-    Write-Host ""
-    Write-Host "Posibles causas:" -ForegroundColor Yellow
-    Write-Host "  1. No hay conexión a internet" -ForegroundColor Cyan
-    Write-Host "  2. El repositorio no existe o es privado" -ForegroundColor Cyan
-    Write-Host "  3. Problemas de permisos en la carpeta destino" -ForegroundColor Cyan
-    Write-Host ""
-    Read-Host "Presiona Enter para salir"
-    exit 1
+
+if (-not $repoReady) {
+    Write-Warning-Custom "No fue posible clonar con Git. Activando fallback por ZIP..."
+
+    try {
+        $zipUrl = "https://github.com/$REPO_OWNER/$REPO_NAME/archive/refs/heads/main.zip"
+        $zipPath = Join-Path $env:TEMP "indra-bootstrap-main.zip"
+        $extractRoot = Join-Path $env:TEMP "indra-bootstrap-extract-$bootstrapId"
+
+        if (Test-Path $zipPath) {
+            Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path $extractRoot) {
+            Remove-Item $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+
+        Write-Info "Descargando ZIP del repositorio..."
+        Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 300 -ErrorAction Stop
+
+        Write-Info "Extrayendo contenido..."
+        if (Get-Command Expand-Archive -ErrorAction SilentlyContinue) {
+            Expand-Archive -Path $zipPath -DestinationPath $extractRoot -Force
+        } else {
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $extractRoot)
+        }
+
+        $extractedMain = Join-Path $extractRoot "$REPO_NAME-main"
+        if (-not (Test-Path $extractedMain)) {
+            $extractedMain = Get-ChildItem -Path $extractRoot -Directory | Select-Object -First 1 | ForEach-Object { $_.FullName }
+        }
+
+        if (-not $extractedMain -or -not (Test-Path $extractedMain)) {
+            throw "No se encontró la carpeta extraída del repositorio"
+        }
+
+        if (Test-Path $installPath) {
+            Remove-Item $installPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        New-Item -ItemType Directory -Path $installPath -Force | Out-Null
+        Copy-Item -Path (Join-Path $extractedMain "*") -Destination $installPath -Recurse -Force
+
+        Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+        Remove-Item $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
+
+        if (-not (Test-Path (Join-Path $installPath "scripts\first-time-setup.ps1"))) {
+            throw "ZIP descargado pero contenido incompleto para el setup"
+        }
+
+        $repoReady = $true
+        Write-Success "Repositorio descargado exitosamente vía ZIP fallback"
+    }
+    catch {
+        Write-Error-Custom "Falló la descarga del repositorio por Git y por ZIP."
+        if ($lastCloneError) {
+            Write-Host "Detalle clone: $lastCloneError" -ForegroundColor Yellow
+        }
+        Write-Host "Detalle ZIP: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Posibles causas:" -ForegroundColor Yellow
+        Write-Host "  1. No hay conexión a internet o hay proxy/firewall" -ForegroundColor Cyan
+        Write-Host "  2. Bloqueo TLS/SSL en red corporativa" -ForegroundColor Cyan
+        Write-Host "  3. Permisos insuficientes en carpeta temporal" -ForegroundColor Cyan
+        Write-Host ""
+        Read-Host "Presiona Enter para salir"
+        exit 1
+    }
+}
+
+if ($repoReady) {
+    Write-Success "Repositorio listo para continuar"
 }
 
 # ============================================

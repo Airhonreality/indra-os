@@ -67,34 +67,159 @@ $null = Read-Host
 # FUNCIÓN: Instalar Git automáticamente
 # ============================================
 function Install-Git {
-    Write-Header "📦 Instalando Git automáticamente"
+    Write-Header "📦 Instalando Git (requerido para INDRA)"
     
-    Write-Info "Git no detectado - iniciando instalación automática..."
+    Write-Info "Iniciando descarga e instalación automática de Git..."
+    Write-Info "Esto puede tomar algunos minutos. Por favor, espera..."
     
     # Detectar arquitectura
     $arch = if ([Environment]::Is64BitOperatingSystem) { "64" } else { "32" }
+    $installerPath = "$env:TEMP\git-installer.exe"
     
-    # Obtener última versión de Git
-    Write-Info "Obteniendo última versión de Git..."
-    $gitReleasesUrl = "https://api.github.com/repos/git-for-windows/git/releases/latest"
-    
+    # Configurar TLS y SSL
     try {
-        $latestRelease = Invoke-RestMethod -Uri $gitReleasesUrl -UseBasicParsing
-        $gitVersion = $latestRelease.tag_name -replace 'v', ''
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
+    } catch {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    }
+    
+    # URLs de descarga con fallback - versiones estables conocidas
+    $downloadSources = @(
+        # Fuente 1: GitHub Releases (más reciente)
+        @{
+            name = "GitHub Releases (última versión)"
+            url = {
+                param($version)
+                "https://github.com/git-for-windows/git/releases/download/v$version/Git-$version-$arch-bit.exe"
+            }
+            getVersion = {
+                try {
+                    $response = Invoke-RestMethod -Uri "https://api.github.com/repos/git-for-windows/git/releases/latest" `
+                        -UseBasicParsing `
+                        -TimeoutSec 15 `
+                        -MaximumRetryCount 2 `
+                        -RetryIntervalSec 3 `
+                        -ErrorAction Stop
+                    return $response.tag_name -replace 'v', ''
+                } catch {
+                    Write-Warning-Custom "No se pudo obtener versión desde API, usando fallback"
+                    return "2.45.0"
+                }
+            }
+        }
+        # Fuente 2: Versión estable conocida (fallback)
+        @{
+            name = "GitHub Releases (versión estable)"
+            url = {
+                "https://github.com/git-for-windows/git/releases/download/v2.45.0/Git-2.45.0-$arch-bit.exe"
+            }
+            getVersion = { $null }
+        }
+        # Fuente 3: git-scm.com (CDN distribuida)
+        @{
+            name = "git-scm.com (CDN)"
+            url = {
+                if ($arch -eq "64") {
+                    "https://www.git-scm.com/download/win"  # Página que redirige al instalador
+                } else {
+                    "https://www.git-scm.com/download/win?bit=32"
+                }
+            }
+            getVersion = { $null }
+        }
+    )
+    
+    $downloadSuccess = $false
+    $maxAttempts = 3
+    
+    # Intentar descargar desde cada fuente
+    foreach ($source in $downloadSources) {
+        if ($downloadSuccess) { break }
         
-        # Construir URL de descarga
-        $installerUrl = "https://github.com/git-for-windows/git/releases/download/v$gitVersion/Git-$gitVersion-$arch-bit.exe"
-        $installerPath = "$env:TEMP\git-installer.exe"
+        Write-Host ""
+        Write-Info "Intento desde: $($source.name)"
         
-        Write-Info "Descargando Git v$gitVersion para Windows $arch-bit..."
-        Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
-        Write-Success "Descarga completada"
+        for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+            try {
+                # Obtener URL
+                $downloadUrl = if ($source.getVersion) {
+                    $version = & $source.getVersion
+                    if ($version) {
+                        Write-Info "Versión detectada: $version"
+                        & $source.url $version
+                    } else {
+                        & $source.url
+                    }
+                } else {
+                    & $source.url
+                }
+                
+                # Limpiar intentos previos
+                if (Test-Path $installerPath) {
+                    Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
+                }
+                
+                Write-Info "Descargando ($attempt/$maxAttempts)..."
+                
+                # Descargar con timeouts y reintentos configurados
+                $params = @{
+                    Uri                       = $downloadUrl
+                    OutFile                   = $installerPath
+                    UseBasicParsing           = $true
+                    TimeoutSec                = 300  # 5 minutos
+                    MaximumRetryCount         = 1
+                    RetryIntervalSec          = 5
+                    SkipCertificateCheck      = $false
+                    ErrorAction               = 'Stop'
+                }
+                
+                # Usar WebClient si Invoke-WebRequest falla (compatible con PS 2.0+)
+                if ($PSVersionTable.PSVersion.Major -lt 6) {
+                    $webClient = New-Object System.Net.WebClient
+                    $webClient.DownloadFile($downloadUrl, $installerPath)
+                } else {
+                    Invoke-WebRequest @params
+                }
+                
+                # Validar tamaño de descarga
+                if (Test-Path $installerPath) {
+                    $fileSize = (Get-Item $installerPath).Length
+                    if ($fileSize -gt 50MB) {  # Git suele ser > 50 MB
+                        Write-Success "Descarga exitosa: $([Math]::Round($fileSize/1MB, 2)) MB"
+                        $downloadSuccess = $true
+                        break
+                    } else {
+                        Write-Warning-Custom "Descarga incompleta ($([Math]::Round($fileSize/1MB, 2)) MB), reintentando..."
+                        Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
+                    }
+                }
+            } catch {
+                $errorMsg = $_.Exception.Message
+                Write-Warning-Custom "Error en intento $attempt`: $errorMsg"
+                Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
+                
+                if ($attempt -lt $maxAttempts) {
+                    Write-Info "Esperando antes de reintentar (${attempt}s)..."
+                    Start-Sleep -Seconds $attempt
+                }
+            }
+        }
+    }
+    
+    if (-not $downloadSuccess) {
+        Write-Error-Custom "No se pudo descargar Git desde ninguna fuente disponible"
+        Write-Host ""
+        Write-Warning-Custom "Verifica tu conexión a internet e intenta de nuevo"
+        Write-Host ""
+        Read-Host "Presiona Enter para salir"
+        exit 1
+    }
+    
+    # Instalar Git silenciosamente
+    try {
+        Write-Header "Instalando Git en tu sistema"
+        Write-Info "Esto puede tardar 2-3 minutos..."
         
-        # Instalar Git (silencioso)
-        Write-Info "Instalando Git (esto puede tardar 2-3 minutos)..."
-        Write-Info "Por favor espera, no cierres esta ventana..."
-        
-        # Parámetros de instalación silenciosa
         $installArgs = @(
             "/VERYSILENT",
             "/NORESTART",
@@ -105,42 +230,34 @@ function Install-Git {
             "/COMPONENTS=`"icons,ext\shellhere,assoc,assoc_sh`""
         )
         
-        $installProcess = Start-Process -FilePath $installerPath -ArgumentList $installArgs -Wait -PassThru
+        $installProcess = Start-Process -FilePath $installerPath `
+            -ArgumentList $installArgs `
+            -Wait `
+            -PassThru `
+            -NoNewWindow
+        
+        Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
         
         if ($installProcess.ExitCode -eq 0) {
-            Write-Success "Git instalado exitosamente"
+            Write-Success "Git instalado exitosamente en tu sistema"
             
-            # Limpiar instalador
-            Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
-            
-            # Crear marker
+            # Crear marker para detectar reinicio
             $markerPath = Join-Path $env:TEMP ".git-installed-marker"
-            "installed" | Out-File $markerPath -Encoding UTF8
+            "installed" | Out-File $markerPath -Encoding UTF8 -Force
             
-            Write-Info "Reiniciando script automáticamente..."
-            Start-Sleep -Seconds 2
+            Write-Info "Reiniciando bootstrap automáticamente..."
+            Start-Sleep -Seconds 3
             
             # Re-ejecutar el script bootstrap
             Start-Process powershell.exe -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", "irm $RAW_URL_BASE/scripts/bootstrap.ps1 | iex"
-            
             exit 0
+        } else {
+            Write-Error-Custom "La instalación falló con código: $($installProcess.ExitCode)"
+            Read-Host "Presiona Enter para salir"
+            exit 1
         }
-        else {
-            throw "La instalación falló con código: $($installProcess.ExitCode)"
-        }
-    }
-    catch {
-        Write-Error-Custom "Error al instalar Git: $_"
-        Write-Host ""
-        Write-Warning-Custom "FALLBACK: Instalación manual necesaria"
-        Write-Host ""
-        Write-Host "Por favor, instala Git manualmente:" -ForegroundColor Yellow
-        Write-Host "  1. Ve a: https://git-scm.com/download/win" -ForegroundColor Cyan
-        Write-Host "  2. Descarga Git para Windows" -ForegroundColor Cyan
-        Write-Host "  3. Instala con opciones por defecto" -ForegroundColor Cyan
-        Write-Host "  4. Reinicia PowerShell" -ForegroundColor Cyan
-        Write-Host "  5. Ejecuta de nuevo el comando bootstrap" -ForegroundColor Cyan
-        Write-Host ""
+    } catch {
+        Write-Error-Custom "Error durante la instalación: $($_.Exception.Message)"
         Read-Host "Presiona Enter para salir"
         exit 1
     }

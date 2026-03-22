@@ -150,6 +150,19 @@ Write-Host ""
 Write-Host "Presiona Enter para iniciar la ignición o Ctrl+C para cancelar..." -ForegroundColor Yellow
 $null = Read-Host
 
+Write-Host ""
+Write-Host "Selecciona modo de instalación:" -ForegroundColor Yellow
+Write-Host "  [N] Usuario final (non-dev, recomendado)" -ForegroundColor Cyan
+Write-Host "  [D] Desarrollador (usa Git prioritariamente)" -ForegroundColor Cyan
+$modeInput = (Read-Host "Modo [N/D]").Trim().ToUpper()
+if ($modeInput -eq "D") {
+    $ExecutionMode = "dev"
+    Write-Info "Modo seleccionado: desarrollador (clone-first)."
+} else {
+    $ExecutionMode = "non-dev"
+    Write-Info "Modo seleccionado: usuario final (ZIP-first)."
+}
+
 # ============================================
 # FUNCIÓN: Instalar Git automáticamente
 # ============================================
@@ -405,30 +418,34 @@ catch {
 }
 
 if (-not $gitInstalled) {
-    Write-Warning-Custom "Git NO está instalado"
-    Write-Info "Instalación automática iniciando en 3 segundos..."
-    Write-Host ""
-    
-    for ($i = 3; $i -gt 0; $i--) {
-        Write-Host "  Instalando en $i..." -ForegroundColor Yellow -NoNewline
-        Start-Sleep -Seconds 1
-        Write-Host "`r" -NoNewline
-    }
-    Write-Host ""
-    
-    $installedNow = Install-Git
-    if (-not $installedNow) {
-        Write-Error-Custom "No se pudo asegurar la instalación de Git."
-        exit 1
-    }
+    if ($ExecutionMode -eq "dev") {
+        Write-Warning-Custom "Git NO está instalado"
+        Write-Info "Instalación automática iniciando en 3 segundos..."
+        Write-Host ""
+        
+        for ($i = 3; $i -gt 0; $i--) {
+            Write-Host "  Instalando en $i..." -ForegroundColor Yellow -NoNewline
+            Start-Sleep -Seconds 1
+            Write-Host "`r" -NoNewline
+        }
+        Write-Host ""
+        
+        $installedNow = Install-Git
+        if (-not $installedNow) {
+            Write-Error-Custom "No se pudo asegurar la instalación de Git."
+            exit 1
+        }
 
-    $gitStatusAfterInstall = Test-GitReady
-    if ($gitStatusAfterInstall.Installed) {
-        Write-Success "Git listo para continuar: $($gitStatusAfterInstall.Version)"
-        $gitInstalled = $true
+        $gitStatusAfterInstall = Test-GitReady
+        if ($gitStatusAfterInstall.Installed) {
+            Write-Success "Git listo para continuar: $($gitStatusAfterInstall.Version)"
+            $gitInstalled = $true
+        } else {
+            Write-Error-Custom "Git no está disponible tras recuperación."
+            exit 1
+        }
     } else {
-        Write-Error-Custom "Git no está disponible tras recuperación."
-        exit 1
+        Write-Warning-Custom "Git no está instalado, pero en modo non-dev continuaremos sin Git (ZIP-first)."
     }
 }
 
@@ -466,105 +483,155 @@ Write-Host ""
 
  $repoReady = $false
  $lastCloneError = $null
+ $lastZipError = $null
 
-for ($cloneAttempt = 1; $cloneAttempt -le 3; $cloneAttempt++) {
-    try {
-        Write-Info "Clonando con Git (intento $cloneAttempt/3)..."
-        $cloneOutput = git clone --branch main --single-branch $REPO_URL $installPath 2>&1
-        $cloneOutput | ForEach-Object { Write-Host $_ }
+ function Get-RepositoryFromZip {
+    param(
+        [string]$destinationPath,
+        [string]$bootstrapToken
+    )
 
-        if ($LASTEXITCODE -eq 0 -and (Test-Path (Join-Path $installPath ".git"))) {
-            $repoReady = $true
-            break
+    $zipUrl = "https://github.com/$REPO_OWNER/$REPO_NAME/archive/refs/heads/main.zip"
+    $zipPath = Join-Path $env:TEMP "indra-bootstrap-main.zip"
+    $extractRoot = Join-Path $env:TEMP "indra-bootstrap-extract-$bootstrapToken"
+
+    if (Test-Path $zipPath) {
+        Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+    }
+    if (Test-Path $extractRoot) {
+        Remove-Item $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    Write-Info "Descargando ZIP del repositorio..."
+    Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 300 -ErrorAction Stop
+
+    Write-Info "Extrayendo contenido..."
+    if (Get-Command Expand-Archive -ErrorAction SilentlyContinue) {
+        Expand-Archive -Path $zipPath -DestinationPath $extractRoot -Force
+    } else {
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $extractRoot)
+    }
+
+    $expectedRoot = Join-Path $extractRoot "$REPO_NAME-main"
+    if (-not (Test-Path $expectedRoot)) {
+        throw "No se encontró estructura esperada del ZIP ($REPO_NAME-main)"
+    }
+
+    if (Test-Path $destinationPath) {
+        Remove-Item $destinationPath -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    New-Item -ItemType Directory -Path $destinationPath -Force | Out-Null
+    Copy-Item -Path (Join-Path $expectedRoot "*") -Destination $destinationPath -Recurse -Force
+
+    Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+    Remove-Item $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
+
+    if (-not (Test-Path (Join-Path $destinationPath "scripts\first-time-setup.ps1"))) {
+        throw "ZIP descargado pero contenido incompleto para el setup"
+    }
+ }
+
+ function Get-RepositoryByClone {
+    param([string]$destinationPath)
+
+    for ($cloneAttempt = 1; $cloneAttempt -le 3; $cloneAttempt++) {
+        try {
+            Write-Info "Clonando con Git (intento $cloneAttempt/3)..."
+            $cloneOutput = git clone --branch main --single-branch $REPO_URL $destinationPath 2>&1
+            $cloneOutput | ForEach-Object { Write-Host $_ }
+
+            if ($LASTEXITCODE -eq 0 -and (Test-Path (Join-Path $destinationPath ".git"))) {
+                return @{
+                    Success = $true
+                    Error = $null
+                }
+            }
+
+            $cloneError = ($cloneOutput | Out-String).Trim()
+        }
+        catch {
+            $cloneError = $_.Exception.Message
         }
 
-        $lastCloneError = ($cloneOutput | Out-String).Trim()
+        Write-Warning-Custom "Fallo en git clone (intento $cloneAttempt/3)."
+        if ($cloneError) {
+            Write-Host "Detalle: $cloneError" -ForegroundColor Yellow
+        }
+
+        if (Test-Path $destinationPath) {
+            Remove-Item $destinationPath -Recurse -Force -ErrorAction SilentlyContinue
+            New-Item -ItemType Directory -Path $destinationPath -Force | Out-Null
+        }
+
+        if ($cloneAttempt -lt 3) {
+            Start-Sleep -Seconds $cloneAttempt
+        }
+    }
+
+    return @{
+        Success = $false
+        Error = $cloneError
+    }
+ }
+
+ if ($ExecutionMode -eq "non-dev") {
+    Write-Info "Modo non-dev activo: intentando ZIP-first..."
+    try {
+        Get-RepositoryFromZip -destinationPath $installPath -bootstrapToken $bootstrapId
+        $repoReady = $true
+        Write-Success "Repositorio descargado exitosamente vía ZIP"
     }
     catch {
-        $lastCloneError = $_.Exception.Message
-    }
+        $lastZipError = $_.Exception.Message
+        Write-Warning-Custom "ZIP-first falló."
+        Write-Host "Detalle ZIP: $lastZipError" -ForegroundColor Yellow
 
-    Write-Warning-Custom "Fallo en git clone (intento $cloneAttempt/3)."
-    if ($lastCloneError) {
-        Write-Host "Detalle: $lastCloneError" -ForegroundColor Yellow
+        if ($gitInstalled) {
+            Write-Info "Git está disponible; intentando clone como fallback..."
+            $cloneResult = Get-RepositoryByClone -destinationPath $installPath
+            if ($cloneResult.Success) {
+                $repoReady = $true
+            } else {
+                $lastCloneError = $cloneResult.Error
+            }
+        }
     }
-
-    if (Test-Path $installPath) {
-        Remove-Item $installPath -Recurse -Force -ErrorAction SilentlyContinue
-        New-Item -ItemType Directory -Path $installPath -Force | Out-Null
+ } else {
+    Write-Info "Modo dev activo: intentando clone-first..."
+    $cloneResult = Get-RepositoryByClone -destinationPath $installPath
+    if ($cloneResult.Success) {
+        $repoReady = $true
+    } else {
+        $lastCloneError = $cloneResult.Error
+        Write-Warning-Custom "Clone-first falló. Activando fallback por ZIP..."
+        try {
+            Get-RepositoryFromZip -destinationPath $installPath -bootstrapToken $bootstrapId
+            $repoReady = $true
+            Write-Success "Repositorio descargado exitosamente vía ZIP fallback"
+        }
+        catch {
+            $lastZipError = $_.Exception.Message
+        }
     }
-
-    if ($cloneAttempt -lt 3) {
-        Start-Sleep -Seconds $cloneAttempt
-    }
-}
+ }
 
 if (-not $repoReady) {
-    Write-Warning-Custom "No fue posible clonar con Git. Activando fallback por ZIP..."
-
-    try {
-        $zipUrl = "https://github.com/$REPO_OWNER/$REPO_NAME/archive/refs/heads/main.zip"
-        $zipPath = Join-Path $env:TEMP "indra-bootstrap-main.zip"
-        $extractRoot = Join-Path $env:TEMP "indra-bootstrap-extract-$bootstrapId"
-
-        if (Test-Path $zipPath) {
-            Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
-        }
-        if (Test-Path $extractRoot) {
-            Remove-Item $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
-        }
-
-        Write-Info "Descargando ZIP del repositorio..."
-        Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 300 -ErrorAction Stop
-
-        Write-Info "Extrayendo contenido..."
-        if (Get-Command Expand-Archive -ErrorAction SilentlyContinue) {
-            Expand-Archive -Path $zipPath -DestinationPath $extractRoot -Force
-        } else {
-            Add-Type -AssemblyName System.IO.Compression.FileSystem
-            [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $extractRoot)
-        }
-
-        $extractedMain = Join-Path $extractRoot "$REPO_NAME-main"
-        if (-not (Test-Path $extractedMain)) {
-            $extractedMain = Get-ChildItem -Path $extractRoot -Directory | Select-Object -First 1 | ForEach-Object { $_.FullName }
-        }
-
-        if (-not $extractedMain -or -not (Test-Path $extractedMain)) {
-            throw "No se encontró la carpeta extraída del repositorio"
-        }
-
-        if (Test-Path $installPath) {
-            Remove-Item $installPath -Recurse -Force -ErrorAction SilentlyContinue
-        }
-        New-Item -ItemType Directory -Path $installPath -Force | Out-Null
-        Copy-Item -Path (Join-Path $extractedMain "*") -Destination $installPath -Recurse -Force
-
-        Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
-        Remove-Item $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
-
-        if (-not (Test-Path (Join-Path $installPath "scripts\first-time-setup.ps1"))) {
-            throw "ZIP descargado pero contenido incompleto para el setup"
-        }
-
-        $repoReady = $true
-        Write-Success "Repositorio descargado exitosamente vía ZIP fallback"
+    Write-Error-Custom "Falló la descarga del repositorio por todos los métodos disponibles."
+    if ($lastCloneError) {
+        Write-Host "Detalle clone: $lastCloneError" -ForegroundColor Yellow
     }
-    catch {
-        Write-Error-Custom "Falló la descarga del repositorio por Git y por ZIP."
-        if ($lastCloneError) {
-            Write-Host "Detalle clone: $lastCloneError" -ForegroundColor Yellow
-        }
-        Write-Host "Detalle ZIP: $($_.Exception.Message)" -ForegroundColor Yellow
-        Write-Host ""
-        Write-Host "Posibles causas:" -ForegroundColor Yellow
-        Write-Host "  1. No hay conexión a internet o hay proxy/firewall" -ForegroundColor Cyan
-        Write-Host "  2. Bloqueo TLS/SSL en red corporativa" -ForegroundColor Cyan
-        Write-Host "  3. Permisos insuficientes en carpeta temporal" -ForegroundColor Cyan
-        Write-Host ""
-        Read-Host "Presiona Enter para salir"
-        exit 1
+    if ($lastZipError) {
+        Write-Host "Detalle ZIP: $lastZipError" -ForegroundColor Yellow
     }
+    Write-Host ""
+    Write-Host "Posibles causas:" -ForegroundColor Yellow
+    Write-Host "  1. No hay conexión a internet o hay proxy/firewall" -ForegroundColor Cyan
+    Write-Host "  2. Bloqueo TLS/SSL en red corporativa" -ForegroundColor Cyan
+    Write-Host "  3. Permisos insuficientes en carpeta temporal" -ForegroundColor Cyan
+    Write-Host ""
+    Read-Host "Presiona Enter para salir"
+    exit 1
 }
 
 if ($repoReady) {

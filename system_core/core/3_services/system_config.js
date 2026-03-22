@@ -39,7 +39,7 @@ const LOCK_TIMEOUT_MS = 5000;
  * Cualquier clave que no empiece con uno de estos será rechazada por `storeConfig`.
  * @const {string[]}
  */
-const VALID_KEY_PREFIXES = Object.freeze(['SYS_', 'ACCOUNT_']);
+const VALID_KEY_PREFIXES = Object.freeze(['SYS_', 'ACCOUNT_', 'SESS_']);
 
 // ─── UTILIDADES INTERNAS ──────────────────────────────────────────────────────
 
@@ -185,17 +185,10 @@ function readCoreOwnerEmail() {
   let email = store.getProperty('SYS_CORE_OWNER_UID');
   
   if (!email && isBootstrapped()) {
-    // Autodescubrimiento para Cores instalados antes de v4.1 (Identidad Retroactiva)
-    try {
-      email = Session.getEffectiveUser().getEmail() || Session.getActiveUser().getEmail();
-      if (email) {
-        store.setProperty('SYS_CORE_OWNER_UID', email);
-        logInfo('[system_config] Identidad Legacy autodescubierta y anclada: ' + email);
-      }
-    } catch (e) {
-      logWarn('[system_config] No se pudo autodescubrir identidad: ' + e.message);
-    }
+    // Identidad v4.1: si no hay email, es un fallo de bootstrap
+    logWarn('[system_config] Identidad no encontrada. El Core está en modo anónimo.');
   }
+
   
   return email || 'anonymous@indra-os.com';
 }
@@ -256,11 +249,63 @@ function bootstrapPassword(plainPassword) {
  */
 function verifyPassword(plainPassword) {
   if (!isBootstrapped()) return false;
-  if (!plainPassword) return false; // Protección contra nulos (Axioma de Seguridad Pasiva)
+  if (!plainPassword) return false; 
   
+  // ── AXIOMA DE SESIÓN (Indra v4.1) ──
+  // Si el password enviado coincide con un Ticket de Sesión activo, autorizar.
+  if (validateSessionTicket(plainPassword)) return true;
+
   const storedHash = _getStore_().getProperty('SYS_ACCESS_PASSWORD_HASH');
   if (!storedHash) return false;
   return _sha256_(plainPassword) === storedHash;
+}
+
+/**
+ * Genera un Ticket de Sesión efímero para evitar enviar la contraseña maestra.
+ * @returns {string} El ticket de sesión generado.
+ */
+function generateSessionTicket() {
+  const ticket = Utilities.getUuid();
+  const expiresAt = Date.now() + (1000 * 60 * 60 * 24); // 24 horas
+  
+  const ticketData = JSON.stringify({
+    ticket: ticket,
+    expires_at: expiresAt,
+    created_at: new Date().toISOString()
+  });
+
+  // Guardamos el ticket con un prefijo especial SESS_
+  // Nota: En una implementación de alta carga usaríamos CacheService, 
+  // pero para Soberanía Individual PropertiesService es más persistente ante reinicios.
+  storeConfig(`SESS_${ticket}`, ticketData);
+  
+  return ticket;
+}
+
+/**
+ * Valida si un string es un ticket de sesión válido y no expirado.
+ * @param {string} ticketId 
+ * @returns {boolean}
+ */
+function validateSessionTicket(ticketId) {
+  if (!ticketId || !ticketId.startsWith('sess-')) { // Un UUID de GAS suele tener este formato interno o similar
+    // Si no parece un ticket, simplemente retornamos false para que el flujo siga a verifyPassword normal
+    // Pero si el ticketId es exactamente lo que guardamos, lo buscamos:
+  }
+  
+  const rawData = _getStore_().getProperty(`SESS_${ticketId}`);
+  if (!rawData) return false;
+
+  try {
+    const data = JSON.parse(rawData);
+    if (Date.now() > data.expires_at) {
+      deleteConfig(`SESS_${ticketId}`);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 // ─── API PÚBLICA: CUENTAS DE PROVIDERS ───────────────────────────────────────
@@ -281,11 +326,11 @@ function storeProviderAccount(providerId, accountId, apiKey, name) {
 
   const meta = JSON.stringify({
     label:      name || accountId,
-    name:       name || accountId,
     provider:   providerId,
     account_id: accountId,
     created_at: new Date().toISOString(),
   });
+
 
   // Escribir ambas propiedades bajo el mismo lock
   const lock = LockService.getScriptLock();

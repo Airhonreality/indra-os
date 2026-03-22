@@ -11,7 +11,11 @@ import { useLexicon } from '../../services/lexicon';
 export function CoreConnectionView() {
     const t = useLexicon();
     const setCoreConnection = useAppState((s) => s.setCoreConnection);
+    const discoverCore = useAppState((s) => s.discoverCore);
+    const setupCore = useAppState((s) => s.setupCore);
     const isConnecting = useAppState((s) => s.isConnecting);
+    const coreStatus = useAppState((s) => s.coreStatus);
+    const resetConnectionState = useAppState((s) => s.resetConnectionState);
     const coreId = useAppState((s) => s.coreId);
     const systemError = useAppState((s) => s.error);
     const clearError = useAppState((s) => s.clearError);
@@ -19,30 +23,43 @@ export function CoreConnectionView() {
     // Estado de la Bóveda Local
     const coreRegistry = useAppState((s) => s.coreRegistry);
     const removeCore = useAppState((s) => s.removeCoreFromRegistry);
-    const [viewMode, setViewMode] = useState(coreRegistry.length > 0 ? 'EXISTING' : 'NEW');
 
-    const [alias, setAlias] = useState('');
     const [url, setUrl] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [localError, setLocalError] = useState(null);
 
     const onInputChange = (setter) => (e) => {
         setter(e.target.value);
         if (systemError) clearError();
+        if (localError) setLocalError(null);
     };
 
-    const handleConnect = async (e) => {
+    const handleAction = async (e) => {
         if (e) e.preventDefault();
-        if (!url || !password) return;
-        try {
-            await setCoreConnection(url, password, alias);
-        } catch (err) {
-            console.error('Connection failed:', err);
+        setLocalError(null);
+
+        if (!coreStatus) {
+            if (!url) return;
+            try { await discoverCore(url); } catch (err) { /* handled by app_state */ }
+            return;
+        }
+
+        if (coreStatus === 'STABLE') {
+            if (!password) { setLocalError('Ingresa la contraseña maestra.'); return; }
+            try { await setCoreConnection(url, password); } catch (err) { }
+        }
+
+        if (coreStatus === 'BOOTSTRAP') {
+            if (!password || password.length < 4) { setLocalError('Contraseña muy corta.'); return; }
+            if (password !== confirmPassword) { setLocalError('Las contraseñas no coinciden.'); return; }
+            try { await setupCore(url, password); } catch (err) { }
         }
     };
 
     const handleQuickConnect = async (core) => {
         try {
-            await setCoreConnection(core.url, core.secret, core.alias);
+            await setCoreConnection(core.url, core.secret);
         } catch (err) {
             console.error('Quick connection failed:', err);
         }
@@ -88,181 +105,218 @@ export function CoreConnectionView() {
                         <div className="shelf">
                             <span className="text-label" style={{ color: 'var(--color-accent)' }}>{t('ui_system_awakening')}</span>
                             <div className="hud-line" style={{ width: '200px' }}></div>
-                            <span className="text-hint" style={{ fontSize: '9px' }}>MOD_V2.0.4</span>
                         </div>
                     </div>
                 </div>
+                              <div className="core-selector-main-layout" style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: 'var(--space-10)',
+                    maxHeight: '540px',
+                    overflowY: 'auto',
+                    paddingRight: 'var(--space-4)'
+                }}>
+                    
+                    {/* ── SECCIÓN 01: BÓVEDA DE REALIDADES (Tree View) ── */}
+                    {coreRegistry.length > 0 && (
+                        <div className="tree-section">
+                            <header className="shelf" style={{ marginBottom: 'var(--space-4)', opacity: 0.4 }}>
+                                <IndraIcon name="VAULT" size="12px" />
+                                <span style={{ fontSize: '9px', fontWeight: '900', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                                    BÓVEDA_REGISTRADA [{coreRegistry.length}]
+                                </span>
+                            </header>
 
-                {/* ── SELECTOR DE MODO (TABS) ── */}
-                <div className="shelf" style={{ borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-2)' }}>
-                    <button 
-                        className={`btn btn--mini ${viewMode === 'EXISTING' ? 'btn--accent' : 'btn--ghost'}`}
-                        onClick={() => setViewMode('EXISTING')}
-                        style={{ borderBottom: viewMode === 'EXISTING' ? '2px solid var(--color-accent)' : 'none', borderRadius: 0 }}
-                    >
-                        BÓVEDA_EXISTENTE [{coreRegistry.length}]
-                    </button>
-                    <button 
-                        className={`btn btn--mini ${viewMode === 'NEW' ? 'btn--accent' : 'btn--ghost'}`}
-                        onClick={() => setViewMode('NEW')}
-                        style={{ borderBottom: viewMode === 'NEW' ? '2px solid var(--color-accent)' : 'none', borderRadius: 0 }}
-                    >
-                        VÍNCULO_NUEVO
-                    </button>
-                </div>
+                            <div className="tree-container stack" style={{ 
+                                paddingLeft: 'var(--space-3)', 
+                                borderLeft: '1px solid rgba(255,255,255,0.05)',
+                                marginLeft: '8px',
+                                gap: 'var(--space-3)'
+                            }}>
+                                {coreRegistry.map((core) => (
+                                    <div key={core.url} className="tree-item glass-light shelf ripple" 
+                                        style={{ 
+                                            padding: 'var(--space-3) var(--space-4)', 
+                                            borderRadius: 'var(--radius-md)', 
+                                            border: '1px solid var(--color-border-dim)',
+                                            position: 'relative',
+                                            justifyContent: 'space-between'
+                                        }}
+                                        onClick={() => handleQuickConnect(core)}
+                                    >
+                                        <div className="item-connector" style={{
+                                            position: 'absolute', left: '-13px', top: '50%',
+                                            width: '12px', height: '1px', background: 'rgba(255,255,255,0.05)'
+                                        }} />
+                                        
+                                        <div className="shelf--loose" style={{ flex: 1, minWidth: 0 }}>
+                                            <IndraIcon name="CORE" size="18px" style={{ opacity: 0.5, color: 'var(--color-accent)' }} />
+                                            <div className="stack--tight" style={{ minWidth: 0 }}>
+                                                <span className="text-label" style={{ 
+                                                    color: 'var(--color-text-primary)', 
+                                                    fontSize: '11px', 
+                                                    fontWeight: 'bold',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis'
+                                                }}>
+                                                    {core.handle?.label || core.alias}
+                                                </span>
+                                                <span className="text-hint" style={{ fontSize: '9px', opacity: 0.4, fontFamily: 'var(--font-mono)' }}>
+                                                    {core.url.substring(0, 60)}...
+                                                </span>
+                                            </div>
+                                        </div>
 
-                {viewMode === 'EXISTING' ? (
-                    <div className="stack" style={{ gap: 'var(--space-4)', maxHeight: '300px', overflowY: 'auto', paddingRight: 'var(--space-2)' }}>
-                        {coreRegistry.map(core => (
-                            <div key={core.url} className="glass-light shelf--loose pointer ripple" 
-                                style={{ padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}
-                                onClick={() => handleQuickConnect(core)}
-                            >
-                                <div className="stack--tight fill">
-                                    <div className="shelf">
-                                        <span className="text-label" style={{ color: 'var(--color-accent)' }}>{core.alias}</span>
-                                        <div className="hud-line" style={{ width: '40px' }}></div>
-                                        <span className="text-hint" style={{ fontSize: '9px' }}>{core.coreId}</span>
-                                    </div>
-                                    <span className="text-hint opacity-40" style={{ fontSize: '10px' }}>{core.url}</span>
-                                </div>
-                                    <div className="shelf--tight" onClick={e => e.stopPropagation()}>
-                                        <IndraActionTrigger 
-                                            variant="destructive"
-                                            label="PURGAR"
-                                            onClick={() => removeCore(core.url)}
-                                            size="14px"
-                                        />
-                                        <button className="btn btn--accent btn--mini">VINCULAR</button>
-                                    </div>
-                            </div>
-                        ))}
-
-                        {/* Botón para saltar a Vínculo Nuevo */}
-                        <button 
-                            className="btn btn--ghost btn--full" 
-                            style={{ borderStyle: 'dashed', marginTop: 'var(--space-2)' }}
-                            onClick={() => setViewMode('NEW')}
-                        >
-                            <IndraIcon name="PLUS" size="14px" />
-                            AÑADIR_NUEVO_NÚCLEO
-                        </button>
-                    </div>
-                ) : (
-                    <form onSubmit={handleConnect} className="stack" style={{ gap: 'var(--space-6)' }}>
-                        {/* Item 01: Identificador */}
-                        <div className="grid-split">
-                            <div className="stack--tight">
-                                <label className="text-label">{t('ui_identity_config')}</label>
-                                <p className="text-hint" style={{ fontSize: '10px', lineHeight: '1.4' }}>
-                                    {t('ui_identity_desc')}
-                                </p>
-                            </div>
-                            <div className="slot-small glass-light">
-                                <input
-                                    className="input-base"
-                                    style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)' }}
-                                    placeholder={t('ui_identity_placeholder')}
-                                    required
-                                    value={alias}
-                                    onChange={onInputChange(setAlias)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Item 02: Endpoint */}
-                        <div className="grid-split">
-                            <div className="stack--tight">
-                                <label className="text-label">{t('ui_resonance_config')}</label>
-                                <p className="text-hint" style={{ fontSize: '10px', lineHeight: '1.4' }}>
-                                    {t('ui_resonance_desc')}
-                                </p>
-                            </div>
-                            <div className="slot-small glass-light">
-                                <input
-                                    className="input-base"
-                                    style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)' }}
-                                    placeholder="https://script.google.com/macros/s/..."
-                                    required
-                                    value={url}
-                                    onChange={onInputChange(setUrl)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Item 03: Access Secret */}
-                        <div className="grid-split">
-                            <div className="stack--tight">
-                                <label className="text-label">{t('ui_secret_config')}</label>
-                                <p className="text-hint" style={{ fontSize: '10px', lineHeight: '1.4' }}>
-                                    {t('ui_secret_desc')}
-                                </p>
-                            </div>
-                            <div className="slot-small glass-light">
-                                <input
-                                    className="input-base"
-                                    type="password"
-                                    style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)' }}
-                                    placeholder="••••••••••••••••"
-                                    required
-                                    value={password}
-                                    onChange={onInputChange(setPassword)}
-                                />
-                            </div>
-                        </div>
-                        
-                        <div className="spread" style={{ marginTop: 'var(--space-4)', alignItems: 'flex-end' }}>
-                            <div className="stack--tight">
-                                {systemError && (
-                                    <div className="text-warm shelf" style={{
-                                        fontSize: '10px',
-                                        fontFamily: 'var(--font-mono)',
-                                        marginBottom: 'var(--space-2)',
-                                        background: 'rgba(239, 68, 68, 0.05)',
-                                        padding: 'var(--space-2) var(--space-3)',
-                                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                                        borderLeft: '4px solid var(--color-warm)',
-                                        borderRadius: '0 2px 2px 0',
-                                        gap: 'var(--space-3)'
-                                    }}>
-                                        <div className="stack--tight">
-                                            <span style={{ fontWeight: 'bold', letterSpacing: '0.1em' }}>ACCESS_DENIED // INFRA_FAILURE</span>
-                                            <span style={{ opacity: 0.7 }}>{`CODE: ${systemError.toUpperCase()}`}</span>
+                                        <div className="shelf--tight" onClick={e => e.stopPropagation()}>
+                                            <IndraActionTrigger 
+                                                variant="destructive"
+                                                onClick={() => removeCore(core.url)}
+                                                size="14px"
+                                            />
+                                            <button className="btn btn--accent btn--mini" style={{ padding: '4px 12px', fontSize: '9px' }}>
+                                                VINCULAR
+                                            </button>
                                         </div>
                                     </div>
-                                )}
-                                <span className="text-hint" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
-                                    {`[ ${t('status_encrypted')}: ${isConnecting ? t('status_establishing') : t('status_inactive')} ]`}
-                                </span>
-                                <span className="text-hint" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: 'var(--color-accent)' }}>
-                                    {`[ ID_SOBERANO: ${coreId || 'CAPTURA_PENDIENTE'} ]`}
-                                </span>
-                                <span className="text-hint" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>[ PROTOCOL: UQO_V4.1 ]</span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── SECCIÓN 02: NUEVO ENLACE (Formulario Integrado) ── */}
+                    <div className="form-section">
+                        <header className="shelf" style={{ marginBottom: 'var(--space-4)', opacity: coreRegistry.length > 0 ? 0.4 : 1 }}>
+                            <IndraIcon name="PLUS" size="12px" />
+                            <span style={{ fontSize: '9px', fontWeight: '900', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                                VINCULAR_NUEVO_NÚCLEO
+                            </span>
+                        </header>
+
+                        <form onSubmit={handleAction} className="glass-light stack" style={{ 
+                            padding: 'var(--space-6)', 
+                            borderRadius: 'var(--radius-lg)',
+                            border: '1px solid var(--color-border-dim)',
+                            gap: 'var(--space-6)'
+                        }}>
+                            <div className="grid-split" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-6)', alignItems: 'center' }}>
+                                <div className="stack--tight">
+                                    <label className="text-label" style={{ fontSize: '10px' }}>{t('ui_resonance_config')}</label>
+                                    <p className="text-hint" style={{ fontSize: '9px', opacity: 0.4 }}>URL base de tu Google Apps Script desplegado como Web App.</p>
+                                </div>
+                                <div className="slot-small glass-light shelf" style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', background: 'rgba(0,0,0,0.2)' }}>
+                                    <input
+                                        className="input-base"
+                                        style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-accent)' }}
+                                        placeholder="https://script.google.com/macros/s/..."
+                                        required
+                                        value={url}
+                                        onChange={onInputChange(setUrl)}
+                                        readOnly={!!coreStatus}
+                                        disabled={!!coreStatus}
+                                    />
+                                    {coreStatus && (
+                                        <button type="button" onClick={() => { resetConnectionState(); setUrl(''); setPassword(''); setConfirmPassword(''); }} className="btn btn--ghost btn--mini" style={{ marginLeft: '10px' }}>
+                                            <IndraIcon name="CANCEL" size="12px" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
-                            <button
-                                type="submit"
-                                className={`btn ${isConnecting ? 'btn--ghost' : 'btn--accent'}`}
-                                disabled={isConnecting}
-                                style={{
-                                    padding: 'var(--space-4) var(--space-8)',
-                                    borderRadius: '0 var(--radius-lg) 0 var(--radius-lg)',
-                                    fontSize: 'var(--text-sm)',
-                                    letterSpacing: '0.2em'
-                                }}
-                            >
-                                <span className="shelf">
-                                    {isConnecting ? (
-                                        <IndraIcon name="SYNC" style={{ animation: 'spin 1s linear infinite' }} />
-                                    ) : (
-                                        <IndraIcon name="LINK" />
+                            {coreStatus === 'STABLE' && (
+                                <div className="grid-split" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-6)', alignItems: 'center' }}>
+                                    <div className="stack--tight">
+                                        <label className="text-label" style={{ fontSize: '10px' }}>Contraseña Maestra</label>
+                                        <p className="text-hint" style={{ fontSize: '9px', opacity: 0.4 }}>El núcleo ya está configurado. Ingresa tu clave para acceder.</p>
+                                    </div>
+                                    <div className="slot-small glass-light" style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', background: 'rgba(0,0,0,0.2)' }}>
+                                        <input
+                                            className="input-base"
+                                            type="password"
+                                            style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)', fontSize: '11px' }}
+                                            placeholder="••••••••••••••••"
+                                            required
+                                            value={password}
+                                            onChange={onInputChange(setPassword)}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {coreStatus === 'BOOTSTRAP' && (
+                                <>
+                                    <div className="grid-split" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-6)', alignItems: 'center' }}>
+                                        <div className="stack--tight">
+                                            <label className="text-label" style={{ fontSize: '10px', color: 'var(--color-accent)' }}>Crear Contraseña Maestra</label>
+                                            <p className="text-hint" style={{ fontSize: '9px', opacity: 0.4 }}>El núcleo es virgen. Define la clave de acceso único.</p>
+                                        </div>
+                                        <div className="slot-small glass-light" style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', background: 'rgba(0,0,0,0.2)' }}>
+                                            <input
+                                                className="input-base"
+                                                type="password"
+                                                style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)', fontSize: '11px' }}
+                                                placeholder="Crea una contraseña segura"
+                                                required
+                                                value={password}
+                                                onChange={onInputChange(setPassword)}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid-split" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-6)', alignItems: 'center' }}>
+                                        <div className="stack--tight">
+                                            <label className="text-label" style={{ fontSize: '10px' }}>Confirmar Contraseña</label>
+                                        </div>
+                                        <div className="slot-small glass-light" style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', background: 'rgba(0,0,0,0.2)' }}>
+                                            <input
+                                                className="input-base"
+                                                type="password"
+                                                style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)', fontSize: '11px' }}
+                                                placeholder="Repite la contraseña"
+                                                required
+                                                value={confirmPassword}
+                                                onChange={onInputChange(setConfirmPassword)}
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            <div className="spread" style={{ alignItems: 'flex-end', paddingTop: 'var(--space-2)' }}>
+                                <div className="stack--tight">
+                                    {(systemError || localError) && (
+                                        <div className="text-warm shelf" style={{
+                                            fontSize: '9px', fontFamily: 'var(--font-mono)', marginBottom: 'var(--space-2)',
+                                            background: 'rgba(239, 68, 68, 0.05)', padding: 'var(--space-2) var(--space-4)',
+                                            borderLeft: '3px solid var(--color-warm)', borderRadius: '2px'
+                                        }}>
+                                            <span style={{ fontWeight: 'bold' }}>ADUANA_BLOCK // {(localError || systemError).toUpperCase()}</span>
+                                        </div>
                                     )}
-                                    {isConnecting ? t('status_loading') : t('ui_connect_action')}
-                                </span>
-                            </button>
-                        </div>
-                    </form>
-                )}
+                                    <div className="shelf--tight" style={{ opacity: 0.4 }}>
+                                        <span className="text-hint" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
+                                            [ {isConnecting ? (coreStatus ? 'SYNCING_WITH_CORE...' : 'SCANNING_RESONANCE...') : 'AWAITING_INPUT'} ]
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    className={`btn ${isConnecting ? 'btn--ghost' : 'btn--accent'}`}
+                                    disabled={isConnecting}
+                                    style={{ padding: '10px 30px', borderRadius: '4px', fontSize: '10px', letterSpacing: '0.15em', fontWeight: 'bold' }}
+                                >
+                                    {isConnecting 
+                                        ? 'PROCESANDO...' 
+                                        : !coreStatus 
+                                            ? 'DESCUBRIR NÚCLEO' 
+                                            : coreStatus === 'BOOTSTRAP' 
+                                                ? 'INICIALIZAR NÚCLEO' 
+                                                : 'INGRESAR'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
 
                 {/* Adornos HUD Minimalistas */}
                 <div style={{ position: 'absolute', bottom: 'var(--space-4)', left: 'var(--space-8)', opacity: 0.3 }}>
@@ -276,25 +330,12 @@ export function CoreConnectionView() {
             </div>
 
             <style>{`
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-                @keyframes shake {
-                    10%, 90% { transform: translate3d(-1px, 0, 0); }
-                    20%, 80% { transform: translate3d(2px, 0, 0); }
-                    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-                    40%, 60% { transform: translate3d(4px, 0, 0); }
-                }
-                .input-base::placeholder {
-                    opacity: 0.3;
-                    color: var(--color-accent);
-                }
-                .btn:disabled {
-                    opacity: 0.5;
-                    cursor: not-allowed;
-                    filter: grayscale(1);
-                }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                .input-base::placeholder { opacity: 0.2; color: var(--color-text-primary); }
+                .tree-item { transition: all 0.2s ease; cursor: pointer; }
+                .tree-item:hover { border-color: var(--color-accent); transform: translateX(4px); background: rgba(255,255,255,0.03); }
+                .core-selector-main-layout::-webkit-scrollbar { width: 4px; }
+                .core-selector-main-layout::-webkit-scrollbar-thumb { background: var(--color-border); borderRadius: 4px; }
             `}</style>
         </div>
     );

@@ -52,7 +52,13 @@ export function useProtocolDiscovery() {
                             return {
                                 id: p,
                                 label: p.replace(/_/g, ' ').toLowerCase(),
-                                fields: meta.fields || Object.keys(meta.inputs || {}).map(k => ({ id: k, label: meta.inputs[k].label || k })) || []
+                                fields: meta.fields || Object.keys(meta.inputs || {}).map(k => ({ 
+                                    id: k, 
+                                    label: meta.inputs[k].label || k,
+                                    options: meta.inputs[k].options || null,
+                                    type: meta.inputs[k].type || 'string',
+                                    required: !!meta.inputs[k].required
+                                })) || []
                             };
                         });
 

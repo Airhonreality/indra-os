@@ -67,28 +67,63 @@ function AtomSelector({ label, atomClass, value, onSelect }) {
     );
 }
 
-export function AEEConfigPanel({ atom, onConfigChange }) {
+function AccordionSection({ title, id, current, onToggle, children, icon }) {
+    const isOpen = current === id;
+    return (
+        <div className="indra-accordion">
+            <button 
+                className={`indra-accordion__header ${isOpen ? 'active' : ''}`}
+                onClick={() => onToggle(isOpen ? null : id)}
+            >
+                <div className="shelf--tight">
+                    {icon && <IndraIcon name={icon} size="12px" color={isOpen ? 'var(--indra-dynamic-accent)' : 'inherit'} />}
+                    <span className="indra-accordion__title">{title}</span>
+                </div>
+                <IndraIcon 
+                    name="CHEVRON_RIGHT" 
+                    size="8px" 
+                    style={{ 
+                        transform: isOpen ? 'rotate(90deg)' : 'none', 
+                        opacity: 0.5, 
+                        transition: 'transform 0.3s ease' 
+                    }} 
+                />
+            </button>
+            {isOpen && (
+                <div className="indra-accordion__content stack--loose">
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+}
+
+export function AEEConfigPanel({ atom, onConfigChange, publicUrl }) {
     const pins = useAppState(s => s.pins);
+    const [activeSection, setActiveSection] = React.useState('DATA');
+
+    // Auto-expandir PUBLICACIÓN si hay link
+    React.useEffect(() => {
+        if (publicUrl) setActiveSection('PUBLISH');
+    }, [publicUrl]);
     
     const schemaId = atom?.payload?.schema_id || null;
     const executorId = atom?.payload?.executor_id || atom?.payload?.bridge_id || null;
     const executorType = atom?.payload?.executor_type || 'BRIDGE';
     const localButtonLabel = atom?.payload?.button_label || 'ENVIAR';
 
-    const selectedSchema = pins.find(p => p.id === schemaId);
-    const selectedExecutor = pins.find(p => p.id === executorId);
-    
     // Todos los schemas del workspace
     const workspaceSchemas = pins.filter(p => p.class === 'DATA_SCHEMA');
 
     const handleChange = (key, value) => {
-
         onConfigChange?.(prev => ({ ...prev, [key]: value }));
     };
 
     // Agregar un campo al lienzo
     const handleInsertField = (field, schemaInfo) => {
-        handleChange('schema_id', schemaInfo.id); 
+        // AXIOMA: Solo actualizamos el schema_id si es el primero, para no romper la composición
+        if (!schemaId) handleChange('schema_id', schemaInfo.id); 
+        
         window.dispatchEvent(new CustomEvent('AEE_INSERT_FIELD', { detail: { field, schema: schemaInfo } }));
         toastEmitter.info(`Añadido al Lienzo: ${field.label || field.alias}`);
     };
@@ -136,117 +171,105 @@ export function AEEConfigPanel({ atom, onConfigChange }) {
     };
 
     return (
-        <div className="inspector-content stack fill" style={{ overflowY: 'auto', padding: 'var(--space-4)', borderRight: '1px solid var(--color-border)', minWidth: '320px', maxWidth: '380px', width: '30%' }}>
+        <div className="inspector-content stack fill" style={{ overflowY: 'hidden', borderRight: '1px solid var(--color-border)', minWidth: '320px', maxWidth: '380px', width: '30%' }}>
             
-            <div className="inspector-master-header spread" style={{ marginBottom: 'var(--space-6)', padding: '0 4px' }}>
+            <div className="inspector-master-header spread" style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--color-border)' }}>
                 <div className="shelf--tight">
                     <IndraIcon name="PLAY" size="14px" style={{ color: 'var(--indra-dynamic-accent)' }} />
-                    <div className="stack--tight">
-                        <span className="font-mono" style={{ fontSize: '10px', fontWeight: 'bold' }}>CONFIGURACIÓN_AEE</span>
-                        <span className="text-hint" style={{ fontSize: '8px', opacity: 0.5, letterSpacing: '0.05em' }}>PROPIEDADES // ENTORNO</span>
+                    <div className="stack--2xs">
+                        <span className="font-mono" style={{ fontSize: '10px', fontWeight: 'bold' }}>GESTOR_DE_PROYECCIÓN</span>
+                        <span className="text-hint" style={{ fontSize: '8px', opacity: 0.5, letterSpacing: '0.05em' }}>AEE // ARQUITECTURA</span>
                     </div>
                 </div>
             </div>
 
-            <div className="stack" style={{ gap: 'var(--space-6)', paddingBottom: '40px' }}>
+            <div className="fill" style={{ overflowY: 'auto' }}>
                 
-                {/* ── 00 // ELEMENTOS ESTÁTICOS ── */}
-                <section className="inspector-module stack--tight">
-                    <header className="module-header" style={{ marginBottom: 'var(--space-3)' }} title="Añade bloques no interactivos (Textos, Imágenes).">
-                        <div className="indra-field-label">00 // ELEMENTOS_VISUALES</div>
-                    </header>
-                    <div className="module-content glass-light stack--tight" style={{ padding: '8px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                {/* ── SECCIÓN 01: DISEÑO_Y_ESTÉTICA ── */}
+                <AccordionSection 
+                    id="DESIGN" 
+                    title="01 // DISEÑO_Y_ESTÉTICA" 
+                    icon="IMAGE"
+                    current={activeSection} 
+                    onToggle={setActiveSection}
+                >
+                    <div className="stack--tight">
+                        <label className="util-label" style={{ marginBottom: '4px', opacity: 0.6 }}>BLOQUES_ESTÁTICOS</label>
                         <div className="shelf--tight" style={{ gap: '4px' }}>
                             <button 
                                 className="btn--mini btn--ghost" 
-                                style={{ flex: 1, padding: '6px', fontSize: '8px' }}
+                                style={{ flex: 1, padding: '8px', fontSize: '9px' }}
                                 onClick={() => window.dispatchEvent(new CustomEvent('AEE_INSERT_STATIC', { detail: { type: 'STATIC_TEXT' } }))}
                             >
                                 <IndraIcon name="ALIGN_LEFT" size="10px" />
-                                <span style={{ marginLeft: '4px' }}>TEXTO</span>
+                                <span style={{ marginLeft: '6px' }}>TEXTO</span>
                             </button>
-                            <input 
-                                type="file" 
-                                ref={fileInputRef} 
-                                style={{ display: 'none' }} 
-                                accept="image/*" 
-                                onChange={handleFileUpload}
-                            />
+                            <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={handleFileUpload} />
                             <button 
                                 className="btn--mini btn--ghost" 
-                                style={{ flex: 1, padding: '6px', fontSize: '8px', backgroundColor: isUploading ? 'var(--color-bg-void)' : undefined }}
+                                style={{ flex: 1, padding: '8px', fontSize: '9px' }}
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={isUploading}
                             >
                                 <IndraIcon name={isUploading ? "SYNC" : "IMAGE"} size="10px" className={isUploading ? "spin" : ""} />
-                                <span style={{ marginLeft: '4px' }}>{isUploading ? 'INGIRIENDO...' : 'IMAGEN'}</span>
+                                <span style={{ marginLeft: '6px' }}>{isUploading ? 'INGIRIENDO...' : 'IMAGEN'}</span>
                             </button>
                         </div>
                     </div>
-                </section>
+                    <div className="stack--tight" style={{ marginTop: 'var(--space-4)' }}>
+                        <AEEGraphicPanel 
+                            config={atom?.payload} 
+                            onChange={(updatedConfig) => handleChange('graphics', updatedConfig.graphics)} 
+                        />
+                    </div>
+                </AccordionSection>
 
-                {/* ── 01 // VISOR UNIVERSAL DE SCHEMAS ── */}
-                <section className="inspector-module stack--tight">
-                    <header className="module-header" style={{ marginBottom: 'var(--space-3)' }} title="Busca y explora los Schemas disponibles. Presiona [+] para dibujarlos en el lienzo.">
-                        <div className="indra-field-label">01 // TABLAS_DE_DATOS</div>
-                    </header>
-                    <div className="module-content stack--tight" style={{ gap: 'var(--space-2)' }}>
+                <AccordionSection 
+                    id="DATA" 
+                    title="02 // ESTRUCTURA_Y_DATOS" 
+                    icon="SCHEMA"
+                    current={activeSection} 
+                    onToggle={setActiveSection}
+                >
+                    <div className="stack--tight">
+                        <label className="util-label" style={{ marginBottom: '8px', opacity: 0.6 }}>FUENTES_DE_DATOS</label>
                         {workspaceSchemas.length === 0 && (
                             <div className="glass-light center" style={{ opacity: 0.4, fontSize: '9px', padding: '16px', borderRadius: '8px', border: '1px dashed var(--color-border)' }}>
                                 NO HAY SCHEMAS EN ESTE WORKSPACE
                             </div>
                         )}
                         {workspaceSchemas.map(schemaAsset => (
-                            <div key={schemaAsset.id} className="glass stack--tight" style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
-                                <div className="shelf--tight" style={{ paddingBottom: '4px', borderBottom: '1px solid var(--color-border)', opacity: schemaId === schemaAsset.id ? 1 : 0.6 }}>
-                                    <IndraIcon name="SCHEMA" size="10px" />
-                                    <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>{schemaAsset.handle?.label?.toUpperCase() || schemaAsset.id}</span>
-                                    <div className="fill" />
-                                    {/* Botón para insertar el schema COMPLETO al lienzo */}
+                            <div key={schemaAsset.id} className="glass-chassis stack--none" style={{ background: 'var(--color-bg-deep)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', overflow: 'hidden', marginBottom: '8px' }}>
+                                <div className="shelf--between" style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--color-border)' }}>
+                                    <div className="shelf--tight">
+                                        <IndraIcon name="SCHEMA" size="10px" style={{ opacity: 0.5 }} />
+                                        <span className="font-mono" style={{ fontSize: '9px', fontWeight: 'bold' }}>{schemaAsset.handle?.label?.toUpperCase()}</span>
+                                    </div>
                                     <button 
                                         className="btn btn--xs btn--ghost" 
                                         onClick={() => handleInsertField({ 
-                                            type: 'FRAME', 
-                                            alias: schemaAsset.handle?.alias || 'data', 
-                                            label: schemaAsset.handle?.label || 'GRUPO',
+                                            type: 'FRAME', alias: 'all', 
+                                            label: schemaAsset.handle?.label, 
                                             children: schemaAsset.payload?.fields || [] 
                                         }, schemaAsset)}
-                                        title="Dibujar TODO el Schema en el Lienzo"
+                                        style={{ padding: '2px 8px', color: 'var(--color-accent)' }}
                                     >
-                                        <IndraIcon name="PLUS" size="10px" color="var(--color-accent)" />
+                                        <IndraIcon name="PLUS" size="10px" />
+                                        <span style={{ fontSize: '8px', marginLeft: '4px' }}>TODO</span>
                                     </button>
                                 </div>
-                                <SchemaMicroExplorer 
-                                    schema={schemaAsset}
-                                    onInsertField={(field) => handleInsertField(field, schemaAsset)}
-                                />
+                                <div style={{ padding: '4px 0' }}>
+                                    <SchemaMicroExplorer 
+                                        schema={schemaAsset}
+                                        onInsertField={(f) => handleInsertField(f, schemaAsset)}
+                                    />
+                                </div>
                             </div>
                         ))}
                     </div>
-                </section>
 
-                {/* ── 02 // ESTÉTICA GLOBAL ── */}
-                <section className="inspector-module stack--tight">
-                    <header className="module-header" style={{ marginBottom: 'var(--space-3)' }} title="Propiedades gráficas mutantes de este micro-apliación.">
-                        <div className="indra-field-label">02 // ESTÉTICA_Y_DISEÑO</div>
-                    </header>
-                    <div className="module-content glass-light stack--tight" style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
-                        <AEEGraphicPanel 
-                            config={atom?.payload} 
-                            onChange={(updatedConfig) => {
-                                // Mapeamos las actualizaciones de graphic settings a live config completas
-                                onConfigChange?.(prev => ({ ...prev, graphics: updatedConfig.graphics }));
-                            }} 
-                        />
-                    </div>
-                </section>
-
-                {/* ── 03 // DESTINO DE DATOS (EXECUTOR) ── */}
-                <section className="inspector-module stack--tight">
-                    <header className="module-header" style={{ marginBottom: 'var(--space-3)' }} title="El motor que procesará el formulario al envío.">
-                        <div className="indra-field-label">03 // DESTINO_DE_DATOS</div>
-                    </header>
-                    <div className="module-content glass-light stack--tight" style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                    <div className="stack--tight" style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-border)' }}>
+                        <label className="util-label" style={{ marginBottom: '8px', opacity: 0.6 }}>EJECUCIÓN_Y_TRIGGER</label>
                         <div className="shelf--tight" style={{ gap: '4px', marginBottom: '8px' }}>
                             {['BRIDGE', 'WORKFLOW'].map(opt => (
                                 <button
@@ -260,39 +283,53 @@ export function AEEConfigPanel({ atom, onConfigChange }) {
                             ))}
                         </div>
                         <AtomSelector
-                            label="EJECUTOR_ENLAZADO"
+                            label="EJECUTOR_VINCULADO"
                             atomClass={executorType}
                             value={executorId}
                             onSelect={(val) => handleChange('executor_id', val)}
                         />
-                        {selectedExecutor && (
-                            <div className="shelf--tight" style={{ opacity: 0.6, marginTop: '4px' }}>
-                                <IndraIcon name="CHECK" size="10px" style={{ color: 'var(--color-success)' }} />
-                                <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)' }}>{selectedExecutor.handle?.label}_VINCULADO</span>
-                            </div>
-                        )}
-                    </div>
-                </section>
-
-                {/* ── 04 // ANATOMÍA DEL GATILLO ── */}
-                <section className="inspector-module stack--tight">
-                    <header className="module-header" style={{ marginBottom: 'var(--space-3)' }} title="Propiedades del botón de acción principal.">
-                        <div className="indra-field-label">04 // CONFIGURACIÓN_DEL_BOTÓN</div>
-                    </header>
-                    <div className="module-content glass-light stack--tight" style={{ padding: '12px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
-                        <div className="stack--tight">
-                            <label className="font-mono" style={{ fontSize: '8px', opacity: 0.5 }}>LABEL_DEL_BOTÓN</label>
+                        <div className="stack--2xs" style={{ marginTop: 'var(--space-4)' }}>
+                            <label className="font-mono opacity-50" style={{ fontSize: '8px' }}>TEXTO_DEL_BOTÓN_CANÓNICO</label>
                             <input 
                                 className="input-base font-mono"
-                                type="text"
-                                style={{ fontSize: '10px', padding: '6px' }}
-                                placeholder="ENVIAR DATOS"
+                                style={{ fontSize: '10px', padding: '8px' }}
                                 value={localButtonLabel}
                                 onChange={(e) => handleChange('button_label', e.target.value)}
                             />
                         </div>
                     </div>
-                </section>
+                </AccordionSection>
+
+                <AccordionSection 
+                    id="PUBLISH" 
+                    title="03 // ENLACE_Y_PUBLICACIÓN" 
+                    icon="LINK"
+                    current={activeSection} 
+                    onToggle={setActiveSection}
+                >
+                    {publicUrl ? (
+                        <div className="glass-accent pulse-slow stack--tight" style={{ padding: '12px', borderRadius: 'var(--radius-md)' }}>
+                            <span className="util-label" style={{ opacity: 0.8 }}>ENLACE_DE_PROYECCIÓN_ACTIVO</span>
+                            <div className="terminal-inset shelf--tight" style={{ padding: '8px', overflow: 'hidden', marginTop: '4px' }}>
+                                <span className="font-mono truncate fill" style={{ fontSize: '10px', color: 'var(--indra-dynamic-accent)' }}>{publicUrl}</span>
+                            </div>
+                            <div className="shelf--tight" style={{ marginTop: '8px', gap: '4px' }}>
+                                <button className="btn--mini btn--accent fill" onClick={() => { navigator.clipboard.writeText(publicUrl); toastEmitter.success('Copiado'); }}>
+                                    COPIAR_URL
+                                </button>
+                                <a href={publicUrl} target="_blank" rel="noreferrer" className="btn--mini btn--ghost center" style={{ width: '32px' }}>
+                                    <IndraIcon name="EXTERNAL" size="10px" />
+                                </a>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="center stack--tight" style={{ padding: '24px', opacity: 0.4 }}>
+                            <IndraIcon name="WARN" size="20px" />
+                            <span className="font-mono" style={{ fontSize: '9px' }}>SIN_ENLACE_EMITIDO</span>
+                            <p className="center" style={{ fontSize: '8px' }}>Utiliza el botón superior de "PUBLICAR" para generar una proyección.</p>
+                        </div>
+                    )}
+                </AccordionSection>
             </div>
         </div>
     );

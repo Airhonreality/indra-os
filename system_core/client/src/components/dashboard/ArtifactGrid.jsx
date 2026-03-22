@@ -1,19 +1,20 @@
 import React, { useState, useMemo } from 'react';
-import { DataProjector } from '../../services/DataProjector';
-import { AtomGlif } from './AtomGlif';
-import { AgencyChassis } from './AgencyChassis';
-import { ResultGalleryCard } from './ResultGalleryCard';
-import { useAppState } from '../../state/app_state';
-import { useLexicon } from '../../services/lexicon';
 import { IndraIcon } from '../utilities/IndraIcons';
-import { EmptyState } from '../utilities/primitives';
-import { registry } from '../../services/EngineRegistry';
+import { useAppState } from '../../state/app_state';
+import { DataProjector } from '../../services/DataProjector';
+import { useLexicon } from '../../services/lexicon';
 import { executeDirective } from '../../services/directive_executor';
 import { toastEmitter } from '../../services/toastEmitter';
+import { registry } from '../../services/EngineRegistry';
+import { ArtifactCard } from './ArtifactCard';
+import { PotencyCard } from './PotencyCard';
+import { AgencyChassis } from './AgencyChassis';
+import { EmptyState } from '../utilities/primitives';
 
 /**
  * ArtifactGrid: Implementación del Modelo Tríptico Áureo (28/44/28) de Mendoza-Collazos.
  * 🧬 AXIOMA DE RESONANCIA: El Grid inyecta la conciencia sistémica a través de data-attributes.
+ * ☯️ DIFERENCIACIÓN POLIMÓRFICA: Cada columna proyecta una naturaleza distinta (Potencia/Agencia/Manifestación).
  */
 export function ArtifactGrid({ pins, onResonate }) {
     const t = useLexicon();
@@ -56,12 +57,35 @@ export function ArtifactGrid({ pins, onResonate }) {
         return "dimmed";
     };
 
+    // DHARMA (Autodescubrimiento): Filtrar motores del EngineRegistry por su categoría agentic
+    const allEngines = registry.getAll();
+    const creatableEngines = allEngines.filter(e => e.manifest?.canCreate);
+
+    const getOptionsForCategory = (catKey) => {
+        const classesForCat = DataProjector.getAgenticCategories()[catKey] || [];
+        const dynamicOptions = creatableEngines
+            .filter(e => classesForCat.includes(e.atomClass))
+            .map(e => ({
+                class: e.atomClass,
+                label: e.manifest.label || e.atomClass,
+                icon: e.manifest.icon || 'ATOM'
+            }));
+
+        // Inyectar acciones especiales por columna
+        if (catKey === 'POTENCY') {
+            dynamicOptions.push({ action: 'OPEN_INSPECTOR', label: "INSPECCIONAR SILOS", icon: 'SEARCH' });
+            dynamicOptions.push({ action: 'SCAN_VAULT', label: "IMPORTAR VAULT", icon: 'VAULT' });
+        }
+
+        return dynamicOptions;
+    };
+
     return (
         <div 
             className="artifact-grid-triptych indra-grid-governor" 
             style={{ 
                 display: 'flex',
-                height: 'var(--dashboard-grid-height)', 
+                height: '100%', 
                 overflow: 'hidden',
                 padding: 'var(--indra-ui-margin)',
                 background: 'var(--color-bg-void)',
@@ -70,41 +94,38 @@ export function ArtifactGrid({ pins, onResonate }) {
             onMouseLeave={() => setFocusedEngineId(null)}
         >
             {/* Columna I: POTENCIA (28%) - Reserva Sistémica */}
-            <section className="triptych-col-potency no-scrollbar" style={{ display: 'flex', flexDirection: 'column' }}>
-                <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-8)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <section className="triptych-col-potency no-scrollbar" style={{ display: 'flex', flexDirection: 'column', width: '28%' }}>
+                <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div className="shelf--tight">
                         <div style={{ width: '4px', height: '4px', background: 'var(--color-text-secondary)', borderRadius: '50%' }}></div>
-                        <span style={{ fontSize: '9px', opacity: 0.5, fontWeight: 'var(--font-bold)', fontFamily: 'var(--font-mono)', letterSpacing: '0.2em' }}>{t('ui_column_potency')}</span>
+                        <span style={{ fontSize: '9px', opacity: 0.5, fontWeight: 'bold', fontFamily: 'var(--font-mono)', letterSpacing: '0.2em' }}>{t('ui_column_potency')}</span>
                         <span style={{ fontSize: '9px', opacity: 0.2, fontFamily: 'var(--font-mono)' }}>[ {potency.length} ]</span>
                     </div>
                     
                     <div className="shelf--tight" style={{ gap: '4px', position: 'relative' }}>
                         <CreationMenu 
                             category={t('ui_column_potency').replace('I. ', '')} 
-                            options={[
-                                { class: 'DATA_SCHEMA', label: t('DATA_SCHEMA'), icon: 'SCHEMA' },
-                                { action: 'SCAN_VAULT', label: "IMPORTAR VAULT", icon: 'VAULT' }
-                            ]} 
+                            options={getOptionsForCategory('POTENCY')} 
+                            onAction={(action) => {
+                                if (action === 'OPEN_INSPECTOR' && onResonate) onResonate();
+                            }}
                         />
                     </div>
                 </header>
-                <div className="mobile-horizontal-shelf no-scrollbar" style={{ 
+                <div className="column-content no-scrollbar" style={{ 
                     flex: 1, 
                     display: 'flex', 
                     flexDirection: 'column', 
-                    gap: 'var(--space-4)',
-                    padding: '24px var(--space-4)',
-                    overflowY: 'auto',
-                    overflowX: 'hidden'
+                    gap: 'var(--space-3)',
+                    overflowY: 'auto'
                 }}>
                     {potency.map(atom => (
                         <div key={atom.id} 
                             data-resonance={pendingSyncs[atom.id] ? "active" : "idle"}
                             data-highlighted={getHighlightState(atom.id)}
-                            className="resonance-glow--potency"
-                            style={{ transition: 'all 0.3s ease', borderRadius: 'var(--radius-sm)' }}
+                            style={{ transition: 'all 0.3s ease' }}
                         >
-                            <AtomGlif 
+                            <PotencyCard 
                                 atom={atom.raw} 
                                 onHoverStart={(id) => setFocusedEngineId(id)}
                                 onHoverEnd={() => setFocusedEngineId(null)}
@@ -112,51 +133,39 @@ export function ArtifactGrid({ pins, onResonate }) {
                         </div>
                     ))}
                     {potency.length === 0 && (
-                        <EmptyState 
-                            icon="SCHEMA" 
-                            title={t('ui_empty_potency')} 
-                            description={t('ui_empty_potency_desc') || 'No hay esquemas de datos activos.'} 
-                            size="sm"
-                        />
+                        <EmptyState icon="SCHEMA" title="SIN POTENCIA" description="No hay materia prima activa." size="sm" />
                     )}
                 </div>
             </section>
 
             {/* Columna II: AGENCIA (44%) - Núcleo de Transformación */}
-            <section className="triptych-col-agency no-scrollbar" style={{ display: 'flex', flexDirection: 'column', padding: '0 var(--space-4)' }}>
-                <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-8)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <section className="triptych-col-agency no-scrollbar" style={{ display: 'flex', flexDirection: 'column', width: '44%', padding: '0 var(--space-2)' }}>
+                <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div className="shelf--tight">
                         <div style={{ width: '4px', height: '4px', background: 'var(--color-accent)', borderRadius: '50%' }}></div>
-                        <span style={{ fontSize: '9px', opacity: 0.5, fontWeight: 'var(--font-bold)', fontFamily: 'var(--font-mono)', letterSpacing: '0.2em' }}>{t('ui_column_agency')}</span>
+                        <span style={{ fontSize: '9px', opacity: 0.5, fontWeight: 'bold', fontFamily: 'var(--font-mono)', letterSpacing: '0.2em' }}>{t('ui_column_agency')}</span>
                         <span style={{ fontSize: '9px', opacity: 0.2, fontFamily: 'var(--font-mono)' }}>[ {agency.length} ]</span>
                     </div>
 
                     <div className="shelf--tight" style={{ gap: '4px', position: 'relative' }}>
                         <CreationMenu 
-                            category="LÓGICA" 
-                            options={[
-                                { class: 'LOGIC_BRIDGE', label: t('LOGIC_BRIDGE'), icon: 'BRIDGE' },
-                                { class: 'WORKFLOW', label: t('WORKFLOW_DESIGNER'), icon: 'WORKFLOW' },
-                                { class: 'AEE_RUNNER', label: t('AEE_RUNNER'), icon: 'PLAY' }
-                            ]} 
+                            category={t('ui_column_agency').replace('II. ', '')} 
+                            options={getOptionsForCategory('AGENCY')} 
                         />
                     </div>
                 </header>
-                <div className="mobile-horizontal-shelf no-scrollbar" style={{ 
+                <div className="column-content no-scrollbar" style={{ 
                     flex: 1, 
                     display: 'flex', 
                     flexDirection: 'column', 
-                    gap: 'var(--space-8)',
-                    padding: '24px var(--space-4)',
-                    overflowY: 'auto',
-                    overflowX: 'hidden'
+                    gap: 'var(--space-3)',
+                    overflowY: 'auto'
                 }}>
                     {agency.map(atom => (
                         <div key={atom.id} 
                             data-resonance={pendingSyncs[atom.id] ? "active" : "idle"}
                             data-highlighted={getHighlightState(atom.id)}
-                            className="resonance-glow--agency"
-                            style={{ transition: 'all 0.3s ease', borderRadius: '8px' }}
+                            style={{ transition: 'all 0.3s ease' }}
                         >
                             <AgencyChassis 
                                 atom={atom.raw} 
@@ -176,43 +185,36 @@ export function ArtifactGrid({ pins, onResonate }) {
                 </div>
             </section>
 
-            {/* Columna III: MANIFESTACIÓN (28%) - Prisma de Resultados */}
-            <section className="triptych-col-manifest no-scrollbar" style={{ display: 'flex', flexDirection: 'column' }}>
-                <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-8)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Columna III: MANIFESTACIÓN (28%) - Teleología Industrial */}
+            <section className="triptych-col-manifestation no-scrollbar" style={{ display: 'flex', flexDirection: 'column', width: '28%' }}>
+                <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div className="shelf--tight">
                         <div style={{ width: '4px', height: '4px', background: 'var(--color-cold)', borderRadius: '50%' }}></div>
-                        <span style={{ fontSize: '9px', opacity: 0.5, fontWeight: 'var(--font-bold)', fontFamily: 'var(--font-mono)', letterSpacing: '0.2em' }}>{t('ui_column_manifestation')}</span>
+                        <span style={{ fontSize: '9px', opacity: 0.5, fontWeight: 'bold', fontFamily: 'var(--font-mono)', letterSpacing: '0.2em' }}>{t('ui_column_manifestation')}</span>
                         <span style={{ fontSize: '9px', opacity: 0.2, fontFamily: 'var(--font-mono)' }}>[ {manifestation.length} ]</span>
                     </div>
 
                     <div className="shelf--tight" style={{ gap: '4px', position: 'relative' }}>
                         <CreationMenu 
-                            category="RESULTADOS" 
-                            options={[
-                                { class: 'DOCUMENT', label: t('DOCUMENT_DESIGNER'), icon: 'DOCUMENT' },
-                                { class: 'VIDEO_PROJECT', label: t('VIDEO_PROJECT'), icon: 'VIDEO_PROJECT' },
-                                { class: 'CALENDAR_HIVE', label: t('CALENDAR_HIVE'), icon: 'CALENDAR' }
-                            ]} 
+                            category={t('ui_column_manifestation').replace('III. ', '')} 
+                            options={getOptionsForCategory('MANIFESTATION')} 
                         />
                     </div>
                 </header>
-                <div className="mobile-horizontal-shelf no-scrollbar" style={{ 
+                <div className="column-content no-scrollbar" style={{ 
                     flex: 1, 
                     display: 'flex', 
                     flexDirection: 'column', 
-                    gap: 'var(--space-4)',
-                    padding: '24px var(--space-4)',
-                    overflowY: 'auto',
-                    overflowX: 'hidden'
+                    gap: 'var(--space-3)',
+                    overflowY: 'auto'
                 }}>
                     {manifestation.map(atom => (
                         <div key={atom.id} 
                             data-resonance={pendingSyncs[atom.id] ? "active" : "idle"}
                             data-highlighted={getHighlightState(atom.id)}
-                            className="resonance-glow--manifestation"
-                            style={{ transition: 'all 0.3s ease', borderRadius: '4px' }}
+                            style={{ transition: 'all 0.3s ease' }}
                         >
-                            <ResultGalleryCard 
+                            <ArtifactCard 
                                 atom={atom.raw} 
                                 onHoverStart={(id) => setFocusedEngineId(id)}
                                 onHoverEnd={() => setFocusedEngineId(null)}
@@ -237,7 +239,7 @@ export function ArtifactGrid({ pins, onResonate }) {
  * CreationMenu Component 
  * Un menú desplegable minimalista (Fractal Invocator)
  */
-function CreationMenu({ category, options }) {
+function CreationMenu({ category, options, onAction }) {
     const [isOpen, setIsOpen] = React.useState(false);
     
     return (
@@ -272,9 +274,9 @@ function CreationMenu({ category, options }) {
                         <span style={{ fontSize: '8px', fontWeight: '800', opacity: 0.5, letterSpacing: '0.1em' }}>{category}</span>
                     </div>
                     <div className="stack--tight" style={{ padding: '4px' }}>
-                        {options.map(opt => (
+                        {options.map((opt, i) => (
                             <button 
-                                key={opt.class}
+                                key={opt.class || opt.action || i}
                                 className="btn btn--block btn--ghost shelf--tight"
                                 style={{ justifyContent: 'flex-start', padding: '8px 12px', textAlign: 'left' }}
                                 onClick={() => {
@@ -287,7 +289,9 @@ function CreationMenu({ category, options }) {
                                         .then(res => {
                                             if (res.items) toastEmitter.success("Blueprints detectados: " + res.items.length);
                                         });
-                                    } else {
+                                    } else if (opt.action && onAction) {
+                                        onAction(opt.action);
+                                    } else if (opt.class) {
                                         const label = `${opt.label}_${Date.now().toString().slice(-4)}`;
                                         useAppState.getState().createArtifact(opt.class, label);
                                     }

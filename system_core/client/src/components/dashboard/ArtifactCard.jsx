@@ -98,6 +98,37 @@ export function ArtifactCard({ atom }) {
         }
     };
 
+    const handleCrystallize = async (e) => {
+        e.stopPropagation();
+        try {
+            const res = await executeDirective({
+                provider: 'system',
+                protocol: 'SYSTEM_RESONANCE_CRYSTALLIZE',
+                context_id: projection.id
+            }, coreUrl, sessionSecret);
+
+            if (res.metadata?.status === 'OK') {
+                alert(`✅ Átomo cristalizado exitosamente. Recargando resonancia...`);
+                window.location.reload(); 
+            } else {
+                alert(`❌ Error en cristalización: ${res.metadata?.error}`);
+            }
+        } catch (err) {
+            alert(`❌ Fallo técnica de resonancia: ${err.message}`);
+        }
+    };
+
+    const handleDeepPurge = async (e) => {
+        e.stopPropagation();
+        if (!window.confirm("¿Deseas purgar de forma profunda este huérfano? Se eliminará la entrada del workspace.")) return;
+        try {
+            await deleteArtifact(projection.id, projection.provider);
+        } catch (err) {
+            alert(`❌ Error al purgar materia: ${err.message}`);
+        }
+    };
+
+
     return (
         <div
             className={`mca-surface stack ${isOrphan ? 'is-orphan' : ''} ${isSyncing ? 'is-syncing' : ''}`}
@@ -161,24 +192,48 @@ export function ArtifactCard({ atom }) {
             {/* Footer: Protocol Triggers */}
             <div className="spread mca-surface__footer">
                 <div className="shelf--tight" onClick={e => e.stopPropagation()}>
-                    {capabilities.raw?.includes('SYSTEM_SHARE_CREATE') && (
-                        <IndraActionTrigger
-                            variant="primary"
-                            label="PUBLICAR"
-                            onClick={handleShare}
-                            size="12px"
-                        />
+                    {isOrphan ? (
+                        <div className="shelf--tight">
+                             <IndraActionTrigger
+                                variant="primary"
+                                label="CRISTALIZAR"
+                                icon="SYNC"
+                                onClick={handleCrystallize}
+                                size="12px"
+                                title="Reparar Identidad V4.1"
+                            />
+                            <IndraActionTrigger
+                                variant="destructive"
+                                label="PURGAR"
+                                icon="DELETE"
+                                onClick={handleDeepPurge}
+                                size="12px"
+                                title="Eliminar sombra del workspace"
+                            />
+                        </div>
+                    ) : (
+                        <>
+                            {capabilities.raw?.includes('SYSTEM_SHARE_CREATE') && (
+                                <IndraActionTrigger
+                                    variant="primary"
+                                    label="P. PUBLICAR"
+                                    onClick={handleShare}
+                                    size="12px"
+                                />
+                            )}
+                            {capabilities.raw?.includes('SYSTEM_BLUEPRINT_SYNC') && (
+                                <IndraActionTrigger
+                                    variant="primary"
+                                    label="BP"
+                                    icon="VAULT"
+                                    onClick={handlePublish}
+                                    size="12px"
+                                    title="Guardar como Blueprint"
+                                />
+                            )}
+                        </>
                     )}
-                    {capabilities.raw?.includes('SYSTEM_BLUEPRINT_SYNC') && (
-                        <IndraActionTrigger
-                            variant="primary"
-                            label="BP"
-                            icon="VAULT"
-                            onClick={handlePublish}
-                            size="12px"
-                            title="Guardar como Blueprint"
-                        />
-                    )}
+
                     {capabilities.canDelete && (
                         <IndraActionTrigger
                             variant="destructive"

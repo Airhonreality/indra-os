@@ -514,14 +514,28 @@ export function WorkflowInspector() {
                                                         </button>
                                                     </div>
                                                 ) : (
-                                                    <input 
-                                                        className="input-base"
-                                                        type="text"
-                                                        placeholder="Valor estático..."
-                                                        style={{ fontSize: '10px', width: '100%', padding: '4px 6px', marginTop: '4px' }}
-                                                        value={mappedData?.value || ''}
-                                                        onChange={(e) => handleStaticMappingUpdate(fieldId, e.target.value)}
-                                                    />
+                                                    fieldInput.options && fieldInput.options.length > 0 ? (
+                                                        <select 
+                                                            className="input-base font-mono"
+                                                            style={{ fontSize: '10px', width: '100%', padding: '4px 6px', marginTop: '4px' }}
+                                                            value={mappedData?.value || ''}
+                                                            onChange={(e) => handleStaticMappingUpdate(fieldId, e.target.value)}
+                                                        >
+                                                            <option value="">SELECCIONAR...</option>
+                                                            {fieldInput.options.map(opt => (
+                                                                <option key={opt} value={opt}>{opt}</option>
+                                                            ))}
+                                                        </select>
+                                                    ) : (
+                                                        <input 
+                                                            className="input-base"
+                                                            type="text"
+                                                            placeholder={fieldId === 'context_id' ? "Seleccionar carpeta..." : "Valor estático..."}
+                                                            style={{ fontSize: '10px', width: '100%', padding: '4px 6px', marginTop: '4px' }}
+                                                            value={mappedData?.value || ''}
+                                                            onChange={(e) => handleStaticMappingUpdate(fieldId, e.target.value)}
+                                                        />
+                                                    )
                                                 )}
                                             </div>
                                         );

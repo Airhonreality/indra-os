@@ -7,7 +7,7 @@ import { getComponentForNode } from './ComponentMapper';
 
 import { useIndraResource } from '../../../hooks/useIndraResource';
 
-const StaticImageRenderer = ({ field, isDesignMode }) => {
+const StaticImageRenderer = ({ field, isDesignMode, onUpdate }) => {
     const { url, isLoading } = useIndraResource(field.label);
 
     if (isDesignMode) {
@@ -19,7 +19,7 @@ const StaticImageRenderer = ({ field, isDesignMode }) => {
                     style={{ width: '80%', textAlign: 'center', fontSize: '10px' }} 
                     defaultValue={field.label} 
                     placeholder="GRID (indra://...) o URL de imagen" 
-                    onBlur={(e) => field.label = e.target.value}
+                    onBlur={(e) => onUpdate?.(e.target.value)}
                 />
                 {url && url !== field.label && (
                     <img src={url} alt="Preview" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.2, zIndex: -1 }} />
@@ -174,8 +174,7 @@ function FormNode({ field, value, onChange, disabled, isDesignMode }) {
                             style={{ background: 'transparent', border: 'none', resize: 'none', fontFamily: 'var(--font-system)', fontSize: '14px', lineHeight: '1.5', padding: '8px' }}
                             defaultValue={field.label}
                             onBlur={(e) => {
-                                // Aquí se despacharía una actualización del bloque estático. Para simplificar, la demo muta visualmente.
-                                field.label = e.target.value;
+                                window.dispatchEvent(new CustomEvent('AEE_UPDATE_FIELD', { detail: { id: field.id, label: e.target.value } }));
                             }}
                         />
                     ) : (
@@ -191,7 +190,13 @@ function FormNode({ field, value, onChange, disabled, isDesignMode }) {
     if (isStaticImage) {
         return (
             <Wrapper>
-                <StaticImageRenderer field={field} isDesignMode={isDesignMode} />
+                <StaticImageRenderer 
+                    field={field} 
+                    isDesignMode={isDesignMode} 
+                    onUpdate={(newUrl) => {
+                        window.dispatchEvent(new CustomEvent('AEE_UPDATE_FIELD', { detail: { id: field.id, label: newUrl } }));
+                    }}
+                />
             </Wrapper>
         );
     }

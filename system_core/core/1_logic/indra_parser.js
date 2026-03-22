@@ -119,7 +119,13 @@ const IndraParser = {
             } else if (func === 'ROUND') {
                 values.push(Math.round(evaluatedArgs[0]));
             } else if (func === 'SUM') {
-                values.push(evaluatedArgs.reduce((s, v) => s + (Number(v) || 0), 0));
+                // AXIOMA DE COLAPSO: Aplanar argumentos para permitir SUM(op.items.subtotal) o SUM(1,2,3)
+                const flatArgs = evaluatedArgs.flat(Infinity);
+                values.push(flatArgs.reduce((s, v) => s + (Number(v) || 0), 0));
+            } else if (func === 'MONEY_ROUND') {
+                // AXIOMA DE SINCERIDAD: Redondeo bancario a 2 decimales para evitar errores de coma flotante.
+                const val = Number(evaluatedArgs[0]) || 0;
+                values.push(Math.round((val + Number.EPSILON) * 100) / 100);
             }
             continue;
         }

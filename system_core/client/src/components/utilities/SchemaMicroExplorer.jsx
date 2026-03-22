@@ -36,7 +36,7 @@ export function SchemaMicroExplorer({
         <div className="schema-micro-explorer stack--none" style={{ marginTop: '4px' }}>
             <IndraFractalTree 
                 data={fields}
-                defaultExpanded={true}
+                defaultExpanded={false}
                 renderItem={({ node, depth, isExpanded, hasChildren, toggleExpand }) => (
                     <SchemaTreeItem 
                         field={node} 

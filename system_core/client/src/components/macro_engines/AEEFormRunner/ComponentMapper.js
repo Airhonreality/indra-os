@@ -19,7 +19,6 @@ export const COMPONENT_MAP = {
     'IMAGE': ImageUploader,          // Solo imágenes — preview visual
     'FILE_ATTACHMENT': FileAttachmentWidget, // Cualquier binario (SKP, CDR, PDF...) — ADR-023
     'CURRENCY': CurrencyWidget,
-    'FILE': FileAttachmentWidget,    // Alias legacy → FileAttachmentWidget
     'DEFAULT': GenericInput
 };
 

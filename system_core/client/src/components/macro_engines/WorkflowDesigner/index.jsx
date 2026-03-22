@@ -120,16 +120,14 @@ function WorkflowDesignerContent({ bridge }) {
                         </div>
                     </div>
 
-                    {/* SANDBOX HUD (Overlay) */}
-                    <div className={`workflow-sandbox-hud ${showSandbox ? 'active' : ''}`}>
-                        <div className="spread pointer" onClick={() => setShowSandbox(!showSandbox)} style={{ padding: 'var(--space-3)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                            <span className="indra-field-label" style={{ color: 'var(--color-accent)' }}>EJECUCIÓN_ESTADO // {status}</span>
-                            <IndraIcon name={showSandbox ? 'ARROW_DOWN' : 'ARROW_UP'} size="10px" />
-                        </div>
-                        <div style={{ height: '200px' }}>
-                            <WorkflowSandbox status={status} traceLogs={traceLogs} runTrace={runTrace} />
-                        </div>
-                    </div>
+                    {/* AXIS: SANDBOX (V-AXIS COLLAPSIBLE) */}
+                    <WorkflowSandbox 
+                        status={status} 
+                        traceLogs={traceLogs} 
+                        runTrace={runTrace} 
+                        isExpanded={showSandbox}
+                        onToggle={() => setShowSandbox(!showSandbox)}
+                    />
                 </main>
 
                 {/* 2. PANEL DE ESCRUTINIO (30% - Derecha) */}

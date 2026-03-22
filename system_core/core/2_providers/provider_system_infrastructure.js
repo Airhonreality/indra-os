@@ -499,29 +499,37 @@ function _system_createAtom(atomClass, label, extraData, providerId) {
 
         const initialPayload = extraData.payload || {};
 
-        // AXIOMA ADR-008: El Provider confía en la Aduana. 
-        // No validamos campos obligatorios aquí porque el protocol_router garantizó que la materia nace pura.
-
+        // AXIOMA V4.1: El átomo nace con su identidad completa (Determinismo).
         const atomDoc = {
-            handle: { ns: extraData.handle?.ns || `com.indra.system.${atomClass.toLowerCase()}`, alias: alias, label: label },
+            handle: { 
+                ns: extraData.handle?.ns || `com.indra.system.${atomClass.toLowerCase()}`, 
+                alias: alias, 
+                label: label 
+            },
             class: atomClass,
-            provider: providerId,
+            provider: providerId || 'system',
+            core_id: readCoreOwnerEmail(), 
             created_at: now,
             updated_at: now,
             payload: initialPayload,
             protocols: ['ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE'],
             raw: extraData.raw || {},
         };
+
         const file = subfolder.createFile(fileName, JSON.stringify(atomDoc, null, 2));
         const driveId = file.getId();
         atomDoc.id = driveId;
+        
+        // Persistir con el ID ya inyectado
         file.setContent(JSON.stringify(atomDoc, null, 2));
 
         return { items: [_system_toAtom(atomDoc, driveId, providerId)], metadata: { status: 'OK' } };
     } catch (err) {
+        logError(`[infrastructure] ATOM_CREATE_FAILED: ${atomClass}`, err);
         return { items: [], metadata: { status: 'ERROR', error: err.message } };
     }
 }
+
 
 /**
  * ATOM_DELETE: Elimina un átomo de Drive y purga sus referencias
@@ -694,11 +702,15 @@ function _system_toAtom(doc, fileId, providerId) {
     };
 
     // ADR-008: Blindaje de Salida (Aduana Interna del Provider)
-    if (doc.class === DATA_SCHEMA_CLASS_ && !Array.isArray(payload.fields)) {
-        payload.fields = [];
-    }
     if (doc.class === DATA_SCHEMA_CLASS_) {
-        _system_normalizeSchemaFieldAliases_(payload.fields || []);
+        // PRIORIDAD: Si payload está vacío pero raw tiene campos (legacy/import), los promocionamos
+        const rawFields = doc.raw?.fields || doc.fields || [];
+        if ((!payload.fields || payload.fields.length === 0) && rawFields.length > 0) {
+            payload.fields = JSON.parse(JSON.stringify(rawFields));
+        }
+        
+        payload.fields = payload.fields || [];
+        _system_normalizeSchemaFieldAliases_(payload.fields);
     }
     if (doc.class === WORKFLOW_CLASS_ && !Array.isArray(payload.stations)) {
         payload.stations = [];

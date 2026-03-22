@@ -58,8 +58,10 @@ function normalizeTrigger(trigger = {}) {
         type: trigger.type || 'MANUAL',
         source,
         source_id: sourceId,
+        schema_id: sourceId,
         label: trigger.label || source?.handle?.label || '',
-        config: trigger.config || {}
+        config: trigger.config || {},
+        fields: trigger.fields || null   // ← CRÍTICO: preservar campos hidratados
     };
 }
 

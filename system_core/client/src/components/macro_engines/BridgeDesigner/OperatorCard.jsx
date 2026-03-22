@@ -17,6 +17,8 @@ import { MathConfig } from './OperatorTypes/MathConfig';
 import { TextConfig } from './OperatorTypes/TextConfig';
 import { ResolverConfig } from './OperatorTypes/ResolverConfig';
 import { ExpressionConfig } from './OperatorTypes/ExpressionConfig';
+import { FilterConfig } from './OperatorTypes/FilterConfig';
+import { LookupConfig } from './OperatorTypes/LookupConfig';
 
 export function OperatorCard({ op, onUpdate, onRemove, options }) {
 
@@ -37,6 +39,10 @@ export function OperatorCard({ op, onUpdate, onRemove, options }) {
                 return <ResolverConfig {...props} />;
             case 'EXPRESSION':
                 return <ExpressionConfig {...props} />;
+            case 'FILTER':
+                return <FilterConfig {...props} />;
+            case 'LOOKUP':
+                return <LookupConfig {...props} />;
             default:
                 return (
                     <div style={{ fontSize: '10px', opacity: 0.3, fontFamily: 'var(--font-mono)' }}>

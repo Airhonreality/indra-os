@@ -3,15 +3,13 @@
  * ARTEFACTO: components/dashboard/WorkspaceDashboard.jsx
  * RESPONSABILIDAD: Orquestador del Nivel 2 (Workspace activo).
  *
- * LAYOUT CANÓNICO:
+ * LAYOUT CANÓNICO (Dharma Tríptico):
  *   1. IndraMacroHeader  → flex-shrink: 0  (identidad del workspace)
- *   2. ActionRail        → flex-shrink: 0  (herramientas de creación)
- *   3. ArtifactGrid      → flex: 1         (área operativa scrollable)
+ *   2. ArtifactGrid      → flex: 1         (área operativa scrollable: I, II, III)
  *
  * AXIOMAS:
- *   - La cabecera NO contiene lógica de negocio del workspace.
+ *   - El autodescubrimiento de motores (Dharma) ocurre dentro del ArtifactGrid.
  *   - El título es editable directamente desde la cabecera.
- *   - El ActionRail es una banda operativa independiente, no parte del header.
  * =============================================================================
  */
 
@@ -19,7 +17,6 @@ import React, { useState } from 'react';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import { useShell } from '../../context/ShellContext';
 import { ArtifactGrid } from './ArtifactGrid';
-import { ActionRail } from './ActionRail';
 import { IndraIcon } from '../utilities/IndraIcons';
 import { IndraMacroHeader } from '../utilities/IndraMacroHeader';
 import { useLexicon } from '../../services/lexicon';
@@ -39,25 +36,34 @@ export function WorkspaceDashboard() {
 
     const { lang } = useShell();
     const t = useLexicon(lang);
-    const { pinAtom } = useAppState();
+    const { pinAtom, isGlobalSelectorOpen, closeSelector } = useAppState();
 
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
 
-    const loading = loadingKeys.pins;
+    const loading = loadingKeys.pins || loadingKeys.workspaces;
     const activeWS = workspaces.find(w => w.id === activeWorkspaceId);
 
     const handleResonate = (atom) => {
         pinAtom(atom);
         setIsSelectorOpen(false);
+        if (closeSelector) closeSelector();
     };
 
+    const isOpen = isSelectorOpen || isGlobalSelectorOpen;
+
+    // AXIOMA: Si no hay workspace activo después de cargar, volvemos a Nexus o mostramos error.
     if (!activeWS && !loading) {
         return (
             <div className="fill center stack--loose" style={{ opacity: 0.5 }}>
-                <IndraIcon name="ATOM" size="48px" />
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.1em' }}>
-                    {t('status_loading')}
-                </span>
+                <IndraIcon name="ATOM" size="64px" style={{ opacity: 0.2, marginBottom: '20px' }} />
+                <div className="stack--2xs center">
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.1em' }}>
+                        ERROR: MATERIA_NO_ENCONTRADA
+                    </span>
+                    <button className="btn btn--ghost btn--xs" onClick={() => setActiveWorkspace(null)} style={{ marginTop: '20px', color: 'var(--color-accent)' }}>
+                        VOLVER_AL_NEXO
+                    </button>
+                </div>
             </div>
         );
     }
@@ -82,11 +88,11 @@ export function WorkspaceDashboard() {
             </div>
 
             {/* Selector de Resonancia (Universal Invocation) */}
-            {isSelectorOpen && (
+            {isOpen && (
                 <ArtifactSelector 
-                    title="INVOCAR_RESONANCIA"
+                    title="INSPECTOR DE SILOS Y ARTEFACTOS"
                     onSelect={handleResonate}
-                    onCancel={() => setIsSelectorOpen(false)}
+                    onCancel={() => { setIsSelectorOpen(false); if (closeSelector) closeSelector(); }}
                 />
             )}
 

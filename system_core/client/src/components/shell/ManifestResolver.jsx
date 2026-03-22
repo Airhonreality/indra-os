@@ -46,8 +46,9 @@ export const ManifestResolver = () => {
             localStorage.setItem('indra-session-secret', 'PUBLIC_GRANT'); 
             localStorage.setItem('indra-share-ticket', ticketId); 
             
-            // Forzamos la recarga para aplicar el nuevo contexto soberano
-            window.location.href = '/'; 
+            // 3. Limpiar parámetros para evitar bucles en recarga asíncrona
+            window.history.replaceState({}, '', window.location.pathname);
+            window.location.reload(); 
 
         } catch (err) {
             console.error('[ManifestResolver] Resolution failed:', err);

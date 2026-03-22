@@ -18,7 +18,7 @@ export function IndraFractalTree({
     renderItem, 
     childrenKey = 'children',
     idKey = 'id',
-    defaultExpanded = true 
+    defaultExpanded = false 
 }) {
     // Inicializar estado de expansión
     const [expandedIds, setExpandedIds] = useState(() => {

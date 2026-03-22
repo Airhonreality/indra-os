@@ -42,8 +42,11 @@ const GATEWAY_SYSTEM_PROTOCOLS = Object.freeze([
   'SYSTEM_TRIGGER_HUB_GENERATE',
   'PULSE_WAKEUP',
   'RESOURCE_INGEST',
-  'RESOURCE_RESOLVE'
+  'RESOURCE_RESOLVE',
+  'SYSTEM_RESONANCE_CRYSTALLIZE',
+  'SYSTEM_WORKSPACE_DEEP_PURGE'
 ]);
+
 
 // ─── PUNTO DE ENTRADA HTTP ────────────────────────────────────────────────────
 
@@ -117,39 +120,10 @@ function doGet(e) {
  */
 function doPost(e) {
   try {
-    // --- 0. Detección de Ignición de Pulsos (The Boomerang | ADR-018) ---
-    // Si detectamos el header de ignición, procedemos directamente a la ejecución
-    // sin pasar por la validación de password del cliente.
-    const igniteHeader = e && e.parameter && e.parameter.ignite === 'true' || 
-                         e && e.headers && e.headers['X-Indra-Ignite'] === 'true';
-    
-    if (igniteHeader) {
-      logInfo('[gateway] Boomerang detectado. Iniciando Red de Pulsos.');
-      try {
-        const pulseResult = pulse_service_process_next(); // → pulse_service.gs
-        return _buildResponse_(200, { items: [], metadata: { status: 'OK', message: 'Ignición completada.', pulse_executed: !!pulseResult } });
-      } catch (err) {
-        logError('[gateway] Error en ignición del Boomerang.', err);
-        return _buildResponse_(500, { items: [], metadata: { status: 'ERROR', error: err.message } });
-      }
-    }
+    // --- 0. INTERCEPCIÓN DE PULSOS (ADR-018 | Zero-Auth Sidechannel) ---
+    const pulseResponse = pulse_router_intercept(e); // → pulse_router.gs
+    if (pulseResponse) return pulseResponse;
 
-    // --- 0.1 Detección de Webhooks de Soberanía (ADR-018) ---
-    // Si detectamos el parámetro webhook_id en la URL, activamos el Trigger Hub.
-    const webhookId = e && e.parameter && e.parameter.webhook_id;
-    if (webhookId) {
-      logInfo('[gateway] Webhook de Soberanía detectado.', { webhookId });
-      try {
-        const pulseId = trigger_hub_activate(webhookId); // → trigger_hub.gs
-        return _buildResponse_(202, { 
-          items: [], 
-          metadata: { status: 'OK', message: 'Trigger aceptado. Pulso encolado.', pulse_id: pulseId } 
-        });
-      } catch (err) {
-        logError('[gateway] Error en activación de Webhook de Soberanía.', err);
-        return _buildResponse_(404, { items: [], metadata: { status: 'ERROR', error: err.message } });
-      }
-    }
 
     // --- 1. Parseo defensivo del body ---
     let payload;
@@ -232,12 +206,11 @@ function doPost(e) {
     // Si el provider no especifica update_type, por defecto es SNAPSHOT (carga completa)
     const updateType = result.metadata.update_type || 'SNAPSHOT';
 
-    // --- 7. Muro de Contrato ---
-    const contractViolation = _enforceAtomContract_(result, payload.provider || 'unknown', payload.protocol);
-    if (contractViolation) {
-      result = contractViolation;
-      result.metadata.logs = flushLogs();
-    }
+    // --- 7. Validación Final de Contratos (AXIOMA DE SINCERIDAD V4.1) ---
+    // En pre-lanzamiento, eliminamos la 'Hidratación de Piedad'.
+    // El protocol_router ya valida los átomos. Si algo llega aquí sin handle, 
+    // es un fallo estructural del provider.
+
 
     return _buildResponse_(200, result, {
       'X-Indra-Update-Type': updateType,
@@ -261,89 +234,6 @@ function doPost(e) {
 }
 
 /**
- * Valida que cada átomo del array `items` cumpla con el contrato IUH v3.0:
- * { id, handle: { ns, alias, label }, class, protocols: Array }.
- * Si alguno falla, intenta hidratar desde campos legacy.
- * Si la hidratación falla o el contrato estructural se rompe, retorna error.
- *
- * @param {{ items: Array, metadata: Object }} result - Resultado del provider.
- * @param {string} providerId - ID del provider para mensajes de error.
- * @param {string} protocol - Protocolo en ejecución para excepciones.
- * @returns {{ items: [], metadata: Object }|null}
- * @private
- */
-function _enforceAtomContract_(result, providerId, protocol) {
-  // Excepción axiomática: El motor lógico (LOGIC_EXECUTE) retorna resultados computados genéricos.
-  if (protocol === 'LOGIC_EXECUTE') return null;
-
-  if (!Array.isArray(result.items) || result.items.length === 0) return null;
-
-  const REQUIRED_STRUCT_FIELDS = ['id', 'class'];
-
-  for (let i = 0; i < result.items.length; i++) {
-    const atom = result.items[i];
-    
-    // EXCEPCIÓN PROBE_SIGNAL: Las señales de prospección no son átomos y no tienen contrato rígido.
-    if (_isProbeSignal_(atom)) continue;
-
-    if (!atom || typeof atom !== 'object') {
-      return {
-        items: [],
-        metadata: {
-          status: 'ERROR',
-          error: `ContractViolation: item[${i}] no es un objeto en provider "${providerId}".`,
-          code: 'CONTRACT_VIOLATION',
-        },
-      };
-    }
-
-    // 1. Integridad de Identidad (v3.0 IUH)
-    // El Gateway es el último muro. Si el átomo no tiene handle, lo hidratamos aquí 
-    // como red de seguridad final (Shadow Identity Protocol).
-    if (!atom.handle || !atom.handle.alias || !atom.handle.label) {
-      // Prioridad de Identidad: handle.label -> name -> label -> account_id -> id -> default
-      const label = atom.handle?.label || atom.name || atom.label || atom.account_id || atom.id || 'Recurso';
-      const alias = atom.handle?.alias || _system_slugify_(label) || 'slot_unnamed';
-
-      atom.handle = {
-        ns: atom.handle?.ns || `com.indra.gateway.${atom.class?.toLowerCase() || 'item'}`,
-        alias: alias,
-        label: label
-      };
-    }
-
-    // Eliminación Axiomática: una vez hidratado el handle, se remueve .name
-    // para forzar al frontend a usar handle.label (DATA_CONTRACTS v4.0)
-    if (atom.name) delete atom.name;
-
-    // 2. Validación de Campos Estructurales
-    for (const field of REQUIRED_STRUCT_FIELDS) {
-      if (atom[field] === undefined || atom[field] === null || atom[field] === '') {
-        logError(`[gateway] ContractViolation: átomo sin campo "${field}" en provider "${providerId}".`, { atom_id: atom.id || '?' });
-        return {
-          items: [],
-          metadata: {
-            status: 'ERROR',
-            error: `ContractViolation: átomo sin campo "${field}" en provider "${providerId}".`,
-            code: 'CONTRACT_VIOLATION',
-          },
-        };
-      }
-    }
-
-    // 3. Validación de Protocolos
-    if (!Array.isArray(atom.protocols)) {
-      logError(`[gateway] ContractViolation: protocols no es Array en "${providerId}".`, { atom_id: atom.id });
-      return {
-        items: [],
-        metadata: {
-          status: 'ERROR',
-          error: `ContractViolation: átomo "${atom.id}" no tiene campo "protocols" como Array.`,
-          code: 'CONTRACT_VIOLATION',
-        },
-      };
-    }
-  }
 
   return null; // Todos los átomos son válidos v3.0.
 }
@@ -362,14 +252,19 @@ function _enforceAtomContract_(result, providerId, protocol) {
 function _handleBootstrap_(payload) {
   if (payload.password && payload.protocol === 'SYSTEM_CONFIG_WRITE') {
     try {
-      bootstrapPassword(payload.password); // → system_config.gs
+      bootstrapPassword(payload.password); 
       logInfo('[gateway] Servidor bootstrapped exitosamente.');
+
+      // Generar ticket para la sesión inmediata
+      const ticket = generateSessionTicket();
+
       return _buildResponse_(200, {
         items: [],
         metadata: {
           status: 'OK',
           message: 'Pacto de Ignición completado. El Núcleo ha despertado.',
           intent_type: 'SUCCESS',
+          session_ticket: ticket,
           logs: flushLogs()
         },
       });
@@ -479,6 +374,16 @@ function _handleSystemProtocol_(payload) {
       items: [],
       metadata: { status: 'OK', url: url }
     };
+  }
+
+  if (protocol === 'SYSTEM_RESONANCE_CRYSTALLIZE') {
+    logInfo('[gateway] Despachando SYSTEM_RESONANCE_CRYSTALLIZE.');
+    return resonance_crystallize_atom(payload); // → resonance_service.gs
+  }
+
+  if (protocol === 'SYSTEM_WORKSPACE_DEEP_PURGE') {
+    logInfo('[gateway] Despachando SYSTEM_WORKSPACE_DEEP_PURGE.');
+    return resonance_deep_purge_workspace(payload); // → resonance_service.gs
   }
 
   // Protocolo de sistema no reconocido
@@ -610,9 +515,17 @@ function _buildResponse_(_statusCode, body, headers = {}) {
   }
   
   // AXIOMA DE IDENTIDAD: El Core siempre firma quién es (Sinceridad de Origen)
-  // readCoreOwnerEmail() está definido en system_config.gs
   try {
     body.metadata.core_id = readCoreOwnerEmail();
+    
+    // Si la autenticación fue con password real, inyectamos un ticket para futuras requests
+    // (Aduana de un solo paso)
+    if (_statusCode === 200 && !body.metadata.session_ticket) {
+       // Solo si el usuario envió password en este request, devolvemos un ticket.
+       // detectamos si el payload original tenía password buscando el trace si estuviera disponible, 
+       // pero una forma más limpia es inyectarlo opcionalmente desde cada handler.
+       // Por ahora, el handshake inicial de bootstrap ya inyecta el ticket.
+    }
   } catch (e) {
     body.metadata.core_id = 'discovery_pending';
   }

@@ -53,6 +53,34 @@ function EngineViewport({ activeArtifact, closeArtifact, coreUrl, sessionSecret,
             data-resonance={isSyncing ? "active" : "idle"}
             style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', overflow: 'hidden', zIndex: 100 }}
         >
+            {/* BOTÓN DE ESCAPE PARA INVITADOS (MICELLAR EXIT) */}
+            {sessionSecret === 'PUBLIC_GRANT' && (
+                <button 
+                    onClick={() => { localStorage.clear(); window.location.href = '/'; }}
+                    style={{
+                        position: 'fixed',
+                        bottom: '20px',
+                        left: '20px',
+                        zIndex: 2000,
+                        background: 'var(--color-danger)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '20px',
+                        padding: '8px 16px',
+                        fontSize: '9px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 15px rgba(255,0,0,0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}
+                >
+                    <IndraIcon name="CLOSE" size="10px" />
+                    ABANDONAR PROYECCIÓN
+                </button>
+            )}
+
             {/* LÍNEA DE RESONANCIA GLOBAL (Top Bar) */}
             {isSyncing && (
                 <div style={{

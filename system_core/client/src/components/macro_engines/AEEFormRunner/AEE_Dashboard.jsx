@@ -196,13 +196,26 @@ export function AEEDashboard({ atom, bridge }) {
             }));
         };
 
+        const handleUpdateField = (e) => {
+            const { id, ...updates } = e.detail;
+            const targetProp = viewMode === 'SUCCESS' ? 'success_view' : 'custom_fields';
+            const currentFields = previewAtom.payload?.[targetProp] || [];
+            
+            setLiveConfig(prev => ({
+                ...prev,
+                [targetProp]: currentFields.map(f => f.id === id ? { ...f, ...updates } : f)
+            }));
+        };
+
         window.addEventListener('AEE_INSERT_FIELD', handleInsert);
         window.addEventListener('AEE_INSERT_STATIC', handleInsertStatic);
         window.addEventListener('AEE_REMOVE_FIELD', handleRemoveField);
+        window.addEventListener('AEE_UPDATE_FIELD', handleUpdateField);
         return () => {
             window.removeEventListener('AEE_INSERT_FIELD', handleInsert);
             window.removeEventListener('AEE_INSERT_STATIC', handleInsertStatic);
             window.removeEventListener('AEE_REMOVE_FIELD', handleRemoveField);
+            window.removeEventListener('AEE_UPDATE_FIELD', handleUpdateField);
         };
     }, [previewAtom, viewMode]);
 

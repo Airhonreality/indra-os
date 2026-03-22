@@ -17,7 +17,9 @@ import { ManualesTab } from './ManualesTab';
 export const LandingView = () => {
     const activeTab = useAppState(s => s.docsTab);
     const isConnected = useAppState(s => s.isConnected);
+    const sessionSecret = useAppState(s => s.sessionSecret);
     const closeDocs = useAppState(s => s.closeDocs);
+
     const { theme, setTheme } = useShell();
     const [showConnector, setShowConnector] = useState(false);
     const scrollContainerRef = useRef(null);
@@ -180,9 +182,15 @@ export const LandingView = () => {
                                 <button className="btn btn--mini btn--ghost" onClick={toggleTheme} style={{ border: 'none' }}>
                                     <IndraIcon name={theme === 'dark' ? 'LIGHT' : 'DARK'} size="14px" />
                                 </button>
-                                <button className="btn btn--mini btn--primary" onClick={handleEnter} style={{ fontWeight: 300, border: 'none' }}>
-                                    {isConnected ? 'VOLVER AL CORE' : 'ENTRAR A INDRA'}
-                                </button>
+                                {sessionSecret === 'PUBLIC_GRANT' ? (
+                                    <button className="btn btn--mini btn--danger" onClick={() => { localStorage.clear(); window.location.href = '/'; }} style={{ fontWeight: 300, border: 'none' }}>
+                                        SALIR DE PROYECCIÓN
+                                    </button>
+                                ) : (
+                                    <button className="btn btn--mini btn--primary" onClick={handleEnter} style={{ fontWeight: 300, border: 'none' }}>
+                                        {isConnected ? 'VOLVER AL CORE' : 'ENTRAR A INDRA'}
+                                    </button>
+                                )}
                             </div>
                         }
                     />

@@ -10,6 +10,7 @@ import { useVault } from './useVault';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { useLexicon } from '../../../services/lexicon';
 import { DataProjector } from '../../../services/DataProjector';
+import { useAppState } from '../../../state/app_state';
 import './ServiceManager.css';
 
 export function ServiceManager({ onClose, filter: propFilter }) {

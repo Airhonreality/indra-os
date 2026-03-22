@@ -74,6 +74,10 @@ const AGENTIC_CATEGORIES = {
 };
 
 export class DataProjector {
+    static getAgenticCategories() {
+        return AGENTIC_CATEGORIES;
+    }
+
     /**
      * Proyecta un átomo crudo en un objeto listo para la UI.
      * @param {Object} atom - El átomo crudo del backend.

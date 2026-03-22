@@ -1,5 +1,4 @@
-import React from 'react';
-import { IndraIcon } from '../../utilities/IndraIcons';
+import { useAppState } from '../../../state/app_state';
 
 /**
  * =============================================================================
@@ -8,6 +7,8 @@ import { IndraIcon } from '../../utilities/IndraIcons';
  * =============================================================================
  */
 export function StationCard({ station, index, isSelected, isExecuting, onSelect, integrityStatus }) {
+    const isSyncing = useAppState(state => state.pendingSyncs[station.id]);
+
     // Verificación de Calibración Local
     const isCabled = () => {
         if (station.type === 'PROTOCOL') {
@@ -41,7 +42,10 @@ export function StationCard({ station, index, isSelected, isExecuting, onSelect,
                 position: 'relative',
                 transition: 'all 0.5s cubic-bezier(0.19, 1, 0.22, 1)',
                 cursor: 'pointer',
-                scale: isExecuting ? '1.02' : '1'
+                scale: isExecuting ? '1.02' : '1',
+                opacity: isSyncing ? 0.4 : 1,
+                filter: isSyncing ? 'grayscale(1)' : 'none',
+                pointerEvents: isSyncing ? 'none' : 'auto'
             }}
         >
             {/* Encabezado: Tipo (Visual) */}

@@ -176,15 +176,61 @@ var LogicEngine = {
       return;
     }
 
+    // --- NODO FILTER (Sinceridad de Colección) ---
+    // Axioma: Reducir ruido filtrando vectores por propiedad o valor.
+    if (type === 'FILTER') {
+      const list = this._get_(context, input_a);
+      const { property, criteria, value } = config; 
+      
+      const filtered = Array.isArray(list) ? list.filter(item => {
+          const val = property ? (item && item[property]) : item;
+          switch (criteria) {
+            case '==': return val == value;
+            case '!=': return val != value;
+            case '>':  return val > value;
+            case '<':  return val < value;
+            case 'CONTAINS': return String(val).includes(String(value));
+            default: return true;
+          }
+      }) : [];
+      
+      this._set_(context, "op." + id, filtered);
+      if (alias) this._set_(context, "op." + alias, filtered);
+      return;
+    }
+
+    // --- NODO LOOKUP (Referencia de Resonancia) ---
+    // Axioma: Localizar un átomo en una tabla por una clave de búsqueda.
+    if (type === 'LOOKUP') {
+      const searchKey = this._get_(context, input_a);
+      const table = this._get_(context, input_b);
+      const { search_field, return_field } = config;
+      
+      const matched = Array.isArray(table) ? table.find(item => item && item[search_field] == searchKey) : null;
+      const result = (matched && return_field) ? (matched[return_field] !== undefined ? matched[return_field] : matched) : matched;
+      
+      this._set_(context, "op." + id, result || 0);
+      if (alias) this._set_(context, "op." + alias, result || 0);
+      return;
+    }
+
     // --- OPERADORES MATH & TEXT ---
-    const isStandard = ["ADD", "SUBTRACT", "MULTIPLY", "DIVIDE"].includes(operation);
+    const isStandard = ["ADD", "SUBTRACT", "MULTIPLY", "DIVIDE", "SUMMATION"].includes(operation);
     
     if (isStandard) {
-        const valA = this._get_(context, input_a);
-        const valB = this._get_(context, input_b);
-        const result = this._computeStandard_(operation, valA, valB);
-        this._set_(context, "op." + id, result);
-        if (alias) this._set_(context, "op." + alias, result);
+        if (operation === 'SUMMATION') {
+          // AXIOMA DE COLAPSO: Reducir vector a escalar para Totales.
+          const valA = this._get_(context, input_a);
+          const result = Array.isArray(valA) ? valA.reduce((s, v) => s + (Number(v) || 0), 0) : (Number(valA) || 0);
+          this._set_(context, "op." + id, result);
+          if (alias) this._set_(context, "op." + alias, result);
+        } else {
+          const valA = this._get_(context, input_a);
+          const valB = this._get_(context, input_b);
+          const result = this._computeStandard_(operation, valA, valB);
+          this._set_(context, "op." + id, result);
+          if (alias) this._set_(context, "op." + alias, result);
+        }
     } else {
         // MODO AXIOMÁTICO: Evaluación de expresión (parser compartido FE/BE)
         const result = IndraParser.evaluate(operation, context);

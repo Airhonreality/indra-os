@@ -192,3 +192,49 @@
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: var(--space-4);
 }
+
+/* ── INDRA ACCORDION (CANONICAL PATTERN) ── */
+.indra-accordion {
+    border-bottom: 1px solid var(--color-border);
+    transition: all var(--transition-base);
+}
+
+.indra-accordion__header {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.indra-accordion__header:hover {
+    background: var(--color-bg-hover);
+}
+
+.indra-accordion__header.active {
+    background: var(--color-bg-float);
+    border-left: 2px solid var(--indra-dynamic-accent);
+}
+
+.indra-accordion__title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--color-text-primary);
+}
+
+.indra-accordion__content {
+    padding: var(--space-4);
+    background: rgba(0,0,0,0.1);
+    animation: indra-slide-down 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes indra-slide-down {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}

@@ -32,9 +32,17 @@ export async function executeDirective(uqo, coreUrl, password) {
     // Emitir pulso de salida (Resonancia)
     window.dispatchEvent(new CustomEvent('indra-pulse', { detail: { type: 'OUT', protocol: resolvedProtocol } }));
 
+    // --- HIGIENE SOBERANA (ADR-002) ---
+    // Clonamos y sanitizamos para el log de consola (No exponer secretos en pantalla)
+    const sanitizedPayload = JSON.parse(JSON.stringify(payload));
+    if (sanitizedPayload.password) sanitizedPayload.password = '••••••••';
+    if (sanitizedPayload.data?.api_key) sanitizedPayload.data.api_key = '••••••••';
+    if (sanitizedPayload.data?.secret) sanitizedPayload.data.secret = '••••••••';
+
     console.group(`%c ⚡ INDRA_WIRE: ${resolvedProtocol} `, 'background: #222; color: #bada55; font-weight: bold;', traceId);
     console.log('%c UQO_DATA: ', 'color: #777;', uqo.data);
-    console.log('%c FULL_PAYLOAD: ', 'color: #444;', payload);
+    console.log('%c FULL_PAYLOAD: ', 'color: #444;', sanitizedPayload);
+
 
     const t0 = Date.now();
     try {

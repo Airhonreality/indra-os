@@ -51,8 +51,7 @@ export function SlotSelector({ contextStack, onSelect, onCancel, filterType = nu
 
     const filtered = flatSlots.filter(s => {
         const matchesSearch = s.label.toUpperCase().includes(search.toUpperCase()) || s.path.toUpperCase().includes(search.toUpperCase());
-        const matchesType = !filterType || s.type === filterType;
-        return matchesSearch && matchesType;
+        return matchesSearch;
     });
 
     return (

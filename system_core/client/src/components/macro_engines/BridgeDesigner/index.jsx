@@ -30,6 +30,7 @@ export function BridgeDesigner({ atom, bridge }) {
     const { updatePinIdentity } = useWorkspace();
     const [isSaving, setIsSaving] = useState(false);
     const [showSelector, setShowSelector] = useState(null); // 'FUENTE' | 'DESTINO'
+    const [showSandbox, setShowSandbox] = useState(false);
     const [pendingRename, setPendingRename] = useState(null);
     const [isCommittingRename, setIsCommittingRename] = useState(false);
     const [renameError, setRenameError] = useState('');
@@ -457,7 +458,9 @@ export function BridgeDesigner({ atom, bridge }) {
                                     { type: 'MATH', color: 'var(--color-accent)', label: 'MATH' },
                                     { type: 'TEXT', color: 'var(--color-text-primary)', label: 'STRING' },
                                     { type: 'RESOLVER', color: 'var(--color-success)', label: 'VAULT' },
-                                    { type: 'EXPRESSION', color: 'var(--color-cold)', label: 'EXPR' }
+                                    { type: 'EXPRESSION', color: 'var(--color-cold)', label: 'EXPR' },
+                                    { type: 'FILTER', color: 'var(--color-warning)', label: 'FILTER' },
+                                    { type: 'LOOKUP', color: 'var(--color-accent)', label: 'LOOKUP' }
                                 ].map(op => (
                                     <button 
                                         key={op.type} 
@@ -578,16 +581,16 @@ export function BridgeDesigner({ atom, bridge }) {
                         </div>
                     </div>
 
-                    {/* DEDICATED FOOTER AXIS (V-AXIS) */}
-                    <div className="indra-engine-footer">
-                        <SandboxPanel 
-                            localAtom={localAtom} 
-                            schemas={schemas}
-                            isExecuting={isExecuting}
-                            testResult={testResult}
-                            runTest={runTest}
-                        />
-                    </div>
+                    {/* AXIS: SANDBOX (V-AXIS COLLAPSIBLE) */}
+                    <SandboxPanel 
+                        localAtom={localAtom} 
+                        schemas={schemas}
+                        isExecuting={isExecuting}
+                        testResult={testResult}
+                        runTest={runTest}
+                        isExpanded={showSandbox}
+                        onToggle={() => setShowSandbox(!showSandbox)}
+                    />
                 </div>
             </div>
 

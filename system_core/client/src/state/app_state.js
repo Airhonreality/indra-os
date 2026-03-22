@@ -34,6 +34,7 @@ export const useAppState = create((set, get) => ({
     lang: localStorage.getItem('indra-lang') || 'es', 
     isConnected: !!localStorage.getItem('indra-session-secret'),
     isConnecting: false,
+    coreStatus: null, // null, 'SCANNING', 'BOOTSTRAP', 'STABLE'
     error: null,
 
     // Catálogos
@@ -57,14 +58,73 @@ export const useAppState = create((set, get) => ({
     isDocsOpen: false,
     docsTab: 'BIENVENIDA',
     serviceFilter: null, // 'intelligence', 'storage', null (all)
+    isGlobalSelectorOpen: false,
 
     // ── ACCIONES ──
 
     /**
-     * Establece la conexión inicial y valida la contraseña.
+     * SENSADO (Paso 1): Verifica el estado del núcleo sin enviar contraseñas.
+     * Utiliza el endpoint GET ?mode=echo del api_gateway.gs.
+     */
+    discoverCore: async (url) => {
+        set({ isConnecting: true, coreStatus: 'SCANNING', error: null });
+        try {
+            // El modo echo devuelve { metadata: { status: 'ALIVE', bootstrapped: boolean } }
+            const res = await fetch(`${url}?mode=echo`);
+            
+            if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+            
+            const data = await res.json();
+            
+            if (data.metadata?.status === 'ALIVE') {
+                const isBootstrapped = data.metadata.bootstrapped;
+                set({ 
+                    coreStatus: isBootstrapped ? 'STABLE' : 'BOOTSTRAP',
+                    isConnecting: false 
+                });
+                return isBootstrapped ? 'STABLE' : 'BOOTSTRAP';
+            } else {
+                throw new Error('La URL no devolvió una firma válida de Indra V4.');
+            }
+        } catch (err) {
+            console.error('[app_state] discoverCore failed:', err);
+            set({ 
+                isConnecting: false, 
+                coreStatus: null,
+                error: 'El núcleo no responde o la URL es inválida.' 
+            });
+            throw err;
+        }
+    },
+
+    /**
+     * INICIALIZACIÓN (Paso 2 Boot): Crea la identidad del núcleo e inyecta la clave maestra.
+     */
+    setupCore: async (url, password) => {
+        set({ isConnecting: true, error: null });
+        try {
+            // El Api Gateway espera esto para marcar BOOTSTRAP_COMPLETED
+            await executeDirective({
+                provider: 'system',
+                protocol: 'SYSTEM_CONFIG_WRITE',
+            }, url, password);
+
+            // Una vez inicializado, logueamos normalmente
+            await get().setCoreConnection(url, password);
+        } catch (err) {
+            set({
+                isConnecting: false,
+                error: err.message || 'SETUP_FAILED'
+            });
+            throw err;
+        }
+    },
+
+    /**
+     * Establece la conexión inicial (Login) y carga los workspaces.
      * Soporta registro automático en la Bóveda de Núcleos (Multi-Core).
      */
-    setCoreConnection: async (url, password, alias = 'Core') => {
+    setCoreConnection: async (url, password) => {
         set({ isConnecting: true, error: null });
         try {
             const result = await executeDirective({
@@ -73,33 +133,48 @@ export const useAppState = create((set, get) => ({
                 context_id: 'workspaces'
             }, url, password);
 
-            const coreId = result.metadata?.core_id || 'unidentified_sovereign';
+
+            const coreId = result.metadata?.core_id;
+            
+            if (!coreId) {
+                throw new Error('CONTRACT_VIOLATION: El núcleo no proporcionó una Identidad Soberana (core_id).');
+            }
             
             // ── ACTUALIZAR REGISTRO (BÓVEDA) ──
             const { coreRegistry } = get();
             const newRegistry = [...coreRegistry.filter(c => c.url !== url)];
             newRegistry.unshift({
-                alias: alias || 'Indra_Core',
+                id: coreId,
+                class: 'SYSTEM_CORE',
+                handle: {
+                    ns: 'com.indra.core',
+                    alias: coreId,
+                    label: coreId
+                },
                 url: url,
-                coreId: coreId,
-                secret: password, // Persistido localmente (Soberanía de Usuario)
+                secret: password,
                 lastActive: new Date().toISOString()
             });
 
             localStorage.setItem('indra-core-registry', JSON.stringify(newRegistry));
             localStorage.setItem('indra-core-url', url);
             localStorage.setItem('indra-core-id', coreId);
-            localStorage.setItem('indra-session-secret', password);
+            
+            // AXIOMA DE SINCERIDAD (Soberanía):
+            // Si el Core nos dio un ticket de sesión, usamos ese para el futuro.
+            // Si no, guardamos la password (solo para compatibilidad legacy/public).
+            const sessionSecret = result.metadata?.session_ticket || password;
+            localStorage.setItem('indra-session-secret', sessionSecret);
 
             set({
                 coreUrl: url,
                 coreId: coreId,
-                sessionSecret: password,
+                sessionSecret: sessionSecret,
                 coreRegistry: newRegistry,
                 isConnected: true,
                 isConnecting: false,
                 workspaces: result.items,
-                activeWorkspaceId: null // Reseteo de seguridad al cambiar de núcleo
+                activeWorkspaceId: null 
             });
 
             get().hydrateManifest();
@@ -113,6 +188,7 @@ export const useAppState = create((set, get) => ({
         }
     },
 
+    resetConnectionState: () => set({ coreStatus: null, error: null, isConnecting: false }),
     clearError: () => set({ error: null }),
     
     /**
@@ -133,6 +209,9 @@ export const useAppState = create((set, get) => ({
     openDocs: (tab = 'BIENVENIDA') => set({ isDocsOpen: true, docsTab: tab }),
     closeDocs: () => set({ isDocsOpen: false }),
     toggleDocs: () => set(s => ({ isDocsOpen: !s.isDocsOpen })),
+
+    openSelector: () => set({ isGlobalSelectorOpen: true }),
+    closeSelector: () => set({ isGlobalSelectorOpen: false }),
 
     /**
      * Carga los servicios disponibles (pila de providers).
@@ -451,6 +530,37 @@ export const useAppState = create((set, get) => ({
     },
 
     /**
+     * Crea un nuevo Workspace en el Core.
+     */
+    createWorkspace: async (label = 'Nuevo Workspace') => {
+        const { coreUrl, sessionSecret } = get();
+        try {
+            const result = await executeDirective({
+                provider: 'system',
+                protocol: 'ATOM_CREATE',
+                data: {
+                    class: 'WORKSPACE',
+                    handle: { label: label },
+                    payload: {}
+                }
+            }, coreUrl, sessionSecret);
+
+            const newWorkspace = result.items?.[0];
+            if (newWorkspace) {
+                set(state => ({
+                    workspaces: [...state.workspaces, newWorkspace]
+                }));
+                toastEmitter.success('Workspace Materializado');
+                return newWorkspace;
+            }
+        } catch (err) {
+            console.error('[app_state] createWorkspace failed:', err);
+            toastEmitter.error(`Error al materializar Workspace: ${err.message}`);
+            throw err;
+        }
+    },
+
+    /**
      * Carga los pins del workspace activo.
      */
     loadPins: async () => {
@@ -675,12 +785,14 @@ export const useAppState = create((set, get) => ({
             }
 
             // Flujo Normal (Dueño)
+            set({ loadingKeys: { ...get().loadingKeys, workspaces: true } });
             const result = await executeDirective({
                 provider: 'system',
                 protocol: 'ATOM_READ',
                 context_id: 'workspaces'
             }, coreUrl, sessionSecret);
-            set({ workspaces: result.items });
+
+            set({ workspaces: result.items, loadingKeys: { ...get().loadingKeys, workspaces: false } });
             get().hydrateManifest();
 
             // Si hay un workspace activo persistido, hidratar sus pins

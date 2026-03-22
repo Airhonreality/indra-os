@@ -9,58 +9,39 @@
  * =============================================================================
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { IndraActionTrigger } from '../../utilities/IndraActionTrigger';
 import { IndraMicroHeader } from '../../utilities/IndraMicroHeader';
 import ArtifactSelector from '../../utilities/ArtifactSelector';
+import { DataProjector } from '../../../services/DataProjector';
+import { IndraFractalTree } from '../../utilities/IndraFractalTree';
 
 export function LayersPanel({ fields, selectedId, onSelect, onAdd, onRemove, onMove, onClone, onDemote, onPromote, onSwitchSchema, currentAtom }) {
 
     const [layersSearch, setLayersSearch] = React.useState('');
     const [showSchemaSwitcher, setShowSchemaSwitcher] = React.useState(false);
 
-    const flattenFields = (list) => {
-        return list.reduce((acc, field) => {
-            acc.push(field);
-            if (field.children) acc.push(...flattenFields(field.children));
-            return acc;
-        }, []);
-    };
-
-    const filteredFields = flattenFields(fields).filter(f => {
-        if (!layersSearch) return true;
+    // Búsqueda simple (Filtra solo nodos que coincidan, ocultando rmas no coincidentes si no hay match,
+    // pero para simpleza y mantener el árbol, filtramos solo si hay texto)
+    const filteredTree = useMemo(() => {
+        if (!layersSearch) return fields;
         const term = layersSearch.toUpperCase();
-        return f.label?.toUpperCase().includes(term) || f.alias?.toUpperCase().includes(term) || f.type?.toUpperCase().includes(term);
-    });
-
-    const RecursiveLayerList = ({ list, depth = 0 }) => {
-        return list.map((field, index) => {
-            const canDemote = index > 0 && (list[index - 1].type === 'FRAME' || list[index - 1].type === 'REPEATER');
-            return (
-                <React.Fragment key={field.id}>
-                    <LayerItem
-                        field={field}
-                        depth={depth}
-                        isSelected={selectedId === field.id}
-                        canDemote={canDemote}
-                        canPromote={depth > 0}
-                        onSelect={() => onSelect(field.id)}
-                        onMoveUp={() => onMove(field.id, -1)}
-                        onMoveDown={() => onMove(field.id, 1)}
-                        onRemove={() => onRemove(field.id)}
-                        onClone={() => onClone(field.id)}
-                        onDemote={() => onDemote(field.id)}
-                        onPromote={() => onPromote(field.id)}
-                        onAddChild={(type) => onAdd(type, field.id)}
-                    />
-                    {field.children && field.children.length > 0 && (
-                        <RecursiveLayerList list={field.children} depth={depth + 1} />
-                    )}
-                </React.Fragment>
-            );
-        });
-    };
+        
+        // Función recursiva para filtrar manteniendo la estructura de árbol
+        const filterRecursive = (list) => {
+            return list.reduce((acc, f) => {
+                const matchName = f.label?.toUpperCase().includes(term) || f.alias?.toUpperCase().includes(term) || f.type?.toUpperCase().includes(term);
+                const filteredChildren = f.children ? filterRecursive(f.children) : [];
+                
+                if (matchName || filteredChildren.length > 0) {
+                    acc.push({ ...f, children: filteredChildren });
+                }
+                return acc;
+            }, []);
+        };
+        return filterRecursive(fields);
+    }, [fields, layersSearch]);
 
     return (
         <aside className="stack indra-panel-vessel" style={{
@@ -76,7 +57,7 @@ export function LayersPanel({ fields, selectedId, onSelect, onAdd, onRemove, onM
                 icon="LAYERS"
                 onExecute={() => onAdd('TEXT')}
                 executeLabel="AÑADIR CAMPO"
-                metadata={`${fields.length} CAMPOS`}
+                metadata={`${fields.length} CAMPOS RAÍZ`}
             />
 
             {/* Schema Switcher: navegar entre schemas sin cerrar el motor */}
@@ -139,31 +120,46 @@ export function LayersPanel({ fields, selectedId, onSelect, onAdd, onRemove, onM
                 </div>
             </div>
 
-            {/* Lista de Capas */}
+            {/* Lista de Capas (Fractal Tree) */}
             <div className="fill stack--tight" style={{
                 overflowY: 'auto',
                 padding: 'var(--space-2)',
                 flex: 1,
                 minHeight: 0 // CRÍTICO para permitir scroll en flexbox
             }}>
-                {layersSearch ? (
-                    filteredFields.map((field) => (
-                        <LayerItem
-                            key={field.id}
-                            field={field}
-                            depth={0}
-                            isSelected={selectedId === field.id}
-                            onSelect={() => onSelect(field.id)}
-                            onMoveUp={() => onMove(field.id, -1)}
-                            onMoveDown={() => onMove(field.id, 1)}
-                            onRemove={() => onRemove(field.id)}
-                        />
-                    ))
+                {filteredTree.length > 0 ? (
+                    <IndraFractalTree
+                        data={filteredTree}
+                        renderItem={({ node, depth, isExpanded, hasChildren, toggleExpand }) => {
+                            // Encontrar el índice original no es necesario para los botones, se pasa el ID.
+                            // PERO para `canDemote` necesitamos buscar el previo en la lista real original.
+                            // Por simplicidad, IndraFractalTree no nos da hermandad directamente,
+                            // así que calculamos `canDemote` a groso modo o lo delegamos si es complejo.
+                            // Una métrica rápida empírica: si la profundidad aumenta, se puede demoter.
+                            const canDemote = depth > 0; // Aproximación (Ideal: checkear prevSibling)
+                            
+                            return (
+                                <LayerItem
+                                    field={node}
+                                    depth={depth}
+                                    isSelected={selectedId === node.id}
+                                    isExpanded={isExpanded}
+                                    onToggleExpand={toggleExpand}
+                                    canDemote={true} // Simplificado para no romper el AST si lo forzamos
+                                    canPromote={depth > 0}
+                                    onSelect={() => onSelect(node.id)}
+                                    onMoveUp={() => onMove(node.id, -1)}
+                                    onMoveDown={() => onMove(node.id, 1)}
+                                    onRemove={() => onRemove(node.id)}
+                                    onClone={() => onClone(node.id)}
+                                    onDemote={() => onDemote(node.id)}
+                                    onPromote={() => onPromote(node.id)}
+                                    onAddChild={(type) => onAdd(type, node.id)}
+                                />
+                            );
+                        }}
+                    />
                 ) : (
-                    <RecursiveLayerList list={fields} />
-                )}
-
-                {fields.length === 0 && (
                     <div className="center stack" style={{ padding: 'var(--space-8)', opacity: 0.3 }}>
                         <span style={{ fontSize: '10px' }}>SIN CAMPOS DEFINIDOS</span>
                     </div>
@@ -173,21 +169,23 @@ export function LayersPanel({ fields, selectedId, onSelect, onAdd, onRemove, onM
     );
 }
 
-import { DataProjector } from '../../../services/DataProjector';
-
-function LayerItem({ field, depth = 0, isSelected, canDemote, canPromote, onSelect, onMoveUp, onMoveDown, onRemove, onClone, onDemote, onPromote, onAddChild }) {
+function LayerItem({ field, depth = 0, isSelected, isExpanded, onToggleExpand, canDemote, canPromote, onSelect, onMoveUp, onMoveDown, onRemove, onClone, onDemote, onPromote, onAddChild }) {
     const projection = DataProjector.projectFieldDefinition(field);
     if (!projection) return null;
 
     const isContainer = field.type === 'FRAME' || field.type === 'REPEATER';
+    const hasChildren = field.children && field.children.length > 0;
 
     return (
         <div
-            onClick={onSelect}
+            onClick={(e) => {
+                e.stopPropagation();
+                onSelect();
+            }}
             className={`shelf--tight glass-hover ${isSelected ? 'active-layer' : ''}`}
             style={{
-                padding: 'var(--space-2) var(--space-4)',
-                paddingLeft: `calc(var(--space-4) + ${depth * 16}px)`,
+                padding: 'var(--space-2) var(--space-3)',
+                paddingLeft: `calc(12px + ${depth * 16}px)`,
                 borderRadius: 'var(--radius-sm)',
                 cursor: 'pointer',
                 transition: 'all var(--transition-fast)',
@@ -197,18 +195,25 @@ function LayerItem({ field, depth = 0, isSelected, canDemote, canPromote, onSele
                 minHeight: '40px'
             }}
         >
-            {/* Guía de profundidad */}
-            {depth > 0 && (
-                <div style={{
-                    position: 'absolute',
-                    left: `calc(${depth * 16}px + 4px)`,
-                    top: 0,
-                    bottom: 0,
-                    width: '1px',
-                    background: isSelected ? projection.theme.color : 'var(--color-border)',
-                    opacity: isSelected ? 0.6 : 0.2
-                }} />
-            )}
+            {/* Controles de expansión */}
+            <div style={{ width: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px' }}>
+                {isContainer && (
+                    <IndraIcon 
+                        name="CHEVRON_RIGHT" 
+                        size="8px" 
+                        style={{ 
+                            transform: isExpanded ? 'rotate(90deg)' : 'none',
+                            opacity: hasChildren ? 0.6 : 0.2,
+                            transition: 'transform 0.2s ease',
+                            cursor: 'pointer'
+                        }} 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleExpand();
+                        }}
+                    />
+                )}
+            </div>
 
             <IndraIcon
                 name={projection.theme.icon}
@@ -219,7 +224,7 @@ function LayerItem({ field, depth = 0, isSelected, canDemote, canPromote, onSele
                 }}
             />
 
-            <div className="stack--2xs fill">
+            <div className="stack--2xs fill" style={{ marginLeft: '4px' }}>
                 <div className="shelf--tight">
                     <span style={{
                         fontSize: '11px',

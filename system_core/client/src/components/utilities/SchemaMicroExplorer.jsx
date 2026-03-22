@@ -8,9 +8,10 @@
  * =============================================================================
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { IndraIcon } from './IndraIcons';
 import { DataProjector } from '../../services/DataProjector';
+import { IndraFractalTree } from './IndraFractalTree';
 
 export function SchemaMicroExplorer({ 
     schema, 
@@ -21,12 +22,9 @@ export function SchemaMicroExplorer({
     onContextMenu, 
     selectedId 
 }) {
-    // Suportar tanto atom.payload.fields como schema.fields (Normalización)
+    // Soportar tanto atom.payload.fields como schema.fields (Normalización)
     const fields = schema?.payload?.fields || schema?.fields || [];
     
-    // Auto-expandir el primer nivel para que no parezca vacío
-    const [expandedIds, setExpandedIds] = useState(() => new Set(fields.map(f => f.id)));
-
     if (!schema) return null;
     if (fields.length === 0) return (
         <div style={{ padding: '8px', opacity: 0.3, fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
@@ -34,69 +32,28 @@ export function SchemaMicroExplorer({
         </div>
     );
 
-    const toggleExpand = (id) => {
-        setExpandedIds(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
-    };
-
     return (
         <div className="schema-micro-explorer stack--none" style={{ marginTop: '4px' }}>
-            <RecursiveTree 
-                fields={fields} 
-                depth={0} 
-                onFieldClick={onFieldClick}
-                onAddClick={onAddClick}
-                onInsertField={onInsertField}
-                onCopyField={onCopyField}
-                onContextMenu={onContextMenu}
-                selectedId={selectedId}
-                expandedIds={expandedIds}
-                onToggleExpand={toggleExpand}
-            />
-        </div>
-    );
-}
-
-function RecursiveTree({ fields, depth, onFieldClick, onAddClick, onInsertField, onCopyField, onContextMenu, selectedId, expandedIds, onToggleExpand }) {
-    return fields.map(field => {
-        const isExpanded = expandedIds.has(field.id);
-        const hasChildren = field.children && field.children.length > 0;
-
-        return (
-            <React.Fragment key={field.id}>
-                <SchemaTreeItem 
-                    field={field} 
-                    depth={depth} 
-                    onFieldClick={onFieldClick}
-                    onAddClick={onAddClick}
-                    onInsertField={onInsertField}
-                    onCopyField={onCopyField}
-                    onContextMenu={onContextMenu}
-                    isSelected={selectedId === field.id}
-                    isExpanded={isExpanded}
-                    onToggleExpand={() => onToggleExpand(field.id)}
-                />
-                {hasChildren && isExpanded && (
-                    <RecursiveTree 
-                        fields={field.children} 
-                        depth={depth + 1} 
+            <IndraFractalTree 
+                data={fields}
+                defaultExpanded={true}
+                renderItem={({ node, depth, isExpanded, hasChildren, toggleExpand }) => (
+                    <SchemaTreeItem 
+                        field={node} 
+                        depth={depth} 
+                        isSelected={selectedId === node.id}
+                        isExpanded={isExpanded}
+                        onToggleExpand={toggleExpand}
                         onFieldClick={onFieldClick}
                         onAddClick={onAddClick}
                         onInsertField={onInsertField}
                         onCopyField={onCopyField}
                         onContextMenu={onContextMenu}
-                        selectedId={selectedId}
-                        expandedIds={expandedIds}
-                        onToggleExpand={onToggleExpand}
                     />
                 )}
-            </React.Fragment>
-        );
-    });
+            />
+        </div>
+    );
 }
 
 function SchemaTreeItem({ field, depth, onFieldClick, onAddClick, onInsertField, onCopyField, onContextMenu, isSelected, isExpanded, onToggleExpand }) {

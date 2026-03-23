@@ -14,6 +14,8 @@ $REPO_URL = "https://github.com/$REPO_OWNER/$REPO_NAME.git"
 $RAW_URL_BASE = "https://raw.githubusercontent.com/$REPO_OWNER/$REPO_NAME/main"
 $BOOTSTRAP_RUN_ID = [Guid]::NewGuid().ToString().Substring(0, 8)
 $BOOTSTRAP_LOG_PATH = Join-Path $env:TEMP "indra-bootstrap-$BOOTSTRAP_RUN_ID.log"
+$BOOTSTRAP_LOG_LAST_PATH = Join-Path $env:USERPROFILE "indra-bootstrap-last.log"
+$ProgressPreference = "SilentlyContinue"
 
 # Colores
 function Write-Log {
@@ -23,7 +25,31 @@ function Write-Log {
     )
 
     $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-    "$timestamp [$Level] $Message" | Out-File -FilePath $BOOTSTRAP_LOG_PATH -Append -Encoding UTF8
+    $line = "$timestamp [$Level] $Message"
+    $line | Out-File -FilePath $BOOTSTRAP_LOG_PATH -Append -Encoding UTF8
+    $line | Out-File -FilePath $BOOTSTRAP_LOG_LAST_PATH -Append -Encoding UTF8
+}
+
+function Show-LogHints {
+    Write-Host ""
+    Write-Host "Logs:" -ForegroundColor Yellow
+    Write-Host "  - $BOOTSTRAP_LOG_PATH" -ForegroundColor Cyan
+    Write-Host "  - $BOOTSTRAP_LOG_LAST_PATH" -ForegroundColor Cyan
+}
+
+function Stop-Bootstrap {
+    param(
+        [string]$Message,
+        [int]$Code = 1,
+        [System.Management.Automation.ErrorRecord]$ErrorRecord = $null
+    )
+
+    Write-Error-Custom $Message
+    if ($ErrorRecord) {
+        Write-ExceptionDetails -Context "Fallo fatal" -ErrorRecord $ErrorRecord
+    }
+    Write-Log -Level "FATAL" -Message "Salida con código $Code"
+    throw "__INDRA_ABORT__$Code::$Message"
 }
 
 function Write-ExceptionDetails {
@@ -44,6 +70,24 @@ function Write-ExceptionDetails {
     if ($ErrorRecord.InvocationInfo -and $ErrorRecord.InvocationInfo.PositionMessage) {
         Write-Log -Level "ERROR" -Message "$Context | Position: $($ErrorRecord.InvocationInfo.PositionMessage.Replace([Environment]::NewLine, ' '))"
     }
+}
+
+trap {
+    $errMessage = $_.Exception.Message
+    if ($errMessage -like "__INDRA_ABORT__*") {
+        Write-Log -Level "FATAL" -Message "Abort controlado: $errMessage"
+        Write-Host ""
+        Write-Warning-Custom "Bootstrap detenido de forma controlada."
+        Show-LogHints
+        Read-Host "Presiona Enter para volver a la consola"
+        break
+    }
+
+    Write-ExceptionDetails -Context "Trap global no controlado" -ErrorRecord $_
+    Write-Error-Custom "Se produjo un error no controlado durante el bootstrap."
+    Show-LogHints
+    Read-Host "Presiona Enter para volver a la consola"
+    break
 }
 
 function Write-Header {
@@ -200,6 +244,7 @@ if ($modeInput -eq "D") {
     Write-Info "Modo seleccionado: usuario final (ZIP-first)."
 }
 Write-Info "Log de ejecución: $BOOTSTRAP_LOG_PATH"
+Write-Info "Copia del último log: $BOOTSTRAP_LOG_LAST_PATH"
 
 # ============================================
 # FUNCIÓN: Instalar Git automáticamente
@@ -472,8 +517,7 @@ if (-not $gitInstalled) {
         
         $installedNow = Install-Git
         if (-not $installedNow) {
-            Write-Error-Custom "No se pudo asegurar la instalación de Git."
-            exit 1
+            Stop-Bootstrap -Message "No se pudo asegurar la instalación de Git." -Code 1
         }
 
         $gitStatusAfterInstall = Test-GitReady
@@ -481,8 +525,7 @@ if (-not $gitInstalled) {
             Write-Success "Git listo para continuar: $($gitStatusAfterInstall.Version)"
             $gitInstalled = $true
         } else {
-            Write-Error-Custom "Git no está disponible tras recuperación."
-            exit 1
+            Stop-Bootstrap -Message "Git no está disponible tras recuperación." -Code 1
         }
     } else {
         Write-Warning-Custom "Git no está instalado, pero en modo non-dev continuaremos sin Git (ZIP-first)."
@@ -671,9 +714,7 @@ if (-not $repoReady) {
     Write-Host "  1. No hay conexión a internet o hay proxy/firewall" -ForegroundColor Cyan
     Write-Host "  2. Bloqueo TLS/SSL en red corporativa" -ForegroundColor Cyan
     Write-Host "  3. Permisos insuficientes en carpeta temporal" -ForegroundColor Cyan
-    Write-Host ""
-    Read-Host "Presiona Enter para salir"
-    exit 1
+    Stop-Bootstrap -Message "No fue posible obtener el repositorio por ZIP ni por clone." -Code 1
 }
 
 if ($repoReady) {
@@ -698,7 +739,7 @@ if (-not (Test-Path $setupScriptPath)) {
     Write-Error-Custom "Script de setup no encontrado: $setupScriptPath"
     Write-Host ""
     Write-Host "El repositorio puede estar incompleto." -ForegroundColor Yellow
-    exit 1
+    Stop-Bootstrap -Message "No se encontró scripts/first-time-setup.ps1 en el contenido descargado." -Code 1
 }
 
 # Ejecutar el script de setup en bloque de autolimpieza
@@ -714,7 +755,7 @@ catch {
     Write-ExceptionDetails -Context "Ejecución setup principal" -ErrorRecord $_
     Write-Host ""
     Write-Warning-Custom "El proceso se ha detenido. El entorno temporal se mantendrá para diagnóstico."
-    exit 1
+    Stop-Bootstrap -Message "Fallo durante la ejecución del setup principal." -Code 1 -ErrorRecord $_
 }
 finally {
     # ── ELIMINACIÓN DE RASTRO (Soberanía Física) ──
@@ -740,3 +781,5 @@ Write-Host ""
 Write-Host "INDRA OS ahora orbita tu Google Drive. Tu PC está limpio." -ForegroundColor Green
 Write-Host ""
 Write-Info "Log final disponible en: $BOOTSTRAP_LOG_PATH"
+Write-Info "Último log consolidado: $BOOTSTRAP_LOG_LAST_PATH"
+Read-Host "Presiona Enter para finalizar y volver a la consola"

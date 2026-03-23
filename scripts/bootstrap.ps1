@@ -16,6 +16,8 @@ $BOOTSTRAP_RUN_ID = [Guid]::NewGuid().ToString().Substring(0, 8)
 $BOOTSTRAP_LOG_PATH = Join-Path $env:TEMP "indra-bootstrap-$BOOTSTRAP_RUN_ID.log"
 $BOOTSTRAP_LOG_LAST_PATH = Join-Path $env:USERPROFILE "indra-bootstrap-last.log"
 $ProgressPreference = "SilentlyContinue"
+$KEEP_TEMP_ON_FAILURE = $false
+$BOOTSTRAP_ABORT_REQUESTED = $false
 
 # Colores
 function Write-Log {
@@ -49,7 +51,37 @@ function Stop-Bootstrap {
         Write-ExceptionDetails -Context "Fallo fatal" -ErrorRecord $ErrorRecord
     }
     Write-Log -Level "FATAL" -Message "Salida con código $Code"
+    $script:KEEP_TEMP_ON_FAILURE = $true
+    $script:BOOTSTRAP_ABORT_REQUESTED = $true
     throw "__INDRA_ABORT__$Code::$Message"
+}
+
+function Validate-PowerShellScriptSyntax {
+    param([string]$FilePath)
+
+    $errors = $null
+    $content = Get-Content $FilePath -Raw -ErrorAction Stop
+    [void][System.Management.Automation.PSParser]::Tokenize($content, [ref]$errors)
+
+    if ($errors -and $errors.Count -gt 0) {
+        return @{
+            IsValid = $false
+            Errors = $errors
+        }
+    }
+
+    return @{
+        IsValid = $true
+        Errors = @()
+    }
+}
+
+function Convert-FileToUtf8Bom {
+    param([string]$FilePath)
+
+    $content = Get-Content $FilePath -Raw -ErrorAction Stop
+    $utf8Bom = New-Object System.Text.UTF8Encoding($true)
+    [System.IO.File]::WriteAllText($FilePath, $content, $utf8Bom)
 }
 
 function Write-ExceptionDetails {
@@ -79,6 +111,9 @@ trap {
         Write-Host ""
         Write-Warning-Custom "Bootstrap detenido de forma controlada."
         Show-LogHints
+        if ($script:KEEP_TEMP_ON_FAILURE -and $script:installPath -and (Test-Path $script:installPath)) {
+            Write-Warning-Custom "Se mantiene carpeta temporal para diagnóstico: $script:installPath"
+        }
         Read-Host "Presiona Enter para volver a la consola"
         break
     }
@@ -86,6 +121,10 @@ trap {
     Write-ExceptionDetails -Context "Trap global no controlado" -ErrorRecord $_
     Write-Error-Custom "Se produjo un error no controlado durante el bootstrap."
     Show-LogHints
+    if ($script:installPath -and (Test-Path $script:installPath)) {
+        $script:KEEP_TEMP_ON_FAILURE = $true
+        Write-Warning-Custom "Se mantiene carpeta temporal para diagnóstico: $script:installPath"
+    }
     Read-Host "Presiona Enter para volver a la consola"
     break
 }
@@ -734,6 +773,8 @@ Write-Info "Ejecutando script de setup..."
 Write-Host ""
 
 $setupScriptPath = Join-Path $installPath "scripts\first-time-setup.ps1"
+$setupStdoutPath = Join-Path $env:TEMP "indra-setup-$BOOTSTRAP_RUN_ID.stdout.log"
+$setupStderrPath = Join-Path $env:TEMP "indra-setup-$BOOTSTRAP_RUN_ID.stderr.log"
 
 if (-not (Test-Path $setupScriptPath)) {
     Write-Error-Custom "Script de setup no encontrado: $setupScriptPath"
@@ -742,13 +783,64 @@ if (-not (Test-Path $setupScriptPath)) {
     Stop-Bootstrap -Message "No se encontró scripts/first-time-setup.ps1 en el contenido descargado." -Code 1
 }
 
+Write-Header "🧪 Pre-validación del setup"
+try {
+    $syntaxCheck = Validate-PowerShellScriptSyntax -FilePath $setupScriptPath
+    if (-not $syntaxCheck.IsValid) {
+        Write-Warning-Custom "Se detectaron errores de parseo iniciales en setup. Intentando normalizar encoding (UTF-8 BOM)..."
+        Convert-FileToUtf8Bom -FilePath $setupScriptPath
+        $syntaxCheck = Validate-PowerShellScriptSyntax -FilePath $setupScriptPath
+    }
+
+    if (-not $syntaxCheck.IsValid) {
+        Write-Error-Custom "El setup tiene errores de sintaxis antes de ejecutar."
+        foreach ($parseError in $syntaxCheck.Errors) {
+            Write-Log -Level "ERROR" -Message "Setup parse error: $($parseError.Message) | Line $($parseError.Token.StartLine) Char $($parseError.Token.StartColumn)"
+        }
+        Stop-Bootstrap -Message "Se aborta: first-time-setup.ps1 no parsea correctamente. Revisa logs y archivo temporal." -Code 1
+    }
+
+    Write-Success "Pre-validación sintáctica del setup OK"
+}
+catch {
+    Write-ExceptionDetails -Context "Pre-validación de sintaxis del setup" -ErrorRecord $_
+    Stop-Bootstrap -Message "Error durante pre-validación del setup." -Code 1 -ErrorRecord $_
+}
+
 # Ejecutar el script de setup en bloque de autolimpieza
 try {
-    Write-Info "Ejecutando orquestador de despliegue en nube..."
-    & $setupScriptPath
+    Write-Info "Ejecutando orquestador de despliegue en nube en proceso aislado..."
+    Write-Info "Log STDOUT setup: $setupStdoutPath"
+    Write-Info "Log STDERR setup: $setupStderrPath"
+
+    if (Test-Path $setupStdoutPath) { Remove-Item $setupStdoutPath -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $setupStderrPath) { Remove-Item $setupStderrPath -Force -ErrorAction SilentlyContinue }
+
+    $setupProcess = Start-Process -FilePath "powershell.exe" `
+        -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $setupScriptPath) `
+        -WorkingDirectory $installPath `
+        -RedirectStandardOutput $setupStdoutPath `
+        -RedirectStandardError $setupStderrPath `
+        -PassThru `
+        -Wait
+
+    if ($setupProcess.ExitCode -ne 0) {
+        Write-Error-Custom "Setup finalizó con código: $($setupProcess.ExitCode)"
+        if (Test-Path $setupStderrPath) {
+            $tailErr = Get-Content $setupStderrPath -Tail 40 -ErrorAction SilentlyContinue
+            if ($tailErr) {
+                Write-Host "--- Últimas líneas de error del setup ---" -ForegroundColor Yellow
+                $tailErr | ForEach-Object { Write-Host $_ -ForegroundColor Yellow }
+            }
+        }
+        Write-Log -Level "ERROR" -Message "Setup process failed with exit code $($setupProcess.ExitCode)"
+        Stop-Bootstrap -Message "Fallo durante ejecución de first-time-setup.ps1 (ver logs stdout/stderr)." -Code 1
+    }
+
+    Write-Log -Level "SUCCESS" -Message "Setup process completed with exit code 0"
     
     Write-Host ""
-    Write-Success "Indra ha sido propulsada exitosamente a tu nube de Google." -ForegroundColor Green
+    Write-Success "Indra ha sido propulsada exitosamente a tu nube de Google."
 }
 catch {
     Write-Error-Custom "Error crítico durante el despliegue: $_"
@@ -766,8 +858,13 @@ finally {
     Start-Sleep -Seconds 2
     
     if (Test-Path $installPath) {
-        Remove-Item $installPath -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Success "Rastro local eliminado. Tu PC vuelve a estar limpio."
+        if ($KEEP_TEMP_ON_FAILURE -or $BOOTSTRAP_ABORT_REQUESTED) {
+            Write-Warning-Custom "Se conserva carpeta temporal para diagnóstico: $installPath"
+        }
+        else {
+            Remove-Item $installPath -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Success "Rastro local eliminado. Tu PC vuelve a estar limpio."
+        }
     }
 }
 

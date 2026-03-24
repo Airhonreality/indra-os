@@ -145,8 +145,8 @@ function IndraAppContent() {
     const isDocsOpen = useAppState(s => s.isDocsOpen);
 
     useEffect(() => {
-        if (isConnected) bootstrap();
-    }, [isConnected, bootstrap]);
+        bootstrap();
+    }, [bootstrap]);
 
     // NIVEL -1: Web de INDRA / Documentación (Incluso estando conectado)
     if (isDocsOpen || !isConnected) {

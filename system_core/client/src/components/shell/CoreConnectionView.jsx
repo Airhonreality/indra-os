@@ -5,337 +5,226 @@ import { IndraActionTrigger } from '../utilities/IndraActionTrigger';
 import { useLexicon } from '../../services/lexicon';
 
 /**
- * CoreConnectionView (Nivel 0)
- * Permite vincular una instancia de Google Apps Script (Core).
+ * CoreConnectionView (v4.0 - Soberanía Directa)
+ * Puerta de entrada al sistema. Gestiona el login con Google, 
+ * el autodescubrimiento y la instalación automática.
  */
 export function CoreConnectionView() {
     const t = useLexicon();
-    const setCoreConnection = useAppState((s) => s.setCoreConnection);
-    const discoverCore = useAppState((s) => s.discoverCore);
-    const setupCore = useAppState((s) => s.setupCore);
-    const isConnecting = useAppState((s) => s.isConnecting);
-    const coreStatus = useAppState((s) => s.coreStatus);
-    const resetConnectionState = useAppState((s) => s.resetConnectionState);
-    const coreId = useAppState((s) => s.coreId);
-    const systemError = useAppState((s) => s.error);
-    const clearError = useAppState((s) => s.clearError);
+    
+    // Estado Global (Indra v4.0)
+    const { 
+        loginWithGoogle, 
+        installNewCore, 
+        googleUser, 
+        isConnecting, 
+        coreStatus, 
+        error: systemError, 
+        clearError,
+        coreRegistry,
+        setCoreConnection,
+        removeCore,
+        resetConnectionState,
+        installStatus
+    } = useAppState();
 
-    // Estado de la Bóveda Local
-    const coreRegistry = useAppState((s) => s.coreRegistry);
-    const removeCore = useAppState((s) => s.removeCoreFromRegistry);
-
+    const [showLegacy, setShowLegacy] = useState(false);
     const [url, setUrl] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [localError, setLocalError] = useState(null);
 
-    const onInputChange = (setter) => (e) => {
-        setter(e.target.value);
-        if (systemError) clearError();
-        if (localError) setLocalError(null);
-    };
-
-    const handleAction = async (e) => {
+    const handleLegacyConnect = async (e) => {
         if (e) e.preventDefault();
-        setLocalError(null);
-
-        if (!coreStatus) {
-            if (!url) return;
-            try { await discoverCore(url); } catch (err) { /* handled by app_state */ }
-            return;
-        }
-
-        if (coreStatus === 'STABLE') {
-            if (!password) { setLocalError('Ingresa la contraseña maestra.'); return; }
-            try { await setCoreConnection(url, password); } catch (err) { }
-        }
-
-        if (coreStatus === 'BOOTSTRAP') {
-            if (!password || password.length < 4) { setLocalError('Contraseña muy corta.'); return; }
-            if (password !== confirmPassword) { setLocalError('Las contraseñas no coinciden.'); return; }
-            try { await setupCore(url, password); } catch (err) { }
-        }
-    };
-
-    const handleQuickConnect = async (core) => {
         try {
-            await setCoreConnection(core.url, core.secret);
+            await setCoreConnection(url, null);
         } catch (err) {
-            console.error('Quick connection failed:', err);
+            console.error('[LegacyConnect] Failed:', err);
         }
     };
 
     return (
-        <div className="fill center">
-            {/* Contenedor Principal Asimétrico */}
+        <div className="fill center" style={{ background: 'var(--color-bg-deep)' }}>
             <div className="glass" style={{
-                width: '780px',
-                padding: 'var(--space-8)',
+                width: '600px',
+                padding: 'var(--space-10)',
                 borderRadius: 'var(--radius-xl)',
-                position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 'var(--space-8)'
+                gap: 'var(--space-8)',
+                textAlign: 'center',
+                boxShadow: '0 40px 100px rgba(0,0,0,0.5)',
+                border: '1px solid rgba(255,255,255,0.08)'
             }}>
-
-                {/* ── SECCIÓN SUPERIOR: IDENTIDAD DIAGRAMÁTICA ── */}
-                <div className="shelf" style={{ gap: 'var(--space-6)', alignItems: 'flex-start' }}>
+                
+                {/* ── SECCIÓN SUPERIOR: IDENTIDAD ── */}
+                <div className="stack" style={{ alignItems: 'center', gap: 'var(--space-4)' }}>
                     <div style={{ position: 'relative' }}>
-                        <IndraIcon name="ATOM" size="100px" style={{ color: 'var(--color-accent)', filter: 'drop-shadow(0 0 20px var(--color-accent-glow))' }} />
-                        <div style={{
-                            position: 'absolute',
-                            top: '50%', left: '50%',
-                            width: '120px', height: '120px',
-                            border: '1px dashed var(--color-accent)',
-                            borderRadius: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            opacity: 0.2,
-                            animation: 'spin 20s linear infinite'
-                        }}></div>
+                        <IndraIcon name="ATOM" size="80px" style={{ color: 'var(--color-accent)', filter: 'drop-shadow(0 0 25px var(--color-accent-glow))' }} />
+                        <div className="pulse-ring"></div>
                     </div>
-
-                    <div className="stack--tight" style={{ paddingTop: 'var(--space-3)' }}>
+                    <div className="stack--tight">
                         <h1 style={{
-                            fontSize: '32px',
+                            fontSize: '38px',
                             fontFamily: 'var(--font-mono)',
-                            fontWeight: 'var(--font-bold)',
-                            letterSpacing: '0.4em',
-                            margin: 0
-                        }}>{t('ui_system_id')}</h1>
-                        <div className="shelf">
-                            <span className="text-label" style={{ color: 'var(--color-accent)' }}>{t('ui_system_awakening')}</span>
-                            <div className="hud-line" style={{ width: '200px' }}></div>
-                        </div>
+                            letterSpacing: '0.5em',
+                            margin: 0,
+                            color: 'var(--color-text-primary)'
+                        }}>INDRA</h1>
+                        <span className="text-label" style={{ opacity: 0.5, letterSpacing: '0.2em', fontSize: '10px' }}>
+                            SISTEMA OPERATIVO MICELAR
+                        </span>
                     </div>
                 </div>
-                              <div className="core-selector-main-layout" style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    gap: 'var(--space-10)',
-                    maxHeight: '540px',
-                    overflowY: 'auto',
-                    paddingRight: 'var(--space-4)'
-                }}>
+
+                {/* ── CUERPO CENTRAL: FLUJOS DE ACCESO ── */}
+                <div className="stack" style={{ gap: 'var(--space-8)' }}>
                     
-                    {/* ── SECCIÓN 01: BÓVEDA DE REALIDADES (Tree View) ── */}
-                    {coreRegistry.length > 0 && (
-                        <div className="tree-section">
-                            <header className="shelf" style={{ marginBottom: 'var(--space-4)', opacity: 0.4 }}>
-                                <IndraIcon name="VAULT" size="12px" />
-                                <span style={{ fontSize: '9px', fontWeight: '900', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-                                    BÓVEDA_REGISTRADA [{coreRegistry.length}]
-                                </span>
-                            </header>
-
-                            <div className="tree-container stack" style={{ 
-                                paddingLeft: 'var(--space-3)', 
-                                borderLeft: '1px solid rgba(255,255,255,0.05)',
-                                marginLeft: '8px',
-                                gap: 'var(--space-3)'
-                            }}>
-                                {coreRegistry.map((core) => (
-                                    <div key={core.url} className="tree-item glass-light shelf ripple" 
-                                        style={{ 
-                                            padding: 'var(--space-3) var(--space-4)', 
-                                            borderRadius: 'var(--radius-md)', 
-                                            border: '1px solid var(--color-border-dim)',
-                                            position: 'relative',
-                                            justifyContent: 'space-between'
-                                        }}
-                                        onClick={() => handleQuickConnect(core)}
-                                    >
-                                        <div className="item-connector" style={{
-                                            position: 'absolute', left: '-13px', top: '50%',
-                                            width: '12px', height: '1px', background: 'rgba(255,255,255,0.05)'
-                                        }} />
-                                        
-                                        <div className="shelf--loose" style={{ flex: 1, minWidth: 0 }}>
-                                            <IndraIcon name="CORE" size="18px" style={{ opacity: 0.5, color: 'var(--color-accent)' }} />
-                                            <div className="stack--tight" style={{ minWidth: 0 }}>
-                                                <span className="text-label" style={{ 
-                                                    color: 'var(--color-text-primary)', 
-                                                    fontSize: '11px', 
-                                                    fontWeight: 'bold',
-                                                    whiteSpace: 'nowrap',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis'
-                                                }}>
-                                                    {core.handle?.label || core.alias}
-                                                </span>
-                                                <span className="text-hint" style={{ fontSize: '9px', opacity: 0.4, fontFamily: 'var(--font-mono)' }}>
-                                                    {core.url.substring(0, 60)}...
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className="shelf--tight" onClick={e => e.stopPropagation()}>
-                                            <IndraActionTrigger 
-                                                variant="destructive"
-                                                onClick={() => removeCore(core.url)}
-                                                size="14px"
-                                            />
-                                            <button className="btn btn--accent btn--mini" style={{ padding: '4px 12px', fontSize: '9px' }}>
-                                                VINCULAR
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                    {!googleUser && !isConnecting && (
+                        <div className="stack" style={{ gap: 'var(--space-6)' }}>
+                            <p className="text-hint" style={{ fontSize: '14px', lineHeight: '1.6', opacity: 0.7 }}>
+                                Entra a tu realidad soberna. Tus datos, tu motor y tu identidad <br /> 
+                                residen en tu propio ecosistema de Google con total privacidad.
+                            </p>
+                            
+                            <button 
+                                className="btn btn--accent ripple" 
+                                onClick={loginWithGoogle}
+                                style={{ 
+                                    padding: '16px 40px', 
+                                    fontSize: '14px', 
+                                    fontWeight: '900', 
+                                    borderRadius: '50px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 'var(--space-4)',
+                                    margin: '0 auto',
+                                    boxShadow: '0 10px 30px var(--color-accent-glow)'
+                                }}
+                            >
+                                <IndraIcon name="GOOGLE" size="20px" />
+                                ENTRAR A INDRA
+                            </button>
                         </div>
                     )}
 
-                    {/* ── SECCIÓN 02: NUEVO ENLACE (Formulario Integrado) ── */}
-                    <div className="form-section">
-                        <header className="shelf" style={{ marginBottom: 'var(--space-4)', opacity: coreRegistry.length > 0 ? 0.4 : 1 }}>
-                            <IndraIcon name="PLUS" size="12px" />
-                            <span style={{ fontSize: '9px', fontWeight: '900', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-                                VINCULAR_NUEVO_NÚCLEO
-                            </span>
-                        </header>
-
-                        <form onSubmit={handleAction} className="glass-light stack" style={{ 
-                            padding: 'var(--space-6)', 
-                            borderRadius: 'var(--radius-lg)',
-                            border: '1px solid var(--color-border-dim)',
-                            gap: 'var(--space-6)'
-                        }}>
-                            <div className="grid-split" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-6)', alignItems: 'center' }}>
-                                <div className="stack--tight">
-                                    <label className="text-label" style={{ fontSize: '10px' }}>{t('ui_resonance_config')}</label>
-                                    <p className="text-hint" style={{ fontSize: '9px', opacity: 0.4 }}>URL base de tu Google Apps Script desplegado como Web App.</p>
+                    {isConnecting && (
+                        <div className="stack" style={{ gap: 'var(--space-6)', alignItems: 'center' }}>
+                            <div className="loader-ring"></div>
+                            {installStatus?.step ? (
+                                <div className="stack--tight" style={{ width: '100%', maxWidth: '440px' }}>
+                                    <span className="text-label" style={{ color: 'var(--color-accent)', animation: 'fade 1.5s infinite', fontWeight: 'bold' }}>
+                                        IGNICIÓN EN CURSO: {installStatus.progress}%
+                                    </span>
+                                    <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden', marginTop: '12px', border: '1px solid rgba(255,255,255,0.02)' }}>
+                                        <div style={{ width: `${installStatus.progress}%`, height: '100%', background: 'var(--color-accent)', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 10px var(--color-accent)' }} />
+                                    </div>
+                                    <p className="text-hint" style={{ fontSize: '11px', marginTop: '16px', lineHeight: '1.5', minHeight: '3em' }}>
+                                        {installStatus.step}
+                                    </p>
                                 </div>
-                                <div className="slot-small glass-light shelf" style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', background: 'rgba(0,0,0,0.2)' }}>
-                                    <input
-                                        className="input-base"
-                                        style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-accent)' }}
-                                        placeholder="https://script.google.com/macros/s/..."
-                                        required
-                                        value={url}
-                                        onChange={onInputChange(setUrl)}
-                                        readOnly={!!coreStatus}
-                                        disabled={!!coreStatus}
-                                    />
-                                    {coreStatus && (
-                                        <button type="button" onClick={() => { resetConnectionState(); setUrl(''); setPassword(''); setConfirmPassword(''); }} className="btn btn--ghost btn--mini" style={{ marginLeft: '10px' }}>
-                                            <IndraIcon name="CANCEL" size="12px" />
-                                        </button>
-                                    )}
+                            ) : (
+                                <span className="text-label" style={{ color: 'var(--color-accent)', animation: 'fade 1.5s infinite' }}>
+                                    BUSCANDO TU NÚCLEO EN GOOGLE DRIVE...
+                                </span>
+                            )}
+                        </div>
+                    )}
+
+                    {googleUser && !isConnecting && !coreStatus && (
+                        <div className="glass-light stack" style={{ padding: 'var(--space-6)', borderRadius: 'var(--radius-lg)' }}>
+                            <div className="shelf" style={{ justifyContent: 'center', marginBottom: 'var(--space-4)' }}>
+                                <img src={googleUser.picture} style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--color-accent)' }} alt="User" />
+                                <div className="stack--tight" style={{ textAlign: 'left' }}>
+                                    <span className="text-label">{googleUser.name}</span>
+                                    <span className="text-hint" style={{ fontSize: '10px' }}>{googleUser.email}</span>
                                 </div>
                             </div>
+                            
+                            <p className="text-hint" style={{ marginBottom: 'var(--space-6)' }}>
+                                No hemos encontrado un núcleo en tu Drive. <br />
+                                ¿Deseas forjar uno nuevo para esta identidad?
+                            </p>
 
-                            {coreStatus === 'STABLE' && (
-                                <div className="grid-split" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-6)', alignItems: 'center' }}>
-                                    <div className="stack--tight">
-                                        <label className="text-label" style={{ fontSize: '10px' }}>Contraseña Maestra</label>
-                                        <p className="text-hint" style={{ fontSize: '9px', opacity: 0.4 }}>El núcleo ya está configurado. Ingresa tu clave para acceder.</p>
-                                    </div>
-                                    <div className="slot-small glass-light" style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', background: 'rgba(0,0,0,0.2)' }}>
-                                        <input
-                                            className="input-base"
-                                            type="password"
-                                            style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)', fontSize: '11px' }}
-                                            placeholder="••••••••••••••••"
-                                            required
-                                            value={password}
-                                            onChange={onInputChange(setPassword)}
-                                        />
-                                    </div>
+                            <button 
+                                className="btn btn--accent"
+                                onClick={installNewCore}
+                                style={{ padding: '12px 30px', fontWeight: 'bold' }}
+                            >
+                                INICIAR INSTALACIÓN (IGNICIÓN)
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* ── FOOTER: LEGACY & MULTI-CORE ── */}
+                <div className="stack" style={{ gap: 'var(--space-4)', marginTop: 'var(--space-4)' }}>
+                    <button 
+                        className="btn btn--ghost btn--mini" 
+                        onClick={() => setShowLegacy(!showLegacy)}
+                        style={{ opacity: 0.3, fontSize: '9px' }}
+                    >
+                        {showLegacy ? 'OCULTAR ACCESO MANUAL' : 'CONFIGURACIÓN AVANZADA (LEGACY)'}
+                    </button>
+
+                    {showLegacy && (
+                        <div className="stack" style={{ gap: 'var(--space-6)' }}>
+                            {coreRegistry.length > 0 && (
+                                <div className="stack--tight" style={{ textAlign: 'left' }}>
+                                    <span className="text-hint" style={{ fontSize: '9px' }}>BÓVEDA DE REALIDADES REGISTRADAS</span>
+                                    {coreRegistry.map(core => (
+                                        <div key={core.url} className="shelf glass-light ripple" style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', marginBottom: '4px' }} onClick={() => setCoreConnection(core.url, core.secret)}>
+                                            <IndraIcon name="CORE" size="14px" style={{ color: 'var(--color-accent)' }} />
+                                            <span style={{ fontSize: '11px', flex: 1 }}>{core.handle?.label}</span>
+                                            <IndraActionTrigger variant="destructive" size="12px" onClick={(e) => { e.stopPropagation(); removeCore(core.url); }} />
+                                        </div>
+                                    ))}
                                 </div>
                             )}
 
-                            {coreStatus === 'BOOTSTRAP' && (
-                                <>
-                                    <div className="grid-split" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-6)', alignItems: 'center' }}>
-                                        <div className="stack--tight">
-                                            <label className="text-label" style={{ fontSize: '10px', color: 'var(--color-accent)' }}>Crear Contraseña Maestra</label>
-                                            <p className="text-hint" style={{ fontSize: '9px', opacity: 0.4 }}>El núcleo es virgen. Define la clave de acceso único.</p>
-                                        </div>
-                                        <div className="slot-small glass-light" style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', background: 'rgba(0,0,0,0.2)' }}>
-                                            <input
-                                                className="input-base"
-                                                type="password"
-                                                style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)', fontSize: '11px' }}
-                                                placeholder="Crea una contraseña segura"
-                                                required
-                                                value={password}
-                                                onChange={onInputChange(setPassword)}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="grid-split" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--space-6)', alignItems: 'center' }}>
-                                        <div className="stack--tight">
-                                            <label className="text-label" style={{ fontSize: '10px' }}>Confirmar Contraseña</label>
-                                        </div>
-                                        <div className="slot-small glass-light" style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', background: 'rgba(0,0,0,0.2)' }}>
-                                            <input
-                                                className="input-base"
-                                                type="password"
-                                                style={{ border: 'none', background: 'transparent', width: '100%', fontFamily: 'var(--font-mono)', fontSize: '11px' }}
-                                                placeholder="Repite la contraseña"
-                                                required
-                                                value={confirmPassword}
-                                                onChange={onInputChange(setConfirmPassword)}
-                                            />
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
-                            <div className="spread" style={{ alignItems: 'flex-end', paddingTop: 'var(--space-2)' }}>
-                                <div className="stack--tight">
-                                    {(systemError || localError) && (
-                                        <div className="text-warm shelf" style={{
-                                            fontSize: '9px', fontFamily: 'var(--font-mono)', marginBottom: 'var(--space-2)',
-                                            background: 'rgba(239, 68, 68, 0.05)', padding: 'var(--space-2) var(--space-4)',
-                                            borderLeft: '3px solid var(--color-warm)', borderRadius: '2px'
-                                        }}>
-                                            <span style={{ fontWeight: 'bold' }}>ADUANA_BLOCK // {(localError || systemError).toUpperCase()}</span>
-                                        </div>
-                                    )}
-                                    <div className="shelf--tight" style={{ opacity: 0.4 }}>
-                                        <span className="text-hint" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
-                                            [ {isConnecting ? (coreStatus ? 'SYNCING_WITH_CORE...' : 'SCANNING_RESONANCE...') : 'AWAITING_INPUT'} ]
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    className={`btn ${isConnecting ? 'btn--ghost' : 'btn--accent'}`}
-                                    disabled={isConnecting}
-                                    style={{ padding: '10px 30px', borderRadius: '4px', fontSize: '10px', letterSpacing: '0.15em', fontWeight: 'bold' }}
-                                >
-                                    {isConnecting 
-                                        ? 'PROCESANDO...' 
-                                        : !coreStatus 
-                                            ? 'DESCUBRIR NÚCLEO' 
-                                            : coreStatus === 'BOOTSTRAP' 
-                                                ? 'INICIALIZAR NÚCLEO' 
-                                                : 'INGRESAR'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                            <form onSubmit={handleLegacyConnect} className="stack--tight">
+                                <input 
+                                    className="input-base glass-light" 
+                                    placeholder="URL del Core (Web App)..."
+                                    value={url}
+                                    onChange={e => setUrl(e.target.value)}
+                                    style={{ padding: '10px', width: '100%', borderRadius: '4px', fontSize: '10px' }}
+                                />
+                                <button type="submit" className="btn btn--accent btn--mini" style={{ width: '100%', marginTop: '8px' }}>CONECTAR MANUALMENTE</button>
+                            </form>
+                        </div>
+                    )}
                 </div>
 
-                {/* Adornos HUD Minimalistas */}
-                <div style={{ position: 'absolute', bottom: 'var(--space-4)', left: 'var(--space-8)', opacity: 0.3 }}>
-                    <div className="shelf" style={{ gap: 'var(--space-1)' }}>
-                        {[...Array(8)].map((_, i) => (
-                            <div key={i} style={{ width: '4px', height: '4px', background: 'var(--color-accent)', borderRadius: '1px' }}></div>
-                        ))}
+                {systemError && (
+                    <div className="text-warm glass-light" style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', borderLeft: '3px solid var(--color-warm)', fontSize: '11px' }}>
+                        <IndraIcon name="ALERT" size="14px" /> {systemError}
+                        <button onClick={clearError} style={{ marginLeft: '10px', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', opacity: 0.5 }}>×</button>
                     </div>
-                </div>
-
+                )}
             </div>
 
             <style>{`
+                .pulse-ring {
+                    position: absolute;
+                    top: 50%; left: 50%;
+                    width: 120px; height: 120px;
+                    border: 1px solid var(--color-accent);
+                    border-radius: 50%;
+                    transform: translate(-50%, -50%);
+                    opacity: 0.3;
+                    animation: pulse 3s infinite;
+                }
+                .loader-ring {
+                    width: 40px; height: 40px;
+                    border: 2px solid rgba(255,255,255,0.1);
+                    border-top: 2px solid var(--color-accent);
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes pulse {
+                    0% { width: 80px; height: 80px; opacity: 0.5; }
+                    100% { width: 140px; height: 140px; opacity: 0; }
+                }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                .input-base::placeholder { opacity: 0.2; color: var(--color-text-primary); }
-                .tree-item { transition: all 0.2s ease; cursor: pointer; }
-                .tree-item:hover { border-color: var(--color-accent); transform: translateX(4px); background: rgba(255,255,255,0.03); }
-                .core-selector-main-layout::-webkit-scrollbar { width: 4px; }
-                .core-selector-main-layout::-webkit-scrollbar-thumb { background: var(--color-border); borderRadius: 4px; }
+                @keyframes fade { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
             `}</style>
         </div>
     );

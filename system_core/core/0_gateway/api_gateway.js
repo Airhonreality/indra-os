@@ -37,6 +37,7 @@ const GATEWAY_SYSTEM_PROTOCOLS = Object.freeze([
   'SYSTEM_CONFIG_SCHEMA',
   'SYSTEM_CONFIG_WRITE',
   'SYSTEM_CONFIG_DELETE',
+  'SYSTEM_INSTALL_HANDSHAKE',    // Nuevo: Handshake de ignición programática
   'SYSTEM_SHARE_CREATE',
   'SYSTEM_QUEUE_READ',
   'SYSTEM_TRIGGER_HUB_GENERATE',
@@ -44,7 +45,8 @@ const GATEWAY_SYSTEM_PROTOCOLS = Object.freeze([
   'RESOURCE_INGEST',
   'RESOURCE_RESOLVE',
   'SYSTEM_RESONANCE_CRYSTALLIZE',
-  'SYSTEM_WORKSPACE_DEEP_PURGE'
+  'SYSTEM_WORKSPACE_DEEP_PURGE',
+  'SYSTEM_SYNC_CORE'
 ]);
 
 
@@ -250,10 +252,14 @@ function doPost(e) {
  * @private
  */
 function _handleBootstrap_(payload) {
-  if (payload.password && payload.protocol === 'SYSTEM_CONFIG_WRITE') {
+  const isProgrammaticHandshake = payload.protocol === 'SYSTEM_INSTALL_HANDSHAKE' && payload.satellite_key;
+  
+  if (isProgrammaticHandshake) {
     try {
-      bootstrapPassword(payload.password); 
-      logInfo('[gateway] Servidor bootstrapped exitosamente.');
+      logInfo('[gateway] Iniciando Handshake del Instalador...');
+      bootstrapWithSatelliteKey(payload.satellite_key, payload.core_owner_uid);
+      
+      logInfo('[gateway] Servidor bootstrapped exitosamente vía Handshake.');
 
       // Generar ticket para la sesión inmediata
       const ticket = generateSessionTicket();
@@ -262,14 +268,14 @@ function _handleBootstrap_(payload) {
         items: [],
         metadata: {
           status: 'OK',
-          message: 'Pacto de Ignición completado. El Núcleo ha despertado.',
+          message: 'Pacto de Ignición completado. El Núcleo ha despertado para tu identidad.',
           intent_type: 'SUCCESS',
           session_ticket: ticket,
           logs: flushLogs()
         },
       });
     } catch (bootstrapError) {
-      logError('[gateway] Error en bootstrap.', bootstrapError);
+      logError('[gateway] Error en handshake de ignición.', bootstrapError);
       return _buildResponse_(400, {
         items: [],
         metadata: { status: 'ERROR', error: bootstrapError.message, logs: flushLogs() },
@@ -277,13 +283,13 @@ function _handleBootstrap_(payload) {
     }
   }
 
-  // Sin password → el servidor indica que necesita ser inicializado
-  logInfo('[gateway] Servidor en modo BOOTSTRAP. Esperando password inicial.');
+  // Sin handshake válido → el servidor indica que necesita ser inicializado progresivamente
+  logInfo('[gateway] Servidor dormido. Esperando ignición programática (Instalador Indra).');
   return _buildResponse_(200, {
     items: [],
     metadata: {
       status: 'BOOTSTRAP',
-      message: 'Servidor no inicializado. Define tu contraseña de acceso.',
+      message: 'Indra sin inicializar. Usa el portal de acceso para forjar el núcleo.',
       logs: flushLogs(),
     },
   });
@@ -384,6 +390,11 @@ function _handleSystemProtocol_(payload) {
   if (protocol === 'SYSTEM_WORKSPACE_DEEP_PURGE') {
     logInfo('[gateway] Despachando SYSTEM_WORKSPACE_DEEP_PURGE.');
     return resonance_deep_purge_workspace(payload); // → resonance_service.gs
+  }
+
+  if (protocol === 'SYSTEM_SYNC_CORE') {
+    logInfo('[gateway] Despachando SYSTEM_SYNC_CORE (Auto-Sincronización Manual).');
+    return resonance_core_auto_sync();
   }
 
   // Protocolo de sistema no reconocido

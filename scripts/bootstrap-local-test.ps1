@@ -1,12 +1,8 @@
 # ============================================
-# INDRA OS - Bootstrap v4 Canonical
+# INDRA OS - Bootstrap v4 LOCAL TESTING
 # ============================================
-# Axioma A1: TLS 1.2 requerido
-# Axioma A2: Refresh PATH post-Git
-# Axioma A3: Capas de fallback (Retry + ZIP)
-# Axioma A4: Schannel para SSL corporativo
-# Axioma A5: Unblock-File post-descarga
-# Axioma A6: Modo silencioso total + Logging
+# Testing versión: usa rutas locales, salta ZIP download
+# En producción: usar bootstrap-v4-remote.ps1
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -14,19 +10,15 @@ $ProgressPreference = 'SilentlyContinue'
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
 
 # ============================================
-# Configuracion
+# Configuracion LOCAL
 # ============================================
-
-$REPO_OWNER = 'Airhonreality'
-$REPO_NAME = 'indra-os'
-$REPO_URL = "https://github.com/$REPO_OWNER/$REPO_NAME.git"
-$ZIP_URL = "https://github.com/$REPO_OWNER/$REPO_NAME/archive/refs/heads/main.zip"
 
 $RUN_ID = [Guid]::NewGuid().ToString().Substring(0, 8)
 $LOG_FILE = Join-Path $env:TEMP "indra-bootstrap-$RUN_ID.log"
 $LOG_LAST = Join-Path $env:USERPROFILE 'indra-bootstrap-last.log'
 
-$INSTALL_PATH = $null
+# Usar el directorio actual como INSTALL_PATH (testing)
+$INSTALL_PATH = Get-Location
 $GIT_READY = $false
 
 # ============================================
@@ -95,98 +87,32 @@ if ($gitPath) {
     $GIT_READY = $true
     Write-Success "Git detectado: $($gitPath.Source)"
 } else {
-    Write-Warn "Git no detectado; usaremos fallback ZIP"
+    Write-Warn "Git no detectado"
 }
 
 # ============================================
-# ADQUISICION: Descargar repositorio
+# VALIDACION: Estructura local
 # ============================================
 
-Write-Header 'Adquisicion de Codigo'
+Write-Header 'Validacion de Estructura'
 
-$workDir = Join-Path $env:TEMP "indra-$RUN_ID"
-if (Test-Path $workDir) {
-    Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
-}
-New-Item -ItemType Directory -Path $workDir | Out-Null
-Write-Info "Directorio de trabajo: $workDir"
-
-# Estrategia: ZIP-first (mas confiable)
-Write-Info "Descargando ZIP desde GitHub..."
-$zipPath = Join-Path $workDir 'repo.zip'
-$zipExtrPath = Join-Path $workDir 'extracted'
-
-$maxRetries = 3
-$retryCount = 0
-$zipOk = $false
-
-while ($retryCount -lt $maxRetries -and -not $zipOk) {
-    $retryCount++
-    try {
-        Write-Info "Intento $retryCount/$maxRetries descargando ZIP..."
-        Invoke-WebRequest -Uri $ZIP_URL -OutFile $zipPath -UseBasicParsing -TimeoutSec 30
-        Unblock-File -Path $zipPath -ErrorAction SilentlyContinue
-        
-        if (Test-Path $zipPath) {
-            Write-Success "ZIP descargado exitosamente"
-            $zipOk = $true
-        }
-    }
-    catch {
-        Write-Warn "Fallo intento $retryCount : $($_.Exception.Message)"
-        if ($retryCount -lt $maxRetries) {
-            $waitSec = [Math]::Pow(2, $retryCount) - 1
-            Write-Info "Esperando $waitSec segundos antes de reintentar..."
-            Start-Sleep -Seconds $waitSec
-        }
-    }
-}
-
-if (-not $zipOk) {
-    Write-Err "No se pudo descargar ZIP tras $maxRetries intentos"
-    Write-Log -Message "ZIP download exhausted" -Level 'ABORT'
-    Write-Host "Log: $LOG_FILE" -ForegroundColor Gray
-    exit 1
-}
-
-# Extraer ZIP
-Write-Info "Extrayendo ZIP..."
-try {
-    Expand-Archive -Path $zipPath -DestinationPath $zipExtrPath -Force
-    Write-Success "ZIP extraido"
-}
-catch {
-    Write-Err "Error extrayendo ZIP: $($_.Exception.Message)"
-    Write-Log -Message "ZIP extract failed: $($_.Exception.Message)" -Level 'ABORT'
-    exit 1
-}
-
-# Localizar directorio raiz del repo
-$repoDirs = @(Get-ChildItem -Path $zipExtrPath -Directory | Where-Object { $_.Name -match 'indra-os' })
-if ($repoDirs.Count -eq 0) {
-    Write-Err "No se encontro directorio del repositorio en ZIP"
-    exit 1
-}
-
-$INSTALL_PATH = $repoDirs[0].FullName
-Write-Success "Repositorio en: $INSTALL_PATH"
-
-# Validar estructura minima
-Write-Info "Validando estructura..."
+Write-Info "Usando directorio local: $INSTALL_PATH"
 $setupPath = Join-Path -Path $INSTALL_PATH -ChildPath 'scripts\setup-final.ps1'
+
 if (-not (Test-Path $setupPath)) {
     Write-Err "Archivo critico no encontrado: setup-final.ps1"
+    Write-Log -Message "setup-final.ps1 not found at $setupPath" -Level 'ABORT'
     exit 1
 }
+
 Write-Success "Estructura validada"
+Write-Log -Message "Setup path: $setupPath" -Level 'INFO'
 
 # ============================================
 # SETUP: Ejecutar setup final aislado
 # ============================================
 
 Write-Header 'Ejecucion del Setup Final'
-
-$setupOutPath = Join-Path $env:TEMP "indra-setup-$RUN_ID.log"
 
 try {
     Write-Info "Iniciando setup final..."
@@ -204,13 +130,14 @@ try {
         }
     }
     
-    # A2: Refresh PATH si Git instalado
+    # A2: Refresh PATH
     $machineEnv = [Environment]::GetEnvironmentVariable('Path', 'Machine')
     $userEnv = [Environment]::GetEnvironmentVariable('Path', 'User')
     $env:Path = "$machineEnv;$userEnv"
     Write-Info "PATH refrescado"
     
     # Ejecutar setup aislado
+    Write-Log -Message "Invoking setup-final.ps1" -Level 'SETUP'
     & $setupPath
     
     Write-Success "Setup completado"
@@ -229,12 +156,7 @@ catch {
 # ============================================
 
 Write-Header 'Instalacion Completada'
-Write-Success "INDRA OS instalado exitosamente"
+Write-Success "INDRA OS bootstrap completado"
 Write-Host ""
-Write-Host "Log de instalacion: $LOG_FILE" -ForegroundColor Gray
-Write-Host ""
-Write-Host "Proximos pasos:" -ForegroundColor Yellow
-Write-Host "  1. Abre una nueva consola PowerShell"
-Write-Host "  2. Ve a: $INSTALL_PATH"
-Write-Host "  3. Ejecuta: .\scripts\update.ps1"
+Write-Host "Log de bootstrap: $LOG_FILE" -ForegroundColor Gray
 Write-Host ""

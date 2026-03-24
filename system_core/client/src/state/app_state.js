@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { executeDirective } from '../services/directive_executor';
 import { toastEmitter } from '../services/toastEmitter';
 import { DataProjector } from '../services/DataProjector';
+import { GoogleAuthService } from '../services/google/GoogleAuthService';
+import { DriveDiscoveryService } from '../services/google/DriveDiscoveryService';
+import { OrchestratorService } from '../services/google/OrchestratorService';
 
 function _loadInductionSnapshot_() {
     try {
@@ -21,6 +24,9 @@ export const useAppState = create((set, get) => ({
     coreUrl: localStorage.getItem('indra-core-url') || null,
     coreId: localStorage.getItem('indra-core-id') || null,
     sessionSecret: localStorage.getItem('indra-session-secret') || null,
+
+    // Google Identity (Session Volátil)
+    googleUser: null, // { email, name, picture, accessToken }
     
     // Registro Multi-Core (Bóveda de Realidades) - ADR-002
     coreRegistry: (() => {
@@ -36,6 +42,7 @@ export const useAppState = create((set, get) => ({
     isConnecting: false,
     coreStatus: null, // null, 'SCANNING', 'BOOTSTRAP', 'STABLE'
     error: null,
+    installStatus: { step: null, progress: 0 }, // Seguimiento de la ignición
 
     // Catálogos
     workspaces: [],
@@ -100,17 +107,17 @@ export const useAppState = create((set, get) => ({
     /**
      * INICIALIZACIÓN (Paso 2 Boot): Crea la identidad del núcleo e inyecta la clave maestra.
      */
-    setupCore: async (url, password) => {
+    setupCore: async (url, secret) => {
         set({ isConnecting: true, error: null });
         try {
             // El Api Gateway espera esto para marcar BOOTSTRAP_COMPLETED
             await executeDirective({
                 provider: 'system',
                 protocol: 'SYSTEM_CONFIG_WRITE',
-            }, url, password);
+            }, url, secret);
 
             // Una vez inicializado, logueamos normalmente
-            await get().setCoreConnection(url, password);
+            await get().setCoreConnection(url, secret);
         } catch (err) {
             set({
                 isConnecting: false,
@@ -124,14 +131,14 @@ export const useAppState = create((set, get) => ({
      * Establece la conexión inicial (Login) y carga los workspaces.
      * Soporta registro automático en la Bóveda de Núcleos (Multi-Core).
      */
-    setCoreConnection: async (url, password) => {
+    setCoreConnection: async (url, secret) => {
         set({ isConnecting: true, error: null });
         try {
             const result = await executeDirective({
                 provider: 'system',
                 protocol: 'ATOM_READ',
                 context_id: 'workspaces'
-            }, url, password);
+            }, url, secret);
 
 
             const coreId = result.metadata?.core_id;
@@ -152,7 +159,7 @@ export const useAppState = create((set, get) => ({
                     label: coreId
                 },
                 url: url,
-                secret: password,
+                secret: secret,
                 lastActive: new Date().toISOString()
             });
 
@@ -161,9 +168,9 @@ export const useAppState = create((set, get) => ({
             localStorage.setItem('indra-core-id', coreId);
             
             // AXIOMA DE SINCERIDAD (Soberanía):
-            // Si el Core nos dio un ticket de sesión, usamos ese para el futuro.
-            // Si no, guardamos la password (solo para compatibilidad legacy/public).
-            const sessionSecret = result.metadata?.session_ticket || password;
+            // Si el Core nos dio un ticket de sesión, lo usamos para el futuro.
+            // Si no, guardamos el secret original (Satellite Key).
+            const sessionSecret = result.metadata?.session_ticket || secret;
             localStorage.setItem('indra-session-secret', sessionSecret);
 
             set({
@@ -190,6 +197,80 @@ export const useAppState = create((set, get) => ({
 
     resetConnectionState: () => set({ coreStatus: null, error: null, isConnecting: false }),
     clearError: () => set({ error: null }),
+
+    /**
+     * Inicia el flujo de autenticación soberana.
+     */
+    loginWithGoogle: () => {
+        GoogleAuthService.login();
+    },
+
+    /**
+     * Proceso de autodescubrimiento tras el login.
+     */
+    discoverFromDrive: async (token) => {
+        set({ isConnecting: true, error: null });
+        try {
+            const userInfo = await GoogleAuthService.getUserInfo(token);
+            set({ googleUser: { ...userInfo, accessToken: token } });
+
+            const result = await DriveDiscoveryService.findCoreManifest(token);
+            if (result.ok) {
+                const manifest = result.manifest;
+                
+                // --- 🛡️ SINCRONIZACIÓN MICELLAR SILENCIOSA (v4.0) ---
+                // Si el núcleo está desactualizado respecto a GitHub, lo actualizamos en caliente.
+                try {
+                    const latestRef = await fetch('https://raw.githubusercontent.com/Airhonreality/indra-os/main/system_core/core/version.json').then(r => r.json());
+                    if (latestRef && manifest.core_version !== latestRef.version && manifest.script_id && manifest.deployment_id) {
+                        await OrchestratorService.syncCore(token, manifest);
+                    }
+                } catch (vErr) {
+                    console.warn('[Sync] Fallo al verificar versión, procediendo con versión local.', vErr);
+                }
+
+                const { core_url, satellite_key } = manifest;
+                // Intentar conexión con los datos del manifiesto (ya actualizado o previo)
+                await get().setCoreConnection(core_url, satellite_key);
+                return { success: true };
+            } else {
+                set({ isConnecting: false });
+                return { success: false, reason: result.reason };
+            }
+        } catch (err) {
+            set({ isConnecting: false, error: 'DRIVE_DISCOVERY_FAILED' });
+            throw err;
+        }
+    },
+
+    /**
+     * Orquestación de la instalación de un nuevo núcleo.
+     */
+    installNewCore: async () => {
+        const { googleUser } = get();
+        if (!googleUser || !googleUser.accessToken) return;
+
+        set({ isConnecting: true, error: null, installStatus: { step: 'INICIANDO_IGNICION', progress: 5 } });
+        try {
+            const result = await OrchestratorService.installCore(
+                googleUser.accessToken, 
+                googleUser.email,
+                (step, progress) => {
+                    set({ installStatus: { step, progress } });
+                }
+            );
+
+            if (result.ok) {
+                const { core_url, satellite_key } = result.manifest;
+                await get().setCoreConnection(core_url, satellite_key);
+                toastEmitter.success('Indra ha sido instalado con éxito.');
+            } else {
+                set({ isConnecting: false, error: result.error });
+            }
+        } catch (err) {
+            set({ isConnecting: false, error: err.message });
+        }
+    },
     
     /**
      * Gestión universal de la Bóveda (ServiceManager)
@@ -759,6 +840,13 @@ export const useAppState = create((set, get) => ({
      * Re-hidrata el estado de workspaces si ya hay coreUrl y secret.
      */
     bootstrap: async () => {
+        // --- 0. INTERCEPCIÓN DE OAUTH CALLBACK (Soberanía Directa) ---
+        const oauthData = GoogleAuthService.handleCallback();
+        if (oauthData && oauthData.accessToken) {
+            await get().discoverFromDrive(oauthData.accessToken);
+            return;
+        }
+
         const { coreUrl, sessionSecret, isConnected } = get();
         if (!isConnected || !coreUrl || !sessionSecret) return;
 

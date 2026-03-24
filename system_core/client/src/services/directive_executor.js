@@ -8,17 +8,17 @@
  * Ejecuta una directiva contra el Core.
  * @param {Object} uqo - Universal Query Object { provider, protocol, data, query, ... }
  * @param {string} coreUrl - URL base del core GAS
- * @param {string} password - Credencial de acceso
+ * @param {string} sessionSecret - Credencial de acceso (Satellite Key o Session Ticket)
  * @returns {Promise<{ items: Array, metadata: Object }>} The Return Law.
  */
-export async function executeDirective(uqo, coreUrl, password) {
+export async function executeDirective(uqo, coreUrl, sessionSecret) {
     if (!coreUrl) throw new Error('CORE_URL_MISSING');
 
     // AXIOMA DE DETERMINISMO RADICAL (ADR-008):
     // No se permiten alias de compatibilidad. El UQO debe ser sincero.
     const payload = {
         ...uqo,
-        password: password,
+        password: sessionSecret,
         share_ticket: localStorage.getItem('indra-share-ticket') || null
     };
 

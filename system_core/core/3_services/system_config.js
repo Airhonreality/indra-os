@@ -194,27 +194,27 @@ function readCoreOwnerEmail() {
 }
 
 /**
- * Establece el password de acceso del servidor por primera y única vez.
- * Internamente guarda un HASH SHA-256 del password (nunca el texto plano).
- * Una vez ejecutado, marca el servidor como bootstrapped.
- *
- * @param {string} plainPassword - El password definido por el usuario.
- * @returns {boolean} `true` si el bootstrap fue exitoso.
- * @throws {Error} Si el servidor ya está bootstrapped.
+ * Ignición programática vía Satellite Key (Indra v4.0 Installer).
+ * @param {string} key - UUID v4 generado por el front-end.
+ * @param {string} ownerEmail - Email del usuario autenticado.
  */
-function bootstrapPassword(plainPassword) {
-  // Doble verificación de territorio antes de la ignición
+function bootstrapWithSatelliteKey(key, ownerEmail) {
   if (isBootstrapped()) {
-    throw new Error('system_config: El servidor ya fue inicializado. Bootstrap no permitido.');
+    throw new Error('system_config: El servidor ya fue inicializado.');
   }
-  if (!plainPassword || typeof plainPassword !== 'string' || plainPassword.length < 8) {
-    throw new Error('system_config: El password debe tener al menos 8 caracteres.');
+  if (!key || key.length < 32) {
+    throw new Error('system_config: Satellite Key inválida.');
   }
 
-  const hash = _sha256_(plainPassword);
-  // Capturar la identidad del instalador para el anclaje del Core v4.1
-  const userEmail = Session.getEffectiveUser().getEmail() || Session.getActiveUser().getEmail();
+  const hash = _sha256_(key);
+  return _finishBootstrap_(hash, ownerEmail);
+}
 
+/**
+ * Finaliza el proceso de bootstrap guardando el hash y anclando el motor.
+ * @private
+ */
+function _finishBootstrap_(hash, userEmail) {
   const lock = LockService.getScriptLock();
   try {
     if (!lock.tryLock(LOCK_TIMEOUT_MS)) {
@@ -243,21 +243,23 @@ function bootstrapPassword(plainPassword) {
 }
 
 /**
- * Verifica si un password en texto plano coincide con el hash almacenado.
- * @param {string} plainPassword - El password a verificar.
- * @returns {boolean} `true` si el password es correcto.
+ * Verifica si una credencial enviada (Satellite Key o Ticket) es válida.
+ * @param {string} credential - La credencial a verificar.
+ * @returns {boolean} `true` si es correcta.
  */
-function verifyPassword(plainPassword) {
+function verifyPassword(credential) {
   if (!isBootstrapped()) return false;
-  if (!plainPassword) return false; 
+  if (!credential) return false; 
   
   // ── AXIOMA DE SESIÓN (Indra v4.1) ──
-  // Si el password enviado coincide con un Ticket de Sesión activo, autorizar.
-  if (validateSessionTicket(plainPassword)) return true;
+  // Si coincide con un Ticket de Sesión activo, autorizar.
+  if (validateSessionTicket(credential)) return true;
 
   const storedHash = _getStore_().getProperty('SYS_ACCESS_PASSWORD_HASH');
   if (!storedHash) return false;
-  return _sha256_(plainPassword) === storedHash;
+  
+  // Comparar con el hash de la Satellite Key maestra
+  return _sha256_(credential) === storedHash;
 }
 
 /**
@@ -288,10 +290,7 @@ function generateSessionTicket() {
  * @returns {boolean}
  */
 function validateSessionTicket(ticketId) {
-  if (!ticketId || !ticketId.startsWith('sess-')) { // Un UUID de GAS suele tener este formato interno o similar
-    // Si no parece un ticket, simplemente retornamos false para que el flujo siga a verifyPassword normal
-    // Pero si el ticketId es exactamente lo que guardamos, lo buscamos:
-  }
+  if (!ticketId) return false;
   
   const rawData = _getStore_().getProperty(`SESS_${ticketId}`);
   if (!rawData) return false;

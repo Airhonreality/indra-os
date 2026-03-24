@@ -143,7 +143,15 @@ function pulse_service_maintenance_trigger() {
   // 1. Salud del Ledger: Purgar tareas terminadas/fallidas antiguas (Axioma de Autocuración)
   pulse_ledger_purge(); // → pulse_ledger.gs
   
-  // 2. Ejecutar siguiente pendiente
+  // 2. Sincronización de ADN (v4.5): El núcleo se actualiza solo desde GitHub
+  // Esto asegura que Indra siempre corra sobre la última materia fractal.
+  try {
+    resonance_core_auto_sync(); 
+  } catch (syncErr) {
+    logError('[pulse_service] Fallo en auto-sincronización durante mantenimiento.', syncErr);
+  }
+
+  // 3. Ejecutar siguiente pendiente
   // Procesamos uno a la vez para no exceder los 6 mins de GAS
   pulse_service_process_next();
 }

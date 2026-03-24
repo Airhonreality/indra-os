@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="indraGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00f2ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0078ff;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Background Circle (Outer) -->
+  <circle cx="50" cy="50" r="45" fill="none" stroke="url(#indraGradient)" stroke-width="4" filter="url(#glow)" />
+  <!-- Inner Core (Atom) -->
+  <circle cx="50" cy="50" r="15" fill="url(#indraGradient)" filter="url(#glow)" />
+  <!-- Orbit Ring (Subtle) -->
+  <circle cx="50" cy="50" r="30" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-dasharray="2 2" opacity="0.3" />
+</svg>

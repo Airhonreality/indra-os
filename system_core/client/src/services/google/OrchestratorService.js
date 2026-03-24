@@ -256,7 +256,7 @@ export const OrchestratorService = {
   async _writeManifest(token, folderId, manifest) {
     const metadata = {
         name: MANIFEST_FILENAME,
-        parents: [folderId],
+        parents: ['appDataFolder'], // El manifiesto se guarda en la ZONA FANTASMA
         mimeType: 'application/json'
     };
     const form = new FormData();

@@ -9,21 +9,23 @@
 const CLIENT_ID = '763201635492-knsev26nk7std0kpnidfeqsringgr9v2.apps.googleusercontent.com'; // ID de cliente oficial del desarrollador
 const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
 
-// La suite completa de Indra (Sovereign Suite)
+// La suite de Poder Total de Indra (Sovereign Suite)
 const SCOPES = [
   'openid',
   'email',
   'profile',
-  'https://www.googleapis.com/auth/drive.file',
-  'https://www.googleapis.com/auth/drive.metadata.readonly',
-  'https://www.googleapis.com/auth/script.projects',
-  'https://www.googleapis.com/auth/script.deployments',
-  'https://www.googleapis.com/auth/spreadsheets',
-  'https://www.googleapis.com/auth/gmail.send',
-  'https://www.googleapis.com/auth/gmail.modify',
-  'https://www.googleapis.com/auth/calendar',
-  'https://www.googleapis.com/auth/youtube.readonly',
-  'https://www.googleapis.com/auth/forms'
+  'https://www.googleapis.com/auth/drive',            // Poder total sobre archivos
+  'https://www.googleapis.com/auth/drive.appdata',    // La Carpeta Fantasma (Oculta)
+  'https://www.googleapis.com/auth/script.projects',   // Forjar el Core
+  'https://www.googleapis.com/auth/script.deployments',// Desplegar el Core
+  'https://www.googleapis.com/auth/script.webapp.deploy', // Despliegue de Web App
+  'https://www.googleapis.com/auth/spreadsheets',     // Bóvedas de Datos
+  'https://www.googleapis.com/auth/gmail.modify',      // Orquestación de Email
+  'https://www.googleapis.com/auth/calendar',         // Sincronización de Tiempo
+  'https://www.googleapis.com/auth/contacts',         // Gestión de Identidades (CRM)
+  'https://www.googleapis.com/auth/tasks',            // Gestión de Atenciones (Todo list)
+  'https://www.googleapis.com/auth/forms',            // Sensores Externos (Forms)
+  'https://www.googleapis.com/auth/youtube.readonly'    // Consumo de Medios
 ].join(' ');
 
 export const GoogleAuthService = {

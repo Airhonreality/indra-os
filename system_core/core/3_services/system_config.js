@@ -194,6 +194,31 @@ function readCoreOwnerEmail() {
 }
 
 /**
+ * Establece el password de acceso del servidor por primera y única vez.
+ * Internamente guarda un HASH SHA-256 del password (nunca el texto plano).
+ * Una vez ejecutado, marca el servidor como bootstrapped.
+ *
+ * @param {string} plainPassword - El password definido por el usuario.
+ * @returns {boolean} `true` si el bootstrap fue exitoso.
+ * @throws {Error} Si el servidor ya está bootstrapped.
+ */
+function bootstrapPassword(plainPassword) {
+  // Doble verificación de territorio antes de la ignición
+  if (isBootstrapped()) {
+    throw new Error('system_config: El servidor ya fue inicializado. Bootstrap no permitido.');
+  }
+  if (!plainPassword || typeof plainPassword !== 'string' || plainPassword.length < 8) {
+    throw new Error('system_config: El password debe tener al menos 8 caracteres.');
+  }
+
+  const hash = _sha256_(plainPassword);
+  // Capturar la identidad del instalador para el anclaje del Core v4.1
+  const userEmail = Session.getEffectiveUser().getEmail() || Session.getActiveUser().getEmail();
+
+  return _finishBootstrap_(hash, userEmail);
+}
+
+/**
  * Ignición programática vía Satellite Key (Indra v4.0 Installer).
  * @param {string} key - UUID v4 generado por el front-end.
  * @param {string} ownerEmail - Email del usuario autenticado.
@@ -243,23 +268,21 @@ function _finishBootstrap_(hash, userEmail) {
 }
 
 /**
- * Verifica si una credencial enviada (Satellite Key o Ticket) es válida.
- * @param {string} credential - La credencial a verificar.
- * @returns {boolean} `true` si es correcta.
+ * Verifica si un password en texto plano coincide con el hash almacenado.
+ * @param {string} plainPassword - El password a verificar.
+ * @returns {boolean} `true` si el password es correcto.
  */
-function verifyPassword(credential) {
+function verifyPassword(plainPassword) {
   if (!isBootstrapped()) return false;
-  if (!credential) return false; 
+  if (!plainPassword) return false; 
   
   // ── AXIOMA DE SESIÓN (Indra v4.1) ──
-  // Si coincide con un Ticket de Sesión activo, autorizar.
-  if (validateSessionTicket(credential)) return true;
+  // Si el password enviado coincide con un Ticket de Sesión activo, autorizar.
+  if (validateSessionTicket(plainPassword)) return true;
 
   const storedHash = _getStore_().getProperty('SYS_ACCESS_PASSWORD_HASH');
   if (!storedHash) return false;
-  
-  // Comparar con el hash de la Satellite Key maestra
-  return _sha256_(credential) === storedHash;
+  return _sha256_(plainPassword) === storedHash;
 }
 
 /**

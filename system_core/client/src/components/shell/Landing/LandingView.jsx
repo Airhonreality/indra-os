@@ -8,7 +8,6 @@ import { CoreConnectionView } from '../CoreConnectionView';
 // Modular Sections
 import { WelcomeTab } from './WelcomeTab';
 import { ArquitecturaTab } from './ArquitecturaTab';
-import { InstalacionTab } from './InstalacionTab';
 import { ManualesTab } from './ManualesTab';
 
 /**
@@ -20,8 +19,17 @@ export const LandingView = () => {
     const sessionSecret = useAppState(s => s.sessionSecret);
     const closeDocs = useAppState(s => s.closeDocs);
 
+    const googleUser = useAppState(s => s.googleUser);
     const { theme, setTheme } = useShell();
     const [showConnector, setShowConnector] = useState(false);
+    
+    // Si ya tenemos usuario de google pero no conectado al core → mostramos el conector directo
+    useEffect(() => {
+        if (googleUser && !isConnected) {
+            setShowConnector(true);
+        }
+    }, [googleUser, isConnected]);
+
     const scrollContainerRef = useRef(null);
 
     const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -37,7 +45,6 @@ export const LandingView = () => {
     const tabs = [
         { id: 'BIENVENIDA', label: 'INICIO' },
         { id: 'ARQUITECTURA', label: 'ARQUITECTURA' },
-        { id: 'INSTALACION', label: 'INSTALACIÓN' },
         { id: 'MANUALES', label: 'MANUALES' }
     ];
 
@@ -210,11 +217,6 @@ export const LandingView = () => {
                     </div>
                 </div>
 
-                <div id="INSTALACION" className="indra-section-anchor">
-                    <div className="indra-section">
-                        <InstalacionTab onStartSync={() => setShowConnector(true)} />
-                    </div>
-                </div>
 
                 <div id="MANUALES" className="indra-section-anchor">
                     <div className="indra-section">

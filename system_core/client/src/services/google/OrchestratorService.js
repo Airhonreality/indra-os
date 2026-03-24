@@ -269,5 +269,42 @@ export const OrchestratorService = {
       body: form
     });
     if (!res.ok) throw new Error('Error al guardar el manifiesto en Drive.');
+  },
+
+  async _createSentinelFile(token, folderId) {
+    const content = `
+██╗███╗   ██╗██████╗ ██████╗  █████╗ 
+██║████╗  ██║██╔══██╗██╔══██╗██╔══██╗
+██║██╔██╗ ██║██║  ██║██████╔╝███████║
+██║██║╚██╗██║██║  ██║██╔══██╗██╔══██║
+██║██║ ╚████║██████╔╝██║  ██║██║  ██║
+╚═╝╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
+=====================================
+AXIOMA DE INTEGRIDAD - INDRA OS
+=====================================
+
+¡ALTO! Esta carpeta es el CORAZÓN de tu Sistema Operativo Micelar.
+
+1. NO BORRES ESTA CARPETA: Contiene tu Bóveda, tu Core y tu Identidad.
+2. NO ALTERES LOS ARCHIVOS: El sistema se auto-actualiza desde GitHub.
+3. SI BORRAS ESTO: Indra entrará en "Muerte Cerebral" y perderás tus datos.
+
+Tu soberanía depende de la integridad de este territorio.
+Keep it safe. Keep it micelar.
+`;
+    const metadata = {
+        name: 'README_AXIOMA_NO_BORRAR.txt',
+        parents: [folderId],
+        mimeType: 'text/plain'
+    };
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', new Blob([content], { type: 'text/plain' }));
+
+    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: form
+    });
   }
 };

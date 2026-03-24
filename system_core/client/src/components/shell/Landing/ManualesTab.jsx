@@ -5,6 +5,7 @@ export const ManualesTab = () => (
         <h2 style={{fontSize: '32px', fontWeight: 300, letterSpacing: '0.2em', marginBottom: '80px', textAlign: 'center'}}>DOCUMENTACIÓN_DE_VUELO</h2>
         <div className="tutorial-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '40px' }}>
             {[
+                { title: 'TERRITORIO SOBERANO (DRIVE)', desc: 'IMPORTANTE: Indra creará la carpeta .core_system en tu Drive. Es el corazón del sistema; borrarla causará la muerte cerebral de tu instancia y pérdida de datos.' },
                 { title: 'CARGA REALIDAD: INDUCCIÓN', desc: 'Aprende a asimilar bases de datos externas (Notion/Drive) y convertirlas en esquemas inteligentes automáticamente.' },
                 { title: 'DISEÑO DE COTIZADOR', desc: 'Manual paso a paso para crear un sistema de cotización profesional con repetidores y lógica de cálculo.' },
                 { title: 'DISEÑO DE PUENTES', desc: 'Tutorial avanzado sobre cómo conectar silos de datos y orquestar flujos de verdad bidireccionales.' },

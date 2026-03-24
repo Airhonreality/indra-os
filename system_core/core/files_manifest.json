@@ -34,7 +34,7 @@
   { "path": "3_services/trigger_service.js", "name": "trigger_service" },
   { "path": "4_support/blueprint_manager.js", "name": "blueprint_manager" },
   { "path": "4_support/connection_diagnostic.js", "name": "connection_diagnostic" },
-  { "path": "4_support/error_handler.js", "name": "error_handler" },
+  { "path": "4_support/error_handler.js", "name": "error_handler_support" },
   { "path": "4_support/pulse_ledger.js", "name": "pulse_ledger" },
   { "path": "4_support/share_manager.js", "name": "share_manager" },
   { "path": "4_support/system_physical_anchor.js", "name": "system_physical_anchor" },

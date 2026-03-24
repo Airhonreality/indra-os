@@ -6,7 +6,7 @@
  * =============================================================================
  */
 
-const CLIENT_ID = '1036306511394-lv1ndfubr33q69l6isv0lvv7j1m0iom4.apps.googleusercontent.com'; // TODO: Confirmar ID oficial
+const CLIENT_ID = '763201635492-knsev26nk7std0kpnidfeqsringgr9v2.apps.googleusercontent.com'; // ID de cliente oficial del desarrollador
 const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
 
 // La suite completa de Indra (Sovereign Suite)

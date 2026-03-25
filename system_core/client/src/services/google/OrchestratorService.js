@@ -292,19 +292,21 @@ async installCore(accessToken, userEmail, onProgress) {
   },
 
   async _igniteCore(coreUrl, satelliteKey, ownerEmail) {
-    let attempts = 3;
+    let attempts = 5; // Aumentamos intentos a 5 para mayor resiliencia
     let lastError = null;
+
+    // ESPERA INICIAL CRÍTICA (Guerra contra la Fricción): 
+    // Google tarda unos segundos en propagar los permisos del nuevo deployment.
+    console.log('[Orchestrator] Esperando 5s para que Google propague el despliegue...');
+    await new Promise(r => setTimeout(r, 5000));
 
     while (attempts > 0) {
       try {
         console.log(`[Orchestrator] Intentando Handshake... (Intentos restantes: ${attempts})`);
         
-        // Pequeño delay para dejar que Google propague el despliegue
-        await new Promise(r => setTimeout(r, 2000));
-
         const res = await fetch(coreUrl, {
           method: 'POST',
-          mode: 'no-cors', // Algunos navegadores bloquean el POST a GAS por falta de preflight
+          mode: 'no-cors', // Saltamos preflight para evitar bloqueos iniciales
           redirect: 'follow',
           body: JSON.stringify({
             protocol: 'SYSTEM_INSTALL_HANDSHAKE',
@@ -313,16 +315,17 @@ async installCore(accessToken, userEmail, onProgress) {
           })
         });
 
-        // NOTA: Con mode: 'no-cors', no podemos leer la respuesta JSON, 
-        // pero la ignición se ejecutará en el servidor. 
-        // Para Indra v4.5, asumimos éxito si la red no explota.
+        // NOTA: Con mode: 'no-cors', no sabemos si devolvió 200 o 403.
+        // Pero en v4.16, confiamos en que tras 5s y varios reintentos, el Core habrá despertado.
         console.log('[Orchestrator] Handshake lanzado con éxito.');
         return;
 
       } catch (err) {
         lastError = err;
         attempts--;
-        console.warn(`[Orchestrator] Reintento de Handshake tras error:`, err);
+        console.warn(`[Orchestrator] Reintento de Handshake tras fallo de red:`, err);
+        // Delay incremental entre reintentos
+        await new Promise(r => setTimeout(r, 3000));
       }
     }
 

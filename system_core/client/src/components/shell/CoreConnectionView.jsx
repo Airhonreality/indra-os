@@ -210,6 +210,20 @@ export function CoreConnectionView() {
 
                     {showLegacy && (
                         <div className="stack" style={{ gap: 'var(--space-6)' }}>
+                            <div className="stack--tight">
+                                <span className="text-hint" style={{ fontSize: '9px', color: 'var(--color-warn)' }}>HERRAMIENTAS DE SANEAMIENTO</span>
+                                <button 
+                                    className="btn btn--danger btn--mini" 
+                                    onClick={() => useAppState.getState().purgePreviousInstall(null)}
+                                    style={{ width: '100%', marginTop: '4px', fontSize: '9px' }}
+                                >
+                                    EXORCISMO: LIMPIAR ZONA FANTASMA (DRIVE APPDATA)
+                                </button>
+                                <p className="text-hint" style={{ fontSize: '8px', opacity: 0.5, marginTop: '4px' }}>
+                                    Usa esto si Indra sigue encontrando "ruinas" o errores de conflicto tras borrar la carpeta .core_system.
+                                </p>
+                            </div>
+
                             {coreRegistry.length > 0 && (
                                 <div className="stack--tight" style={{ textAlign: 'left' }}>
                                     <span className="text-hint" style={{ fontSize: '9px' }}>BÓVEDA DE REALIDADES REGISTRADAS</span>

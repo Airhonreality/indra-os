@@ -236,19 +236,8 @@ export const useAppState = create((set, get) => ({
 
             const result = await DriveDiscoveryService.findCoreManifest(token);
             if (result.ok) {
-                let manifest = result.manifest;
+                const manifest = result.manifest;
                 
-                // --- 🛸 MIGRACIÓN AUTOMÁTICA (v4.16 - Micelar Migration) ---
-                if (result.isLegacy) {
-                    try {
-                        console.log('[Indra] Detectado ADN en zona fantasma. Iniciando transporte a zona visible...');
-                        manifest = await OrchestratorService.migrateToStandardSpace(token, manifest);
-                        toastEmitter.success('Identidad Migrada a Zona Visible.');
-                    } catch (mErr) {
-                        console.error('[Indra] Falló la auto-migración, procediendo con legacy.', mErr);
-                    }
-                }
-
                 // --- 🛡️ SINCRONIZACIÓN MICELLAR SILENCIOSA (v4.0) ---
                 // Si el núcleo está desactualizado respecto a GitHub, lo actualizamos en caliente.
                 try {

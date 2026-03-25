@@ -222,11 +222,9 @@ export const OrchestratorService = {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        deploymentConfig: {
-          versionNumber,
-          manifestFileName: 'appsscript',
-          description: 'Production Web App'
-        }
+        versionNumber,
+        manifestFileName: 'appsscript',
+        description: 'Production Web App'
       })
     });
     const deployData = await deployRes.json();

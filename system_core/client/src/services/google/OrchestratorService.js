@@ -245,7 +245,25 @@ async installCore(accessToken, userEmail, onProgress) {
 
     const files = await Promise.all(filesManifest.map(async (file) => {
       const resp = await fetch(REPO_URL_BASE + file.path);
-      const source = await resp.text();
+      let source = await resp.text();
+
+      // --- 🛡️ PARCHE DE SOBERANÍA (v4.18) ---
+      // Forzamos que el manifiesto permita el acceso a 'Anyone' para evitar 403 en multi-login.
+      // La seguridad real reside en la Satellite Key (password) validada por el api_gateway.
+      if (file.name === 'appsscript') {
+        try {
+          const manifestObj = JSON.parse(source);
+          manifestObj.webapp = {
+            access: 'ANYONE',
+            executeAs: 'USER_DEPLOYING'
+          };
+          source = JSON.stringify(manifestObj, null, 2);
+          console.log('[Orchestrator] Manifiesto appsscript.json parcheado para acceso universal.');
+        } catch (e) {
+          console.warn('[Orchestrator] No se pudo parchear el appsscript.json, usando original.');
+        }
+      }
+
       return {
         name: file.name,
         type: file.type || 'SERVER_JS',

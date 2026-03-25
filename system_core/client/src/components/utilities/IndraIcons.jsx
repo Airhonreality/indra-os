@@ -59,6 +59,7 @@ const ICON_MAP = {
     'CHECK': <path d="M3 8l3 3 7-7" />,
     'ERROR': <path d="M8 1v7m0 4v1m7-5a7 7 0 11-14 0 7 7 0 0114 0z" />,
     'LOCK': <><rect x="3" y="7" width="10" height="7" rx="1" /><path d="M5 7V4a3 3 0 016 0v3" /></>,
+    'SECURITY': <><path d="M8 12l-3-3 1.5-1.5L8 9l3.5-3.5L13 7z" /><path d="M8 1l6 3v5c0 4-3 7-6 8-3-1-6-4-6-8V4l6-3z" /></>,
     'INFO': <><circle cx="8" cy="8" r="7" /><path d="M8 11V7m0-2v.01" /></>,
     'RELOAD': <><path d="M2.5 8a5.5 5.5 0 0 1 8.5-4.5" /><path d="M13.5 8a5.5 5.5 0 0 1-8.5 4.5" /><path d="M10 1l3 3-3 3M6 15l-3-3 3-3" /></>,
     'CALENDAR': <><rect x="2" y="3" width="12" height="11" rx="1" /><path d="M5 2v2M11 2v2M2 7h12" /><circle cx="5" cy="10" r="0.5" /><circle cx="8" cy="10" r="0.5" /><circle cx="11" cy="10" r="0.5" /></>,

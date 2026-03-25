@@ -33,7 +33,7 @@ export function TopRibbon({ label, onUpdateLabel, isSaving, onSave, onAddBlock, 
                         style={{
                             background: 'transparent',
                             border: 'none',
-                            color: 'white',
+                            color: 'var(--color-text-primary)',
                             fontSize: '11px',
                             fontFamily: 'var(--font-mono)',
                             fontWeight: 'bold',

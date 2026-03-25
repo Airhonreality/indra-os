@@ -77,7 +77,14 @@ export function PotencyCard({ atom }) {
                     </span>
                 </div>
 
-                <IndraIcon name="CHEVRON_RIGHT" size="8px" style={{ opacity: 0.2 }} />
+                <div className="shelf--tight" onClick={e => e.stopPropagation()}>
+                    <IndraActionTrigger 
+                        variant="destructive"
+                        onClick={() => useAppState.getState().deleteArtifact(atom.id, atom.provider)}
+                        size="10px"
+                    />
+                    <IndraIcon name="CHEVRON_RIGHT" size="8px" style={{ opacity: 0.2 }} />
+                </div>
             </div>
 
             {/* PREVIEW DEL FRACTAL (Solo si es Schema y es relevante) */}

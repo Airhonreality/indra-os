@@ -164,6 +164,79 @@
     --diag-text-primary: var(--color-text-primary);
     --diag-text-secondary: var(--color-text-secondary);
     --diag-node-bg: #000000;
+
+    /* ── SEMÁNTICOS DE ESTRUCTURA (v5.0) ── */
+    --indra-canvas-bg: var(--color-bg-void);
+    --indra-canvas-grid: rgba(255, 255, 255, 0.05);
+    --indra-canvas-grid-secondary: rgba(255, 255, 255, 0.02);
+    --indra-panel-bg: var(--color-bg-surface);
+    --indra-panel-border: var(--color-border);
+    --indra-panel-glass: rgba(13, 17, 23, 0.7);
+
+    /* UI Components */
+    --indra-input-bg: var(--color-bg-void);
+    --indra-input-text: var(--color-text-primary);
+    --indra-input-border: var(--color-border-strong);
+    --indra-input-focus: var(--color-accent);
+    
+    --indra-terminal-bg: #050510;
+    --indra-terminal-text: var(--color-accent);
+    --indra-terminal-border: var(--color-border-active);
+
+    --indra-tab-bg: transparent;
+    --indra-tab-active-bg: var(--color-bg-surface);
+    --indra-tab-text: var(--color-text-tertiary);
+    --indra-tab-active-text: var(--color-accent);
+
+    --indra-scrollbar-thumb: rgba(255, 255, 255, 0.1);
+    --indra-scrollbar-track: transparent;
+}
+
+/* 🏁 AXIOMA DE HERENCIA (NATIVO)
+   Si no hay [data-theme] definido, hereda del sistema.
+*/
+@media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]):not([data-theme="indra-vapor"]) {
+        --color-bg-void: #f8fafc;
+        --color-bg-deep: #f1f5f9;
+        --color-bg-surface: #ffffff;
+        --color-bg-elevated: #e2e8f0;
+        --color-bg-hover: #cbd5e1;
+        --color-accent: #0f172a; 
+        --color-accent-dim: rgba(15, 23, 42, 0.05);
+        --color-accent-glow: rgba(15, 23, 42, 0.1);
+        --color-accent-rgb: 15, 23, 42;
+        --color-text-primary: #0f172a;
+        --color-text-secondary: #334155;
+        --color-text-tertiary: #475569;
+        --color-text-dim: #94a3b8;
+        --color-text-accent: #0f172a;
+        --color-text-inverse: #ffffff;
+        --color-border: rgba(15, 23, 42, 0.1);
+        --color-border-active: #0f172a;
+        --color-border-strong: rgba(15, 23, 42, 0.15);
+        --color-success: #15803d;
+        --color-danger: #b91c1c;
+        --color-warm: #b45309;
+        --color-cold: #4338ca;
+        --glass-bg: rgba(255, 255, 255, 0.9);
+        --glass-light: rgba(15, 23, 42, 0.03);
+        --glass-border: rgba(15, 23, 42, 0.15);
+        --indra-canvas-bg: #f8fafc;
+        --indra-canvas-grid: rgba(0, 0, 0, 0.05);
+        --indra-canvas-grid-secondary: rgba(0, 0, 0, 0.02);
+        --indra-panel-bg: #ffffff;
+        --indra-panel-border: rgba(0, 0, 0, 0.08);
+        --indra-panel-glass: rgba(255, 255, 255, 0.95);
+        --indra-input-bg: #ffffff;
+        --indra-input-text: #0f172a;
+        --indra-input-border: rgba(0, 0, 0, 0.15);
+        --indra-input-focus: #0f172a;
+        --indra-terminal-bg: #f1f5f9;
+        --indra-terminal-text: #0f172a;
+        --indra-terminal-border: rgba(0, 0, 0, 0.1);
+        --indra-scrollbar-thumb: rgba(0, 0, 0, 0.1);
+    }
 }
 
 [data-theme="light"] {
@@ -216,6 +289,32 @@
     --glass-bg: rgba(255, 255, 255, 0.9);
     --glass-light: rgba(15, 23, 42, 0.03);
     --glass-border: rgba(15, 23, 42, 0.15);
+
+    /* ── SEMÁNTICOS DE ESTRUCTURA (MODO CLARO) ── */
+    --indra-canvas-bg: #f8fafc;
+    --indra-canvas-grid: rgba(0, 0, 0, 0.05);
+    --indra-canvas-grid-secondary: rgba(0, 0, 0, 0.02);
+    --indra-panel-bg: #ffffff;
+    --indra-panel-border: rgba(0, 0, 0, 0.08);
+    --indra-panel-glass: rgba(255, 255, 255, 0.95);
+
+    /* UI Components */
+    --indra-input-bg: #ffffff;
+    --indra-input-text: #0f172a;
+    --indra-input-border: rgba(0, 0, 0, 0.15);
+    --indra-input-focus: #0f172a;
+
+    --indra-terminal-bg: #f1f5f9;
+    --indra-terminal-text: #0f172a;
+    --indra-terminal-border: rgba(0, 0, 0, 0.1);
+
+    --indra-tab-bg: transparent;
+    --indra-tab-active-bg: #ffffff;
+    --indra-tab-text: #64748b;
+    --indra-tab-active-text: #0f172a;
+
+    --indra-scrollbar-thumb: rgba(0, 0, 0, 0.1);
+    --indra-scrollbar-track: transparent;
 }
 
 /* TEMA INDRA VAPOR (SOLAR PUNK DARK) */

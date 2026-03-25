@@ -3,13 +3,13 @@
 .macro-designer {
     user-select: none;
     overflow: hidden;
-    background-color: var(--color-bg-void);
+    background-color: var(--indra-canvas-bg);
 }
 
 /* INDUSTRIAL BOX SYSTEM (Agnotic Container) */
 .indra-container {
-    border: 1px solid var(--indra-dynamic-border);
-    background-color: var(--color-bg-deep);
+    border: 1px solid var(--indra-panel-border);
+    background-color: var(--indra-panel-bg);
     position: relative;
     border-radius: var(--indra-ui-radius);
     display: flex;
@@ -24,8 +24,8 @@
 }
 
 .indra-header-label {
-    background-color: var(--indra-dynamic-border);
-    color: var(--indra-dynamic-accent);
+    background-color: var(--indra-panel-border);
+    color: var(--color-accent);
     font-family: 'JetBrains Mono', monospace;
     font-size: 8px;
     padding: 2px 8px;
@@ -46,8 +46,8 @@
 
 /* MICRO-HEADERS INDUSTRIALES */
 .indra-engine-hood {
-    border-bottom: 2px solid var(--indra-dynamic-border);
-    background-color: var(--color-bg-void);
+    border-bottom: 2px solid var(--indra-panel-border);
+    background-color: var(--indra-canvas-bg);
 }
 
 /* FUENTES */
@@ -58,15 +58,15 @@
 
 /* CINEMA VIEWPORT */
 .cinema-stream {
-    background-color: #000;
-    box-shadow: inset 0 0 150px rgba(0,0,0,0.9);
+    background-color: var(--indra-canvas-bg);
+    box-shadow: inset 0 0 150px rgba(0,0,0,0.5);
 }
 
 /* TIMELINE GRID */
 .kinetic-timeline {
     background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+        linear-gradient(to right, var(--indra-canvas-grid) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--indra-canvas-grid-secondary) 1px, transparent 1px);
     background-size: 100px 100%, 100% 40px;
 }
 
@@ -110,12 +110,12 @@
     cursor: pointer;
     font-family: 'JetBrains Mono', monospace;
     font-size: 9px;
-    color: rgba(255,255,255,0.3);
+    color: var(--indra-tab-text);
     border-bottom: 1px solid transparent;
 }
 
 .indra-tab.active {
-    color: var(--indra-dynamic-accent);
-    background-color: var(--indra-dynamic-bg);
-    border-bottom-color: var(--indra-dynamic-accent);
+    color: var(--indra-tab-active-text);
+    background-color: var(--indra-tab-active-bg);
+    border-bottom-color: var(--indra-tab-active-text);
 }

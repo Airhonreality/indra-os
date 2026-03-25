@@ -26,11 +26,11 @@ export function WorkflowTrigger({ isSelected, onSelect }) {
             onClick={(e) => { e.stopPropagation(); onSelect(); }}
             style={{
                 width: '400px',
-                background: 'rgba(255, 255, 255, 0.95)',
-                border: isSelected ? '1px solid var(--indra-dynamic-accent)' : '1px solid rgba(0,0,0,0.05)',
+                background: isSelected ? 'var(--indra-panel-glass)' : 'var(--indra-panel-bg)',
+                border: isSelected ? '1px solid var(--indra-dynamic-accent)' : '1px solid var(--indra-panel-border)',
                 borderRadius: 'var(--radius-lg)',
                 padding: 'var(--space-6)',
-                boxShadow: isSelected ? '0 12px 40px rgba(0,0,0,0.08)' : '0 4px 15px rgba(0,0,0,0.02)',
+                boxShadow: isSelected ? '0 12px 40px rgba(0,0,0,0.2)' : '0 4px 15px rgba(0,0,0,0.05)',
                 transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)',
                 cursor: 'pointer',
                 textAlign: 'left'
@@ -53,7 +53,7 @@ export function WorkflowTrigger({ isSelected, onSelect }) {
                 <span className="font-mono" style={{ 
                     fontSize: '14px', 
                     fontWeight: 'bold', 
-                    color: '#1e293b',
+                    color: 'var(--color-text-primary)',
                     letterSpacing: '0.05em'
                 }}>
                     {trigger.label || 'VINCULAR_CONTRATO_DE_DATOS'}

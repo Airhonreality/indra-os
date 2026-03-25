@@ -203,19 +203,19 @@ body::after {
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--color-bg-void);
-    border-left: 1px solid var(--color-border);
+    background: var(--indra-scrollbar-track);
+    border-left: 1px solid var(--indra-panel-border);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--color-accent);
+    background: var(--indra-scrollbar-thumb);
     border-radius: var(--radius-pill);
-    border: 2px solid var(--color-bg-void);
+    border: 1px solid var(--indra-panel-border);
     /* Crea un efecto de flotado */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: white;
+    background: var(--indra-dynamic-accent);
 }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }

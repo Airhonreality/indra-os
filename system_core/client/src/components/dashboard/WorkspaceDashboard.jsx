@@ -90,7 +90,7 @@ export function WorkspaceDashboard() {
             {/* Selector de Resonancia (Universal Invocation) */}
             {isOpen && (
                 <ArtifactSelector 
-                    title="INSPECTOR DE SILOS Y ARTEFACTOS"
+                    title="INSPECTOR DE ENTIDADES"
                     onSelect={handleResonate}
                     onCancel={() => { setIsSelectorOpen(false); if (closeSelector) closeSelector(); }}
                 />

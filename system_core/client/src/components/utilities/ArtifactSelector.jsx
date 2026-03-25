@@ -16,6 +16,7 @@ import { executeDirective } from '../../services/directive_executor.js';
 import { DataProjector } from '../../services/DataProjector.js';
 import { IndraIcon } from './IndraIcons.jsx';
 import { ResonanceTuningPanel } from '../dashboard/ResonanceTuningPanel.jsx';
+import { toastEmitter } from '../../services/toastEmitter.js';
 
 export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect, onCancel, filter = {} }) {
     const { services: manifest = [], coreUrl, sessionSecret, pins = [] } = useAppState();
@@ -97,6 +98,28 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
         }
     };
 
+    const handleImportVault = async () => {
+        setLoading(true);
+        try {
+            const res = await executeDirective({
+                provider: 'system',
+                protocol: 'SYSTEM_BLUEPRINT_SYNC',
+                data: { action: 'SCAN' }
+            }, coreUrl, sessionSecret);
+            
+            if (res.items && res.items.length > 0) {
+                toastEmitter.success(`${res.items.length} entidades detectadas y listas para resonar.`);
+                await loadLevel(); // Recargamos para ver los nuevos pins si es modo PINS
+            } else {
+                toastEmitter.warn("No se detectaron nuevas entidades en el Vault.");
+            }
+        } catch (err) {
+            toastEmitter.error("Fallo al escanear el Vault: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const availableClasses = [...new Set(items.map(i => i.class).filter(Boolean))];
 
     return (
@@ -111,7 +134,7 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                     {/* ── HEADER ── */}
                     <header className="stack--tight" style={{ marginBottom: 'var(--space-4)' }}>
                         <div className="spread">
-                            <h2 style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', opacity: 0.6, letterSpacing: '0.2em' }}>{title}</h2>
+                            <h2 style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', opacity: 0.6, letterSpacing: '0.2em' }}>INSPECTOR DE ENTIDADES</h2>
                             <button onClick={onCancel} className="btn-icon"><IndraIcon name="CLOSE" size="14px" /></button>
                         </div>
 
@@ -162,6 +185,22 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                                     }}
                                 />
                             </div>
+                            <button 
+                                className="btn btn--ghost btn--mini resonance-glow-bridge"
+                                onClick={handleImportVault}
+                                disabled={loading}
+                                style={{ 
+                                    height: '34px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    padding: '0 12px',
+                                    border: '1px solid var(--color-border)',
+                                    display: 'flex',
+                                    gap: '8px'
+                                }}
+                            >
+                                <IndraIcon name="VAULT" size="12px" color="var(--color-accent)" />
+                                <span style={{ fontSize: '9px', fontWeight: 'bold' }}>IMPORTAR</span>
+                            </button>
                         </div>
 
                         <div className="spread" style={{ marginTop: 'var(--space-2)' }}>

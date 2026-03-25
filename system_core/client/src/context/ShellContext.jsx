@@ -16,7 +16,24 @@ export function ShellProvider({ children }) {
 
     // Global Style Engine State
     const [isStyleEngineOpen, setIsStyleEngineOpen] = useState(false);
-    const [theme, setTheme] = useState(localStorage.getItem('indra-theme') || 'dark');
+    
+    // Función para obtener el tema del sistema
+    const getSystemTheme = () => window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    
+    const [theme, setTheme] = useState(localStorage.getItem('indra-theme') || getSystemTheme());
+
+    useEffect(() => {
+        // Escuchador de cambios en el sistema si el usuario no ha forzado un tema manualmente
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+        const handleChange = (e) => {
+            if (!localStorage.getItem('indra-theme')) {
+                setTheme(e.matches ? 'light' : 'dark');
+            }
+        };
+
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+    }, []);
 
     // Context Menu Management
     const [contextMenu, setContextMenu] = useState(null);
@@ -34,7 +51,11 @@ export function ShellProvider({ children }) {
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('indra-theme', theme);
+        // Solo persistimos si el valor actual difiere de la preferencia del sistema 
+        // o si ya existía una preferencia manual previa.
+        if (localStorage.getItem('indra-theme') || theme !== getSystemTheme()) {
+            localStorage.setItem('indra-theme', theme);
+        }
     }, [theme]);
 
     const value = {

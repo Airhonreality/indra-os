@@ -41,7 +41,12 @@ function _system_handlePin(uqo) {
         doc.updated_at = new Date().toISOString();
         file.setContent(JSON.stringify(doc, null, 2));
 
-        return { items: [pinPointer], metadata: { status: 'OK' } };
+        const responsePayload = atom.payload || {};
+        if (atom.class === 'DATA_SCHEMA' && !Array.isArray(responsePayload.fields)) {
+            responsePayload.fields = [];
+        }
+
+        return { items: [{ ...pinPointer, payload: responsePayload }], metadata: { status: 'OK' } };
     } catch (err) {
         return { items: [], metadata: { status: 'ERROR', error: err.message, code: err.code || 'NOT_FOUND' } };
     }
@@ -105,9 +110,13 @@ function _system_handlePinsRead(uqo) {
                 if (pin.class === 'DATA_SCHEMA') {
                     try {
                         const content = JSON.parse(atomFile.getBlob().getDataAsString());
-                        enhancedPin.payload = content.payload;
+                        enhancedPin.payload = content.payload || {};
+                        if (!Array.isArray(enhancedPin.payload.fields)) {
+                             enhancedPin.payload.fields = [];
+                        }
                     } catch (e) {
                         logWarn(`[infrastructure] Error parseando payload de Schema ${pin.id}`, e);
+                        enhancedPin.payload = { fields: [] }; // Fallback de emergencia
                     }
                 }
 

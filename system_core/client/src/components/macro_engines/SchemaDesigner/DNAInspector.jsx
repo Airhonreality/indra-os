@@ -395,9 +395,9 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge, a
                     letter-spacing: 0.05em;
                 }
                 .dna-input {
-                    background: var(--color-bg-void);
-                    border: 1px solid var(--color-border-strong);
-                    color: white;
+                    background: var(--indra-input-bg);
+                    border: 1px solid var(--indra-input-border);
+                    color: var(--indra-input-text);
                     padding: var(--space-2) var(--space-3);
                     border-radius: var(--radius-sm);
                     font-size: 11px;

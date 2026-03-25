@@ -73,8 +73,7 @@ export function ArtifactGrid({ pins, onResonate }) {
 
         // Inyectar acciones especiales por columna
         if (catKey === 'POTENCY') {
-            dynamicOptions.push({ action: 'OPEN_INSPECTOR', label: "INSPECCIONAR SILOS", icon: 'SEARCH' });
-            dynamicOptions.push({ action: 'SCAN_VAULT', label: "IMPORTAR VAULT", icon: 'VAULT' });
+            dynamicOptions.push({ action: 'OPEN_INSPECTOR', label: "INSPECTOR DE ENTIDADES", icon: 'SEARCH' });
         }
 
         return dynamicOptions;
@@ -280,16 +279,7 @@ function CreationMenu({ category, options, onAction }) {
                                 className="btn btn--block btn--ghost shelf--tight"
                                 style={{ justifyContent: 'flex-start', padding: '8px 12px', textAlign: 'left' }}
                                 onClick={() => {
-                                    if (opt.action === 'SCAN_VAULT') {
-                                        executeDirective({
-                                            provider: 'system',
-                                            protocol: 'SYSTEM_BLUEPRINT_SYNC',
-                                            data: { action: 'SCAN' }
-                                        }, useAppState.getState().coreUrl, useAppState.getState().sessionSecret)
-                                        .then(res => {
-                                            if (res.items) toastEmitter.success("Blueprints detectados: " + res.items.length);
-                                        });
-                                    } else if (opt.action && onAction) {
+                                    if (opt.action && onAction) {
                                         onAction(opt.action);
                                     } else if (opt.class) {
                                         const label = `${opt.label}_${Date.now().toString().slice(-4)}`;

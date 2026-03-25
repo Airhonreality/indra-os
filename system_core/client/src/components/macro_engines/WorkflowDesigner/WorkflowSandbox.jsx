@@ -58,12 +58,12 @@ export function WorkflowSandbox({
                         <div className="spread" style={{ padding: '0 4px', marginBottom: '8px' }}>
                             <span className="text-label" style={{ fontSize: '8px', opacity: 0.4 }}>MOCK_TRIGGER</span>
                         </div>
-                        <div className="fill overflow-auto scrollbar-hidden">
+                        <div className="fill overflow-auto scrollbar-hidden" style={{ background: 'var(--indra-terminal-bg)', padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--indra-panel-border)' }}>
                             <textarea 
                                 value={JSON.stringify(mockInput, null, 2)} 
                                 onChange={(e) => { try { setMockInput(JSON.parse(e.target.value)); } catch(err) {} }}
                                 className="util-input--sm fill font-mono" 
-                                style={{ background: 'transparent', border: 'none', color: 'var(--color-text-dim)', fontSize: '9px', width: '100%', height: '100%', outline: 'none' }}
+                                style={{ background: 'transparent', border: 'none', color: 'var(--indra-terminal-text)', fontSize: '9px', width: '100%', height: '100%', outline: 'none', resize: 'none' }}
                             />
                         </div>
                     </div>
@@ -75,9 +75,9 @@ export function WorkflowSandbox({
                         <div className="spread" style={{ padding: '0 4px', marginBottom: '8px' }}>
                             <span className="text-label" style={{ fontSize: '8px', opacity: 0.4 }}>EXECUTION_TRACE_RESONANCE</span>
                         </div>
-                        <div className="fill overflow-auto scrollbar-hidden">
+                        <div className="fill overflow-auto scrollbar-hidden" style={{ background: 'var(--indra-terminal-bg)', padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--indra-panel-border)' }}>
                             {traceLogs.length === 0 ? (
-                                <div className="center fill opacity-20 font-mono" style={{ fontSize: '9px' }}>AWAITING_RESONANCE_TRIGGER...</div>
+                                <div className="center fill opacity-20 font-mono" style={{ fontSize: '9px', color: 'var(--indra-terminal-text)' }}>AWAITING_RESONANCE_TRIGGER...</div>
                             ) : (
                                 <div className="stack--tight">
                                     {traceLogs.map((log, i) => (
@@ -85,7 +85,7 @@ export function WorkflowSandbox({
                                             <div className="text-hint font-mono" style={{ minWidth: '80px', fontSize: '7px', opacity: 0.4 }}>[{log.timestamp}]</div>
                                             <div className="font-mono truncate" style={{ 
                                                 fontSize: '9px', 
-                                                color: log.status === 'OK' ? 'var(--color-accent)' : log.status === 'ERROR' ? 'var(--color-warm)' : 'white'
+                                                color: log.status === 'OK' ? 'var(--color-accent)' : log.status === 'ERROR' ? 'var(--color-warm)' : 'var(--indra-terminal-text)'
                                             }}>
                                                 {log.message}
                                             </div>
@@ -104,19 +104,19 @@ export function WorkflowSandbox({
                     transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     border-top: 1px solid var(--indra-dynamic-border);
                     display: flex; flex-direction: column;
-                    background: var(--color-bg-void) !important;
+                    background: var(--indra-panel-bg) !important;
                     margin: 0 var(--space-4);
                     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
                     overflow: hidden;
-                    box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+                    box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
                     z-index: 100;
                 }
                 .is-collapsed { height: 32px; cursor: pointer; }
                 .is-expanded { height: 260px; }
                 .indra-sandbox-header { height: 32px; padding: 0 var(--space-4); align-items: center; user-select: none; }
-                .indra-sandbox-body { flex: 1; display: flex; padding: var(--space-3); gap: var(--space-4); overflow: hidden; }
+                .indra-sandbox-body { flex: 1; display: flex; padding: var(--space-3); gap: var(--space-4); overflow: hidden; background: var(--indra-canvas-bg); }
                 .sandbox-col { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-                .sandbox-divider { width: 1px; background: rgba(255,255,255,0.05); }
+                .sandbox-divider { width: 1px; background: var(--indra-panel-border); }
                 .scrollbar-hidden::-webkit-scrollbar { display: none; }
             `}</style>
         </div>

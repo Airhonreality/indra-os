@@ -79,7 +79,6 @@ export function AgencyChassis({ atom, onHoverStart, onHoverEnd }) {
                     <div className="delete-trigger" onClick={e => e.stopPropagation()}>
                         <IndraActionTrigger 
                             variant="destructive"
-                            label="ELIMINAR"
                             onClick={handleDelete}
                             size="12px"
                         />

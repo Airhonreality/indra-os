@@ -21,7 +21,7 @@ export function EventAtomUI({ event, onClick }) {
             style={{ 
                 borderLeft: '3px solid var(--indra-dynamic-accent)',
                 cursor: 'pointer',
-                background: 'rgba(255, 255, 255, 0.02)',
+                background: 'var(--indra-panel-bg)',
                 borderRadius: 'var(--indra-ui-radius)',
                 minHeight: '80px'
             }}

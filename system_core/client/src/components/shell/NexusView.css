@@ -27,7 +27,7 @@
     font-size: var(--text-lg);
     letter-spacing: 0.2em;
     margin: 0;
-    color: white;
+    color: var(--color-text-primary);
 }
 
 .service-status-row {
@@ -79,7 +79,7 @@
 
 .ws-card:hover .ws-card__title {
     letter-spacing: 0.05em;
-    color: white;
+    color: var(--color-text-primary);
 }
 
 .ws-card__deco-tl {

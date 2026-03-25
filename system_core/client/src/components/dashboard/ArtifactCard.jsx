@@ -237,7 +237,6 @@ export function ArtifactCard({ atom }) {
                     {capabilities.canDelete && (
                         <IndraActionTrigger
                             variant="destructive"
-                            label="BORRAR"
                             onClick={() => handleAction('ATOM_DELETE')}
                             size="12px"
                         />

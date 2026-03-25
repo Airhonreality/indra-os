@@ -3,27 +3,13 @@
  * Basado en el canon de VideoDesigner y ADR_015.
  */
 
-:root {
-    /* AXIOMAS DE ESPACIO */
-    --indra-ui-margin: 16px;
-    --indra-ui-gap: 6px;
-    --indra-ui-radius: 2px; /* Radios más rectos, industriales */
-
-    /* AXIOMAS DE COLOR */
-    --indra-dynamic-accent: #00d2d3; /* Cyan-Stark */
-    --indra-dynamic-border: rgba(0, 210, 211, 0.15);
-    --indra-dynamic-bg: rgba(0, 210, 211, 0.03);
-    
-    --indra-bg-stage: #050506; /* Negro casi absoluto */
-    --indra-bg-deep: #0c0c0d;
-    --indra-bg-void: #000000;
-}
+/* Los axiomas de color locales han sido deprecados a favor de design_tokens.css v5.0 */
 
 .calendar-engine {
     height: 100%;
     padding: var(--indra-ui-margin);
-    background-color: var(--indra-bg-void);
-    color: var(--color-text-main);
+    background-color: var(--indra-canvas-bg);
+    color: var(--color-text-primary);
     display: flex;
     flex-direction: column;
     gap: var(--indra-ui-gap);
@@ -33,8 +19,8 @@
 
 /* INDUSTRIAL BOX SYSTEM */
 .calendar-engine .indra-container {
-    background: var(--indra-bg-deep);
-    border: 1px solid var(--indra-dynamic-border);
+    background: var(--indra-panel-bg);
+    border: 1px solid var(--indra-panel-border);
     position: relative;
     border-radius: var(--indra-ui-radius);
     display: flex;
@@ -67,8 +53,8 @@
 
 /* ENGINE HOOD */
 .calendar-engine .engine-hood {
-    background: var(--indra-bg-deep);
-    border-bottom: 2px solid var(--indra-dynamic-border);
+    background: var(--indra-panel-bg);
+    border-bottom: 2px solid var(--indra-panel-border);
     z-index: 10;
 }
 
@@ -107,15 +93,15 @@
     inset: 0;
     pointer-events: none;
     background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        linear-gradient(to right, var(--indra-canvas-grid) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--indra-canvas-grid-secondary) 1px, transparent 1px);
     background-size: calc((100% - 60px) / 7) 100%, 100% 60px;
     margin-left: 60px;
 }
 
 .timeline-header-cell {
-    background-color: #0c0c0d;
-    border-right: 1px solid var(--indra-dynamic-border);
+    background-color: var(--indra-panel-bg);
+    border-right: 1px solid var(--indra-panel-border);
     font-family: 'JetBrains Mono', monospace;
     font-size: 9px;
     display: flex;
@@ -135,8 +121,8 @@
 .hour-label {
     width: 60px;
     height: 60px;
-    background: rgba(0, 0, 0, 0.4);
-    border-right: 1px solid var(--indra-dynamic-border);
+    background: var(--indra-canvas-bg);
+    border-right: 1px solid var(--indra-panel-border);
     font-family: 'JetBrains Mono', monospace;
     font-size: 8px;
     color: var(--indra-dynamic-accent);
@@ -177,8 +163,8 @@
 
 /* EVENT ATOMS */
 .event-atom-ui {
-    background: var(--indra-bg-deep);
-    border: 1px solid var(--indra-dynamic-border);
+    background: var(--indra-panel-bg);
+    border: 1px solid var(--indra-panel-border);
     transition: transform 0.1s;
 }
 

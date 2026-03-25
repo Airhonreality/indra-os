@@ -1,4 +1,5 @@
 import { useAppState } from '../../../state/app_state';
+import { IndraIcon } from '../../utilities/IndraIcons';
 
 /**
  * =============================================================================
@@ -33,11 +34,11 @@ export function StationCard({ station, index, isSelected, isExecuting, onSelect,
             className={`station-node type-${station.type.toLowerCase()} ${isSelected ? 'selected' : ''} ${isExecuting ? 'executing' : ''}`}
             onClick={onSelect}
             style={{ 
-                background: isSelected ? 'rgba(255, 255, 255, 0.98)' : 'rgba(255, 255, 255, 0.95)', 
-                border: isSelected ? '1px solid var(--indra-dynamic-accent)' : '1px solid rgba(0,0,0,0.05)',
+                background: isSelected ? 'var(--indra-panel-glass)' : 'var(--indra-panel-bg)', 
+                border: isSelected ? '1px solid var(--indra-dynamic-accent)' : '1px solid var(--indra-panel-border)',
                 borderRadius: 'var(--radius-md)',
                 padding: 'var(--space-5)',
-                boxShadow: isExecuting ? '0 0 20px var(--indra-dynamic-accent)' : (isSelected ? '0 12px 30px rgba(0,0,0,0.05)' : '0 2px 10px rgba(0,0,0,0.01)'),
+                boxShadow: isExecuting ? '0 0 20px var(--indra-dynamic-accent)' : (isSelected ? '0 12px 30px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.1)'),
                 minWidth: '220px',
                 position: 'relative',
                 transition: 'all 0.5s cubic-bezier(0.19, 1, 0.22, 1)',
@@ -61,7 +62,7 @@ export function StationCard({ station, index, isSelected, isExecuting, onSelect,
                 <span className="font-mono" style={{ 
                     fontSize: '11px', 
                     fontWeight: 'bold', 
-                    color: '#1e293b',
+                    color: 'var(--color-text-primary)',
                     letterSpacing: '0.05em'
                 }}>
                     {station.config?.label || 'PASO_SIN_NOMBRE'}

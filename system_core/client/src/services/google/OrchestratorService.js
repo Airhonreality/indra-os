@@ -325,7 +325,7 @@ async installCore(accessToken, userEmail, onProgress) {
     
     return {
       deploymentId: deployData.deploymentId,
-      coreUrl: `https://script.google.com/macros/s/${deployData.deploymentId}/exec`
+      coreUrl: `https://script.google.com/macros/s/${deployData.deploymentId}/exec?authuser=${encodeURIComponent(ownerEmail)}`
     };
   },
 

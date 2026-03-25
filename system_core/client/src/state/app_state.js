@@ -70,6 +70,17 @@ export const useAppState = create((set, get) => ({
     isDocsOpen: false,
     serviceFilter: null, // 'intelligence', 'storage', null (all)
     isGlobalSelectorOpen: false,
+    
+    // ── NORMAS DE SOBERANÍA (HELPERS) ──
+    _normalizeUrl_: (url) => {
+        if (!url) return url;
+        const { googleUser } = get();
+        if (googleUser?.email && !url.includes('authuser=')) {
+            const sep = url.includes('?') ? '&' : '?';
+            return `${url}${sep}authuser=${encodeURIComponent(googleUser.email)}`;
+        }
+        return url;
+    },
 
     // ── ACCIONES ──
 
@@ -78,10 +89,11 @@ export const useAppState = create((set, get) => ({
      * Utiliza el endpoint GET ?mode=echo del api_gateway.gs.
      */
     discoverCore: async (url) => {
+        const finalUrl = get()._normalizeUrl_(url);
         set({ isConnecting: true, coreStatus: 'SCANNING', error: null });
         try {
             // El modo echo devuelve { metadata: { status: 'ALIVE', bootstrapped: boolean } }
-            const res = await fetch(`${url}?mode=echo`);
+            const res = await fetch(`${finalUrl}&mode=echo`);
             
             if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
             
@@ -136,13 +148,14 @@ export const useAppState = create((set, get) => ({
      * Soporta registro automático en la Bóveda de Núcleos (Multi-Core).
      */
     setCoreConnection: async (url, secret) => {
+        const finalUrl = get()._normalizeUrl_(url);
         set({ isConnecting: true, error: null });
         try {
             const result = await executeDirective({
                 provider: 'system',
                 protocol: 'ATOM_READ',
                 context_id: 'workspaces'
-            }, url, secret);
+            }, finalUrl, secret);
 
 
             const coreId = result.metadata?.core_id;
@@ -274,7 +287,7 @@ export const useAppState = create((set, get) => ({
     startAuthPoller: async (coreUrl, satelliteKey) => {
         const interval = setInterval(async () => {
             try {
-                // Hacemos un ping CORS real
+                // Ping CORS real (ahora ya debe funcionar tras autorizar)
                 const res = await fetch(coreUrl, {
                     method: 'POST',
                     mode: 'cors',
@@ -283,6 +296,25 @@ export const useAppState = create((set, get) => ({
                 });
 
                 if (res.ok) {
+                    const data = await res.json();
+                    
+                    // --- AXIOMA DE RESURRECCIÓN (v4.23) ---
+                    // Si el core despertó pero sigue en modo BOOTSTRAP, 
+                    // significa que el primer handshake silente falló. RE-IGNITAMOS.
+                    if (data.metadata?.status === 'BOOTSTRAP') {
+                        console.log('[Centinela] Motor despertado. Relanzando pacto de ignición...');
+                        await fetch(coreUrl, {
+                            method: 'POST',
+                            mode: 'cors',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify({
+                                protocol: 'SYSTEM_INSTALL_HANDSHAKE',
+                                satellite_key: satelliteKey,
+                                core_owner_uid: get().googleUser?.email
+                            })
+                        });
+                    }
+
                     clearInterval(interval);
                     toastEmitter.success('¡Pacto de Identidad Validado!');
                     // Finalizamos la conexión con los datos que ya tenemos
@@ -391,14 +423,15 @@ export const useAppState = create((set, get) => ({
      * Carga los servicios disponibles (pila de providers).
      */
     hydrateManifest: async () => {
-        const { coreUrl, sessionSecret, isConnected } = get();
+        const { coreUrl, sessionSecret, isConnected, _normalizeUrl_ } = get();
         if (!isConnected) return;
 
+        const finalUrl = _normalizeUrl_(coreUrl);
         try {
             const result = await executeDirective({
                 provider: 'system',
                 protocol: 'SYSTEM_MANIFEST'
-            }, coreUrl, sessionSecret);
+            }, finalUrl, sessionSecret);
             
             // AXIOMA DE SINCERIDAD: Guardamos los ítems tal cual vienen del Núcleo (Materia Prima).
             // La proyección se realiza en la frontera de cada componente.

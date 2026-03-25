@@ -192,10 +192,9 @@ export function CoreConnectionView() {
                                             href={useAppState.getState().pendingCoreUrl} 
                                             target="_blank" 
                                             rel="noreferrer"
-                                            className="btn btn--accent ripple"
-                                            onClick={() => setTimeout(() => useAppState.getState().clearError(), 2000)}
-                                            style={{ textDecoration: 'none', padding: '12px', fontWeight: 'bold' }}
-                                        >
+                                             className="btn btn--accent ripple"
+                                             style={{ textDecoration: 'none', padding: '12px', fontWeight: 'bold' }}
+                                         >
                                             1. ABRIR NÚCLEO Y AUTORIZAR
                                         </a>
                                         <button 

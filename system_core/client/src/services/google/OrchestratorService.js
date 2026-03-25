@@ -76,7 +76,7 @@ async installCore(accessToken, userEmail, onProgress) {
 
       // --- PASO 5: EL DESPERTAR (Despliegue) ---
       notify('Desplegando Membrana de Acceso... Publicando tu propio Core en la web para que el front-end pueda hablar con él.', 80);
-      const { coreUrl, deploymentId } = await this._deployWebApp(accessToken, currentScriptId);
+      const { coreUrl, deploymentId } = await this._deployWebApp(accessToken, currentScriptId, userEmail);
 
       // --- PASO 6: EL PACTO (Handshake & Manifiesto) ---
       notify('Firmando Pacto de Ignición... Vinculando tu identidad con tu nuevo núcleo.', 95);
@@ -300,7 +300,7 @@ async installCore(accessToken, userEmail, onProgress) {
     if (data.error) throw new Error(`Code Injection Error: ${data.error.message}`);
   },
 
-  async _deployWebApp(token, scriptId) {
+  async _deployWebApp(token, scriptId, ownerEmail) {
     // 1. Crear versión
     const versionRes = await fetch(`https://script.googleapis.com/v1/projects/${scriptId}/versions`, {
       method: 'POST',

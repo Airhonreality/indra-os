@@ -254,7 +254,11 @@ export const useAppState = create((set, get) => ({
                 await get().setCoreConnection(core_url, satellite_key);
                 return { success: true };
             } else {
-                set({ isConnecting: false });
+                set({ 
+                    isConnecting: false, 
+                    error: result.reason, 
+                    manifestId: result.manifest_id 
+                });
                 return { success: false, reason: result.reason };
             }
         } catch (err) {

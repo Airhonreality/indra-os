@@ -29,8 +29,8 @@ export const DriveDiscoveryService = {
         // 2. Buscar el manifiesto DENTRO de la carpeta visible
         const fileId = await this._findManifestFileId(token, folderId);
         if (!fileId) {
-            console.log('[DriveDiscovery] ADN no encontrado en la carpeta visible. Posible instalación corrupta.');
-            return { ok: false, reason: 'PREVIOUS_INSTALLATION_FILES_MISSING' };
+            console.log('[DriveDiscovery] Territorio virgen (sin manifiesto). Procediendo como Instalación Limpia.');
+            return { ok: false, reason: 'NO_CORE_FOUND' };
         }
 
         // 3. Descargar el contenido del manifiesto

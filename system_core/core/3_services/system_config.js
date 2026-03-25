@@ -145,19 +145,10 @@ function deleteConfig(key) {
 function isBootstrapped() {
   const isCerebroBootstrapped = _getStore_().getProperty('SYS_IS_BOOTSTRAPPED') === 'true';
   
-  // Si el cerebro no está inicializado, verificamos si el "cuerpo" (Drive) ya existe
-  if (!isCerebroBootstrapped) {
-    const territoryExists = _system_checkForExistingTerritory();
-    if (territoryExists) {
-      // Lanzamos una señal de conflicto para que la UI proyecte el "Strike!"
-      throw createError('SOVEREIGNTY_CONFLICT', 
-        '¡BLOQUEO DE SEGURIDAD! Ya existe una carpeta .core_system en este Drive. ' +
-        'Indra no permite dos motores compartiendo el mismo suelo físico. ' +
-        'ATENCIÓN: Si borras manualmente la carpeta .core_system para forzar una nueva instalación, ' +
-        'ELIMINARÁS COMPLETAMENTE todos tus workspaces, configuraciones y datos de forma irreversible.'
-      );
-    }
-  }
+  // AXIOMA: Si el cerebro no está inicializado, el "cuerpo" (Drive) NO debería existir aún.
+  // Pero durante el proceso de instalación automática (Indra v4.0), admitimos que el territorio 
+  // haya sido creado por el orquestador segundos antes del handshake.
+  // El control real de soberanía ocurre al verificar la clave final.
   
   return isCerebroBootstrapped;
 }

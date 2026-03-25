@@ -269,6 +269,36 @@ export const useAppState = create((set, get) => ({
     },
 
     /**
+     * Centinela de Autorización: Sondea el core hasta que Google permite la conexión.
+     */
+    startAuthPoller: async (coreUrl, satelliteKey) => {
+        const interval = setInterval(async () => {
+            try {
+                // Hacemos un ping CORS real
+                const res = await fetch(coreUrl, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ protocol: 'HEALTH_CHECK' })
+                });
+
+                if (res.ok) {
+                    clearInterval(interval);
+                    toastEmitter.success('¡Pacto de Identidad Validado!');
+                    // Finalizamos la conexión con los datos que ya tenemos
+                    await get().setCoreConnection(coreUrl, satelliteKey);
+                }
+            } catch (e) {
+                // Sigue bloqueado (Failed to fetch), seguimos esperando...
+                console.log('[Centinela] Esperando firma del pacto...');
+            }
+        }, 3000);
+
+        // Limpiador de seguridad (10 minutos)
+        setTimeout(() => clearInterval(interval), 600000);
+    },
+
+    /**
      * Orquestación de la instalación de un nuevo núcleo.
      */
     installNewCore: async () => {
@@ -291,12 +321,16 @@ export const useAppState = create((set, get) => ({
                 toastEmitter.success('Indra ha sido instalado con éxito.');
             } else {
                 if (result.error === 'AUTORIZACION_PENDIENTE') {
+                    const { satellite_key } = result.manifest || {}; // Recuperamos la key generada
                     set({ 
                         isConnecting: false, 
                         error: 'AUTORIZACION_PENDIENTE',
                         pendingCoreUrl: result.coreUrl,
                         installStatus: { step: 'AUTORIZACIÓN REQUERIDA', progress: 97 }
                     });
+                    
+                    // Iniciamos el Centinela automáticamente
+                    get().startAuthPoller(result.coreUrl, satellite_key);
                 } else {
                     set({ isConnecting: false, error: result.error });
                 }

@@ -88,13 +88,10 @@ async installCore(accessToken, userEmail, onProgress) {
       // Handshake inicial con el Core desplegado
       await this._igniteCore(coreUrl, satelliteKey, userEmail);
 
-      // --- 🛡️ VERIFICACIÓN DE SOBERANÍA (v4.19) ---
-      // Si tras el handshake silencioso el primer call CORS falla, 
-      // es que Google está pidiendo autorización humana.
-      notify('Verificando soberanía del motor...', 97);
-      await this._verifyCoreReadiness(coreUrl);
-
-      // Escribir el manifiesto en Drive para autodescubrimiento
+      // --- 💾 ANCLAJE DE IDENTIDAD (v4.20) ---
+      // Escribimos el manifiesto antes de verificar la disponibilidad real.
+      // Así, si el handshake falla por falta de Auth, el sistema ya existe en Drive.
+      notify('Anclando identidad en Drive...', 96);
       const manifest = {
         schema: 'indra-manifest-v4',
         core_id: userEmail,
@@ -110,6 +107,12 @@ async installCore(accessToken, userEmail, onProgress) {
       
       await this._writeManifest(accessToken, currentFolderId, manifest);
 
+      // --- 🛡️ VERIFICACIÓN DE SOBERANÍA (v4.19) ---
+      // Realizamos el call CORS real. Si falla, lanzamos AUTORIZACION_PENDIENTE.
+      // Pero como el manifiesto ya está escrito, al volver el usuario descubrirá su Core.
+      notify('Verificando soberanía del motor...', 98);
+      await this._verifyCoreReadiness(coreUrl, manifest);
+
       notify('¡Indra ha Despertado!', 100);
       return { ok: true, manifest };
 
@@ -123,6 +126,7 @@ async installCore(accessToken, userEmail, onProgress) {
           ok: false, 
           error: 'AUTORIZACION_PENDIENTE', 
           coreUrl: err.coreUrl,
+          manifest: err.manifest, // Pasamos el manifest parcial para recuperar la Key
           message: 'Tu núcleo necesita un último permiso manual para despertar.'
         };
       }
@@ -370,7 +374,7 @@ async installCore(accessToken, userEmail, onProgress) {
    * Intenta despertar el core con una llamada CORS real para verificar si Google
    * está permitiendo el acceso o si está bloqueado por falta de consentimiento.
    */
-  async _verifyCoreReadiness(coreUrl) {
+  async _verifyCoreReadiness(coreUrl, manifest) {
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -390,6 +394,7 @@ async installCore(accessToken, userEmail, onProgress) {
             const authErr = new Error('Requerida Autorización Manual de Google');
             authErr.requiresManualAuth = true;
             authErr.coreUrl = coreUrl;
+            authErr.manifest = manifest;
             throw authErr;
         }
         throw err;

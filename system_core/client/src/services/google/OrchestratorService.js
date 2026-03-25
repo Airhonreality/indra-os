@@ -327,5 +327,13 @@ Keep it safe. Keep it micelar.
       headers: { 'Authorization': `Bearer ${token}` },
       body: form
     });
+  },
+
+  async deleteFile(token, fileId) {
+    if (!fileId) return;
+    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
   }
 };

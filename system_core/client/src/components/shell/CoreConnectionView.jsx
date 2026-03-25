@@ -138,18 +138,36 @@ export function CoreConnectionView() {
                                 </div>
                             </div>
                             
-                            <p className="text-hint" style={{ marginBottom: 'var(--space-6)' }}>
-                                No hemos encontrado un núcleo en tu Drive. <br />
-                                ¿Deseas forjar uno nuevo para esta identidad?
-                            </p>
+                            {error === 'PREVIOUS_INSTALLATION_FILES_MISSING' ? (
+                                <div className="stack" style={{ gap: 'var(--space-4)' }}>
+                                    <p className="text-hint" style={{ marginBottom: 'var(--space-4)', color: 'var(--color-danger)', fontWeight: 'bold' }}>
+                                        ATENCIÓN: Se han encontrado restos de una instalación <br />
+                                        previa que ha sido borrada o movida manualmente.
+                                    </p>
+                                    <button 
+                                        className="btn btn--danger"
+                                        onClick={() => useAppState.getState().purgePreviousInstall(useAppState.getState().manifestId)}
+                                        style={{ padding: '12px 30px', fontWeight: 'bold' }}
+                                    >
+                                        LIMPIAR Y REINSTALAR (GENESIS)
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    <p className="text-hint" style={{ marginBottom: 'var(--space-6)' }}>
+                                        No hemos encontrado un núcleo en tu Drive. <br />
+                                        ¿Deseas forjar uno nuevo para esta identidad?
+                                    </p>
 
-                            <button 
-                                className="btn btn--accent"
-                                onClick={installNewCore}
-                                style={{ padding: '12px 30px', fontWeight: 'bold' }}
-                            >
-                                INICIAR INSTALACIÓN (IGNICIÓN)
-                            </button>
+                                    <button 
+                                        className="btn btn--accent"
+                                        onClick={installNewCore}
+                                        style={{ padding: '12px 30px', fontWeight: 'bold' }}
+                                    >
+                                        INICIAR INSTALACIÓN (IGNICIÓN)
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>

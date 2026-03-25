@@ -271,6 +271,21 @@ export const useAppState = create((set, get) => ({
             set({ isConnecting: false, error: err.message });
         }
     },
+
+    purgePreviousInstall: async (manifestId) => {
+        const { googleUser } = get();
+        if (!googleUser || !googleUser.accessToken) return;
+        
+        set({ isConnecting: true, error: null });
+        try {
+            await OrchestratorService.deleteFile(googleUser.accessToken, manifestId);
+            set({ error: null, isConnecting: false }); 
+            // Esto provocará un re-escaneo el cual debería devolver NO_CORE_FOUND
+            await get().discoverCore(); 
+        } catch (err) {
+            set({ isConnecting: false, error: 'FALLO_AL_PURGAR_RASTRO' });
+        }
+    },
     
     /**
      * Gestión universal de la Bóveda (ServiceManager)

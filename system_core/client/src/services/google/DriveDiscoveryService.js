@@ -28,8 +28,15 @@ export const DriveDiscoveryService = {
 
         // 2. Descargar el contenido del manifiesto
         const manifest = await this._downloadManifest(token, fileId);
-        console.log('[DriveDiscovery] Manifiesto recuperado e hidratado desde la zona fantasma.');
         
+        // 3. Verificación de Integridad: ¿Sigue existiendo la carpeta?
+        const folderExists = await this._verifyFolderExists(token, manifest.system_root_id);
+        if (!folderExists) {
+            console.warn('[DriveDiscovery] ADN encontrado pero la materia (Carpeta) ha desaparecido.');
+            return { ok: false, reason: 'PREVIOUS_INSTALLATION_FILES_MISSING', manifest_id: fileId };
+        }
+
+        console.log('[DriveDiscovery] Manifiesto recuperado e hidratado desde el espacio secreto.');
         return { ok: true, manifest };
 
     } catch (err) {
@@ -46,6 +53,20 @@ export const DriveDiscoveryService = {
     });
     const data = await res.json();
     return data.files?.[0]?.id || null;
+  },
+
+  async _verifyFolderExists(token, folderId) {
+    if (!folderId) return false;
+    try {
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,trashed`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return false;
+        const data = await res.json();
+        return !data.trashed;
+    } catch (e) {
+        return false;
+    }
   },
 
   async _findFolderId(token, name) {

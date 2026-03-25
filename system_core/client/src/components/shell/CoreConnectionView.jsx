@@ -138,7 +138,7 @@ export function CoreConnectionView() {
                                 </div>
                             </div>
                             
-                            {error === 'PREVIOUS_INSTALLATION_FILES_MISSING' ? (
+                            {systemError === 'PREVIOUS_INSTALLATION_FILES_MISSING' ? (
                                 <div className="stack" style={{ gap: 'var(--space-4)' }}>
                                     <p className="text-hint" style={{ marginBottom: 'var(--space-4)', color: 'var(--color-danger)', fontWeight: 'bold' }}>
                                         ATENCIÓN: Se han encontrado restos de una instalación <br />

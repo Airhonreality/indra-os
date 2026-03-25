@@ -59,11 +59,14 @@ export const useAppState = create((set, get) => ({
     inductionTicketId: localStorage.getItem('indra-induction-ticket-id') || null,
     inductionTicketSnapshot: _loadInductionSnapshot_(),
     
+    // Persistencia de Vista (Axioma de Continuidad)
+    showConnector: localStorage.getItem('indra-show-connector') === 'true',
+    docsTab: localStorage.getItem('indra-docs-tab') || 'BIENVENIDA',
+    manifestId: null, 
     // Infraestructura & Bóveda
     isServiceManagerOpen: false,
     isDiagnosticHubOpen: false, 
     isDocsOpen: false,
-    docsTab: 'BIENVENIDA',
     serviceFilter: null, // 'intelligence', 'storage', null (all)
     isGlobalSelectorOpen: false,
 
@@ -197,6 +200,23 @@ export const useAppState = create((set, get) => ({
 
     resetConnectionState: () => set({ coreStatus: null, error: null, isConnecting: false }),
     clearError: () => set({ error: null }),
+
+    openConnector: () => {
+        localStorage.setItem('indra-show-connector', 'true');
+        set({ showConnector: true });
+    },
+    closeConnector: () => {
+        localStorage.setItem('indra-show-connector', 'false');
+        set({ showConnector: false });
+    },
+    openDocs: (tab) => {
+        localStorage.setItem('indra-docs-tab', tab);
+        set({ docsTab: tab });
+    },
+    closeDocs: () => {
+        localStorage.setItem('indra-show-connector', 'false');
+        set({ showConnector: false });
+    },
 
     /**
      * Inicia el flujo de autenticación soberana.

@@ -19,14 +19,20 @@ export const LandingView = () => {
     const sessionSecret = useAppState(s => s.sessionSecret);
     const closeDocs = useAppState(s => s.closeDocs);
 
+    const { 
+        showConnector, 
+        openConnector, 
+        closeConnector, 
+        openDocs 
+    } = useAppState();
+
     const googleUser = useAppState(s => s.googleUser);
     const { theme, setTheme } = useShell();
-    const [showConnector, setShowConnector] = useState(false);
     
     // Si ya tenemos usuario de google pero no conectado al core → mostramos el conector directo
     useEffect(() => {
         if (googleUser && !isConnected) {
-            setShowConnector(true);
+            openConnector();
         }
     }, [googleUser, isConnected]);
 
@@ -38,7 +44,7 @@ export const LandingView = () => {
         if (isConnected) {
             closeDocs();
         } else {
-            setShowConnector(true);
+            openConnector();
         }
     };
 
@@ -92,7 +98,7 @@ export const LandingView = () => {
                     }
                 `}</style>
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                    <button className="btn btn--ghost btn--mini" onClick={() => setShowConnector(false)}>
+                    <button className="btn btn--ghost btn--mini" onClick={closeConnector}>
                         <IndraIcon name="BACK" size="10px" style={{ marginRight: '8px' }} />
                         VOLVER A LA LANDING
                     </button>

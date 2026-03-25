@@ -236,8 +236,19 @@ export const useAppState = create((set, get) => ({
 
             const result = await DriveDiscoveryService.findCoreManifest(token);
             if (result.ok) {
-                const manifest = result.manifest;
+                let manifest = result.manifest;
                 
+                // --- 🛸 MIGRACIÓN AUTOMÁTICA (v4.16 - Micelar Migration) ---
+                if (result.isLegacy) {
+                    try {
+                        console.log('[Indra] Detectado ADN en zona fantasma. Iniciando transporte a zona visible...');
+                        manifest = await OrchestratorService.migrateToStandardSpace(token, manifest);
+                        toastEmitter.success('Identidad Migrada a Zona Visible.');
+                    } catch (mErr) {
+                        console.error('[Indra] Falló la auto-migración, procediendo con legacy.', mErr);
+                    }
+                }
+
                 // --- 🛡️ SINCRONIZACIÓN MICELLAR SILENCIOSA (v4.0) ---
                 // Si el núcleo está desactualizado respecto a GitHub, lo actualizamos en caliente.
                 try {
@@ -302,11 +313,21 @@ export const useAppState = create((set, get) => ({
         
         set({ isConnecting: true, error: null });
         try {
-            await OrchestratorService.deleteFile(googleUser.accessToken, manifestId);
+            // 1. Borrar el manifiesto específico si existe (en zona visible o fantasma)
+            if (manifestId) {
+                await OrchestratorService.deleteFile(googleUser.accessToken, manifestId);
+            }
+
+            // 2. EXORCISMO: Limpieza profunda de CUALQUIER archivo en la zona fantasma (AppData)
+            // Esto resuelve los problemas de reinstalación donde quedaban "ruinas" invisibles.
+            await OrchestratorService.purgeGhostPersistence(googleUser.accessToken);
+
             set({ error: null, isConnecting: false }); 
-            // Esto provocará un re-escaneo el cual debería devolver NO_CORE_FOUND
-            await get().discoverCore(); 
+            
+            // 3. Reiniciar el autodescubrimiento para volver al estado de "Instalación Limpia"
+            await get().discoverFromDrive(googleUser.accessToken); 
         } catch (err) {
+            console.error('[app_state] Purge failed:', err);
             set({ isConnecting: false, error: 'FALLO_AL_PURGAR_RASTRO' });
         }
     },

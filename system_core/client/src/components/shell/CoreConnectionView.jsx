@@ -111,14 +111,40 @@ export function CoreConnectionView() {
                             {installStatus?.step ? (
                                 <div className="stack--tight" style={{ width: '100%', maxWidth: '440px' }}>
                                     <span className="text-label" style={{ color: 'var(--color-accent)', animation: 'fade 1.5s infinite', fontWeight: 'bold' }}>
-                                        IGNICIÓN EN CURSO: {installStatus.progress}%
+                                        {installStatus.step.includes('Génesis Interrumpido') ? 'GÉNESIS INTERRUMPIDO' : `IGNICIÓN EN CURSO: ${installStatus.progress}%`}
                                     </span>
                                     <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden', marginTop: '12px', border: '1px solid rgba(255,255,255,0.02)' }}>
-                                        <div style={{ width: `${installStatus.progress}%`, height: '100%', background: 'var(--color-accent)', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 10px var(--color-accent)' }} />
+                                        <div style={{ width: `${installStatus.progress}%`, height: '100%', background: installStatus.step.includes('Génesis Interrumpido') ? 'var(--color-warm)' : 'var(--color-accent)', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: `0 0 10px ${installStatus.step.includes('Génesis Interrumpido') ? 'var(--color-warm)' : 'var(--color-accent)'}` }} />
                                     </div>
                                     <p className="text-hint" style={{ fontSize: '11px', marginTop: '16px', lineHeight: '1.5', minHeight: '3em' }}>
                                         {installStatus.step}
                                     </p>
+
+                                    {installStatus.step.includes('Génesis Interrumpido') && (
+                                        <div className="stack" style={{ marginTop: 'var(--space-4)', alignItems: 'center' }}>
+                                            <a 
+                                                href="https://script.google.com/home/usersettings" 
+                                                target="_blank" 
+                                                rel="noreferrer"
+                                                className="btn btn--accent ripple"
+                                                style={{ 
+                                                    padding: '12px 24px', 
+                                                    fontSize: '12px', 
+                                                    borderRadius: '30px',
+                                                    textDecoration: 'none',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px'
+                                                }}
+                                            >
+                                                <IndraIcon name="EXTERNAL" size="16px" />
+                                                ACTIVAR APPS SCRIPT API
+                                            </a>
+                                            <span className="text-hint" style={{ fontSize: '9px', marginTop: '8px', opacity: 0.6 }}>
+                                                Indra detectará el cambio automáticamente y reanudará la ignición.
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <span className="text-label" style={{ color: 'var(--color-accent)', animation: 'fade 1.5s infinite' }}>

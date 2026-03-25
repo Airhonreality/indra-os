@@ -17,30 +17,42 @@ export const DriveDiscoveryService = {
    */
   async findCoreManifest(token) {
     try {
-        console.log('[DriveDiscovery] Iniciando excavación en zona invisible (AppData)...');
+        console.log('[DriveDiscovery] Iniciando excavación en zona visible (.core_system)...');
         
-        // 1. Buscar el manifiesto directamente en la raíz de AppData
-        const fileId = await this._findManifestInAppData(token);
+        // 1. Encontrar la Carpeta de Sistema en el espacio estándar de Drive
+        const folderId = await this._findFolderId(token, HOME_ROOT_FOLDER_NAME);
+        if (!folderId) {
+            console.log('[DriveDiscovery] Territorio no encontrado. Intentando recuperación legacy en zona fantasma...');
+            // Fallback temporal para migración: buscar el manifiesto en appData
+            const legacyId = await this._findManifestInAppData(token);
+            if (!legacyId) return { ok: false, reason: 'NO_CORE_FOUND' };
+            
+            const legacyManifest = await this._downloadManifest(token, legacyId);
+            return { ok: true, manifest: legacyManifest, isLegacy: true };
+        }
+
+        // 2. Buscar el manifiesto DENTRO de esa carpeta
+        const fileId = await this._findManifestFileId(token, folderId);
         if (!fileId) {
-            console.log('[DriveDiscovery] ADN no encontrado en la zona fantasma.');
+            console.log('[DriveDiscovery] ADN no encontrado en la carpeta visible.');
             return { ok: false, reason: 'NO_CORE_FOUND' };
         }
 
-        // 2. Descargar el contenido del manifiesto
+        // 3. Descargar el contenido del manifiesto
         const manifest = await this._downloadManifest(token, fileId);
         
-        // 3. Verificación de Integridad: ¿Sigue existiendo la carpeta?
+        // 4. Verificación de Integridad
         const folderExists = await this._verifyFolderExists(token, manifest.system_root_id);
         if (!folderExists) {
             console.warn('[DriveDiscovery] ADN encontrado pero la materia (Carpeta) ha desaparecido.');
             return { ok: false, reason: 'PREVIOUS_INSTALLATION_FILES_MISSING', manifest_id: fileId };
         }
 
-        console.log('[DriveDiscovery] Manifiesto recuperado e hidratado desde el espacio secreto.');
+        console.log('[DriveDiscovery] Manifiesto recuperado e hidratado desde la carpeta visible.');
         return { ok: true, manifest };
 
     } catch (err) {
-        console.error('[DriveDiscovery] Fallo crítico en excavación AppData:', err);
+        console.error('[DriveDiscovery] Fallo crítico en excavación Drive:', err);
         return { ok: false, reason: 'DRIVE_API_ERROR', error: err.message };
     }
   },
@@ -71,8 +83,8 @@ export const DriveDiscoveryService = {
 
   async _findFolderId(token, name) {
     const q = encodeURIComponent(`name = '${name}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`);
-    // Buscamos específicamente en el espacio de AppData
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=appDataFolder&fields=files(id)`, {
+    // Cambio crucial: Buscamos en el espacio ESTÁNDAR (visible)
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -81,7 +93,8 @@ export const DriveDiscoveryService = {
 
   async _findManifestFileId(token, folderId) {
     const q = encodeURIComponent(`'${folderId}' in parents and name = '${MANIFEST_FILENAME}' and trashed = false`);
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=appDataFolder&fields=files(id)`, {
+    // Buscamos en el espacio ESTÁNDAR dentro de la carpeta visible
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();

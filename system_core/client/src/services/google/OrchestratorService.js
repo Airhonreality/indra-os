@@ -16,45 +16,74 @@ const CORE_VERSION_URL = REPO_URL_BASE + 'version.json';
 // CORE_FILES_MANIFEST ha sido movido a un archivo remoto (files_manifest.json) para Micellar Updates
 
 export const OrchestratorService = {
-  /**
-   * Proceso completo de instalación:
-   * 1. Crear Bóveda (Google Sheet)
-   * 2. Crear Carpeta de Sistema (.core_system)
-   * 3. Crear Proyecto Apps Script
-   * 4. Inyectar Código del Repositorio
-   * 5. Publicar como Web App
-   * 6. Handshake Final
-   */
-  async installCore(accessToken, userEmail, onProgress) {
-    const notify = (step, progress) => onProgress && onProgress(step, progress);
+/**
+ * Proceso completo de instalación:
+ * 1. Crear Bóveda (Google Sheet)
+ * 2. Crear Carpeta de Sistema (.core_system)
+ * 3. Crear Proyecto Apps Script
+ * 4. Inyectar Código del Repositorio
+ * 5. Publicar como Web App
+ * 6. Handshake Final
+ */
+async installCore(accessToken, userEmail, onProgress) {
+  const notify = (step, progress) => onProgress && onProgress(step, progress);
+  
+  // Estado persistente interno para la sesión de instalación
+  let currentVaultId = null;
+  let currentFolderId = null;
+  let currentScriptId = null;
 
+  const runIgnition = async () => {
     try {
-      // --- PASO 1: LA BÓVEDA (Registro Akashiko) ---
-      notify('Creando Bóveda de Realidades (Google Sheet)... Tus datos se almacenarán de forma privada solo para tus ojos.', 10);
-      const vaultId = await this._createVault(accessToken, userEmail);
+      // --- PASO 1: EL TERRITORIO (.core_system) ---
+      // IMPORTANTE: Ahora el territorio es lo primero para que todo viva dentro
+      if (!currentFolderId) {
+        notify('Anclando Territorio... Preparando carpeta visible en tu Drive.', 10);
+        currentFolderId = await this._getOrCreateFolder(accessToken, HOME_ROOT_FOLDER_NAME);
+      }
 
-      // --- PASO 2: EL TERRITORIO (.core_system) ---
-      notify('Anclando Territorio... Buscando o creando carpeta de sistema en tu Drive.', 25);
-      const folderId = await this._getOrCreateFolder(accessToken, HOME_ROOT_FOLDER_NAME);
+      // --- PASO 2: LA BÓVEDA (Registro Akashiko) ---
+      if (!currentVaultId) {
+        notify('Creando Bóveda de Realidades (Google Sheet)... Tus datos se almacenarán de forma privada dentro de tu carpeta.', 25);
+        currentVaultId = await this._createVault(accessToken, userEmail, currentFolderId);
+      }
 
       // --- PASO 3: EL MOTOR (Script Project) ---
-      notify('Forjando Motor de Apps Script... Esta es la inteligencia propia que residirá en tu cuenta.', 40);
-      const scriptId = await this._createScriptProject(accessToken, 'Indra Core', vaultId);
+      if (!currentScriptId) {
+        notify('Forjando Motor de Apps Script... Esta es la inteligencia propia que residirá en tu cuenta.', 40);
+        try {
+          currentScriptId = await this._createScriptProject(accessToken, 'Indra Core', currentVaultId);
+        } catch (err) {
+          if (this._isAppsScriptApiDisabled(err)) {
+            notify('¡Génesis Interrumpido! La Apps Script API está desactivada. Por favor, actívala en el botón de abajo.', 45);
+            
+            // Iniciar protocolo de Polling
+            const enabled = await this._waitForAppsScriptApi(accessToken, (msg) => notify(msg, 45));
+            if (enabled) {
+              notify('¡API Detectada! Reanudando la forja del motor...', 48);
+              return await runIgnition(); // Reintento recursivo manteniendo estado
+            } else {
+              throw new Error('Tiempo de espera agotado. Activa la API manualmente y vuelve a intentarlo.');
+            }
+          }
+          throw err;
+        }
+      }
 
       // --- PASO 4: LA MATERIA (Inyeccion de Código) ---
       notify('Transmitiendo materia fractal... Inyectando el código servidor de Indra directamente en tu proyecto.', 60);
-      await this._injectCode(accessToken, scriptId);
+      await this._injectCode(accessToken, currentScriptId);
 
       // --- PASO 5: EL DESPERTAR (Despliegue) ---
       notify('Desplegando Membrana de Acceso... Publicando tu propio Core en la web para que el front-end pueda hablar con él.', 80);
-      const { coreUrl, deploymentId } = await this._deployWebApp(accessToken, scriptId);
+      const { coreUrl, deploymentId } = await this._deployWebApp(accessToken, currentScriptId);
 
       // --- PASO 6: EL PACTO (Handshake & Manifiesto) ---
       notify('Firmando Pacto de Ignición... Vinculando tu identidad con tu nuevo núcleo.', 95);
       const satelliteKey = crypto.randomUUID();
       
       // Obtener versión maestra de GitHub
-      const versionInfo = await fetch(CORE_VERSION_URL).then(r => r.json()).catch(() => ({ version: '0.4.0' }));
+      const versionInfo = await fetch(CORE_VERSION_URL).then(r => r.json()).catch(() => ({ version: '0.4.16' }));
 
       // Handshake inicial con el Core desplegado
       await this._igniteCore(coreUrl, satelliteKey, userEmail);
@@ -65,15 +94,15 @@ export const OrchestratorService = {
         core_id: userEmail,
         core_url: coreUrl,
         satellite_key: satelliteKey,
-        script_id: scriptId,
-        vault_id: vaultId,
-        system_root_id: folderId,
-        deployment_id: deploymentId, // Crucial para auto-actualización
+        script_id: currentScriptId,
+        vault_id: currentVaultId,
+        system_root_id: currentFolderId,
+        deployment_id: deploymentId,
         core_version: versionInfo.version,
         installed_at: new Date().toISOString()
       };
       
-      await this._writeManifest(accessToken, folderId, manifest);
+      await this._writeManifest(accessToken, currentFolderId, manifest);
 
       notify('¡Indra ha Despertado!', 100);
       return { ok: true, manifest };
@@ -82,14 +111,16 @@ export const OrchestratorService = {
       console.error('[Orchestrator] Fallo en la cascada de ignición:', err);
       let userMessage = err.message;
       
-      // Error crítico muy común que requiere guía al usuario
-      if (err.message.includes('not enabled') || err.message.includes('API_DISABLED')) {
-        userMessage = 'Debes activar la "Google Apps Script API" en tu cuenta (https://script.google.com/home/settings) para que Indra pueda forjar tu núcleo.';
+      if (this._isAppsScriptApiDisabled(err)) {
+        userMessage = 'Debes activar la "Google Apps Script API" (https://script.google.com/home/settings) y pulsar en Reintentar.';
       }
       
       return { ok: false, error: userMessage };
     }
-  },
+  };
+
+  return await runIgnition();
+},
 
   /**
    * Sincronización Silenciosa (Core Overload)
@@ -144,7 +175,8 @@ export const OrchestratorService = {
     }
   },
 
-  async _createVault(token, email) {
+  async _createVault(token, email, folderId) {
+    // 1. Crear el Spreadsheet
     const res = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -152,7 +184,30 @@ export const OrchestratorService = {
     });
     const data = await res.json();
     if (data.error) throw new Error(`Google Sheets API Error: ${data.error.message}`);
-    return data.spreadsheetId;
+    
+    const spreadsheetId = data.spreadsheetId;
+
+    // 2. Mover el archivo a la carpeta .core_system (Axioma de Carpeta Visible)
+    if (folderId) {
+      await this._moveFileToFolder(token, spreadsheetId, folderId);
+    }
+
+    return spreadsheetId;
+  },
+
+  async _moveFileToFolder(token, fileId, folderId) {
+    // Primero obtenemos los padres actuales para quitarlos
+    const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const fileData = await fileRes.json();
+    const previousParents = (fileData.parents || []).join(',');
+
+    // Movemos el archivo
+    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${folderId}&removeParents=${previousParents}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
   },
 
   async _getOrCreateFolder(token, name) {
@@ -277,7 +332,7 @@ export const OrchestratorService = {
   async _writeManifest(token, folderId, manifest) {
     const metadata = {
         name: MANIFEST_FILENAME,
-        parents: ['appDataFolder'], // El manifiesto se guarda en la ZONA FANTASMA
+        parents: [folderId], // ELIMINADO appDataFolder -> Migrado a Carpeta Visible
         mimeType: 'application/json'
     };
     const form = new FormData();
@@ -335,5 +390,117 @@ Keep it safe. Keep it micelar.
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
     });
+  },
+
+  /**
+   * HELPERS PROTOCOLO 'GÉNESIS INTERRUMPIDO'
+   * ======================================
+   */
+
+  _isAppsScriptApiDisabled(err) {
+    const msg = err.message || '';
+    return msg.toLowerCase().includes('not enabled') || 
+           msg.toLowerCase().includes('api_disabled') ||
+           msg.toLowerCase().includes('forbidden');
+  },
+
+  /**
+   * Polling inteligente con retroceso exponencial para detectar la activación de la API.
+   */
+  async _waitForAppsScriptApi(token, onUpdate) {
+    const MAX_ATTEMPTS = 10;
+    let attempt = 1;
+    let delay = 3000; // Iniciar con 3s
+
+    while (attempt <= MAX_ATTEMPTS) {
+      onUpdate(`Esperando activación de la API... Intento ${attempt}/${MAX_ATTEMPTS}`);
+      
+      try {
+        const response = await fetch('https://script.googleapis.com/v1/projects?pageSize=1', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) return true;
+        
+        const data = await response.json();
+        if (data.error && !this._isAppsScriptApiDisabled(new Error(data.error.message))) {
+          // Si es otro error distinto a "API desactivada", salimos
+          throw new Error(data.error.message);
+        }
+      } catch (e) {
+        console.warn('[Orchestrator] Polling Apps Script API failed:', e);
+      }
+
+      // Retroceso exponencial + Jitter
+      const jitter = Math.random() * 1000;
+      await new Promise(r => setTimeout(r, delay + jitter));
+      delay *= 1.5;
+      attempt++;
+    }
+
+    return false;
+  },
+
+  /**
+   * Purgado robusto de la persistencia fantasma (appDataFolder).
+   * Se utiliza para limpiar instalaciones corruptas o antiguas.
+   */
+  async purgeGhostPersistence(token) {
+    console.log('[Orchestrator] Iniciando Limpieza Crítica de la zona fantasma...');
+    try {
+      // 1. Listar todos los archivos en appDataFolder
+      const res = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (data.files && data.files.length > 0) {
+        console.log(`[Orchestrator] Encontrados ${data.files.length} fantasmas. Procediendo a exorcismo.`);
+        for (const file of data.files) {
+          await this.deleteFile(token, file.id);
+          console.log(`[Orchestrator] Fantasma purgado: ${file.name} (${file.id})`);
+        }
+      }
+      return true;
+    } catch (err) {
+      console.error('[Orchestrator] Error en purga ghost:', err);
+      return false;
+    }
+  },
+
+  /**
+   * PROTOCOLO DE MIGRACIÓN MICELLAR (Legacy -> Visible)
+   * ==================================================
+   * Mueve el manifiesto y la bóveda a la carpeta visible sin perder datos.
+   */
+  async migrateToStandardSpace(token, manifest) {
+    console.log('[Orchestrator] Iniciando Migración Micelar a zona visible...');
+    try {
+      // 1. Asegurar carpeta raíz
+      const folderId = await this._getOrCreateFolder(token, HOME_ROOT_FOLDER_NAME);
+      
+      // 2. Mover la Bóveda (Sheet) si es que existe y tenemos el ID
+      if (manifest.vault_id) {
+        console.log('[Orchestrator] Migrando Bóveda...');
+        await this._moveFileToFolder(token, manifest.vault_id, folderId);
+      }
+
+      // 3. Crear el nuevo manifiesto en la carpeta visible
+      const updatedManifest = {
+        ...manifest,
+        system_root_id: folderId,
+        migrated_at: new Date().toISOString()
+      };
+      await this._writeManifest(token, folderId, updatedManifest);
+
+      // 4. Limpieza (Purga fantasma)
+      await this.purgeGhostPersistence(token);
+
+      console.log('[Orchestrator] Migración completada con éxito.');
+      return updatedManifest;
+    } catch (err) {
+      console.error('[Orchestrator] Fallo en migración:', err);
+      throw err;
+    }
   }
 };

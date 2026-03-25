@@ -274,7 +274,7 @@ async installCore(accessToken, userEmail, onProgress) {
         try {
           const manifestObj = JSON.parse(source);
           manifestObj.webapp = {
-            access: 'ANYONE',
+            access: 'ANYONE_ANONYMOUS',
             executeAs: 'USER_DEPLOYING'
           };
           source = JSON.stringify(manifestObj, null, 2);

@@ -42,6 +42,7 @@ export const useAppState = create((set, get) => ({
     isConnecting: false,
     coreStatus: null, // null, 'SCANNING', 'BOOTSTRAP', 'STABLE'
     error: null,
+    pendingCoreUrl: null, // Para autorización manual tras ignición
     installStatus: { step: null, progress: 0 }, // Seguimiento de la ignición
 
     // Catálogos
@@ -289,7 +290,16 @@ export const useAppState = create((set, get) => ({
                 await get().setCoreConnection(core_url, satellite_key);
                 toastEmitter.success('Indra ha sido instalado con éxito.');
             } else {
-                set({ isConnecting: false, error: result.error });
+                if (result.error === 'AUTORIZACION_PENDIENTE') {
+                    set({ 
+                        isConnecting: false, 
+                        error: 'AUTORIZACION_PENDIENTE',
+                        pendingCoreUrl: result.coreUrl,
+                        installStatus: { step: 'AUTORIZACIÓN REQUERIDA', progress: 97 }
+                    });
+                } else {
+                    set({ isConnecting: false, error: result.error });
+                }
             }
         } catch (err) {
             set({ isConnecting: false, error: err.message });

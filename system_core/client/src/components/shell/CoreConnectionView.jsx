@@ -178,6 +178,39 @@ export function CoreConnectionView() {
                                         LIMPIAR Y REINSTALAR (GENESIS)
                                     </button>
                                 </div>
+                            ) : systemError === 'AUTORIZACION_PENDIENTE' ? (
+                                <div className="glass-light stack" style={{ padding: 'var(--space-6)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-accent)' }}>
+                                    <IndraIcon name="SECURITY" size="40px" style={{ color: 'var(--color-accent)', margin: '0 auto' }} />
+                                    <h3 style={{ fontSize: '16px', color: 'var(--color-text-primary)', marginTop: '10px' }}>FIRMA DEL PACTO REQUERIDA</h3>
+                                    <p className="text-hint" style={{ fontSize: '12px', margin: '15px 0', lineHeight: '1.5' }}>
+                                        Google solicita tu permiso directo para que el motor pueda <br />
+                                        interactuar con tus archivos. 
+                                    </p>
+                                    
+                                    <div className="stack" style={{ gap: '10px' }}>
+                                        <a 
+                                            href={useAppState.getState().pendingCoreUrl} 
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            className="btn btn--accent ripple"
+                                            onClick={() => setTimeout(() => useAppState.getState().clearError(), 2000)}
+                                            style={{ textDecoration: 'none', padding: '12px', fontWeight: 'bold' }}
+                                        >
+                                            1. ABRIR NÚCLEO Y AUTORIZAR
+                                        </a>
+                                        <button 
+                                            className="btn btn--ghost"
+                                            onClick={() => useAppState.getState().discoverFromDrive(useAppState.getState().googleUser.accessToken)}
+                                            style={{ fontSize: '11px' }}
+                                        >
+                                            2. YA HE AUTORIZADO (CONTINUAR)
+                                        </button>
+                                    </div>
+                                    <p className="text-hint" style={{ fontSize: '9px', marginTop: '15px', opacity: 0.6 }}>
+                                        * Se abrirá una pestaña de Google. Dale a "Continuar" o "Autorizar". <br />
+                                        Cuando veas un mensaje de "Indra Core Active", vuelve aquí.
+                                    </p>
+                                </div>
                             ) : (
                                 <>
                                     <p className="text-hint" style={{ marginBottom: 'var(--space-6)' }}>

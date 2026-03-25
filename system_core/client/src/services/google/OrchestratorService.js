@@ -88,6 +88,12 @@ async installCore(accessToken, userEmail, onProgress) {
       // Handshake inicial con el Core desplegado
       await this._igniteCore(coreUrl, satelliteKey, userEmail);
 
+      // --- 🛡️ VERIFICACIÓN DE SOBERANÍA (v4.19) ---
+      // Si tras el handshake silencioso el primer call CORS falla, 
+      // es que Google está pidiendo autorización humana.
+      notify('Verificando soberanía del motor...', 97);
+      await this._verifyCoreReadiness(coreUrl);
+
       // Escribir el manifiesto en Drive para autodescubrimiento
       const manifest = {
         schema: 'indra-manifest-v4',
@@ -111,6 +117,16 @@ async installCore(accessToken, userEmail, onProgress) {
       console.error('[Orchestrator] Fallo en la cascada de ignición:', err);
       let userMessage = err.message;
       
+      // Si el error es de Handshake, adjuntamos la URL para autorización manual
+      if (err.requiresManualAuth) {
+        return { 
+          ok: false, 
+          error: 'AUTORIZACION_PENDIENTE', 
+          coreUrl: err.coreUrl,
+          message: 'Tu núcleo necesita un último permiso manual para despertar.'
+        };
+      }
+
       if (this._isAppsScriptApiDisabled(err)) {
         userMessage = 'Debes activar la "Google Apps Script API" (https://script.google.com/home/settings) y pulsar en Reintentar.';
       }
@@ -348,6 +364,36 @@ async installCore(accessToken, userEmail, onProgress) {
     }
 
     throw new Error(`Fallo definitivo en el Handshake del Core tras varios intentos: ${lastError?.message}`);
+  },
+
+  /**
+   * Intenta despertar el core con una llamada CORS real para verificar si Google
+   * está permitiendo el acceso o si está bloqueado por falta de consentimiento.
+   */
+  async _verifyCoreReadiness(coreUrl) {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        await fetch(coreUrl, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ protocol: 'HEALTH_CHECK' }),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return true;
+    } catch (err) {
+        // TypeError: Failed to fetch suele significar 403/CORS bloqueado por falta de Auth de Script
+        if (err.name === 'AbortError' || err.message.includes('fetch')) {
+            const authErr = new Error('Requerida Autorización Manual de Google');
+            authErr.requiresManualAuth = true;
+            authErr.coreUrl = coreUrl;
+            throw authErr;
+        }
+        throw err;
+    }
   },
 
   async _writeManifest(token, folderId, manifest) {

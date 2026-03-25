@@ -364,7 +364,15 @@ export const useAppState = create((set, get) => ({
                     // Iniciamos el Centinela automáticamente
                     get().startAuthPoller(result.coreUrl, satellite_key);
                 } else {
-                    set({ isConnecting: false, error: result.error });
+                    let errorMessage = result.error;
+                    if (errorMessage.includes('Apps Script API')) {
+                        errorMessage = 'APPS_SCRIPT_API_DISABLED';
+                    } else if (errorMessage.includes('quota')) {
+                        errorMessage = 'DRIVE_QUOTA_EXCEEDED';
+                    } else {
+                        errorMessage = `IGNITION_FAILURE: ${result.error}`;
+                    }
+                    set({ isConnecting: false, error: errorMessage });
                 }
             }
         } catch (err) {

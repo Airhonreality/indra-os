@@ -5,9 +5,9 @@ import { IndraActionTrigger } from '../utilities/IndraActionTrigger';
 import { useLexicon } from '../../services/lexicon';
 
 /**
- * CoreConnectionView (v4.0 - Soberanía Directa)
+ * CoreConnectionView (v4.1 - Soberanía y UX Pedagógica)
  * Puerta de entrada al sistema. Gestiona el login con Google, 
- * el autodescubrimiento y la instalación automática.
+ * el autodescubrimiento y la instalación automática con avisos multi-cuenta.
  */
 export function CoreConnectionView() {
     const t = useLexicon();
@@ -24,7 +24,7 @@ export function CoreConnectionView() {
         coreRegistry,
         setCoreConnection,
         removeCore,
-        resetConnectionState,
+        googleLogout,
         installStatus
     } = useAppState();
 
@@ -38,6 +38,16 @@ export function CoreConnectionView() {
         } catch (err) {
             console.error('[LegacyConnect] Failed:', err);
         }
+    };
+
+    // Mapeo de Errores para Mensajes Claros
+    const getFriendlyErrorMessage = (code) => {
+        if (code?.includes('AUTORIZACION_PENDIENTE')) return null; // Se maneja en la UI central
+        if (code === 'APPS_SCRIPT_API_DISABLED') return 'La API de Google Apps Script está desactivada. Actívala en la configuración de tu cuenta de Google.';
+        if (code === 'DRIVE_QUOTA_EXCEEDED') return 'Has superado la cuota de almacenamiento de Google Drive.';
+        if (code?.includes('IGNITION_FAILURE')) return 'La ignición automática falló. Intenta instalar de forma manual o revisa tu conexión.';
+        if (code === 'DRIVE_DISCOVERY_FAILED') return 'No se pudo conectar con el Core encontrado. Prueba a abrir la URL del script manualmente para validar la sesión.';
+        return code || 'Error desconocido en la conexión.';
     };
 
     return (
@@ -217,13 +227,40 @@ export function CoreConnectionView() {
                                         ¿Deseas forjar uno nuevo para esta identidad?
                                     </p>
 
-                                    <button 
-                                        className="btn btn--accent"
-                                        onClick={installNewCore}
-                                        style={{ padding: '12px 30px', fontWeight: 'bold' }}
-                                    >
-                                        INICIAR INSTALACIÓN (IGNICIÓN)
-                                    </button>
+                                    {/* --- 🛡️ AVISO DE SOBERANÍA MULTI-CUENTA (UI PEDAGOGY) --- */}
+                                    <div className="glass-light" style={{ 
+                                        padding: 'var(--space-3)', 
+                                        borderRadius: 'var(--radius-md)', 
+                                        marginBottom: 'var(--space-5)',
+                                        border: '1px solid rgba(255, 120, 0, 0.2)',
+                                        background: 'rgba(255, 120, 0, 0.05)',
+                                        textAlign: 'left'
+                                    }}>
+                                        <p style={{ fontSize: '10px', color: '#ff9800', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
+                                            <IndraIcon name="ALERT" size="12px" /> AVISO DE COMPATIBILIDAD
+                                        </p>
+                                        <p style={{ fontSize: '10px', color: 'var(--color-text-secondary)', lineHeight: '1.4' }}>
+                                            Para evitar bloqueos de Google, recomendamos usar un <b>perfil de navegador con una sola cuenta</b>. <br />
+                                            <span style={{ color: 'var(--color-accent)' }}>El uso de múltiples sesiones simultáneas puede interrumpir la ignición.</span>
+                                        </p>
+                                    </div>
+
+                                    <div className="shelf" style={{ gap: 'var(--space-3)', justifyContent: 'center' }}>
+                                        <button 
+                                            className="btn btn--accent ripple"
+                                            onClick={installNewCore}
+                                            style={{ padding: '12px 20px', fontWeight: 'bold', flex: 1 }}
+                                        >
+                                            FORJAR NÚCLEO
+                                        </button>
+                                        <button 
+                                            className="btn btn--secondary"
+                                            onClick={googleLogout}
+                                            style={{ fontSize: '11px', padding: '12px' }}
+                                        >
+                                            USAR OTRA CUENTA
+                                        </button>
+                                    </div>
                                 </>
                             )}
                         </div>
@@ -283,9 +320,9 @@ export function CoreConnectionView() {
                     )}
                 </div>
 
-                {systemError && (
+                {systemError && !systemError.includes('AUTORIZACION_PENDIENTE') && (
                     <div className="text-warm glass-light" style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', borderLeft: '3px solid var(--color-warm)', fontSize: '11px' }}>
-                        <IndraIcon name="ALERT" size="14px" /> {systemError}
+                        <IndraIcon name="ALERT" size="14px" /> {getFriendlyErrorMessage(systemError)}
                         <button onClick={clearError} style={{ marginLeft: '10px', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', opacity: 0.5 }}>×</button>
                     </div>
                 )}

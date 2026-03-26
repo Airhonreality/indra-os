@@ -21,6 +21,7 @@ import { useDocumentHydration } from '../hooks/useDocumentHydration';
 import { SchemaMicroExplorer } from '../../../utilities/SchemaMicroExplorer';
 import { useShell } from '../../../../context/ShellContext';
 import { SchemaActionService } from '../../../../services/SchemaActionService';
+import { useAtomCatalog } from '../../../../hooks/useAtomCatalog';
 
 const SHAPE_TEMPLATES = [
     {
@@ -267,14 +268,19 @@ export function WorkspaceResourcePanel({ atom, bridge, onNotify }) {
     };
 
     // ── Filtrado de artefactos del Workspace ────────────────────────────────
+    const { 
+        atoms: availableSchemas, 
+        isLoading: isSchemasLoading,
+        importAtom: handleImportSchema
+    } = useAtomCatalog({ atomClass: 'DATA_SCHEMA' });
+
     const schemas = useMemo(() => {
-        return (pins || [])
-            .filter(p => p.class === 'DATA_SCHEMA')
-            .map((schemaAtom) => ({
-                ...schemaAtom,
-                displayLabel: getAtomLabel(schemaAtom)
-            }));
-    }, [pins]);
+        return (availableSchemas || []).map((schemaAtom) => ({
+            ...schemaAtom,
+            displayLabel: getAtomLabel(schemaAtom)
+        }));
+    }, [availableSchemas]);
+
     const objects = pins
         .map(projectCompatibleMediaObject)
         .filter(Boolean);

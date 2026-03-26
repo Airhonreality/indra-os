@@ -192,7 +192,8 @@ export class DataProjector {
         return {
             id: svc.id,
             label: svc.handle?.label || svc.label || svc.id || 'GENERIC_PROVIDER',
-            icon: svc.icon || raw.icon || iconMap[baseId] || 'SERVICE',
+            // AXIOMA DE SOBERANÍA: El icono dictado por el Core tiene precedencia absoluta.
+            icon: svc.handle?.icon || svc.icon || raw.icon || iconMap[baseId] || 'SERVICE',
             isReady: !needsSetup,
             error: raw.error || null,
             statusLabel: needsSetup ? 'STATUS_SETUP' : 'STATUS_READY',

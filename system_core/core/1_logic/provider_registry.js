@@ -49,15 +49,17 @@ function _scanProviders() {
   const knownPrefixes = ['CONF_SYSTEM', 'CONF_DRIVE', 'CONF_NOTION', 'CONF_EMAIL', 'CONF_LLM', 'CONF_INTELLIGENCE'];
 
   // Intento 1: Iteración sobre el contexto global (Sincronía Glandular)
-  // En GAS V8, 'this' o 'globalThis' pueden contener las funciones globales.
+  // En GAS V8, 'globalThis' contiene todas las funciones globales declaradas en cualquier archivo del proyecto.
   const scope = globalThis || this;
 
-  // Lista de posibles nombres de funciones de configuración
-  // GAS no siempre permite iterar sobre el scope global de forma fiable entre archivos.
-  const possibleKeys = Object.keys(scope).filter(k => k.startsWith(SILO_MANIFEST_PREFIX));
+  // Escaneo dinámico: Buscamos todas las llaves que sigan el protocolo CONF_*
+  // Esto permite que el sistema sea 100% "Plug & Play".
+  const keysToTry = Object.keys(scope).filter(k => k.startsWith(SILO_MANIFEST_PREFIX));
 
-  // Si no se detectan llaves pero sabemos que hay providers, usamos la lista conocida (Defensa en Profundidad)
-  const keysToTry = possibleKeys.length > 0 ? possibleKeys : knownPrefixes;
+  if (keysToTry.length === 0) {
+    // Si no detectamos nada (raro en V8), es que el Core está en un estado de vacío atómico.
+    logWarn('[provider_registry] Sin manifestaciones detectadas en globalThis.');
+  }
 
   keysToTry.forEach(key => {
     if (typeof scope[key] !== 'function') return;
@@ -116,6 +118,12 @@ function buildManifest() {
   }
 
   allConfigs.forEach(conf => {
+    // AXIOMA DE EXPOSICIÓN (Velo de Maia): Los motores de infraestructura no se proyectan al usuario.
+    if (conf.exposure === 'internal') {
+      logDebug(`[provider_registry] Ocultando motor interno: ${conf.id}`);
+      return;
+    }
+
     const accounts = listProviderAccounts(conf.id);
     const hasSchema = conf.config_schema && conf.config_schema.length > 0;
 
@@ -127,7 +135,8 @@ function buildManifest() {
         handle: {
           ns: `com.indra.system.silo`,
           alias: conf.id,
-          label: conf.handle?.label || conf.id
+          label: conf.handle?.label || conf.id,
+          icon: conf.handle?.icon || null // AXIOMA DE IDENTIDAD VISUAL: El Core dicta el icono.
         },
         class: (conf.class || 'SILO').toUpperCase(),
         protocols: Object.keys(conf.implements || {}).map(p => p.toUpperCase()),
@@ -148,7 +157,8 @@ function buildManifest() {
           handle: {
             ns: `com.indra.system.silo`,
             alias: `${conf.id}_${acc.account_id}`,
-            label: `${conf.handle?.label || conf.id} (${accountLabel})`
+            label: `${conf.handle?.label || conf.id} (${accountLabel})`,
+            icon: conf.handle?.icon || null
           },
           class: (conf.class || 'SILO').toUpperCase(),
           protocols: Object.keys(conf.implements || {}).map(p => p.toUpperCase()),
@@ -183,15 +193,16 @@ function buildManifest() {
 function buildConfigSchema() {
   const allConfigs = _scanProviders();
 
-  // Filtrar solo providers que requieren configuración de usuario
+  // Filtrar solo providers que requieren configuración de usuario y son públicos.
   const items = allConfigs
-    .filter(conf => conf.config_schema && conf.config_schema.length > 0)
+    .filter(conf => conf.exposure !== 'internal' && conf.config_schema && conf.config_schema.length > 0)
     .map(conf => ({
       id: conf.id,
       handle: {
         ns: 'com.indra.system.config',
         alias: `config_${conf.id}`,
-        label: `Configuración de ${conf.name}`
+        label: `Configuración de ${conf.handle?.label || conf.id}`,
+        icon: conf.handle?.icon || 'SERVICE'
       },
       name: conf.name,
       class: 'CONFIG_SCHEMA',

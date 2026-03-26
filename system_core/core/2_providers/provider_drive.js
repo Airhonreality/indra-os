@@ -40,7 +40,8 @@ function CONF_DRIVE() {
     handle: {
       ns: 'com.indra.system.silo',
       alias: 'drive',
-      label: 'Google Drive'
+      label: 'Google Drive',
+      icon: 'FOLDER'
     },
     class: 'FOLDER',
     version: '1.1',

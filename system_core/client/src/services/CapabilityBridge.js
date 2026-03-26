@@ -8,6 +8,7 @@
 
 import { executeDirective } from './directive_executor';
 import { DataProjector } from './DataProjector';
+import { MetaComposer } from './MetaComposer';
 
 export class DesignerBridge {
     constructor(atom, shellActions, protocolData) {
@@ -23,9 +24,14 @@ export class DesignerBridge {
      */
     async save(data) {
         const contextId = this.atom.id;
+
+        // AXIOMA DE LINAJE Y AUDITORÍA: Inyectamos metadatos de sistema antes del guardado.
+        // Si data es solo el payload, lo envolvemos para el compositor.
+        const atomToCompose = (data && data.payload) ? data : { ...this.atom, payload: data };
+        const composedAtom = MetaComposer.compose(atomToCompose);
         
-        // 1. Aislamiento de Materia: Extraer el payload ignorando metadatos de identidad del motor
-        const cleanPayload = data?.payload || data;
+        // 1. Aislamiento de Materia: Extraer el payload cristalizado
+        const cleanPayload = composedAtom.payload;
         
         // 2. Notificación de sincronía (Nivel 2/3)
         if (this.shell.onSyncStart) this.shell.onSyncStart(contextId);
@@ -37,6 +43,7 @@ export class DesignerBridge {
                 context_id: contextId,
                 data: { 
                     payload: cleanPayload, 
+                    _meta:   composedAtom._meta, // Persistencia de metadatos de sistema
                     strategy: 'OVERWRITE' 
                 }
             });

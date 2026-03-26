@@ -89,46 +89,76 @@ export function ServiceManager({ onClose, filter: propFilter }) {
                     </aside>
 
                     {/* COLUMNA B: SERVICE GRID */}
-                    <main className="fill stack" style={{ minHeight: 0 }}>
-                        <div className="shelf--loose" style={{ marginBottom: 'var(--space-4)' }}>
-                            <span className="text-label">{t('ui_providers')}</span>
+                    <main className="fill stack" style={{ minHeight: 0, gap: 'var(--space-6)' }}>
+                        <div className="shelf--loose">
+                            <span className="util-label">// {t('ui_explorer_services')}</span>
+                            <label className="text-label" style={{ letterSpacing: '0.2em' }}>{t('ui_providers_available')}</label>
                             <div className="hud-line fill" style={{ opacity: 0.1 }}></div>
                         </div>
 
-                        <div className="service-grid fill">
+                        <div className="service-list fill scroll-y" style={{ paddingRight: 'var(--space-4)' }}>
                             {services
+                                .filter(svc => {
+                                    // REQUERIMIENTO: Solo mostrar servicios externos configurables o vinculables.
+                                    const raw = svc.raw || {};
+                                    const hasConfig = raw.config_schema && raw.config_schema.length > 0;
+                                    // EXCEPCIÓN: Si ya está vinculado (externo) o tiene esquema, se muestra.
+                                    // Si es un motor interno (system), se queda fuera.
+                                    return (svc.id.includes(':') || !svc.isReady || hasConfig) && svc.id !== 'system';
+                                })
                                 .filter(svc => !filter || svc.id.startsWith(filter) || svc.raw?.category === filter)
                                 .map(svc => (
                                 <div
                                     key={svc.id}
-                                    className={`service-card hud-deco-corners ${svc.isReady ? 'is-paired' : ''} ${svc.error ? 'is-error' : ''}`}
+                                    className={`service-tile ${svc.isReady ? 'is-active' : 'is-pending'} ${svc.error ? 'is-error' : ''}`}
                                     onClick={() => !svc.isReady && setSelectedService(svc)}
                                 >
-                                    <div className="spread" style={{ marginBottom: 'var(--space-4)' }}>
-                                        <div className="service-card__icon">
-                                            <IndraIcon name={svc.icon || 'SERVICE'} size="32px" />
+                                    {/* Cabecera / Status Slot */}
+                                    <div className="service-tile__status">
+                                        <div className={`status-dot ${svc.isReady ? 'breathing-pulse' : ''}`}></div>
+                                    </div>
+
+                                    {/* Icono Principal */}
+                                    <div className="service-tile__icon-box">
+                                        <div className="icon-glow"></div>
+                                        <IndraIcon name={svc.icon || 'SERVICE'} size="20px" />
+                                    </div>
+
+                                    {/* Información Central */}
+                                    <div className="service-tile__body stack--tight">
+                                        <div className="shelf">
+                                            <h3 className="service-tile__title">{svc.label}</h3>
+                                            <span className="badge badge--dark">{svc.id.split(':')[0].toUpperCase()}</span>
                                         </div>
-                                        <div className="service-card__status-dot"></div>
+                                        <div className="shelf--tight opacity-40" style={{ fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
+                                            <span style={{ color: svc.isReady ? 'var(--color-success)' : 'var(--color-warm)' }}>
+                                                {svc.isReady ? 'STATUS_CONNECTED' : 'STATUS_WAITING_SECRET'}
+                                            </span>
+                                            <span>//</span>
+                                            <span>{svc.id}</span>
+                                        </div>
                                     </div>
 
-                                    <div className="stack--tight">
-                                        <h3 style={{ margin: 0, fontFamily: 'var(--font-mono)', color: svc.isReady ? 'var(--color-accent)' : 'white' }}>
-                                            {svc.label}
-                                        </h3>
-                                        <span className="text-hint" style={{ fontSize: '10px', opacity: 0.6 }}>
-                                            {svc.isReady ? t('status_active') : t('status_ready_pair')}
-                                        </span>
+                                    {/* Acción Lateral */}
+                                    <div className="service-tile__actions">
+                                        {svc.isReady ? (
+                                            <button
+                                                className="btn btn--mini btn--ghost-danger ripple"
+                                                onClick={(e) => { e.stopPropagation(); unpairService(svc.id); }}
+                                                style={{ borderStyle: 'dashed' }}
+                                            >
+                                                {t('action_disconnect')}
+                                            </button>
+                                        ) : (
+                                            <div className="shelf--tight opacity-40">
+                                                <span style={{ fontSize: '9px' }}>CONFIGURAR</span>
+                                                <IndraIcon name="ARROW_RIGHT" size="10px" />
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {svc.isReady && (
-                                        <button
-                                            className="btn btn--mini btn--danger"
-                                            style={{ position: 'absolute', top: '10px', right: '10px', padding: '2px 8px' }}
-                                            onClick={(e) => { e.stopPropagation(); unpairService(svc.id); }}
-                                        >
-                                            {t('action_disconnect')}
-                                        </button>
-                                    )}
+                                    {/* Decoración HUD de Línea de Conexión */}
+                                    <div className="service-tile__cabling"></div>
                                 </div>
                             ))}
                         </div>

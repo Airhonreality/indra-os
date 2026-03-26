@@ -677,8 +677,9 @@ export const useAppState = create((set, get) => ({
 
     /**
      * Crea un átomo en el core, lo ancla y lo abre.
+     * Soporta inyección de metadatos opcionales (ADR-XXX).
      */
-    createArtifact: async (atomClass, label) => {
+    createArtifact: async (atomClass, label, initialPayload = {}, meta = null) => {
         const { coreUrl, sessionSecret, pinAtom, openArtifact } = get();
         
         // ── AXIOMA DE RETROALIMENTACIÓN INMEDIATA (Optimismo UI) ──
@@ -688,6 +689,7 @@ export const useAppState = create((set, get) => ({
             class: atomClass,
             handle: { label: label || 'NUEVO_ARTEFACTO' },
             status: 'PROVISIONING',
+            _meta: meta, // Inyectamos si viene de un clon
             updated_at: new Date().toISOString(),
             _provisional: true // Marca interna
         };
@@ -699,19 +701,23 @@ export const useAppState = create((set, get) => ({
 
         try {
             // ADR-008: Provisión de cuna para tipos estructurados
-            const initialPayload = {};
-            if (atomClass === 'DATA_SCHEMA') initialPayload.fields = [];
-            if (atomClass === 'BRIDGE') initialPayload.operators = [];
-            if (atomClass === 'WORKFLOW') initialPayload.stations = [];
+            const dataToCreate = {
+                class: atomClass,
+                handle: { label: label },
+                payload: initialPayload,
+                _meta: meta // El core guardará el bloque íntegro
+            };
+
+            if (Object.keys(initialPayload).length === 0) {
+                if (atomClass === 'DATA_SCHEMA') dataToCreate.payload.fields = [];
+                if (atomClass === 'BRIDGE') dataToCreate.payload.operators = [];
+                if (atomClass === 'WORKFLOW') dataToCreate.payload.stations = [];
+            }
 
             const result = await executeDirective({
                 provider: 'system',
                 protocol: 'ATOM_CREATE',
-                data: {
-                    class: atomClass,
-                    handle: { label: label },
-                    payload: initialPayload
-                }
+                data: dataToCreate
             }, coreUrl, sessionSecret);
 
             const newAtom = result.items?.[0];

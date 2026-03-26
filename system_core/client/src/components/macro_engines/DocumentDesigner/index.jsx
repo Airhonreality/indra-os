@@ -20,6 +20,7 @@ import { IndraIcon } from '../../utilities/IndraIcons';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
 import { DataProjector } from '../../../services/DataProjector';
 import { useWorkspace } from '../../../context/WorkspaceContext';
+import { useAppState } from '../../../state/app_state';
 import { useLexicon } from '../../../services/lexicon';
 import { HonestProvider } from './renderer/HonestProvider';
 import { IndraLoadingBar } from './layout/IndraLoadingBar';
@@ -333,14 +334,16 @@ function DocumentDesignerShell({ atom, bridge }) {
         return pages;
     }, [effectivePages]);
 
+    const { googleUser } = useAppState();
+
     const handleManualSave = async (overrideLabel = null) => {
         setIsSaving(true);
         try {
             const currentAST = astRef.current; // Siempre fresco
 
             // ── ADUANA DE CRISTALIZACIÓN (Axioma de Determinismo) ──
-            // Convertimos tokens vivos en Snapshots de Soberanía Atómica
-            const bloquesCristalizados = Crystallizer.cristalizar(currentAST.blocks);
+            // Ahora pasamos el átomo y el usuario para la composición del bloque _meta
+            const blocksWithMeta = Crystallizer.cristalizar(currentAST.blocks, atom, googleUser?.email);
 
             const paginationMap = renderPages.map((entry) => ({
                 blockId: entry.block.id,
@@ -349,12 +352,16 @@ function DocumentDesignerShell({ atom, bridge }) {
                 virtual: entry.virtual === true
             }));
 
+            // El Crystallizer.cristalizar ya devuelve el payload procesado con _meta inyectado
+            // Pero por compatibilidad con el puente, reconstruimos el objeto final aquí
+            // (Nota: MetaComposer.compose fue llamado dentro del Crystallizer)
+            
             await bridge.save({
                 ...atom,
                 handle: { ...atom.handle, label: overrideLabel || localLabel },
                 payload: { 
                     ...atom.payload, 
-                    blocks: bloquesCristalizados, 
+                    blocks: blocksWithMeta, 
                     variables: currentAST.docVariables,
                     layoutMeta: {
                         ...currentAST.layoutMeta,

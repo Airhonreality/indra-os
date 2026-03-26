@@ -15,6 +15,7 @@ import { useAppState } from '../../../state/app_state';
  */
 
 import { useProtocolDiscovery } from './hooks/useProtocolDiscovery';
+import { useAtomCatalog } from '../../../hooks/useAtomCatalog';
 
 export function WorkflowInspector() {
     const { 
@@ -34,11 +35,17 @@ export function WorkflowInspector() {
         removeTrigger 
     } = useWorkflow();
     
-    const { coreUrl, sessionSecret } = useAppState();
+    const { coreUrl, sessionSecret, pins } = useAppState();
+
+    // --- CATÁLOGO DE ESQUEMAS (CONTRATOS) ---
+    const { 
+        atoms: availableSchemas, 
+        isLoading: isSchemasLoading,
+        importAtom: handleImportSchema
+    } = useAtomCatalog({ atomClass: 'DATA_SCHEMA' });
 
     const [showSlotSelector, setShowSlotSelector] = useState(false);
     const [activeParam, setActiveParam] = useState(null);
-    const [availableSchemas, setAvailableSchemas] = useState([]);
     
     // UI PREMIUM: SELECTOR DE CONTRATOS (SCHEMAS)
     const [showSchemaPicker, setShowSchemaPicker] = useState(false);
@@ -57,21 +64,6 @@ export function WorkflowInspector() {
         setSchemaSearch('');
         setExpandedSchemaId(null);
     }, [selectedStationId]);
-
-    // CARGA DE CATÁLOGO DE ESQUEMAS (CONTRATOS)
-    useEffect(() => {
-        const fetchSchemas = async () => {
-            try {
-                const result = await executeDirective({
-                    provider: 'system',
-                    protocol: 'ATOM_READ',
-                    context_id: 'schemas'
-                }, coreUrl, sessionSecret);
-                if (result.items) setAvailableSchemas(result.items);
-            } catch (e) { console.error("[SchemasLoad] Error:", e); }
-        };
-        fetchSchemas();
-    }, [coreUrl, sessionSecret]);
 
     // AXIOMA DE HIDRATACIÓN DINÁMICA DE GATILLO
     useEffect(() => {
@@ -99,6 +91,69 @@ export function WorkflowInspector() {
             hydrateTriggerFields();
         }
     }, [workflow.payload?.trigger?.source_id, workflow.payload?.trigger?.schema_id, coreUrl, sessionSecret]);
+
+    // =========================================================================
+    // AXIOMA: HIDRATACIÓN DE ESTACIÓN (HERENCIA DE ADN)
+    // =========================================================================
+    /** 
+     * Este efecto escucha cambios en el Context ID de la estación. 
+     * Si la operación es un renderizado de documento, el sistema "escanea" 
+     * la plantilla para heredar automáticamente las claves necesarias.
+     */
+    useEffect(() => {
+        if (!station || station.config?.protocol !== 'NATIVE_DOCUMENT_RENDER') return;
+        
+        const templateId = station.mapping?.context_id?.value;
+        if (!templateId || templateId.includes('$')) return;
+
+        const hydrateStationFields = async () => {
+            try {
+                const result = await executeDirective({
+                    provider: 'system',
+                    protocol: 'ATOM_READ',
+                    context_id: templateId
+                }, coreUrl, sessionSecret);
+                
+                if (result.items && result.items[0]) {
+                    const docAtom = result.items[0];
+                    const sources = docAtom.payload?.sources || [];
+                    
+                    if (sources.length > 0) {
+                        const schemaResults = await Promise.all(sources.map(sid => 
+                            executeDirective({ provider: 'system', protocol: 'ATOM_READ', context_id: sid }, coreUrl, sessionSecret)
+                        ));
+                        
+                        const allFields = schemaResults.flatMap(r => r.items?.[0]?.payload?.fields || []);
+                        const keys = [...new Set(allFields.map(f => f.alias || f.id))];
+                        
+                        const currentVariables = station.mapping?.variables?.value || {};
+                        const newVariables = { ...currentVariables };
+                        let hasChanges = false;
+                        
+                        keys.forEach(k => {
+                            if (newVariables[k] === undefined) {
+                                newVariables[k] = ''; 
+                                hasChanges = true;
+                            }
+                        });
+                        
+                        if (hasChanges) {
+                            updateStation(station.id, { 
+                                mapping: { 
+                                    ...(station.mapping || {}), 
+                                    variables: { type: 'MAP', value: newVariables } 
+                                } 
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("[DNA_Inheritance] Error:", e);
+            }
+        };
+        hydrateStationFields();
+    }, [selectedStationId, station?.mapping?.context_id?.value, coreUrl, sessionSecret]);
+
 
     if (!station && !trigger) return null;
 
@@ -144,21 +199,72 @@ export function WorkflowInspector() {
     };
 
     const handleMappingSelect = (slot) => {
-        const newMapping = {
-            ...(station.mapping || {}),
-            [activeParam]: { path: slot.path, type: 'REFERENCE', label: slot.label }
-        };
+        let newMapping;
+        
+        if (activeParam.includes('.')) {
+            // Caso: Mapping anidado (ej: variables.nombre_cliente)
+            const [parent, child] = activeParam.split('.');
+            const currentMap = station.mapping?.[parent]?.value || {};
+            newMapping = {
+                ...(station.mapping || {}),
+                [parent]: {
+                    type: 'MAP',
+                    value: {
+                        ...currentMap,
+                        [child]: `{{${slot.path}}}` // Usamos sintaxis canónica de inyección
+                    }
+                }
+            };
+        } else {
+            // Caso: Mapping directo de campo
+            newMapping = {
+                ...(station.mapping || {}),
+                [activeParam]: { path: slot.path, type: 'REFERENCE', label: slot.label }
+            };
+        }
+        
         updateStation(station.id, { mapping: newMapping });
         setShowSlotSelector(false);
         setActiveParam(null);
     };
 
-    const handleStaticMappingUpdate = (paramId, value) => {
-        const newMapping = {
-            ...(station.mapping || {}),
-            [activeParam || paramId]: { value: value, type: 'STATIC' }
-        };
+    const handleStaticMappingUpdate = (paramId, value, subKey = null) => {
+        let newMapping;
+
+        if (subKey) {
+            // Actualización de clave dentro de un MAPA (ej: variables[key] = value)
+            const currentMap = station.mapping?.[paramId]?.value || {};
+            newMapping = {
+                ...(station.mapping || {}),
+                [paramId]: {
+                    type: 'MAP',
+                    value: {
+                        ...currentMap,
+                        [subKey]: value
+                    }
+                }
+            };
+        } else {
+            // Actualización directa
+            newMapping = {
+                ...(station.mapping || {}),
+                [paramId]: { value: value, type: 'STATIC' }
+            };
+        }
+        
         updateStation(station.id, { mapping: newMapping });
+    };
+
+    const removeMapKey = (paramId, key) => {
+        const currentMap = { ...(station.mapping?.[paramId]?.value || {}) };
+        delete currentMap[key];
+        
+        updateStation(station.id, { 
+            mapping: {
+                ...(station.mapping || {}),
+                [paramId]: { type: 'MAP', value: currentMap }
+            }
+        });
     };
 
     const removeMapping = (paramId) => {
@@ -482,25 +588,86 @@ export function WorkflowInspector() {
                                     {getFieldsForProtocol(station.config.protocol).map(fieldInput => {
                                         const fieldId = typeof fieldInput === 'string' ? fieldInput : fieldInput.id;
                                         const fieldLabel = (typeof fieldInput === 'string' ? fieldInput : (fieldInput.label || fieldInput.id)).toUpperCase();
+                                        const fieldType = typeof fieldInput === 'object' ? fieldInput.type : 'string';
 
                                         const mappedData = station.mapping?.[fieldId];
                                         const isReference = mappedData?.type === 'REFERENCE';
+                                        const isMap = mappedData?.type === 'MAP' || fieldType === 'object';
 
                                         return (
                                             <div key={fieldId} className="stack--tight glass-light" style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.03)' }}>
                                                 <div className="spread">
                                                     <label style={{ fontSize: '9px', fontWeight: 'bold' }} className="font-mono">{fieldLabel}</label>
-                                                    <button 
-                                                        className="btn--ghost opacity-40 hover-opacity-100" 
-                                                        title="Vincular Variable Dinámica"
-                                                        onClick={() => { setActiveParam(fieldId); setShowSlotSelector(true); }}
-                                                    >
-                                                        <IndraIcon name="LINK" size="10px" />
-                                                    </button>
+                                                    {!isMap && (
+                                                        <button 
+                                                            className="btn--ghost opacity-40 hover-opacity-100" 
+                                                            title="Vincular Variable Dinámica"
+                                                            onClick={() => { setActiveParam(fieldId); setShowSlotSelector(true); }}
+                                                        >
+                                                            <IndraIcon name="LINK" size="10px" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                                 
-                                                {/* Representación Dual (Pastilla vs Estático) */}
-                                                {isReference ? (
+                                                {/* Representación Dinámica (Mapas vs Simples) */}
+                                                {isMap ? (
+                                                    <div className="stack--nano" style={{ marginTop: '6px' }}>
+                                                        <div className="stack--nano">
+                                                            {Object.entries(mappedData?.value || {}).map(([key, value]) => {
+                                                                const isWired = typeof value === 'string' && value.startsWith('{{$steps');
+                                                                return (
+                                                                    <div key={key} className="shelf--tight glass-strong" style={{ padding: '4px 6px', borderRadius: '4px', gap: '8px' }}>
+                                                                        <span className="font-mono" style={{ fontSize: '9px', opacity: 0.6, minWidth: '60px' }}>{key}:</span>
+                                                                        
+                                                                        {isWired ? (
+                                                                            <div className="shelf--tight fill" style={{ background: 'var(--color-bg-elevated)', color: 'var(--indra-dynamic-accent)', padding: '2px 6px', borderRadius: '3px', fontSize: '8px' }}>
+                                                                                <span className="truncate">{value.replace('{{', '').replace('}}', '')}</span>
+                                                                                <button className="btn--ghost" onClick={() => handleStaticMappingUpdate(fieldId, '', key)}>
+                                                                                    <IndraIcon name="CLOSE" size="8px" />
+                                                                                </button>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <input 
+                                                                                className="input-base fill font-mono"
+                                                                                style={{ fontSize: '9px', padding: '2px', background: 'transparent' }}
+                                                                                value={value || ''}
+                                                                                onChange={(e) => handleStaticMappingUpdate(fieldId, e.target.value, key)}
+                                                                            />
+                                                                        )}
+
+                                                                        <div className="shelf--nano">
+                                                                            <button 
+                                                                                className="btn--ghost opacity-30 hover-opacity-100"
+                                                                                onClick={() => { setActiveParam(`${fieldId}.${key}`); setShowSlotSelector(true); }}
+                                                                            >
+                                                                                <IndraIcon name="LINK" size="9px" />
+                                                                            </button>
+                                                                            <button 
+                                                                                className="btn--ghost opacity-30 hover-opacity-100"
+                                                                                onClick={() => removeMapKey(fieldId, key)}
+                                                                            >
+                                                                                <IndraIcon name="DELETE" size="9px" />
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        
+                                                        {/* Input para añadir nuevas claves */}
+                                                        <input 
+                                                            className="input-base font-mono"
+                                                            style={{ fontSize: '9px', width: '100%', marginTop: '4px', borderStyle: 'dashed', opacity: 0.5 }}
+                                                            placeholder="+ AÑADIR_VARIABLE (ENTER)"
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter' && e.target.value) {
+                                                                    handleStaticMappingUpdate(fieldId, '', e.target.value);
+                                                                    e.target.value = '';
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ) : isReference ? (
                                                     <div className="shelf--tight" style={{ background: 'var(--color-bg-elevated)', color: 'var(--indra-dynamic-accent)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--indra-dynamic-border)', fontSize: '10px' }}>
                                                         <IndraIcon name="LINK" size="10px" />
                                                         <span className="font-mono truncate" style={{ flex: 1, padding: '0 4px' }}>{mappedData.path}</span>
@@ -540,6 +707,7 @@ export function WorkflowInspector() {
                                             </div>
                                         );
                                     })}
+
                                 </div>
                             </section>
                         )}

@@ -23,13 +23,15 @@
     height: 85vh;
     display: flex;
     flex-direction: column;
-    gap: var(--space-6);
+    gap: var(--space-8);
+    padding: var(--space-8); /* Agregado padding interno para evitar "descuadres" */
 }
 
 /* Identidad HUD */
 .service-manager__header {
     border-bottom: 2px solid var(--color-border);
-    padding-bottom: var(--space-4);
+    padding-bottom: var(--space-6);
+    margin-bottom: var(--space-4);
 }
 
 .vault-status {
@@ -43,103 +45,165 @@
     letter-spacing: 0.2em;
 }
 
-/* Grid de Servicios */
-.service-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--space-6);
-    overflow-y: auto;
-    padding: var(--space-2);
+/* Grid de Servicios (Ahora Lista Modular) */
+.service-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
 }
 
-/* Card de Servicio */
-.service-card {
+/* Tile de Servicio (Modulo Horizontal) */
+.service-tile {
     position: relative;
-    padding: var(--space-6);
+    display: flex;
+    align-items: center;
+    padding: var(--space-4) var(--space-6);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--color-border);
+    transition: all var(--transition-base);
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 100%);
+    gap: var(--space-8); /* Aumentado gap interno */
     overflow: hidden;
 }
 
-.service-card:hover {
-    border-color: rgba(0, 210, 211, 0.4);
-    background: rgba(0, 210, 211, 0.03);
-    transform: translateY(-4px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+.service-tile:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--color-border-strong);
+    transform: translateX(4px);
 }
 
-.service-card::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 60px;
-    height: 1px;
-    background: linear-gradient(90deg, var(--color-accent), transparent);
-    opacity: 0;
-    transition: opacity 0.3s;
+/* Status Dot */
+.service-tile__status {
+    width: 20px;
+    display: flex;
+    justify-content: center;
 }
 
-.service-card:hover::before {
-    opacity: 1;
-}
-
-.service-card.is-paired {
-    border-color: rgba(0, 210, 211, 0.2);
-    background: linear-gradient(135deg, rgba(0, 210, 211, 0.05) 0%, transparent 100%);
-}
-
-.service-card.is-error {
-    border-color: var(--color-danger);
-    background: rgba(239, 68, 68, 0.05);
-}
-
-.service-card__icon {
-    width: 48px;
-    height: 48px;
-    margin-bottom: var(--space-4);
-    opacity: 0.5;
-    transition: all 0.3s ease;
-}
-
-.service-card:hover .service-card__icon,
-.service-card.is-paired .service-card__icon {
-    opacity: 1;
-    color: var(--color-accent);
-}
-
-.service-card__status-dot {
+.status-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
     background: var(--color-text-dim);
+    opacity: 0.3;
+    transition: all 0.5s ease;
 }
 
-.is-paired .service-card__status-dot {
-    background: var(--color-accent);
-    box-shadow: 0 0 8px var(--color-accent);
+.is-active .status-dot {
+    background: var(--color-success);
+    box-shadow: 0 0 10px var(--color-success);
+    opacity: 1;
 }
 
-.is-error .service-card__status-dot {
+.is-pending .status-dot {
+    background: var(--color-warm);
+    box-shadow: 0 0 8px var(--color-warm);
+    opacity: 0.8;
+}
+
+/* Icon Box */
+.service-tile__icon-box {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-void);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 2px;
+    z-index: 1;
+}
+
+.icon-glow {
+    position: absolute;
+    inset: 0;
+    background: var(--color-accent-glow);
+    opacity: 0;
+    transition: opacity 0.3s;
+    filter: blur(8px);
+}
+
+.service-tile:hover .icon-glow,
+.is-active .icon-glow {
+    opacity: 1;
+}
+
+.service-tile__icon-box :global(svg) {
+    z-index: 2;
+    opacity: 0.5;
+}
+
+.is-active .service-tile__icon-box :global(svg) {
+    color: var(--color-accent);
+    opacity: 1;
+}
+
+/* Body */
+.service-tile__body {
+    flex: 1;
+}
+
+.service-tile__title {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.is-active .service-tile__title {
+    color: var(--color-accent);
+}
+
+/* Badge simple */
+.badge--dark {
+    padding: 2px 6px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 2px;
+    font-size: 8px;
+    font-family: var(--font-mono);
+    opacity: 0.6;
+}
+
+/* Acciones */
+.service-tile__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+/* Cabling Decoration */
+.service-tile__cabling {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--color-border), transparent);
+    opacity: 0.2;
+}
+
+.is-active .service-tile__cabling {
+    background: linear-gradient(to bottom, var(--color-success), transparent);
+    opacity: 0.4;
+}
+
+/* State Variant: Error */
+.service-tile.is-error {
+    border-color: rgba(255, 70, 85, 0.3);
+    background: rgba(255, 70, 85, 0.03);
+}
+
+.service-tile.is-error .status-dot {
     background: var(--color-danger);
-    box-shadow: 0 0 8px var(--color-danger);
-    animation: palse-red 2s infinite;
+    box-shadow: 0 0 12px var(--color-danger);
+    animation: indra-pulse-red 2s infinite;
 }
 
-@keyframes palse-red {
-    0% {
-        opacity: 0.4;
-    }
-
-    50% {
-        opacity: 1;
-    }
-
-    100% {
-        opacity: 0.4;
-    }
+@keyframes indra-pulse-red {
+    0% { opacity: 0.4; }
+    50% { opacity: 1; }
+    100% { opacity: 0.4; }
 }
 
 /* Pairing Panel (Modal Interior) */
@@ -147,15 +211,22 @@
     position: absolute;
     inset: 0;
     background: var(--color-bg-void);
-    z-index: 10;
+    z-index: 100;
     display: flex;
     flex-direction: column;
-    padding: var(--space-8);
+    padding: var(--space-12);
+    animation: slide-in-top 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slide-in-top {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 .pairing-panel__header {
     border-bottom: 2px solid var(--color-border);
     margin-bottom: var(--space-8);
+    padding-bottom: var(--space-4);
 }
 
 /* Decoración HUD Base */
@@ -163,22 +234,22 @@
 .hud-deco-corners::after {
     content: "";
     position: absolute;
-    width: 15px;
-    height: 15px;
+    width: 20px;
+    height: 20px;
     border: 1px solid var(--color-accent);
-    opacity: 0.2;
+    opacity: 0.15;
 }
 
 .hud-deco-corners::before {
-    top: 0;
-    left: 0;
+    top: -2px;
+    left: -2px;
     border-right: none;
     border-bottom: none;
 }
 
 .hud-deco-corners::after {
-    bottom: 0;
-    right: 0;
+    bottom: -2px;
+    right: -2px;
     border-left: none;
     border-top: none;
 }

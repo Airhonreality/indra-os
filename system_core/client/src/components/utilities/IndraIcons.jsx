@@ -39,6 +39,9 @@ const ICON_MAP = {
     'SERVICE': <><circle cx="8" cy="8" r="3" /><circle cx="8" cy="8" r="6" strokeDasharray="2 2" /><path d="M8 2v1M8 13v1M2 8h1M13 8h1" /></>,
     'FOLDER': <><path d="M1 4a1 1 0 011-1h4l2 2h7a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4z" /><path d="M1 7h14" /></>,
     'VAULT': <><rect x="3" y="5" width="10" height="9" rx="1" /><path d="M4 5V3a2 2 0 014 0v2" /><circle cx="8" cy="10" r="1.5" /></>,
+    'DATABASE': <><ellipse cx="8" cy="4" rx="6" ry="2" /><path d="M2 4v8c0 1.1 2.7 2 6 2s6-.9 6-2V4" /><path d="M2 8c0 1.1 2.7 2 6 2s6-.9 6-2" /></>,
+    'MAIL': <><rect x="2" y="4" width="12" height="9" rx="1" /><path d="M2 4l6 4 6-4" /></>,
+    'ATOM_VIRTUAL': <><circle cx="8" cy="8" r="6" strokeDasharray="1 1" /><circle cx="8" cy="8" r="2" /></>,
 
     // ── ACCIONES ──
     'PLUS': <path d="M8 3v10M3 8h10" />,

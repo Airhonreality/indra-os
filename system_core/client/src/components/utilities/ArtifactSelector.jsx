@@ -18,6 +18,8 @@ import { IndraIcon } from './IndraIcons.jsx';
 import { ResonanceTuningPanel } from '../dashboard/ResonanceTuningPanel.jsx';
 import { toastEmitter } from '../../services/toastEmitter.js';
 
+import { useAtomCatalog } from '../../hooks/useAtomCatalog.js';
+
 export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect, onCancel, filter = {} }) {
     const { services: manifest = [], coreUrl, sessionSecret, pins = [] } = useAppState();
     const { lang } = useAppState();
@@ -31,6 +33,16 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
     const [activeClassFilter, setActiveClassFilter] = useState(null);
     const [tuningArtifact, setTuningArtifact] = useState(null);
 
+    // ── Catálogo de Átomos Indra ──────────────────────────────────────────
+    const { 
+        atoms: catalogAtoms, 
+        isLoading: isCatalogLoading,
+        importAtom: handleImportFromCosmos
+    } = useAtomCatalog({ 
+        // Solo filtramos si el ArtifactSelector recibió un filtro de clase explícito
+        atomClass: filter.class || null 
+    });
+
     const currentContext = contextStack.length > 0 ? contextStack[contextStack.length - 1] : null;
 
     const loadLevel = useCallback(async () => {
@@ -39,7 +51,8 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
             let rawItems = [];
             if (!currentContext) {
                 if (browserMode === 'PINS') {
-                    rawItems = pins || [];
+                    // Axioma de Coherencia: El selector ahora usa la verdad del catálogo
+                    rawItems = catalogAtoms || [];
                 } else {
                     // MODO REALIDAD: Usamos los servicios del manifiesto (átomos crudos)
                     rawItems = manifest;
@@ -56,6 +69,14 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
 
             // AXIOMA DE SINCERIDAD: Todo item en el selector debe ser un Artefacto Proyectado
             const projected = rawItems
+                .filter(item => {
+                    // Axioma de Presencia Sincera: Si estamos en la raíz del modo REALIDAD, 
+                    // solo mostramos servicios que ya tienen cuenta vinculada.
+                    if (browserMode === 'REALITY' && !currentContext && item.raw?.needs_setup) {
+                        return false;
+                    }
+                    return true;
+                })
                 .map(item => DataProjector.projectArtifact(item))
                 .filter(Boolean);
 
@@ -66,7 +87,7 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
         } finally {
             setLoading(false);
         }
-    }, [currentContext, manifest, coreUrl, sessionSecret, pins, browserMode]);
+    }, [currentContext, manifest, coreUrl, sessionSecret, catalogAtoms, browserMode]);
 
     // AXIOMA DE TRANSICIÓN: Cambiar de realidad limpia las lentes de búsqueda
     useEffect(() => {
@@ -185,22 +206,44 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                                     }}
                                 />
                             </div>
-                            <button 
-                                className="btn btn--ghost btn--mini resonance-glow-bridge"
-                                onClick={handleImportVault}
-                                disabled={loading}
-                                style={{ 
-                                    height: '34px',
-                                    borderRadius: 'var(--radius-sm)',
-                                    padding: '0 12px',
-                                    border: '1px solid var(--color-border)',
-                                    display: 'flex',
-                                    gap: '8px'
-                                }}
-                            >
-                                <IndraIcon name="VAULT" size="12px" color="var(--color-accent)" />
-                                <span style={{ fontSize: '9px', fontWeight: 'bold' }}>IMPORTAR</span>
-                            </button>
+                            
+                            {/* BOTONES DE IMPORTACIÓN */}
+                            <div className="shelf--tight" style={{ gap: 'var(--space-1)' }}>
+                                <button 
+                                    className="btn btn--ghost btn--mini resonance-glow-bridge"
+                                    onClick={handleImportFromCosmos}
+                                    disabled={loading || isCatalogLoading}
+                                    style={{ 
+                                        height: '34px',
+                                        borderRadius: 'var(--radius-sm)',
+                                        padding: '0 12px',
+                                        border: '1px solid var(--color-border)',
+                                        display: 'flex',
+                                        gap: '8px',
+                                        background: 'var(--color-bg-void)'
+                                    }}
+                                >
+                                    <IndraIcon name="LAYERS" size="12px" color="var(--color-accent)" />
+                                    <span style={{ fontSize: '9px', fontWeight: 'bold' }}>COSMOS</span>
+                                </button>
+
+                                <button 
+                                    className="btn btn--ghost btn--mini"
+                                    onClick={handleImportVault}
+                                    disabled={loading}
+                                    style={{ 
+                                        height: '34px',
+                                        borderRadius: 'var(--radius-sm)',
+                                        padding: '0 12px',
+                                        border: '1px solid var(--color-border)',
+                                        display: 'flex',
+                                        gap: '8px'
+                                    }}
+                                >
+                                    <IndraIcon name="VAULT" size="12px" />
+                                    <span style={{ fontSize: '9px', fontWeight: 'bold' }}>VAULT</span>
+                                </button>
+                            </div>
                         </div>
 
                         <div className="spread" style={{ marginTop: 'var(--space-2)' }}>

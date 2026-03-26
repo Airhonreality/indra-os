@@ -25,6 +25,7 @@ function CONF_PIPELINE() {
     },
     class: 'LOGIC_ENGINE',
     version: '1.0',
+    exposure: 'internal', // El usuario no necesita configurar el motor de cómputo
     protocols: [
       'TRANSFORM_FILTER',
       'TRANSFORM_MAP',

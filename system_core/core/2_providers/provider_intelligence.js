@@ -14,7 +14,7 @@
 function CONF_INTELLIGENCE() {
   return Object.freeze({
     id: 'intelligence',
-    handle: { ns: 'com.indra.system.ai', alias: 'oracle', label: 'Indra Intelligence' },
+    handle: { ns: 'com.indra.system.ai', alias: 'oracle', label: 'Indra Intelligence', icon: 'COGNITIVE' },
     class: 'COGNITIVE_ENGINE',
     version: '1.0.0',
     protocols: [

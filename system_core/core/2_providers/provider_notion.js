@@ -44,7 +44,8 @@ function CONF_NOTION() {
     handle: {
       ns: 'com.indra.system.silo',
       alias: 'notion',
-      label: 'Notion'
+      label: 'Notion',
+      icon: 'DATABASE'
     },
     class: 'FOLDER',         // class del átomo-silo en el manifest
     version: '1.0',

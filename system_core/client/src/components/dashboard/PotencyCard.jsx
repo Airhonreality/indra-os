@@ -3,6 +3,7 @@ import { IndraIcon } from '../utilities/IndraIcons';
 import { DataProjector } from '../../services/DataProjector';
 import { SchemaMicroExplorer } from '../utilities/SchemaMicroExplorer';
 import { useAppState } from '../../state/app_state';
+import { IndraActionTrigger } from '../utilities/IndraActionTrigger';
 
 /**
  * PotencyCard: Representación de la NATURALEZA del OBJETO (Columna I).

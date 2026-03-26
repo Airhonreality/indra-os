@@ -9,39 +9,53 @@
 
 import { AxiomRegistry } from '../../../services/AxiomRegistry';
 
+import { MetaComposer } from '../../services/MetaComposer';
+
 export const Crystallizer = {
     /**
-     * Procesa una lista de bloques y cristaliza sus propiedades de estilo.
+     * Cristaliza los bloques vivos en materia atómica persistente.
+     * @param {Array} blocks - Bloques del AST
+     * @param {Object} existingAtom - Átomo original para preservar metadatos
+     * @param {string} userId - Identidad del autor
      */
-    cristalizar(blocks) {
-        if (!blocks) return [];
-        return blocks.map(block => this._procesarBloque(block));
+    cristalizar(blocks, existingAtom = {}, userId = null) {
+        // --- 1. PROCESAMIENTO SEMÁNTICO DE BLOQUES ---
+        const crystallizedBlocks = blocks.map(block => {
+            const node = { ...block };
+            
+            // Eliminar estados efímeros de UI
+            delete node._ui;
+            delete node._isDragging;
+            
+            return node;
+        });
+
+        // --- 2. COMPOSICIÓN DE IDENTIDAD SISTÉMICA ---
+        // Usamos el MetaComposer para inyectar el bloque _meta
+        const composedAtom = MetaComposer.compose({
+            ...existingAtom,
+            payload: {
+                ...existingAtom.payload,
+                blocks: crystallizedBlocks
+            }
+        }, { userId });
+
+        return composedAtom.payload.blocks; // Por compatibilidad devolvemos solo bloques si es invocado así
     },
 
-    _procesarBloque(block) {
-        const bloqueCristalizado = { ...block };
+    /**
+     * Versión que devuelve el átomo completo procesado con metadatos.
+     */
+    cristalizarAtomo(atom, blocks, userId) {
+        // Envolvemos el procesamiento de bloques en la composición meta del átomo
+        const payload = {
+            ...atom.payload,
+            blocks: this.cristalizar(blocks, atom, userId)
+        };
 
-        if (bloqueCristalizado.props) {
-            const nuevasProps = { ...bloqueCristalizado.props };
-            
-            // Iterar sobre las props buscando tokens de diseño
-            Object.keys(nuevasProps).forEach(key => {
-                const valor = nuevasProps[key];
-                
-                // Si la propiedad es un token (comienza con var), la cristalizamos
-                if (typeof valor === 'string' && valor.includes('var(')) {
-                    nuevasProps[key] = AxiomRegistry.cristalizar(valor);
-                }
-            });
-
-            bloqueCristalizado.props = nuevasProps;
-        }
-
-        // Procesamiento recursivo de hijos
-        if (bloqueCristalizado.children && bloqueCristalizado.children.length > 0) {
-            bloqueCristalizado.children = bloqueCristalizado.children.map(child => this._procesarBloque(child));
-        }
-
-        return bloqueCristalizado;
+        return MetaComposer.compose({
+            ...atom,
+            payload
+        }, { userId });
     }
 };

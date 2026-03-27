@@ -75,6 +75,7 @@
     /* ── ESPACIADO (Escala 4px) ── */
     /* @group: Topology; @icon: FRAME; @type: slider; @label: Standard Padding; @min: 0; @max: 48; @unit: px; @desc: Espacio de separación interno base */
     --space-4: 16px;
+    --space-5: 20px;
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 12px;
@@ -91,7 +92,7 @@
 
     /* ── LAYOUT TOKENS (PROPORCIÓN ÁUREA VERTICAL) ── */
     /* @group: Metrics; @icon: MAXIMIZE; @type: unit; @label: Header Height; @desc: Altura canónica (~1/16.18 del total) */
-    --indra-header-height: clamp(52px, 6.18vh, 80px);
+    --indra-header-height: clamp(48px, 5vh, 66px);
     --indra-ui-margin: 12px;
     --indra-ui-gap: 8px;
 

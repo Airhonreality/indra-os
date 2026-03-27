@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
-import { IndraIcon } from '../../utilities/IndraIcons';
 import { useWorkspace } from '../../../context/WorkspaceContext';
-import { Spinner, RenameDryRunModal } from '../../utilities/primitives';
 import { NexusServiceSlot } from '../../utilities/NexusServiceSlot';
+import { IndraFractalTree } from '../../utilities/IndraFractalTree';
 import { useLexicon } from '../../../services/lexicon';
 import { prepareCanonicalRename, commitCanonicalRename } from '../../../services/rename_protocol_runtime';
 
@@ -22,7 +20,7 @@ import './CalendarEngine.css';
  */
 
 export function CalendarEngine({ atom, bridge }) {
-    const { updatePinIdentity } = useWorkspace();
+    const { updateAxiomaticIdentity } = useWorkspace();
     const t = useLexicon();
     const { events, calendars, account, loading, error, refresh } = useCalendarHydration(atom, bridge);
 
@@ -72,7 +70,7 @@ export function CalendarEngine({ atom, bridge }) {
                         label: syncedAtom.handle?.label || 'UNIVERSAL_CALENDAR'
                     };
                     setLocalHandle(syncedHandle);
-                    updatePinIdentity(atom.id, atom.provider, {
+                    updateAxiomaticIdentity(atom.id, atom.provider, {
                         label: syncedHandle.label,
                         alias: syncedHandle.alias,
                         handle: syncedHandle
@@ -91,7 +89,7 @@ export function CalendarEngine({ atom, bridge }) {
             ...(cleanAlias ? { alias: cleanAlias } : {})
         };
         setLocalHandle(nextHandle);
-        updatePinIdentity(atom.id, atom.provider, {
+        updateAxiomaticIdentity(atom.id, atom.provider, {
             label: cleanLabel,
             ...(cleanAlias ? { alias: cleanAlias } : {}),
             handle: nextHandle
@@ -122,7 +120,7 @@ export function CalendarEngine({ atom, bridge }) {
                 label: syncedAtom.handle?.label || 'UNIVERSAL_CALENDAR'
             };
             setLocalHandle(syncedHandle);
-            updatePinIdentity(atom.id, atom.provider, {
+            updateAxiomaticIdentity(atom.id, atom.provider, {
                 label: syncedHandle.label,
                 alias: syncedHandle.alias,
                 handle: syncedHandle
@@ -271,28 +269,35 @@ export function CalendarEngine({ atom, bridge }) {
                                         
                                         <div className="stack gap-2 mt-2">
                                             {calendars?.length > 0 ? (
-                                                calendars.map(cal => (
-                                                    <div key={cal.id} className="silo-card indra-container p-3 shelf--loose active">
-                                                        <div className="shelf--tight fill">
-                                                            <div 
-                                                                className="color-dot mr-2" 
-                                                                style={{ 
-                                                                    width: '10px', height: '10px', borderRadius: '50%',
-                                                                    backgroundColor: cal.payload?.fields?.color || 'var(--indra-dynamic-accent)',
-                                                                    boxShadow: `0 0 10px ${cal.payload?.fields?.color || 'var(--indra-dynamic-accent)'}40`
-                                                                }} 
-                                                            />
-                                                            <div className="stack--tight fill">
-                                                                <div className="font-mono text-xs font-bold truncate pr-3">{cal.handle?.label}</div>
-                                                                <div className="font-mono text-3xs opacity-40">{cal.id === 'primary' ? 'CANAL_MAESTRO' : 'CANAL_VINCULADO'}</div>
+                                                <IndraFractalTree 
+                                                    data={calendars.map(cal => ({
+                                                        ...cal,
+                                                        label: cal.handle?.label || 'CALENDARIO_SIN_NOMBRE',
+                                                        isPrimary: cal.id === 'primary'
+                                                    }))}
+                                                    renderItem={({ node }) => (
+                                                        <div className="silo-card indra-container p-3 shelf--loose active mb-2">
+                                                            <div className="shelf--tight fill">
+                                                                <div 
+                                                                    className="color-dot mr-2" 
+                                                                    style={{ 
+                                                                        width: '10px', height: '10px', borderRadius: '50%',
+                                                                        backgroundColor: node.payload?.fields?.color || 'var(--indra-dynamic-accent)',
+                                                                        boxShadow: `0 0 10px ${node.payload?.fields?.color || 'var(--indra-dynamic-accent)'}40`
+                                                                    }} 
+                                                                />
+                                                                <div className="stack--tight fill">
+                                                                    <div className="font-mono text-xs font-bold truncate pr-3">{node.label}</div>
+                                                                    <div className="font-mono text-3xs opacity-40">{node.isPrimary ? 'CANAL_MAESTRO' : 'CANAL_VINCULADO'}</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="shelf--tight">
+                                                                <IndraIcon name="EYE" size="14px" className="opacity-60 pointer hover-accent" />
+                                                                <IndraIcon name="SETTINGS" size="14px" className="opacity-40" />
                                                             </div>
                                                         </div>
-                                                        <div className="shelf--tight">
-                                                            <IndraIcon name="EYE" size="14px" className="opacity-60 pointer hover-accent" />
-                                                            <IndraIcon name="SETTINGS" size="14px" className="opacity-40" />
-                                                        </div>
-                                                    </div>
-                                                ))
+                                                    )}
+                                                />
                                             ) : (
                                                 <div className="stack center border-all border-dashed p-6 opacity-30 bg-void">
                                                 <IndraIcon name={error ? 'ALERT_TRIANGLE' : 'DATABASE'} size="48px" style={{ color: error ? 'var(--color-error)' : 'inherit' }} />

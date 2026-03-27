@@ -64,7 +64,7 @@ export function AEEDashboard({ atom, bridge }) {
     const [isSaving, setIsSaving] = React.useState(false);
     const [isPublishing, setIsPublishing] = React.useState(false);
     
-    const { updatePinIdentity } = useAppState();
+    const { updateAxiomaticIdentity } = useAppState();
     const [localTitle, setLocalTitle] = React.useState(atom?.handle?.label || atom?.label || 'AEE Runner');
 
     // Sincronizar título local si el átomo cambia externamente

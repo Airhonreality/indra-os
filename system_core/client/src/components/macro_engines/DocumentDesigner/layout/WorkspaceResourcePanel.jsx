@@ -22,6 +22,7 @@ import { SchemaMicroExplorer } from '../../../utilities/SchemaMicroExplorer';
 import { useShell } from '../../../../context/ShellContext';
 import { SchemaActionService } from '../../../../services/SchemaActionService';
 import { useAtomCatalog } from '../../../../hooks/useAtomCatalog';
+import ArtifactSelector from '../../../utilities/ArtifactSelector';
 
 const SHAPE_TEMPLATES = [
     {
@@ -102,51 +103,19 @@ const SHAPE_TEMPLATES = [
     }
 ];
 
-const getAtomProtocols = (atom) => {
-    if (Array.isArray(atom?.protocols)) return atom.protocols;
-    if (Array.isArray(atom?.capabilities?.raw)) return atom.capabilities.raw;
-    return [];
+const getAtomLabel = (atom) => {
+    return atom?.handle?.label || atom?.label || atom?.handle?.alias || atom?.id || 'SIN_ETIQUETA';
 };
 
-const getAtomLabel = (atom) => atom?.handle?.label || atom?.label || atom?.id || 'UNNAMED';
-
-const projectCompatibleMediaObject = (atom) => {
-    const protocols = getAtomProtocols(atom);
-    const supportsMediaResolve = protocols.includes('MEDIA_RESOLVE');
-    if (!supportsMediaResolve) return null;
-
-    const provider = atom?.provider || null;
-    if (!provider) return null;
-
-    const supportsHierarchy = protocols.includes('HIERARCHY_TREE');
-    const isFolderLike = ['FOLDER', 'COLLECTION', 'SILO'].includes(atom?.class);
-    const isMediaAsset = atom?.class === 'MEDIA';
-
-    if (isFolderLike && supportsHierarchy) {
-        return {
-            id: atom.id,
-            class: atom.class,
-            label: getAtomLabel(atom),
-            insertProps: {
-                strategy: 'BY_NAME_IN_CONTAINER',
-                provider,
-                container_ref: atom.id,
-                asset_name: '',
-                src: ''
-            }
-        };
-    }
-
-    if (!isMediaAsset) return null;
+const projectCompatibleMediaObject = (pin) => {
+    const isMultimedia = ['MEDIA', 'FOLDER', 'SILO', 'IMAGE', 'VIDEO'].includes(pin.class);
+    if (!isMultimedia) return null;
 
     return {
-        id: atom.id,
-        class: atom.class,
-        label: getAtomLabel(atom),
+        ...pin,
+        label: getAtomLabel(pin),
         insertProps: {
-            strategy: 'BY_ID',
-            provider,
-            asset_id: atom.id,
+            kind: 'IMAGE',
             src: ''
         }
     };
@@ -154,6 +123,7 @@ const projectCompatibleMediaObject = (atom) => {
 
 export function WorkspaceResourcePanel({ atom, bridge, onNotify }) {
     const [subTab, setSubTab] = useState('SLOTS');
+    const [showCosmos, setShowCosmos] = useState(false);
     const { pins } = useAppState();
     const { addNode, updateNode, findNode } = useAST();
     const { selectedId } = useSelection();
@@ -287,6 +257,37 @@ export function WorkspaceResourcePanel({ atom, bridge, onNotify }) {
 
     return (
         <div className="workspace-resource-panel fill stack--none">
+            
+            {/* PANEL HEADER WITH COSMOS TRIGGER */}
+            <div className="shelf--tight" style={{ 
+                padding: '8px 12px', 
+                borderBottom: '1px solid var(--color-border)', 
+                justifyContent: 'space-between', 
+                background: 'var(--color-bg-deep)' 
+            }}>
+                <div className="shelf--tight" style={{ opacity: 0.5 }}>
+                    <IndraIcon name="VAULT" size="12px" />
+                    <span className="font-mono" style={{ fontSize: '9px', fontWeight: 'bold' }}>RECURSOS_SINCERADOS</span>
+                </div>
+                <button 
+                    className="btn btn--xs btn--ghost resonance-glow-bridge" 
+                    onClick={() => setShowCosmos(true)}
+                    title="IMPORTAR_DEL_COSMOS"
+                    style={{ 
+                        border: '1px solid var(--color-border)', 
+                        background: 'var(--color-bg-void)', 
+                        borderRadius: '4px',
+                        padding: '4px 8px',
+                        display: 'flex',
+                        gap: '6px',
+                        height: '24px'
+                    }}
+                >
+                    <IndraIcon name="LAYERS" size="10px" color="var(--color-accent)" />
+                    <span style={{ fontSize: '8px', fontWeight: 'bold' }}>COSMOS</span>
+                </button>
+            </div>
+
             {/* SUB-TABS (Minimalist TabBar) */}
             <div className="sub-tab-bar">
                 {['SCHEMA', 'SLOTS', 'OBJECTS', 'SHAPES'].map(t => (
@@ -301,8 +302,7 @@ export function WorkspaceResourcePanel({ atom, bridge, onNotify }) {
                 ))}
             </div>
 
-            {/* CONTENT AREA */}
-            <div className="fill overflow-y-auto" style={{ padding: 'var(--space-2)' }}>
+            <div className="panel-content fill stack--tight" style={{ overflowY: 'auto', padding: 'var(--space-2)' }}>
                 {isLoading && (
                     <div className="center fill" style={{ padding: 'var(--space-10)' }}>
                         <IndraLoadingBar width="120px" height="4px" />
@@ -311,7 +311,19 @@ export function WorkspaceResourcePanel({ atom, bridge, onNotify }) {
 
                 {!isLoading && subTab === 'SCHEMA' && (
                     <div className="stack--tight">
-                        {schemas.length === 0 && <div className="text-hint center" style={{padding: '20px'}}>NO_SCHEMAS_FOUND</div>}
+                        {schemas.length === 0 && (
+                            <div className="text-hint center stack--tight" style={{padding: '40px 20px'}}>
+                                <IndraIcon name="SCHEMA" size="24px" style={{ opacity: 0.1, marginBottom: '8px' }} />
+                                <div style={{ fontSize: '10px' }}>NO_HAY_CONTRATOS_VINCULADOS</div>
+                                <button 
+                                    className="btn btn--mini btn--ghost" 
+                                    style={{ marginTop: '12px', color: 'var(--color-accent)' }}
+                                    onClick={() => setShowCosmos(true)}
+                                >
+                                    IMPORTAR_DEL_COSMOS
+                                </button>
+                            </div>
+                        )}
                         {schemas.map(s => (
                             <div key={s.id} className="stack--tight glass" style={{ padding: 'var(--space-1)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
                                 <div className="shelf--tight" style={{ padding: '4px 8px', borderBottom: '1px solid var(--color-border)', opacity: 0.6 }}>
@@ -330,27 +342,7 @@ export function WorkspaceResourcePanel({ atom, bridge, onNotify }) {
                                     schema={s}
                                     onInsertField={(field) => insertSchemaFieldContextual(s, field)}
                                     onCopyField={(field) => copySchemaFieldPlaceholder(s, field)}
-                                    onContextMenu={(e, field) => {
-                                        openContextMenu(e, [
-                                            { 
-                                                label: 'Añadir Hijo', 
-                                                icon: 'PLUS', 
-                                                action: () => SchemaActionService.addField(s, { parentId: field.id }, { url: useAppState.getState().protocolUrl, secret: useAppState.getState().protocolSecret }) 
-                                            },
-                                            { 
-                                                label: 'Eliminar Campo', 
-                                                icon: 'DELETE', 
-                                                color: 'var(--color-danger)',
-                                                action: () => SchemaActionService.removeField(s, field.id, { url: useAppState.getState().protocolUrl, secret: useAppState.getState().protocolSecret }) 
-                                            },
-                                            { type: 'SEPARATOR' },
-                                            {
-                                                label: 'Copiar Placeholder',
-                                                icon: 'COPY',
-                                                action: () => copySchemaFieldPlaceholder(s, field)
-                                            }
-                                        ]);
-                                    }}
+                                    // ...
                                 />
                             </div>
                         ))}
@@ -378,7 +370,19 @@ export function WorkspaceResourcePanel({ atom, bridge, onNotify }) {
 
                 {!isLoading && subTab === 'OBJECTS' && (
                     <div className="stack--tight">
-                        {objects.length === 0 && <div className="text-hint center" style={{padding: '20px'}}>NO_RESOURCES_FOUND</div>}
+                        {objects.length === 0 && (
+                             <div className="text-hint center stack--tight" style={{padding: '40px 20px'}}>
+                                <IndraIcon name="VAULT" size="24px" style={{ opacity: 0.1, marginBottom: '8px' }} />
+                                <div style={{ fontSize: '10px' }}>NO_HAY_RECURSOS_VINCULADOS</div>
+                                <button 
+                                    className="btn btn--mini btn--ghost" 
+                                    style={{ marginTop: '12px', color: 'var(--color-accent)' }}
+                                    onClick={() => setShowCosmos(true)}
+                                >
+                                    EXPLORAR_MULTIMEDIA
+                                </button>
+                            </div>
+                        )}
                         <div className="objects-strip">
                             {objects.map(o => (
                                 <ObjectCard
@@ -402,7 +406,7 @@ export function WorkspaceResourcePanel({ atom, bridge, onNotify }) {
                                     icon={shape.icon}
                                     label={shape.label}
                                     onCopy={() => copyToClipboard(JSON.stringify(shape.props), 'COPIED_SHAPE_TEMPLATE')}
-                                    onInsert={() => insertShape(shape.props)}
+                                    onInsert={() => insertResource('FRAME', shape.props)}
                                     onInsertAbsolute={() => insertShapeAbsolute(shape.props)}
                                     insertTitle="INSERT_SHAPE"
                                 />
@@ -411,6 +415,20 @@ export function WorkspaceResourcePanel({ atom, bridge, onNotify }) {
                     </div>
                 )}
             </div>
+
+            {/* UNIVERSAL COSMOS SELECTOR */}
+            {showCosmos && (
+                <ArtifactSelector 
+                    title="EXPLORAR_RECURSOS_COSMICOS"
+                    filter={{ class: subTab === 'SCHEMA' ? 'DATA_SCHEMA' : null }}
+                    onCancel={() => setShowCosmos(false)}
+                    onSelect={(item) => {
+                        handleImportSchema(item);
+                        setShowCosmos(false);
+                        onNotify('IMPORTING_FROM_COSMOS');
+                    }}
+                />
+            )}
 
             <style>{`
                 .sub-tab-bar {
@@ -447,54 +465,6 @@ export function WorkspaceResourcePanel({ atom, bridge, onNotify }) {
                     padding-bottom: 4px;
                 }
             `}</style>
-        </div>
-    );
-}
-
-function ObjectCard({ icon, label, onCopy, onInsert, onInsertAbsolute, insertTitle = 'INSERT_IN_TEXT_OR_CANVAS' }) {
-    return (
-        <div
-            className="glass stack--tight"
-            style={{
-                minWidth: '148px',
-                maxWidth: '148px',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '8px'
-            }}
-        >
-            <div className="shelf--tight">
-                <IndraIcon name={icon} size="14px" style={{ opacity: 0.75 }} />
-                <span className="resource-row__label" style={{ fontSize: '9px' }}>{label}</span>
-            </div>
-            <div className="shelf--tight" style={{ justifyContent: 'flex-end' }}>
-                <button
-                    className="btn btn--xs btn--ghost"
-                    onClick={(e) => { e.stopPropagation(); onCopy(); }}
-                    title="COPY_REFERENCE"
-                    style={{ border: 'none', padding: '5px' }}
-                >
-                    <IndraIcon name="COPY" size="12px" />
-                </button>
-                <button
-                    className="btn btn--xs btn--ghost"
-                    onClick={(e) => { e.stopPropagation(); onInsert(); }}
-                    title={insertTitle}
-                    style={{ border: 'none', padding: '5px', color: 'var(--color-accent)' }}
-                >
-                    <IndraIcon name="PLUS" size="12px" />
-                </button>
-                {onInsertAbsolute && (
-                    <button
-                        className="btn btn--xs btn--ghost"
-                        onClick={(e) => { e.stopPropagation(); onInsertAbsolute(); }}
-                        title="INSERT_SHAPE_ABSOLUTE"
-                        style={{ border: 'none', padding: '5px', color: 'var(--color-accent)' }}
-                    >
-                        <IndraIcon name="MOVE" size="12px" />
-                    </button>
-                )}
-            </div>
         </div>
     );
 }
@@ -556,6 +526,54 @@ function ResourceRow({ icon, label, sublabel, badge, actions }) {
                     opacity: 0.5;
                 }
             `}</style>
+        </div>
+    );
+}
+
+function ObjectCard({ icon, label, onCopy, onInsert, onInsertAbsolute, insertTitle = 'INSERT_IN_TEXT_OR_CANVAS' }) {
+    return (
+        <div
+            className="glass stack--tight"
+            style={{
+                minWidth: '148px',
+                maxWidth: '148px',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '8px'
+            }}
+        >
+            <div className="shelf--tight">
+                <IndraIcon name={icon} size="14px" style={{ opacity: 0.75 }} />
+                <span className="resource-row__label" style={{ fontSize: '9px' }}>{label}</span>
+            </div>
+            <div className="shelf--tight" style={{ justifyContent: 'flex-end' }}>
+                <button
+                    className="btn btn--xs btn--ghost"
+                    onClick={(e) => { e.stopPropagation(); onCopy(); }}
+                    title="COPY_REFERENCE"
+                    style={{ border: 'none', padding: '5px' }}
+                >
+                    <IndraIcon name="COPY" size="12px" />
+                </button>
+                <button
+                    className="btn btn--xs btn--ghost"
+                    onClick={(e) => { e.stopPropagation(); onInsert(); }}
+                    title={insertTitle}
+                    style={{ border: 'none', padding: '5px', color: 'var(--color-accent)' }}
+                >
+                    <IndraIcon name="PLUS" size="12px" />
+                </button>
+                {onInsertAbsolute && (
+                    <button
+                        className="btn btn--xs btn--ghost"
+                        onClick={(e) => { e.stopPropagation(); onInsertAbsolute(); }}
+                        title="INSERT_SHAPE_ABSOLUTE"
+                        style={{ border: 'none', padding: '5px', color: 'var(--color-accent)' }}
+                    >
+                        <IndraIcon name="MOVE" size="12px" />
+                    </button>
+                )}
+            </div>
         </div>
     );
 }

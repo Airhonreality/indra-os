@@ -9,142 +9,235 @@
  * =============================================================================
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { IndraIcon } from './IndraIcons';
+import { IndraFractalTree } from './IndraFractalTree';
+import { useAppState } from '../../state/app_state';
+import { executeDirective } from '../../services/directive_executor';
 
 export function SlotSelector({ contextStack, onSelect, onCancel, filterType = null }) {
-    const [search, setSearch] = useState('');
+    const { coreUrl, sessionSecret, activeWorkspaceId, workspaces } = useAppState();
+    const [treeData, setTreeData] = useState([]);
 
-    // Flatten el contextStack para búsqueda
-    // contextStack debe ser: { sources: { alias: [fields] }, ops: { alias: [fields/value] } }
-    const flatSlots = [];
+    // AXIOMA: Escape de emergencia (Ergonomía de Enfoque Volátil)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') onCancel();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onCancel]);
 
-    // 1. Procesar Sources (Gatillos/Trigger)
-    Object.entries(contextStack.sources || {}).forEach(([alias, schema]) => {
-        (schema.fields || []).forEach(f => {
-            const isRoot = f.id === 'all';
-            flatSlots.push({
-                id: isRoot ? `$payload` : `$payload.${f.id}`,
-                label: f.label || f.id,
-                path: isRoot ? `$payload` : `$payload.${f.id}`,
-                group: `ENTRADA: ${alias.toUpperCase()}`,
-                type: f.type,
-                icon: 'EYE'
+    // ── GÉNESIS DEL ÁRBOL SINCERADO ──
+    useEffect(() => {
+        const localNodes = [];
+        
+        // 1. Rama de Contexto Local (Gatillos y Pasos Previos)
+        const sources = contextStack?.sources || {};
+        const ops = contextStack?.ops || {};
+
+        const localChildren = [];
+
+        // Procesar Sources
+        Object.entries(sources).forEach(([alias, schema]) => {
+            const fields = schema.fields || [];
+            localChildren.push({
+                id: `local.source.${alias}`,
+                label: `ENTRADA: ${alias.toUpperCase()}`,
+                icon: 'EYE',
+                children: fields.map(f => ({
+                    id: `$payload.${f.id}`,
+                    label: f.label || f.id,
+                    path: f.id === 'all' ? '$payload' : `$payload.${f.id}`,
+                    isLeaf: true,
+                    type: f.type,
+                    icon: 'LINK'
+                }))
             });
         });
-    });
 
-    // 2. Procesar Operadores (Pasos Anteriores)
-    Object.entries(contextStack.ops || {}).forEach(([alias, opResult]) => {
-        (opResult.fields || []).forEach(f => {
-            const isRoot = f.id === 'all';
-            flatSlots.push({
-                id: `$steps.${alias}.${f.id}`,
-                label: f.label || f.id,
-                path: isRoot ? `$steps.${alias}.0` : `$steps.${alias}.0.${f.id}`,
-                group: `FLUJO: ${alias.toUpperCase()}`,
-                type: f.type,
-                icon: 'LOGIC'
+        // Procesar Pasos
+        Object.entries(ops).forEach(([alias, opResult]) => {
+            const fields = opResult.fields || [];
+            localChildren.push({
+                id: `local.op.${alias}`,
+                label: `FLUJO: ${alias.toUpperCase()}`,
+                icon: 'LOGIC',
+                children: fields.map(f => ({
+                    id: `$steps.${alias}.${f.id}`,
+                    label: f.label || f.id,
+                    path: f.id === 'all' ? `$steps.${alias}.0` : `$steps.${alias}.0.${f.id}`,
+                    isLeaf: true,
+                    type: f.type,
+                    icon: 'LINK'
+                }))
             });
         });
-    });
 
-    const filtered = flatSlots.filter(s => {
-        const matchesSearch = s.label.toUpperCase().includes(search.toUpperCase()) || s.path.toUpperCase().includes(search.toUpperCase());
-        return matchesSearch;
-    });
+        localNodes.push({
+            id: 'local_root',
+            label: 'CONTEXTO_LOCAL',
+            icon: 'LOGIC',
+            children: localChildren
+        });
+
+        // 2. Rama de Workspace Activo (Explorador de Átomos)
+        const activeWs = workspaces.find(w => w.id === activeWorkspaceId);
+        localNodes.push({
+            id: 'ws_root',
+            label: activeWs?.handle?.label || 'WORKSPACE_ACTIVO',
+            icon: 'LAYERS',
+            isWs: true,
+            workspaceId: activeWorkspaceId
+        });
+
+        // 3. Rama de Mundos Externos (Descubrimiento Global)
+        const otherWs = workspaces.filter(w => w.id !== activeWorkspaceId);
+        if (otherWs.length > 0) {
+            localNodes.push({
+                id: 'external_root',
+                label: 'MUNDOS_EXTERNOS',
+                icon: 'GLOBE',
+                children: otherWs.map(w => ({
+                    id: `ws.${w.id}`,
+                    label: w.handle?.label || w.id,
+                    icon: 'LAYERS',
+                    isWs: true,
+                    workspaceId: w.id
+                }))
+            });
+        }
+
+        setTreeData(localNodes);
+    }, [contextStack, activeWorkspaceId, workspaces]);
+
+    // ── RESONANCIA ASÍNCRONA (Lazy Loading) ──
+    const handleExpandBranch = async (node) => {
+        if (!coreUrl || !sessionSecret) return;
+
+        // Caso A: Expandir un Workspace -> Listar Átomos (Pins)
+        if (node.isWs) {
+            const result = await executeDirective({
+                provider: 'system',
+                protocol: 'SYSTEM_PINS_READ',
+                workspace_id: node.workspaceId
+            }, coreUrl, sessionSecret);
+            
+            const atoms = (result.items || [])
+                .filter(a => ['DATA_SCHEMA', 'BRIDGE', 'DOCUMENT', 'WORKFLOW'].includes(a.class));
+
+            node.children = atoms.map(a => ({
+                id: `atom.${a.id}`,
+                label: a.handle?.label || a.id,
+                icon: a.class === 'DATA_SCHEMA' ? 'SCHEMA' : a.class === 'WORKFLOW' ? 'TIME' : 'DOC',
+                isAtom: true,
+                atomId: a.id,
+                atomClass: a.class
+            }));
+            setTreeData([...treeData]); // Forzar re-render de la referencia
+        }
+
+        // Caso B: Expandir un Átomo -> Listar Campos (ADN)
+        if (node.isAtom) {
+            const result = await executeDirective({
+                provider: 'system',
+                protocol: 'ATOM_READ',
+                context_id: node.atomId
+            }, coreUrl, sessionSecret);
+
+            const fullAtom = result.items?.[0];
+            const fields = fullAtom?.payload?.fields || [];
+
+            node.children = fields.map(f => ({
+                id: `field.${node.atomId}.${f.id}`,
+                label: f.label || f.id,
+                path: `$ref.${node.atomId}.${f.id}`, 
+                isLeaf: true,
+                type: f.type,
+                icon: 'LINK'
+            }));
+            setTreeData([...treeData]);
+        }
+    };
+
+    // ── RENDERIZADO DEL NODO (DHARMA VISUAL) ──
+    const renderNode = ({ node, depth, isExpanded, hasChildren, isLoading, toggleExpand }) => {
+        const isLeaf = node.isLeaf;
+
+        return (
+            <div 
+                className={`tree-node ${isLeaf ? 'tree-node--leaf' : 'tree-node--branch'} shelf--tight`} 
+                style={{ 
+                    padding: '6px 8px',
+                    marginLeft: `${depth * 4}px`,
+                    cursor: 'pointer',
+                    borderRadius: '4px',
+                    transition: 'all 0.1s ease',
+                    userSelect: 'none'
+                }}
+                onClick={() => isLeaf ? onSelect(node) : toggleExpand()}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+                <div style={{ width: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {isLoading ? (
+                        <div className="indra-spin" style={{ width: '8px', height: '8px', border: '1px solid var(--color-accent)', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                    ) : (hasChildren || node.isWs || node.isAtom) && (
+                        <div style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', opacity: 0.4, display: 'flex' }}>
+                            <IndraIcon name="CHEVRON_RIGHT" size="8px" />
+                        </div>
+                    )}
+                </div>
+
+                <IndraIcon 
+                    name={node.icon || (isLeaf ? 'LINK' : 'FOLDER')} 
+                    size="10px" 
+                    color={isLeaf ? 'var(--color-accent)' : 'var(--color-text-dim)'}
+                />
+                
+                <div className="stack--none" style={{ marginLeft: '4px' }}>
+                    <span className="font-mono" style={{ fontSize: '9px', fontWeight: isLeaf ? 'bold' : 'normal', color: isLeaf ? 'var(--color-text-primary)' : 'var(--color-text-dim)' }}>
+                        {node.label}
+                    </span>
+                    {isLeaf && node.type && (
+                        <span style={{ fontSize: '7px', opacity: 0.3, letterSpacing: '0.05em' }}>{node.type}</span>
+                    )}
+                </div>
+            </div>
+        );
+    };
 
     return (
-        <div className="glass modal-overlay center" style={{ zIndex: 1000 }} onClick={onCancel}>
-            <div className="stack glass-strong" style={{
-                width: '400px',
-                maxHeight: '600px',
-                borderRadius: 'var(--radius-lg)',
-                border: '1px solid var(--color-accent)',
-                overflow: 'hidden'
-            }} onClick={e => e.stopPropagation()}>
-
-                {/* Search Header */}
+        <div className="indra-overlay" onClick={onCancel} style={{ zIndex: 5000 }}>
+            <div 
+                className="slot-selector-card glass-chassis stack--none" 
+                style={{ width: '100%', maxWidth: '600px', height: '80vh', overflow: 'hidden' }} 
+                onClick={e => e.stopPropagation()}
+            >
+                
                 <div className="stack" style={{ padding: 'var(--space-6)', borderBottom: '1px solid var(--color-border)' }}>
                     <div className="spread">
-                        <span style={{ fontSize: '10px', fontWeight: 'bold', fontFamily: 'var(--font-mono)' }}>VINCULAR_DATO_AL_NODO</span>
-                        <span style={{ fontSize: '9px', opacity: 0.5 }}>{filterType === 'ANY_TYPE' ? 'CUALQUIER_TIPO' : filterType || 'DATO_UNIVERSAL'}</span>
+                        <span className="font-mono" style={{ fontSize: '10px', fontWeight: 'bold' }}>VINCULAR_DATO_AL_NODO</span>
+                        <div className="shelf--tight" style={{ gap: '12px' }}>
+                            <span className="font-mono" style={{ fontSize: '9px', opacity: 0.5 }}>{filterType === 'ANY_TYPE' ? 'CUALQUIER_TIPO' : filterType || 'DATO_UNIVERSAL'}</span>
+                            <button className="btn--ghost opacity-50 hover-opacity-100" onClick={onCancel} style={{ padding: '4px', display: 'flex' }}>
+                                <IndraIcon name="CLOSE" size="10px" />
+                            </button>
+                        </div>
                     </div>
-                    <input
-                        autoFocus
-                        type="text"
-                        placeholder="BUSCAR_RUTA_DE_DATOS..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        style={{
-                            background: 'var(--color-bg-void)',
-                            border: '1px solid var(--color-border)',
-                            padding: 'var(--space-2) var(--space-4)',
-                            borderRadius: 'var(--radius-sm)',
-                            color: 'white',
-                            marginTop: 'var(--space-4)',
-                            outline: 'none',
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: '11px'
-                        }}
+                </div>
+
+                <div className="fill scroll-y" style={{ padding: 'var(--space-4) var(--space-6)' }}>
+                    <IndraFractalTree 
+                        data={treeData}
+                        renderItem={renderNode}
+                        onExpand={handleExpandBranch}
+                        defaultExpanded={['local_root']}
                     />
                 </div>
 
-                {/* Listado Jerárquico */}
-                <div className="fill stack" style={{ overflowY: 'auto', padding: 'var(--space-2)', minHeight: '120px' }}>
-                    {Object.entries(filtered.reduce((acc, slot) => {
-                        if (!acc[slot.group]) acc[slot.group] = [];
-                        acc[slot.group].push(slot);
-                        return acc;
-                    }, {})).map(([groupName, groupSlots]) => (
-                        <div key={groupName} className="stack--tight" style={{ marginBottom: 'var(--space-3)' }}>
-                            <div className="shelf--tight" style={{
-                                padding: 'var(--space-2) var(--space-4)',
-                                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                                color: 'var(--color-accent)',
-                                fontSize: '10px',
-                                fontFamily: 'var(--font-mono)'
-                            }}>
-                                <IndraIcon name={groupName.startsWith('PIPELINE') ? 'LOGIC' : 'EYE'} size="12px" />
-                                <span>{groupName.replace('INPUT:', 'ENTRADA:').replace('PIPELINE:', 'FLUJO:')}</span>
-                            </div>
-
-                            <div className="stack--tight" style={{ paddingLeft: 'var(--space-4)' }}>
-                                {groupSlots.map(slot => (
-                                    <div
-                                        key={slot.id}
-                                        className="shelf--tight glass-hover"
-                                        onClick={() => onSelect(slot)}
-                                        style={{
-                                            padding: 'var(--space-2)',
-                                            borderRadius: 'var(--radius-sm)',
-                                            cursor: 'pointer',
-                                            borderLeft: '1px solid var(--color-border)',
-                                            marginLeft: '4px'
-                                        }}
-                                    >
-                                        <IndraIcon name={slot.icon} size="10px" style={{ opacity: 0.3 }} />
-                                        <div className="stack--tight fill" style={{ gap: '2px' }}>
-                                            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)' }}>{slot.label}</span>
-                                            <span style={{ fontSize: '7px', opacity: 0.3 }}>{slot.path}</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-
-                    {filtered.length === 0 && (
-                        <div className="center stack" style={{ padding: 'var(--space-8)', opacity: 0.4 }}>
-                            <IndraIcon name="SEARCH" size="24px" style={{ marginBottom: '12px', opacity: 0.2 }} />
-                            <span style={{ fontSize: '9px', textAlign: 'center', letterSpacing: '0.1em' }}>
-                                NO_HAY_VARIABLES_DISPONIBLES_AQUÍ
-                            </span>
-                            <span style={{ fontSize: '7px', opacity: 0.5, marginTop: '4px', textAlign: 'center' }}>
-                                CONECTA_UN_DISPARADOR_O_HAY_PASOS_PREVIOS_CON_SALIDA
-                            </span>
-                        </div>
-                    )}
+                <div style={{ padding: 'var(--space-3) var(--space-6)', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid var(--color-border)', color: 'var(--color-text-dim)', fontSize: '8px', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>
+                    TIP: EXPLORA OTROS MUNDOS PARA IMPORTAR MATERIA EXTRAPLANAR. ESC PARA SALIR.
                 </div>
             </div>
         </div>

@@ -17,6 +17,8 @@ import { LandingView } from './components/shell/Landing/LandingView';
 import { NeuralSplitter } from './context/NeuralSplitter';
 import { Spinner } from './components/utilities/primitives/Spinner';
 import { useLexicon } from './services/lexicon';
+import { SacredField } from './components/utilities/SacredField';
+import { ManifestResolver } from './components/shell/ManifestResolver';
 
 /**
  * EngineViewport
@@ -223,9 +225,8 @@ function IndraAppContent() {
     );
 }
 
-import { SacredField } from './components/utilities/SacredField';
 
-import { ManifestResolver } from './components/shell/ManifestResolver';
+
 
 export default function App() {
     const urlParams = new URLSearchParams(window.location.search);

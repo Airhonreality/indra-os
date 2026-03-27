@@ -5,6 +5,7 @@ import { StationCard } from './StationCard';
 import { WorkflowTrigger } from './WorkflowTrigger';
 import { WorkflowInspector } from './WorkflowInspector';
 import { WorkflowSandbox } from './WorkflowSandbox';
+import { WorkflowNavigator } from './layout/WorkflowNavigator';
 import { useWorkflowExecution } from './useWorkflowExecution';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
@@ -32,6 +33,7 @@ function WorkflowDesignerContent({ bridge }) {
     } = useWorkflow();
 
     const [showSandbox, setShowSandbox] = useState(false);
+    const [activeTab, setActiveTab] = useState('FLOW'); // NAV | FLOW | IO
     const { status, traceLogs, runTrace, currentStepId } = useWorkflowExecution(workflow);
 
     if (isLoading && !workflow) {
@@ -55,6 +57,7 @@ function WorkflowDesignerContent({ bridge }) {
                 '--indra-dynamic-glow': `${accentColor}20`
             }}
             data-resonance={isLoading ? 'active' : 'idle'}
+            data-active-tab={activeTab}
             lang="es"
         >
             <IndraMacroHeader
@@ -75,9 +78,42 @@ function WorkflowDesignerContent({ bridge }) {
                 }
             />
 
-            <div className="workflow-triptych-body">
+            {/* ── NAVEGACIÓN MÓVIL (TABS) ── */}
+            <nav className="workflow-mobile-tabs">
+                <button 
+                    className="workflow-mobile-tab-btn" 
+                    data-active={activeTab === 'NAV'} 
+                    onClick={() => setActiveTab('NAV')}
+                >
+                    <IndraIcon name="ATOM" size="10px" />
+                    ESTRUCTURA
+                </button>
+                <button 
+                    className="workflow-mobile-tab-btn" 
+                    data-active={activeTab === 'FLOW'} 
+                    onClick={() => setActiveTab('FLOW')}
+                >
+                    <IndraIcon name="LOGIC" size="10px" />
+                    FLUJO
+                </button>
+                <button 
+                    className="workflow-mobile-tab-btn" 
+                    data-active={activeTab === 'IO'} 
+                    onClick={() => setActiveTab('IO')}
+                >
+                    <IndraIcon name="SERVICE" size="10px" />
+                    INSPECTOR
+                </button>
+            </nav>
+
+            <div className="workflow-triptych-body fill stack--none">
                 
-                {/* 1. LIENZO (70% - Izquierda) */}
+                {/* 1. NAVEGADOR (IZQUIERDA) — Fractal Outline */}
+                <aside className="workflow-column-navigator overflow-hidden">
+                    <WorkflowNavigator />
+                </aside>
+
+                {/* 2. LIENZO (CENTRO) */}
                 <main className="workflow-column-canvas" onClick={() => setSelectedStationId(null)}>
                     <div className="pipeline-viewport fill">
                         <div className="station-stack-vertical" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'var(--space-8) 0' }}>
@@ -133,20 +169,20 @@ function WorkflowDesignerContent({ bridge }) {
                 {/* 2. PANEL DE ESCRUTINIO (30% - Derecha) */}
                 <aside className="workflow-column-multimodal">
                     
-                    <div className="multimodal-header stack" style={{ padding: 'var(--space-5)', gap: 'var(--space-6)' }}>
+                    <div className="multimodal-header stack" style={{ padding: 'var(--space-3) var(--space-4)', gap: 'var(--space-4)' }}>
                         <div className="stack--tight">
                             <div className="indra-field-label">01 // DISPARADOR / ENTRADA</div>
                             <div className="shelf--tight" style={{ gap: '10px' }}>
-                                <div className="lego-tool" onClick={() => updateTrigger({ type: 'MANUAL', label: 'IGNICIÓN_MANUAL' })} title="Acción Humana">
-                                    <IndraIcon name="PLAY" size="14px" />
+                                <div className="lego-tool" onClick={() => updateTrigger({ type: 'MANUAL', label: 'IGNICIÓN_MANUAL' })} title="Acción Humana" style={{ padding: 'var(--space-2)' }}>
+                                    <IndraIcon name="PLAY" size="12px" />
                                     <span className="font-mono" style={{ fontSize: '7px' }}>BOTÓN</span>
                                 </div>
-                                <div className="lego-tool" onClick={() => updateTrigger({ type: 'TIME_TICK', label: 'IGNICIÓN_PROGRAMADA' })} title="Reloj de Indra">
-                                    <IndraIcon name="TIME" size="14px" />
+                                <div className="lego-tool" onClick={() => updateTrigger({ type: 'TIME_TICK', label: 'IGNICIÓN_PROGRAMADA' })} title="Reloj de Indra" style={{ padding: 'var(--space-2)' }}>
+                                    <IndraIcon name="TIME" size="12px" />
                                     <span className="font-mono" style={{ fontSize: '7px' }}>RELOJ</span>
                                 </div>
-                                <div className="lego-tool" onClick={() => updateTrigger({ type: 'WEBHOOK', label: 'IGNICIÓN_RECEPCIÓN' })} title="Pulso Webhook">
-                                    <IndraIcon name="SYNC" size="14px" />
+                                <div className="lego-tool" onClick={() => updateTrigger({ type: 'WEBHOOK', label: 'IGNICIÓN_RECEPCIÓN' })} title="Pulso Webhook" style={{ padding: 'var(--space-2)' }}>
+                                    <IndraIcon name="SYNC" size="12px" />
                                     <span className="font-mono" style={{ fontSize: '7px' }}>PULSO</span>
                                 </div>
                             </div>
@@ -155,16 +191,16 @@ function WorkflowDesignerContent({ bridge }) {
                         <div className="stack--tight">
                             <div className="indra-field-label">02 // PASOS / FLUJO</div>
                             <div className="shelf--tight" style={{ gap: '10px' }}>
-                                <div className="lego-tool" onClick={() => addStation('PROTOCOL')} title="Acción Atómica">
-                                    <IndraIcon name="SERVICE" size="14px" />
+                                <div className="lego-tool" onClick={() => addStation('PROTOCOL')} title="Acción Atómica" style={{ padding: 'var(--space-2)' }}>
+                                    <IndraIcon name="SERVICE" size="12px" />
                                     <span className="font-mono" style={{ fontSize: '7px' }}>ACCIÓN</span>
                                 </div>
-                                <div className="lego-tool" onClick={() => addStation('ROUTER')} title="Bifurcación de Rama">
-                                    <IndraIcon name="LOGIC" size="14px" />
+                                <div className="lego-tool" onClick={() => addStation('ROUTER')} title="Bifurcación de Rama" style={{ padding: 'var(--space-2)' }}>
+                                    <IndraIcon name="LOGIC" size="12px" />
                                     <span className="font-mono" style={{ fontSize: '7px' }}>BIFUR</span>
                                 </div>
-                                <div className="lego-tool" onClick={() => addStation('MAP')} title="Mapeador de Energía">
-                                    <IndraIcon name="SCHEMA" size="14px" />
+                                <div className="lego-tool" onClick={() => addStation('MAP')} title="Mapeador de Energía" style={{ padding: 'var(--space-2)' }}>
+                                    <IndraIcon name="SCHEMA" size="12px" />
                                     <span className="font-mono" style={{ fontSize: '7px' }}>MAPEADO</span>
                                 </div>
                             </div>

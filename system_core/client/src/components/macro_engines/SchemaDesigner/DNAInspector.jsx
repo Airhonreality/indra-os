@@ -17,10 +17,12 @@ import { DataProjector } from '../../../services/DataProjector';
 export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge, aliasResetNonce = 0 }) {
     const [showArtifactSelector, setShowArtifactSelector] = useState(false);
     const [aliasDraft, setAliasDraft] = useState(field.alias || '');
+    const [labelDraft, setLabelDraft] = useState(field.label || '');
 
     React.useEffect(() => {
         setAliasDraft(field.alias || '');
-    }, [field.id, field.alias, aliasResetNonce]);
+        setLabelDraft(field.label || '');
+    }, [field.id, field.alias, field.label, aliasResetNonce]);
 
     // 1. Proyectar el ADN del campo
     const projection = DataProjector.projectFieldDefinition(field);
@@ -46,6 +48,13 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge, a
             onUpdate({ ...field, alias: cleanAlias });
         }
         setAliasDraft(cleanAlias);
+    };
+
+    const commitLabel = () => {
+        const cleanLabel = (labelDraft || '').trim();
+        if (cleanLabel !== (field.label || '')) {
+            onUpdate({ ...field, label: cleanLabel });
+        }
     };
 
     const handleArtifactSelect = (atom) => {
@@ -120,8 +129,20 @@ export function DNAInspector({ field, onUpdate, allFields, onReparent, bridge, a
                     <input
                         type="text"
                         className="dna-input"
-                        value={field.label || ''}
-                        onChange={e => onUpdate({ ...field, label: e.target.value })}
+                        value={labelDraft}
+                        onChange={e => setLabelDraft(e.target.value)}
+                        onBlur={commitLabel}
+                        onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                commitLabel();
+                                e.currentTarget.blur();
+                            }
+                            if (e.key === 'Escape') {
+                                setLabelDraft(field.label || '');
+                                e.currentTarget.blur();
+                            }
+                        }}
                         style={{ borderColor: `${projection.theme.color}40` }}
                     />
                 </div>

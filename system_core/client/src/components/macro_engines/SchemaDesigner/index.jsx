@@ -26,7 +26,7 @@ import { prepareCanonicalRename, commitCanonicalRename } from '../../../services
 import { useWorkspace } from '../../../context/WorkspaceContext';
 
 export function SchemaDesigner({ atom, bridge }) {
-    const { updatePinIdentity } = useWorkspace();
+    const { updateAxiomaticIdentity } = useWorkspace();
     const [localAtom, setLocalAtom] = useState(atom);
     const [selectedFieldId, setSelectedFieldId] = useState(null);
     const [activeSlot, setActiveSlot] = useState('CORE');
@@ -314,7 +314,7 @@ export function SchemaDesigner({ atom, bridge }) {
             const syncedAtom = result.items[0];
             setLocalAtom(syncedAtom);
             pushToHistory(syncedAtom);
-            updatePinIdentity(localAtom.id, localAtom.provider, {
+            updateAxiomaticIdentity(localAtom.id, localAtom.provider, {
                 label: syncedAtom.handle?.label,
                 alias: syncedAtom.handle?.alias,
                 handle: syncedAtom.handle,

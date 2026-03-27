@@ -89,10 +89,20 @@
 
 .workflow-triptych-body {
     display: flex;
-    flex-direction: row-reverse; /* LEGO a la derecha, Canvas a la izquierda */
+    flex-direction: row; /* Navigator (L), Canvas (C), Inspector (R) */
     gap: 0;
     padding: 0;
     background: var(--color-bg-void);
+}
+
+.workflow-column-navigator {
+    width: 240px;
+    min-width: 200px;
+    flex-shrink: 0;
+    background: var(--color-bg-surface);
+    border-right: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
 }
 
 .workflow-controls-shell {
@@ -887,4 +897,81 @@
 .glow-red {
     box-shadow: 0 0 10px color-mix(in srgb, var(--color-danger) 30%, transparent);
     border-color: color-mix(in srgb, var(--color-danger) 35%, transparent);
+}
+/* -- ADAPTACIÓN RESPONSIVA (AXIOMA MÓVIL) -- */
+@media (max-width: 900px) {
+    .workflow-triptych-body {
+        flex-direction: column !important;
+        overflow-y: hidden;
+    }
+
+    .workflow-column-navigator,
+    .workflow-column-multimodal {
+        display: none !important;
+        width: 100% !important;
+        min-width: unset !important;
+        border-right: none !important;
+        flex: 1;
+        overflow-y: auto;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .workflow-column-canvas {
+        flex: 1;
+        width: 100% !important;
+        height: 100%;
+        display: none;
+        animation: fadeIn 0.3s ease;
+    }
+
+    /* Reglas de Activación Axiomática */
+    .workflow-layout-shell[data-active-tab="NAV"] .workflow-column-navigator { display: flex !important; }
+    .workflow-layout-shell[data-active-tab="FLOW"] .workflow-column-canvas { display: flex !important; }
+    .workflow-layout-shell[data-active-tab="IO"]  .workflow-column-multimodal { display: flex !important; }
+    
+    .workflow-mobile-tabs {
+        display: flex !important;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+}
+
+.workflow-mobile-tabs {
+    display: none; /* Ocultas en desktop */
+    height: 42px;
+    background: var(--color-bg-surface);
+    border-bottom: 1px solid var(--color-border);
+    padding: 2px 8px;
+    gap: 4px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-around;
+}
+
+.workflow-mobile-tab-btn {
+    flex: 1;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s cubic-bezier(0.19, 1, 0.22, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.workflow-mobile-tab-btn[data-active="true"] {
+    background: var(--color-accent-dim);
+    border: 1px solid var(--color-accent-glow);
+    color: var(--color-accent);
 }

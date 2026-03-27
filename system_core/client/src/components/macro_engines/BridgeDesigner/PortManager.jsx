@@ -167,17 +167,42 @@ function PortCard({ id, schema, mapping, mappingOptions = [], config, onRemove, 
                             />
                         ) : (
                             <div className="stack--tight">
-                                {schema.fields.map(f => (
-                                    <RecursiveFieldItem
-                                        key={f.id}
-                                        field={f}
-                                        schemaId={id}
-                                        alias={alias}
-                                        activeFields={activeFields}
-                                        toggleField={toggleField}
-                                        level={0}
-                                    />
-                                ))}
+                                <IndraFractalTree 
+                                    data={schema.fields || []}
+                                    renderItem={({ node, depth, isExpanded, hasChildren, toggleExpand }) => (
+                                        <div 
+                                            className="spread glass-hover p-2 pointer"
+                                            style={{ 
+                                                opacity: activeFields.includes(node.id) ? 1 : 0.5,
+                                                paddingLeft: `calc(12px + ${depth * 8}px)`
+                                            }}
+                                            onClick={() => hasChildren && toggleExpand()}
+                                        >
+                                            <div className="shelf--tight">
+                                                {hasChildren && (
+                                                    <IndraIcon 
+                                                        name={isExpanded ? 'CHEVRON_DOWN' : 'CHEVRON_RIGHT'} 
+                                                        size="8px" 
+                                                        style={{ opacity: 0.4 }}
+                                                    />
+                                                )}
+                                                {!hasChildren && <div style={{ width: '12px' }} />}
+                                                
+                                                <div style={{
+                                                    width: '8px', height: '8px', borderRadius: '2px',
+                                                    border: `1px solid ${activeFields.includes(node.id) ? 'var(--color-accent)' : 'var(--color-border-strong)'}`,
+                                                    background: activeFields.includes(node.id) ? 'var(--color-accent)' : 'transparent',
+                                                    flexShrink: 0
+                                                }} onClick={(e) => { e.stopPropagation(); toggleField(node.id); }} />
+                                                
+                                                <span className="font-mono" style={{ fontSize: '9px', fontWeight: hasChildren ? 'bold' : 'normal' }}>
+                                                    {node.label || node.id}
+                                                </span>
+                                            </div>
+                                            <span className="font-mono opacity-30" style={{ fontSize: '7px' }}>{node.type}</span>
+                                        </div>
+                                    )}
+                                />
                             </div>
                         )
                     ) : (
@@ -191,104 +216,3 @@ function PortCard({ id, schema, mapping, mappingOptions = [], config, onRemove, 
     );
 }
 
-function RecursiveFieldItem({ field, schemaId, alias, activeFields, toggleField, level }) {
-    const [expanded, setExpanded] = React.useState(level < 1); // Expand first level by default
-    const { openContextMenu } = useShell();
-    const hasChildren = field.children && field.children.length > 0;
-    const isActive = activeFields.includes(field.id);
-
-    return (
-        <div className="stack--tight" style={{ marginLeft: level > 0 ? 'var(--space-3)' : 0 }}>
-            <div
-                className="spread glass-hover"
-                style={{
-                    opacity: isActive ? 1 : 0.5,
-                    cursor: 'pointer',
-                    padding: '6px',
-                    borderRadius: '4px',
-                    borderLeft: hasChildren ? '1px solid var(--color-border)' : 'none',
-                    background: 'transparent',
-                    border: '1px solid transparent',
-                    transition: 'all 0.2s'
-                }}
-                onClick={() => {
-                    if (hasChildren) {
-                        setExpanded(!expanded);
-                    }
-                }}
-                onContextMenu={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const pins = useAppState.getState().pins;
-                    const targetSchema = pins.find(p => p.id === schemaId);
-
-                    openContextMenu(e, [
-                        { 
-                            label: 'Añadir Hijo', 
-                            icon: 'PLUS', 
-                            action: () => SchemaActionService.addField(targetSchema, { parentId: field.id }, { url: useAppState.getState().protocolUrl, secret: useAppState.getState().protocolSecret }) 
-                        },
-                        { 
-                            label: 'Eliminar Campo', 
-                            icon: 'DELETE', 
-                            color: 'var(--color-danger)',
-                            action: () => SchemaActionService.removeField(targetSchema, field.id, { url: useAppState.getState().protocolUrl, secret: useAppState.getState().protocolSecret }) 
-                        },
-                        { type: 'SEPARATOR' },
-                        {
-                            label: 'Ver en Schema Designer',
-                            icon: 'EXTERNAL',
-                            action: () => useShell.getState().openArtifact(targetSchema)
-                        }
-                    ]);
-                }}
-            >
-                <div className="shelf--tight">
-                    {hasChildren && (
-                        <IndraIcon
-                            name={expanded ? 'CHEVRON_DOWN' : 'CHEVRON_RIGHT'}
-                            size="8px"
-                            style={{ opacity: 0.4 }}
-                        />
-                    )}
-                    <div style={{
-                        width: '8px', height: '8px', borderRadius: '2px',
-                        border: `1px solid ${isActive ? 'var(--color-accent)' : 'var(--color-border-strong)'}`,
-                        background: isActive ? 'var(--color-accent)' : 'transparent',
-                        flexShrink: 0
-                    }} onClick={(e) => { e.stopPropagation(); toggleField(field.id); }} />
-                    <span style={{
-                        fontSize: '9px',
-                        fontFamily: 'var(--font-mono)',
-                        color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-                        fontWeight: hasChildren ? 'bold' : 'normal'
-                    }}>
-                        {field.label || field.id}
-                    </span>
-                </div>
-                <span style={{ fontSize: '7px', opacity: 0.3 }}>{field.type}</span>
-            </div>
-
-            {hasChildren && expanded && (
-                <div className="stack--tight" style={{
-                    marginTop: '2px',
-                    borderLeft: '1px solid var(--color-border)',
-                    paddingLeft: 'var(--space-1)'
-                }}>
-                    {field.children.map(child => (
-                        <RecursiveFieldItem
-                            key={child.id}
-                            field={child}
-                            schemaId={schemaId}
-                            alias={alias}
-                            activeFields={activeFields}
-                            toggleField={toggleField}
-                            level={level + 1}
-                        />
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}

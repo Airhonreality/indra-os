@@ -66,6 +66,7 @@ const ICON_MAP = {
     'INFO': <><circle cx="8" cy="8" r="7" /><path d="M8 11V7m0-2v.01" /></>,
     'RELOAD': <><path d="M2.5 8a5.5 5.5 0 0 1 8.5-4.5" /><path d="M13.5 8a5.5 5.5 0 0 1-8.5 4.5" /><path d="M10 1l3 3-3 3M6 15l-3-3 3-3" /></>,
     'CALENDAR': <><rect x="2" y="3" width="12" height="11" rx="1" /><path d="M5 2v2M11 2v2M2 7h12" /><circle cx="5" cy="10" r="0.5" /><circle cx="8" cy="10" r="0.5" /><circle cx="11" cy="10" r="0.5" /></>,
+    'TIME': <><circle cx="8" cy="8" r="7" /><path d="M8 3v5l3 2" /></>,
 
 
     // ── NAVEGACIÓN ──
@@ -135,5 +136,7 @@ const ICON_MAP = {
     'COGNITIVE': <><path d="M8 2a5 5 0 015 5c0 2-1 4-3 5l-2 2-2-2c-2-1-3-3-3-5a5 5 0 015-5z" /><path d="M6 7h4M7 9h2" /></>,
     'LIGHT': <><circle cx="8" cy="8" r="3" /><path d="M8 1v2m0 10v2M1 8h2m10 0h2m-12-5l1.5 1.5m9.5 9.5l1.5 1.5m-11 0l1.5-1.5m9.5-9.5l1.5-1.5" /></>,
     'DARK': <path d="M12 9a6 6 0 11-8-8 7 7 0 008 8z" />,
+    'DOC': <path d="M4 2h8l3 3v9a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1zM11 2v4h4" />,
+    'GLOBE': <><circle cx="8" cy="8" r="7" /><path d="M1 8h14M8 1v14M3.5 3.5l9 9m0-9l-9 9" /></>,
 };
 

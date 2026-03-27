@@ -48,12 +48,20 @@ export function useAtomCatalog({ atomClass, mode = 'WORKSPACE' } = {}) {
                     return;
                 }
 
-                // Cargamos la materia completa con ATOM_READ si es necesario, 
-                // o solicitamos al core por lista de IDs.
+                // AXIOMA DE PLURALIZACIÓN DETERMINISTA: El Core espera nombres específicos para 
+                // mapear a las carpetas físicas de Drive (schemas, workflows, etc.).
+                const pluralContextMap = {
+                    'DATA_SCHEMA': 'schemas',
+                    'WORKFLOW': 'workflows',
+                    'WORKSPACE': 'workspaces',
+                    'DOCUMENT': 'documents'
+                };
+                const pluralContext = pluralContextMap[atomClass] || (atomClass?.toLowerCase() + 's') || 'atoms';
+
                 const result = await executeDirective({
                     provider: 'system',
                     protocol: 'ATOM_READ',
-                    context_id: atomClass?.toLowerCase() + 's' || 'atoms',
+                    context_id: pluralContext,
                     query:  { ids: pinnedIds }
                 }, coreUrl, sessionSecret);
                 

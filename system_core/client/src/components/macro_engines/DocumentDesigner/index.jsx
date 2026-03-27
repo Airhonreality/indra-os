@@ -52,7 +52,7 @@ export function DocumentDesigner({ atom, bridge }) {
 
 function DocumentDesignerShell({ atom, bridge }) {
     const t = useLexicon();
-    const { updatePinIdentity } = useWorkspace();
+    const { updateAxiomaticIdentity } = useWorkspace();
     const { blocks, docVariables, layoutMeta, updateLayoutMeta, setBlocks, undo, redo, canUndo, canRedo } = useAST();
     const { selectedId, selectNode } = useSelection();
 

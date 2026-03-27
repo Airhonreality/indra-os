@@ -22,6 +22,7 @@ import { IndraActionTrigger } from '../../../utilities/IndraActionTrigger';
 import { DragHandle } from '../../../utilities/primitives/DragHandle';
 import { useAST } from '../context/ASTContext';
 import { useSelection } from '../context/SelectionContext';
+import { IndraFractalTree } from '../../../utilities/IndraFractalTree';
 
 // ── Mapa de iconos canónico ───────────────────────────────────────────────────
 const BLOCK_ICONS = {
@@ -41,262 +42,105 @@ const BLOCK_COLORS = {
     ITERATOR: 'var(--color-cold)',
 };
 
-// ── LayerRow — Fila individual de una capa ────────────────────────────────────
-// Separado en su propio componente para clarity y para gestionar hover local.
-
-function LayerRow({ node, depth, isRoot }) {
+// ── LayerRow — Renderizador de fila individual ────────────────────────────────
+function LayerRow({ node, depth, isExpanded, hasChildren, toggleExpand }) {
     const { moveNode, indentNode, outdentNode, removeNode, duplicateNode } = useAST();
     const { selectedId, selectNode }  = useSelection();
-
     const [isHovered, setIsHovered]   = useState(false);
-    const [isCollapsed, setIsCollapsed] = useState(false);
 
-    const hasChildren = node.children && node.children.length > 0;
+    const isRoot = node.id === 'root';
     const isSelected  = selectedId === node.id;
     const blockColor  = BLOCK_COLORS[node.type] || 'var(--color-text-secondary)';
 
-    // ── Drag-and-drop entre hermanos (mismo nivel padre) ──────────────────────
-    // Usamos HTML5 Drag API sobre el DragHandle para reordenar.
-    // El payload es simplemente el id del nodo siendo arrastrado.
-
+    // ── Drag-and-drop Logic ──
     const handleDragStart = useCallback((e) => {
         e.stopPropagation();
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', node.id);
-        // Pequeño delay para que el browser capture el elemento antes del estado drag
-        setTimeout(() => {
-            if (e.target) e.target.setAttribute('data-dragging', 'true');
-        }, 0);
+        setTimeout(() => { if (e.target) e.target.setAttribute('data-dragging', 'true'); }, 0);
     }, [node.id]);
 
-    const handleDragEnd = useCallback((e) => {
-        e.target.removeAttribute('data-dragging');
-    }, []);
+    const handleDragEnd = useCallback((e) => { e.target.removeAttribute('data-dragging'); }, []);
+    const handleDragOver = useCallback((e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; e.currentTarget.setAttribute('data-drop-target', 'true'); }, []);
+    const handleDragLeave = useCallback((e) => { e.currentTarget.removeAttribute('data-drop-target'); }, []);
 
-    const handleDragOver = useCallback((e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        e.currentTarget.setAttribute('data-drop-target', 'true');
-    }, []);
-
-    const handleDragLeave = useCallback((e) => {
-        e.currentTarget.removeAttribute('data-drop-target');
-    }, []);
-
-    // Al soltar sobre una fila: calcula la dirección relativa y mueve
     const handleDrop = useCallback((e) => {
         e.preventDefault();
         e.stopPropagation();
         e.currentTarget.removeAttribute('data-drop-target');
-
         const draggedId = e.dataTransfer.getData('text/plain');
         if (!draggedId || draggedId === node.id) return;
-
-        // Detecta si el drop es en la mitad superior o inferior del target
-        const rect = e.currentTarget.getBoundingClientRect();
-        const midY = rect.top + rect.height / 2;
-        const dropBefore = e.clientY < midY;
-
-        // moveNode(-1) = subir, moveNode(1) = bajar
-        // Necesitamos mover el nodo arrastrado hasta estar adyacente al target.
-        // Para simplificar: usamos moveNode repetidamente (la mutación AST es O(n)).
-        // Una implementación más sofisticada calcula la posición directa.
-        // Por ahora esta implementación es funcional y correcta para pocos nodos.
-        //
-        // Nota: esto solo funciona si draggedId y node.id son hermanos.
-        // El DragHandle visualmente deja claro que el reordenamiento es por nivel.
-        // Para mover entre niveles, se usan los botones ← →.
-        //
-        // TODO Fase avanzada: implementar swapNodes(draggedId, targetId, before|after)
-        // en useDocumentAST para un reordenamiento O(1) directo.
-        //
-        // Por ahora, el drop dispara selectNode para que el usuario use ↑↓.
-        // Se muestra feedback visual pero no mutación automática en drop.
         selectNode(draggedId);
     }, [node.id, selectNode]);
 
-    // ── Render ─────────────────────────────────────────────────────────────────
     return (
         <div
-            className="layer-tree-node"
+            className="layer-row"
             data-selected={isSelected}
-            data-node-type={node.type}
-            data-depth={depth}
-            data-root={isRoot}
+            data-hovered={isHovered}
+            onClick={() => selectNode(node.id)}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            style={{
+                // El padding lateral lo maneja la profundidad del árbol, 
+                // pero mantenemos un gutter mínimo para el drag handle.
+                paddingLeft: `calc(12px + ${depth * 2}px)`, 
+            }}
         >
-            {/* ── Fila de la capa ─────────────────────────────────────────── */}
+            {!isRoot ? (
+                <div draggable onDragStart={handleDragStart} onDragEnd={handleDragEnd} style={{ display: 'flex' }}>
+                    <DragHandle size="10px" style={{ opacity: isHovered || isSelected ? 0.6 : 0.15 }} />
+                </div>
+            ) : <div style={{ width: '14px' }} />}
+
             <div
-                className="layer-row"
-                data-selected={isSelected}
-                data-hovered={isHovered}
-                onClick={() => selectNode(node.id)}
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                style={{
-                    // EXCEPCIÓN AXIOMÁTICA A6: padding-left es un valor computado en JS.
-                    paddingLeft: `calc(var(--space-1) + ${depth * 14}px)`,
-                }}
+                className="layer-row__chevron"
+                onClick={(e) => { e.stopPropagation(); if (hasChildren) toggleExpand(); }}
+                style={{ opacity: hasChildren ? (isSelected ? 0.8 : 0.4) : 0 }}
             >
-                {/* DragHandle — Solo si no es root */}
-                {!isRoot ? (
-                    <div
-                        draggable
-                        onDragStart={handleDragStart}
-                        onDragEnd={handleDragEnd}
-                        style={{ display: 'flex' }}
-                    >
-                        <DragHandle size="10px" style={{ opacity: isHovered || isSelected ? 0.6 : 0.15 }} />
-                    </div>
-                ) : (
-                    <div style={{ width: '14px', flexShrink: 0 }} />
-                )}
-
-                {/* Chevron colapsar/expandir */}
-                <div
-                    className="layer-row__chevron"
-                    onClick={(e) => { e.stopPropagation(); if (hasChildren) setIsCollapsed(c => !c); }}
-                    style={{ opacity: hasChildren ? (isSelected ? 0.8 : 0.4) : 0 }}
-                >
-                    <IndraIcon
-                        name="CHEVRON_RIGHT"
-                        size="8px"
-                        style={{
-                            transform: (!isCollapsed && hasChildren) ? 'rotate(90deg)' : 'rotate(0deg)',
-                            transition: 'transform 0.15s ease',
-                            pointerEvents: hasChildren ? 'auto' : 'none',
-                        }}
-                    />
-                </div>
-
-                {/* Icono del tipo de bloque */}
                 <IndraIcon
-                    name={BLOCK_ICONS[node.type] || 'ATOM'}
-                    size="10px"
-                    style={{ color: isSelected ? blockColor : 'inherit', opacity: isSelected ? 1 : 0.5, flexShrink: 0 }}
+                    name="CHEVRON_RIGHT"
+                    size="8px"
+                    style={{
+                        transform: (isExpanded && hasChildren) ? 'rotate(90deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.15s ease',
+                    }}
                 />
-
-                {/* Label: alias o tipo */}
-                <span className="layer-row__label" data-selected={isSelected}>
-                    {node.props?.label || node.type}
-                </span>
-
-                {/* ID corto */}
-                <span className="layer-row__id">
-                    #{node.id.slice(-4)}
-                </span>
-
-                {node.props?.layoutMode === 'absolute' && (
-                    <span className="layer-row__badge layer-row__badge--abs" title="POSICION_ABSOLUTA_ACTIVA">
-                        ABS
-                    </span>
-                )}
-
-                {/* Badge HEAD_LOCKED para el root */}
-                {isRoot && (
-                    <span className="layer-row__badge" title="PAGE_IS_THE_ROOT">
-                        ROOT
-                    </span>
-                )}
-
-                {/* ── Controles de acción ─────────────────────────────────── */}
-                {/* Separador flexible — empuja los controles al extremo derecho */}
-                <div style={{ flex: 1, minWidth: 4 }} />
-
-                {/* ↑↓ siempre visibles, opacidad baja excepto hover/selected */}
-                <div
-                    className="layer-row__move-controls"
-                    data-visible={isHovered || isSelected}
-                    onClick={e => e.stopPropagation()}
-                >
-                    <button
-                        className="layer-ctrl-btn"
-                        onClick={() => moveNode(node.id, -1)}
-                        disabled={isRoot}
-                        title="MOVE_UP"
-                        tabIndex={-1}
-                    >
-                        <IndraIcon name="ARROW_UP" size="9px" />
-                    </button>
-                    <button
-                        className="layer-ctrl-btn"
-                        onClick={() => moveNode(node.id, 1)}
-                        disabled={isRoot}
-                        title="MOVE_DOWN"
-                        tabIndex={-1}
-                    >
-                        <IndraIcon name="ARROW_DOWN" size="9px" />
-                    </button>
-                </div>
-
-                {/* Controles de indent — solo al seleccionar (poco frecuentes) */}
-                {isSelected && !isRoot && (
-                    <div
-                        className="layer-row__indent-controls"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <button
-                            className="layer-ctrl-btn"
-                            onClick={() => outdentNode(node.id)}
-                            title="OUTDENT (Extraer del padre)"
-                            tabIndex={-1}
-                        >
-                            <IndraIcon name="ARROW_LEFT" size="9px" />
-                        </button>
-                        <button
-                            className="layer-ctrl-btn"
-                            onClick={() => indentNode(node.id)}
-                            title="INDENT (Anidar en hermano anterior)"
-                            tabIndex={-1}
-                        >
-                            <IndraIcon name="ARROW_RIGHT" size="9px" />
-                        </button>
-                    </div>
-                )}
-
-                {/* DUPLICATE — visible en hover/selected, deshabilitado en root */}
-                {(isHovered || isSelected) && (
-                    <button
-                        className="layer-ctrl-btn"
-                        onClick={(e) => { e.stopPropagation(); duplicateNode && duplicateNode(node.id); }}
-                        disabled={isRoot}
-                        title={isRoot ? 'PAGE_IS_THE_ROOT' : 'DUPLICATE_BLOCK'}
-                        tabIndex={-1}
-                        style={{ opacity: isRoot ? 0.2 : 1 }}
-                    >
-                        <IndraIcon name="COPY" size="9px" />
-                    </button>
-                )}
-
-                {/* DELETE — hold requerido, solo en hover/selected, nunca en root */}
-                {(isHovered || isSelected) && !isRoot && (
-                    <div onClick={e => e.stopPropagation()}>
-                        <IndraActionTrigger
-                            icon="DELETE"
-                            size="9px"
-                            requiresHold={true}
-                            holdTime={800}
-                            onClick={() => removeNode(node.id)}
-                            color="var(--color-danger)"
-                            title="DELETE (HOLD)"
-                        />
-                    </div>
-                )}
             </div>
 
-            {/* ── Hijos recursivos ─────────────────────────────────────────── */}
-            {hasChildren && !isCollapsed && (
-                <div className="layer-tree-children">
-                    {node.children.map(child => (
-                        <LayerRow
-                            key={child.id}
-                            node={child}
-                            depth={depth + 1}
-                            isRoot={false}
-                        />
-                    ))}
+            <IndraIcon
+                name={BLOCK_ICONS[node.type] || 'ATOM'}
+                size="10px"
+                style={{ color: isSelected ? blockColor : 'inherit', opacity: isSelected ? 1 : 0.5, flexShrink: 0 }}
+            />
+
+            <span className="layer-row__label" data-selected={isSelected}>
+                {node.props?.label || node.type}
+            </span>
+
+            <span className="layer-row__id">#{node.id.slice(-4)}</span>
+
+            {isRoot && <span className="layer-row__badge">ROOT</span>}
+
+            <div style={{ flex: 1 }} />
+
+            {(isHovered || isSelected) && (
+                <div className="layer-row__actions shelf--tight">
+                    {!isRoot && (
+                        <>
+                            <button className="layer-ctrl-btn" onClick={() => moveNode(node.id, -1)} title="MOVE_UP"><IndraIcon name="ARROW_UP" size="9px" /></button>
+                            <button className="layer-ctrl-btn" onClick={() => moveNode(node.id, 1)} title="MOVE_DOWN"><IndraIcon name="ARROW_DOWN" size="9px" /></button>
+                            <button className="layer-ctrl-btn" onClick={() => outdentNode(node.id)} title="OUTDENT"><IndraIcon name="ARROW_LEFT" size="9px" /></button>
+                            <button className="layer-ctrl-btn" onClick={() => indentNode(node.id)} title="INDENT"><IndraIcon name="ARROW_RIGHT" size="9px" /></button>
+                        </>
+                    )}
+                    <button className="layer-ctrl-btn" onClick={() => duplicateNode && duplicateNode(node.id)} disabled={isRoot} title="DUPLICATE"><IndraIcon name="COPY" size="9px" /></button>
+                    {!isRoot && (
+                        <IndraActionTrigger icon="DELETE" size="9px" requiresHold={true} onClick={() => removeNode(node.id)} color="var(--color-danger)" />
+                    )}
                 </div>
             )}
         </div>
@@ -304,14 +148,16 @@ function LayerRow({ node, depth, isRoot }) {
 }
 
 // ── LayerTree — Punto de entrada público ─────────────────────────────────────
-
-export function LayerTree({ node, depth }) {
-    const isRoot = depth === 0 && node.id === 'root';
+export function LayerTree({ node }) {
+    // Si recibimos un solo nodo, lo envolvemos en array para el motor.
+    // Generalmente recibimos la raíz del documento.
+    const data = Array.isArray(node) ? node : [node];
+    
     return (
-        <LayerRow
-            node={node}
-            depth={depth}
-            isRoot={isRoot}
+        <IndraFractalTree 
+            data={data}
+            renderItem={LayerRow}
+            defaultExpanded={true}
         />
     );
 }

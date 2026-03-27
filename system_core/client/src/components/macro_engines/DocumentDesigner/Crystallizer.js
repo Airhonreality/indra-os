@@ -8,8 +8,7 @@
  */
 
 import { AxiomRegistry } from '../../../services/AxiomRegistry';
-
-import { MetaComposer } from '../../services/MetaComposer';
+import { MetaComposer } from '../../../services/MetaComposer';
 
 export const Crystallizer = {
     /**

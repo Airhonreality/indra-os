@@ -37,10 +37,19 @@ function _system_handleRead(uqo) {
     if (contextId === 'workflows') targetClass = WORKFLOW_CLASS_;
     if (contextId === 'schemas') targetClass = DATA_SCHEMA_CLASS_;
     if (contextId === 'formulas') targetClass = FORMULA_CLASS_;
+    if (contextId === 'documents') targetClass = DOCUMENT_CLASS_;
 
     if (targetClass) {
         return _system_listAtomsByClass(targetClass, uqo.provider);
     }
+    
+    // AXIOMA: Si llegamos aquí y es una de las palabras protegidas pero no hay targetClass, 
+    // algo falló gravemente o el core-owner lo borró. No intentamos leer un archivo llamado 'atoms' o 'schemas'.
+    const protectedPlurals = ['workspaces', 'workflows', 'schemas', 'formulas', 'documents', 'atoms'];
+    if (protectedPlurals.includes(contextId)) {
+        return { items: [], metadata: { status: 'OK', total: 0 } };
+    }
+
     return _system_readAtom(contextId, uqo.provider);
 }
 

@@ -18,30 +18,48 @@ export function IndraFractalTree({
     renderItem, 
     childrenKey = 'children',
     idKey = 'id',
-    defaultExpanded = false 
+    defaultExpanded = false,
+    onExpand = null // Nueva prop: async (node) => { return children }
 }) {
-    // Inicializar estado de expansión
+    // AXIOMA: Estado de expansión y carga de resonancia
     const [expandedIds, setExpandedIds] = useState(() => {
-        const initial = new Set();
-        if (defaultExpanded) {
-            const traverse = (list) => {
-                list.forEach(item => {
-                    initial.add(item[idKey]);
-                    if (item[childrenKey]) traverse(item[childrenKey]);
-                });
-            };
-            traverse(data);
-        }
-        return initial;
+        if (Array.isArray(defaultExpanded)) return new Set(defaultExpanded);
+        if (defaultExpanded === true) return new Set(data.map(n => n[idKey]));
+        return new Set();
     });
+    const [loadingIds, setLoadingIds] = useState(new Set());
 
-    const toggleExpand = (id) => {
-        setExpandedIds(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
+    const toggleExpand = async (node) => {
+        const id = node[idKey];
+        const isExpanded = expandedIds.has(id);
+
+        if (!isExpanded) {
+            // Caso: Vamos a expandir. ¿Necesita carga asíncrona (Axioma de Materia Diferida)?
+            const hasStaticChildren = node[childrenKey] && node[childrenKey].length > 0;
+            
+            if (!hasStaticChildren && onExpand) {
+                setLoadingIds(prev => new Set(prev).add(id));
+                try {
+                    await onExpand(node);
+                } catch (e) {
+                    console.error("[FractalTree] Error en resonancia de rama:", e);
+                } finally {
+                    setLoadingIds(prev => {
+                        const next = new Set(prev);
+                        next.delete(id);
+                        return next;
+                    });
+                }
+            }
+            setExpandedIds(prev => new Set(prev).add(id));
+        } else {
+            // Caso: Colapsar
+            setExpandedIds(prev => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
+        }
     };
 
     if (!data || data.length === 0) return null;
@@ -55,13 +73,15 @@ export function IndraFractalTree({
                 childrenKey={childrenKey}
                 idKey={idKey}
                 expandedIds={expandedIds}
+                loadingIds={loadingIds}
+                onExpand={onExpand}
                 toggleExpand={toggleExpand}
             />
         </div>
     );
 }
 
-function RecursiveNodeList({ list, depth, renderItem, childrenKey, idKey, expandedIds, toggleExpand }) {
+function RecursiveNodeList({ list, depth, renderItem, childrenKey, idKey, expandedIds, loadingIds, onExpand, toggleExpand }) {
     return list.map((node, index) => {
         const nodeId = node[idKey];
         const isExpanded = expandedIds.has(nodeId);
@@ -78,8 +98,9 @@ function RecursiveNodeList({ list, depth, renderItem, childrenKey, idKey, expand
                         node, 
                         depth, 
                         isExpanded, 
-                        hasChildren, 
-                        toggleExpand: () => toggleExpand(nodeId)
+                        isLoading: loadingIds.has(nodeId),
+                        hasChildren: hasChildren || (!!onExpand && !node.isLeaf), // Axioma: Si hay onExpand y no es hoja, se asume potencial de hijos
+                        toggleExpand: () => toggleExpand(node)
                     })}
                 </FractalNodeWrapper>
 
@@ -91,6 +112,8 @@ function RecursiveNodeList({ list, depth, renderItem, childrenKey, idKey, expand
                         childrenKey={childrenKey}
                         idKey={idKey}
                         expandedIds={expandedIds}
+                        loadingIds={loadingIds}
+                        onExpand={onExpand}
                         toggleExpand={toggleExpand}
                     />
                 )}

@@ -27,7 +27,7 @@ export function BridgeDesigner({ atom, bridge }) {
     const shell = useShell();
     const lang = shell?.lang || 'es';
     const t = useLexicon(lang);
-    const { updatePinIdentity } = useWorkspace();
+    const { updateAxiomaticIdentity } = useWorkspace();
     const [isSaving, setIsSaving] = useState(false);
     const [showSelector, setShowSelector] = useState(null); // 'FUENTE' | 'DESTINO'
     const [showSandbox, setShowSandbox] = useState(false);
@@ -363,7 +363,7 @@ export function BridgeDesigner({ atom, bridge }) {
                     const syncedAtom = prepared.result.items[0];
                     setLocalAtom(syncedAtom);
                     pushToHistory(syncedAtom);
-                    updatePinIdentity(localAtom.id, localAtom.provider, {
+                    updateAxiomaticIdentity(localAtom.id, localAtom.provider, {
                         label: syncedAtom.handle?.label,
                         alias: syncedAtom.handle?.alias,
                         handle: syncedAtom.handle
@@ -387,7 +387,7 @@ export function BridgeDesigner({ atom, bridge }) {
             handle: nextHandle
         };
         setLocalAtom(newAtom);
-        updatePinIdentity(localAtom.id, localAtom.provider, {
+        updateAxiomaticIdentity(localAtom.id, localAtom.provider, {
             label: cleanLabel,
             ...(cleanAlias ? { alias: cleanAlias } : {}),
             handle: nextHandle
@@ -410,7 +410,7 @@ export function BridgeDesigner({ atom, bridge }) {
             const syncedAtom = result.items[0];
             setLocalAtom(syncedAtom);
             pushToHistory(syncedAtom);
-            updatePinIdentity(localAtom.id, localAtom.provider, {
+            updateAxiomaticIdentity(localAtom.id, localAtom.provider, {
                 label: syncedAtom.handle?.label,
                 alias: syncedAtom.handle?.alias,
                 handle: syncedAtom.handle

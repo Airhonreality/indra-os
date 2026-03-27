@@ -31,7 +31,7 @@ import './VideoDesigner.css';
 
 export function VideoDesigner({ atom, bridge }) {
     const t = useLexicon();
-    const { updatePinIdentity } = useWorkspace();
+    const { updateAxiomaticIdentity } = useWorkspace();
     const { coreUrl, sessionSecret } = useAppState();
     const {
         currentTime,
@@ -280,7 +280,7 @@ export function VideoDesigner({ atom, bridge }) {
                         label: syncedAtom.handle?.label || 'UNTITLED_VIDEO'
                     };
                     setLocalHandle(syncedHandle);
-                    updatePinIdentity(atom.id, atom.provider, {
+                    updateAxiomaticIdentity(atom.id, atom.provider, {
                         label: syncedHandle.label,
                         alias: syncedHandle.alias,
                         handle: syncedHandle
@@ -299,7 +299,7 @@ export function VideoDesigner({ atom, bridge }) {
             ...(cleanAlias ? { alias: cleanAlias } : {})
         };
         setLocalHandle(nextHandle);
-        updatePinIdentity(atom.id, atom.provider, {
+        updateAxiomaticIdentity(atom.id, atom.provider, {
             label: cleanLabel,
             ...(cleanAlias ? { alias: cleanAlias } : {}),
             handle: nextHandle
@@ -325,7 +325,7 @@ export function VideoDesigner({ atom, bridge }) {
                 label: syncedAtom.handle?.label || 'UNTITLED_VIDEO'
             };
             setLocalHandle(syncedHandle);
-            updatePinIdentity(atom.id, atom.provider, {
+            updateAxiomaticIdentity(atom.id, atom.provider, {
                 label: syncedHandle.label,
                 alias: syncedHandle.alias,
                 handle: syncedHandle

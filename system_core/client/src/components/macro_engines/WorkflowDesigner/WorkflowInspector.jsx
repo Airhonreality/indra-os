@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWorkflow } from './context/WorkflowContext';
 import { SlotSelector } from '../../utilities/SlotSelector';
+import ArtifactSelector from '../../utilities/ArtifactSelector';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { IndraMicroHeader } from '../../utilities/IndraMicroHeader';
 import { IndraActionTrigger } from '../../utilities/IndraActionTrigger';
@@ -205,13 +206,19 @@ export function WorkflowInspector() {
             // Caso: Mapping anidado (ej: variables.nombre_cliente)
             const [parent, child] = activeParam.split('.');
             const currentMap = station.mapping?.[parent]?.value || {};
+            
+            // AXIOMA: Inyección Automática de DNA (Si es nueva, auto-generar clave)
+            const isNewInjection = child === 'NEW_VAR_INJECTION';
+            const targetKey = isNewInjection ? slot.label.toLowerCase().replace(/[^a-z0-9]+/g, '_') : child;
+            const targetValue = slot.path.startsWith('$') ? `{{${slot.path}}}` : slot.path;
+
             newMapping = {
                 ...(station.mapping || {}),
                 [parent]: {
                     type: 'MAP',
                     value: {
                         ...currentMap,
-                        [child]: `{{${slot.path}}}` // Usamos sintaxis canónica de inyección
+                        [targetKey]: targetValue
                     }
                 }
             };
@@ -274,15 +281,15 @@ export function WorkflowInspector() {
     };
 
     return (
-        <div className="inspector-content stack fill" style={{ padding: 'var(--space-4)', overflowY: 'auto' }}>
+        <div className="inspector-content stack fill" style={{ padding: 'var(--space-2) var(--space-4)', overflowY: 'auto' }}>
             
             {/* ── HEADER MAESTRO CON PODER CANÓNICO ── */}
             <div className="inspector-master-header spread" style={{ marginBottom: 'var(--space-6)', padding: '0 4px' }}>
                 <div className="shelf--tight">
-                    <IndraIcon name={isTrigger ? 'PLAY' : station.type} size="14px" color="var(--indra-dynamic-accent)" />
+                    <IndraIcon name={isTrigger ? 'PLAY' : station.type} size="12px" color="var(--indra-dynamic-accent)" />
                     <div className="stack--tight">
-                        <span className="font-mono" style={{ fontSize: '10px', fontWeight: 'bold' }}>
-                            {isTrigger ? 'GATILLO_DE_IGNICIÓN' : 'ÁTOMO_DE_ORQUESTACIÓN'}
+                        <span className="font-mono" style={{ fontSize: '9px', fontWeight: 'bold' }}>
+                            {isTrigger ? 'GATILLO' : 'ÁTOMO'}
                         </span>
                         <span className="text-hint" style={{ fontSize: '8px', opacity: 0.5, letterSpacing: '0.05em' }}>MODO_ESCRUTINIO</span>
                     </div>
@@ -301,7 +308,7 @@ export function WorkflowInspector() {
                 </div>
             </div>
 
-            <div className="stack" style={{ paddingBottom: '40px', gap: 'var(--space-6)' }}>
+            <div className="stack" style={{ paddingBottom: '32px', gap: 'var(--space-4)' }}>
                 
                 {/* ── MÓDULO 01: IDENTIDAD ── */}
                 <section className="inspector-module stack--tight">
@@ -318,7 +325,7 @@ export function WorkflowInspector() {
                                         type="text"
                                         value={trigger.label || ''}
                                         onChange={(e) => updateTrigger({ ...trigger, label: e.target.value })}
-                                        style={{ fontSize: '11px', width: '100%', height: '36px', border: 'none', background: 'transparent' }}
+                                        style={{ fontSize: '11px', width: '100%', height: '32px', border: 'none', background: 'transparent' }}
                                         placeholder="ALIAS_DEL_GATILLO..."
                                     />
                                 </div>
@@ -345,7 +352,7 @@ export function WorkflowInspector() {
                                     type="text"
                                     value={station.config?.label || ''}
                                     onChange={(e) => updateStation(station.id, { config: { ...station.config, label: e.target.value } })}
-                                    style={{ fontSize: '11px', width: '100%', height: '36px', border: 'none', background: 'transparent' }}
+                                    style={{ fontSize: '11px', width: '100%', height: '32px', border: 'none', background: 'transparent' }}
                                     placeholder="ALIAS_DEL_ÁTOMO..."
                                 />
                             </div>
@@ -412,7 +419,7 @@ export function WorkflowInspector() {
                                     <div className="schema-selector-trigger glass-light" 
                                         onClick={() => setShowSchemaPicker(!showSchemaPicker)}
                                         style={{ 
-                                            padding: '12px', borderRadius: '8px', cursor: 'pointer', 
+                                            padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', 
                                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                             border: '1px solid rgba(0,0,0,0.05)',
                                             transition: 'all 0.2s ease',
@@ -451,67 +458,15 @@ export function WorkflowInspector() {
                                     </div>
 
                                     {showSchemaPicker && (
-                                        <div className="schema-picker-overlay stack--tight glass-strong" style={{
-                                            marginTop: '8px', zIndex: 10, padding: '10px', borderRadius: '8px',
-                                            border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-                                        }}>
-                                            <input 
-                                                autoFocus
-                                                className="input-base font-mono"
-                                                placeholder="BUSCAR_ESQUEMA..."
-                                                value={schemaSearch}
-                                                onChange={(e) => setSchemaSearch(e.target.value)}
-                                                style={{ fontSize: '10px', width: '100%', padding: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', border: 'none', color: 'white' }}
-                                            />
-                                            
-                                            <div className="schema-list stack--tight" style={{ maxHeight: '200px', overflowY: 'auto', marginTop: '10px' }}>
-                                                {availableSchemas
-                                                    .filter(s => (s.handle?.label || '').toUpperCase().includes(schemaSearch.toUpperCase()) || s.id.toUpperCase().includes(schemaSearch.toUpperCase()))
-                                                    .map(s => (
-                                                        <div key={s.id} className="schema-item stack--tight" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '6px' }}>
-                                                            <div className="shelf--tight" style={{ justifyContent: 'space-between' }}>
-                                                                <div 
-                                                                    className="schema-info shelf--tight" 
-                                                                    onClick={() => {
-                                                                        updateTrigger({ ...trigger, source_id: s.id, fields: null });
-                                                                        setShowSchemaPicker(false);
-                                                                    }}
-                                                                    style={{ cursor: 'pointer', flex: 1 }}
-                                                                >
-                                                                    <div className="status-dot" style={{ width: '4px', height: '4px', background: 'var(--color-accent)', borderRadius: '50%' }}></div>
-                                                                    <span style={{ fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                                        {s.handle?.label || s.id}
-                                                                    </span>
-                                                                </div>
-                                                                <div 
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setExpandedSchemaId(expandedSchemaId === s.id ? null : s.id);
-                                                                    }}
-                                                                    style={{ padding: '4px', cursor: 'pointer', opacity: expandedSchemaId === s.id ? 1 : 0.4 }}
-                                                                >
-                                                                    <IndraIcon name="EYE" size="12px" />
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            {expandedSchemaId === s.id && (
-                                                                <div className="schema-preview glass-light" style={{ padding: '8px', marginTop: '4px', borderRadius: '4px' }}>
-                                                                    <div className="indra-field-label" style={{ fontSize: '6px', border: 'none', marginBottom: '4px' }}>ADN_DEL_CONTRATO</div>
-                                                                    {(s.payload?.fields || []).slice(0, 5).map(f => (
-                                                                        <div key={f.id} style={{ fontSize: '8px', opacity: 0.6, display: 'flex', gap: '4px' }}>
-                                                                            <span style={{ color: 'var(--color-accent)' }}>•</span>
-                                                                            {f.label || f.alias || f.id}
-                                                                        </div>
-                                                                    ))}
-                                                                    {(s.payload?.fields || []).length > 5 && (
-                                                                        <div style={{ fontSize: '7px', marginTop: '4px', opacity: 0.3 }}>... y {(s.payload?.fields || []).length - 5} campos más</div>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                            </div>
-                                        </div>
+                                        <ArtifactSelector 
+                                            title="VINCULAR_CONTRATO_DE_DATOS"
+                                            filter={{ class: 'DATA_SCHEMA' }}
+                                            onCancel={() => setShowSchemaPicker(false)}
+                                            onSelect={(item) => {
+                                                updateTrigger({ ...trigger, source_id: item.id, fields: null });
+                                                setShowSchemaPicker(false);
+                                            }}
+                                        />
                                     )}
 
                                     <div className="shelf--tight" style={{ opacity: 0.4, margin: '12px 0 4px 0' }}>
@@ -654,18 +609,22 @@ export function WorkflowInspector() {
                                                             })}
                                                         </div>
                                                         
-                                                        {/* Input para añadir nuevas claves */}
-                                                        <input 
-                                                            className="input-base font-mono"
-                                                            style={{ fontSize: '9px', width: '100%', marginTop: '4px', borderStyle: 'dashed', opacity: 0.5 }}
-                                                            placeholder="+ AÑADIR_VARIABLE (ENTER)"
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter' && e.target.value) {
-                                                                    handleStaticMappingUpdate(fieldId, '', e.target.value);
-                                                                    e.target.value = '';
-                                                                }
+                                                        {/* Gatillo de Inyección Dinámica (Lógica Infinita de Indra) */}
+                                                        <button 
+                                                            className="btn--mini btn--ghost opacity-50 hover-opacity-100" 
+                                                            style={{ 
+                                                                width: '100%', padding: '8px', 
+                                                                border: '1px dashed rgba(255,255,255,0.1)', 
+                                                                background: 'rgba(255,255,255,0.02)',
+                                                                marginTop: '8px', borderRadius: '4px'
                                                             }}
-                                                        />
+                                                            onClick={() => { setActiveParam(`${fieldId}.NEW_VAR_INJECTION`); setShowSlotSelector(true); }}
+                                                        >
+                                                            <div className="shelf--tight" style={{ justifyContent: 'center', gap: '8px' }}>
+                                                                <IndraIcon name="PLUS" size="10px" />
+                                                                <span className="font-mono" style={{ fontSize: '8px', letterSpacing: '0.05em' }}>INYECTAR_DATO_DE_CONTEXTO</span>
+                                                            </div>
+                                                        </button>
                                                     </div>
                                                 ) : isReference ? (
                                                     <div className="shelf--tight" style={{ background: 'var(--color-bg-elevated)', color: 'var(--indra-dynamic-accent)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--indra-dynamic-border)', fontSize: '10px' }}>

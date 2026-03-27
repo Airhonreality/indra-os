@@ -17,179 +17,196 @@ import { DataProjector } from '../../services/DataProjector.js';
 import { IndraIcon } from './IndraIcons.jsx';
 import { ResonanceTuningPanel } from '../dashboard/ResonanceTuningPanel.jsx';
 import { toastEmitter } from '../../services/toastEmitter.js';
-
 import { useAtomCatalog } from '../../hooks/useAtomCatalog.js';
+import { IndraFractalTree } from './IndraFractalTree.jsx';
 
 export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect, onCancel, filter = {} }) {
-    const { services: manifest = [], coreUrl, sessionSecret, pins = [] } = useAppState();
-    const { lang } = useAppState();
+    const { services: manifest = [], coreUrl, sessionSecret, lang } = useAppState();
     const t = useLexicon(lang);
 
     const [browserMode, setBrowserMode] = useState('PINS'); // 'PINS' | 'REALITY'
-    const [contextStack, setContextStack] = useState([]);
-    const [items, setItems] = useState([]);
+    const [treeData, setTreeData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeClassFilter, setActiveClassFilter] = useState(null);
     const [tuningArtifact, setTuningArtifact] = useState(null);
 
-    // ── Catálogo de Átomos Indra ──────────────────────────────────────────
+    // ── Catálogo de Átomos Indra (PINS) ──
     const { 
         atoms: catalogAtoms, 
         isLoading: isCatalogLoading,
         importAtom: handleImportFromCosmos
     } = useAtomCatalog({ 
-        // Solo filtramos si el ArtifactSelector recibió un filtro de clase explícito
         atomClass: filter.class || null 
     });
 
-    const currentContext = contextStack.length > 0 ? contextStack[contextStack.length - 1] : null;
-
-    const loadLevel = useCallback(async () => {
-        setLoading(true);
-        try {
-            let rawItems = [];
-            if (!currentContext) {
-                if (browserMode === 'PINS') {
-                    // Axioma de Coherencia: El selector ahora usa la verdad del catálogo
-                    rawItems = catalogAtoms || [];
-                } else {
-                    // MODO REALIDAD: Usamos los servicios del manifiesto (átomos crudos)
-                    rawItems = manifest;
-                }
-            } else {
-                const effectiveProvider = currentContext.provider || currentContext.id;
-                const result = await executeDirective({
-                    provider: effectiveProvider,
-                    protocol: 'HIERARCHY_TREE',
-                    context_id: currentContext.id === effectiveProvider ? null : currentContext.id
-                }, coreUrl, sessionSecret);
-                rawItems = result.items || [];
-            }
-
-            // AXIOMA DE SINCERIDAD: Todo item en el selector debe ser un Artefacto Proyectado
-            const projected = rawItems
-                .filter(item => {
-                    // Axioma de Presencia Sincera: Si estamos en la raíz del modo REALIDAD, 
-                    // solo mostramos servicios que ya tienen cuenta vinculada.
-                    if (browserMode === 'REALITY' && !currentContext && item.raw?.needs_setup) {
-                        return false;
-                    }
-                    return true;
-                })
-                .map(item => DataProjector.projectArtifact(item))
-                .filter(Boolean);
-
-            setItems(projected);
-        } catch (err) {
-            console.error('[Selector] Load failed:', err);
-            setItems([]);
-        } finally {
-            setLoading(false);
-        }
-    }, [currentContext, manifest, coreUrl, sessionSecret, catalogAtoms, browserMode]);
-
-    // AXIOMA DE TRANSICIÓN: Cambiar de realidad limpia las lentes de búsqueda
+    // ── GÉNESIS DEL ÁRBOL EXPANSIBLE ──
     useEffect(() => {
-        setActiveClassFilter(null);
-        setSearchTerm('');
-        setContextStack([]);
-    }, [browserMode]);
+        if (browserMode === 'PINS') {
+            const projected = (catalogAtoms || []).map(a => ({
+                ...DataProjector.projectArtifact(a),
+                raw: a,
+                isLeaf: true
+            }));
 
-    useEffect(() => { loadLevel(); }, [loadLevel]);
-
-    const handleDrillDown = (item) => {
-        const protocols = item.protocols || [];
-        // Sinceridad Operativa: Si permite navegación, entramos.
-        if (protocols.includes('HIERARCHY_TREE')) {
-            setContextStack([...contextStack, item]);
-            setActiveClassFilter(null); // Reset filters on navigation
-            setSearchTerm('');
+            // Agrupar por Clase si hay muchas
+            const groups = [...new Set(projected.map(p => p.class))];
+            if (groups.length > 1 && !activeClassFilter) {
+                const groupedData = groups.map(cls => ({
+                    id: `group.${cls}`,
+                    label: cls.toUpperCase(),
+                    icon: 'FOLDER',
+                    children: projected.filter(p => p.class === cls).map(p => ({
+                        id: p.id,
+                        label: p.title,
+                        icon: p.theme.icon,
+                        isLeaf: true,
+                        raw: p.raw,
+                        class: p.class
+                    }))
+                }));
+                setTreeData(groupedData);
+            } else {
+                setTreeData(projected.map(p => ({
+                    id: p.id,
+                    label: p.title,
+                    icon: p.theme.icon,
+                    isLeaf: true,
+                    raw: p.raw,
+                    class: p.class
+                })));
+            }
         } else {
-            // AXIOMA DE RESONANCIA: Si es un objeto externo que puede proyectar datos (TABULAR/CALENDAR/SCHEMA)
-            const isExternal = item.provider && !['system', 'native'].includes(item.provider);
-            const isResonantType = ['DATA_SCHEMA', 'TABULAR', 'CALENDAR', 'DATABASE'].includes(item.class);
-            const isAlreadyTuned = item.origin === 'RESONANT';
-
-            if (isExternal && isResonantType && !isAlreadyTuned) {
-                setTuningArtifact(item);
-            } else {
-                onSelect(item);
-            }
+            // MODO REALIDAD (Servicios)
+            const projected = manifest
+                .filter(item => !item.raw?.needs_setup)
+                .map(item => {
+                    const projection = DataProjector.projectArtifact(item);
+                    return {
+                        id: projection.id,
+                        label: projection.title,
+                        icon: projection.theme.icon,
+                        isLeaf: !projection.capabilities.raw.includes('HIERARCHY_TREE'),
+                        raw: item,
+                        provider: item.provider || item.id
+                    };
+                });
+            setTreeData(projected);
         }
-    };
+    }, [browserMode, catalogAtoms, manifest, activeClassFilter]);
 
-    const handleImportVault = async () => {
-        setLoading(true);
+    // ── NAVEGACIÓN ASÍNCRONA (Axioma de Exploración de Mundos) ──
+    const handleExpandBranch = async (node) => {
+        if (!coreUrl || !sessionSecret) return;
+
         try {
-            const res = await executeDirective({
-                provider: 'system',
-                protocol: 'SYSTEM_BLUEPRINT_SYNC',
-                data: { action: 'SCAN' }
+            const effectiveProvider = node.provider || node.raw?.provider || 'system';
+            const result = await executeDirective({
+                provider: effectiveProvider,
+                protocol: 'HIERARCHY_TREE',
+                context_id: node.id === effectiveProvider ? null : node.id
             }, coreUrl, sessionSecret);
-            
-            if (res.items && res.items.length > 0) {
-                toastEmitter.success(`${res.items.length} entidades detectadas y listas para resonar.`);
-                await loadLevel(); // Recargamos para ver los nuevos pins si es modo PINS
-            } else {
-                toastEmitter.warn("No se detectaron nuevas entidades en el Vault.");
-            }
+
+            const rawItems = result.items || [];
+            node.children = rawItems.map(item => {
+                const projection = DataProjector.projectArtifact(item);
+                return {
+                    id: projection.id,
+                    label: projection.title,
+                    icon: projection.theme.icon,
+                    isLeaf: !projection.capabilities.raw.includes('HIERARCHY_TREE'),
+                    raw: item,
+                    provider: effectiveProvider
+                };
+            });
+            setTreeData([...treeData]);
         } catch (err) {
-            toastEmitter.error("Fallo al escanear el Vault: " + err.message);
-        } finally {
-            setLoading(false);
+            console.error('[ArtifactSelector] Expansion failed:', err);
+            toastEmitter.error("No se pudo expandir la rama de realidad.");
         }
     };
 
-    const availableClasses = [...new Set(items.map(i => i.class).filter(Boolean))];
+    const handleSelectNode = (node) => {
+        const item = node.raw;
+        if (!item) return;
+
+        // AXIOMA DE RESONANCIA: Si es un objeto externo que puede proyectar datos 
+        const isExternal = item.provider && !['system', 'native'].includes(item.provider);
+        const isResonantType = ['DATA_SCHEMA', 'TABULAR', 'CALENDAR', 'DATABASE'].includes(item.class);
+        const isAlreadyTuned = item.origin === 'RESONANT';
+
+        if (isExternal && isResonantType && !isAlreadyTuned) {
+            setTuningArtifact(item);
+        } else {
+            onSelect(item);
+        }
+    };
+
+    const renderNode = ({ node, depth, isExpanded, hasChildren, isLoading, toggleExpand }) => {
+        const isLeaf = node.isLeaf;
+        const matchesSearch = !searchTerm || node.label.toUpperCase().includes(searchTerm.toUpperCase());
+        const matchesClass = !activeClassFilter || node.class === activeClassFilter;
+
+        if (!matchesSearch || (!isLeaf && !hasChildren && searchTerm)) return null;
+
+        return (
+            <div 
+                className={`tree-node ${isLeaf ? 'tree-node--leaf' : 'tree-node--branch'} shelf--tight glass-hover`} 
+                style={{ 
+                    padding: '8px 12px',
+                    marginLeft: `${depth * 8}px`,
+                    cursor: 'pointer',
+                    borderRadius: 'var(--radius-sm)',
+                    transition: 'all 0.1s ease',
+                    minHeight: '36px'
+                }}
+                onClick={() => isLeaf ? handleSelectNode(node) : toggleExpand()}
+            >
+                <div style={{ width: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {isLoading ? (
+                        <div className="indra-spin" style={{ width: '10px', height: '10px', border: '1px solid var(--color-accent)', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                    ) : !isLeaf && (
+                        <div style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', opacity: 0.4 }}>
+                            <IndraIcon name="CHEVRON_RIGHT" size="10px" />
+                        </div>
+                    )}
+                </div>
+
+                <IndraIcon 
+                    name={node.icon} 
+                    size="16px" 
+                    color={isLeaf ? 'var(--color-text-primary)' : 'var(--color-accent)'}
+                    style={{ opacity: isLeaf ? 0.7 : 1 }}
+                />
+                
+                <div className="stack--none fill" style={{ marginLeft: '8px' }}>
+                    <span className="font-mono" style={{ fontSize: '12px', fontWeight: isLeaf ? 'bold' : 'normal' }}>
+                        {node.label}
+                    </span>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <>
             <div className="indra-overlay" onClick={onCancel}>
                 <div 
                     className="artifact-selector glass-chassis stack--loose" 
-                    style={{ width: '520px', height: '640px', maxHeight: '85vh', padding: 'var(--space-6)' }}
+                    style={{ width: '520px', height: '640px', maxHeight: '85vh', padding: 'var(--space-6)', overflow: 'hidden' }}
                     onClick={e => e.stopPropagation()}
                 >
-
-                    {/* ── HEADER ── */}
+                    {/* Header */}
                     <header className="stack--tight" style={{ marginBottom: 'var(--space-4)' }}>
                         <div className="spread">
-                            <h2 style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', opacity: 0.6, letterSpacing: '0.2em' }}>INSPECTOR DE ENTIDADES</h2>
+                            <h2 style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', opacity: 0.6, letterSpacing: '0.2em' }}>INSPECTOR_FRACTAL_DE_ENTIDADES</h2>
                             <button onClick={onCancel} className="btn-icon"><IndraIcon name="CLOSE" size="14px" /></button>
-                        </div>
-
-                        <div className="spread">
-                            <div className="shelf--tight" style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', overflowX: 'auto', whiteSpace: 'nowrap', opacity: 0.8 }}>
-                                <span onClick={() => { setContextStack([]); setActiveClassFilter(null); }} style={{ cursor: 'pointer', color: 'var(--color-accent)', fontWeight: 'bold' }}>{t('ROOT')}</span>
-                                {contextStack.map((ctx, i) => (
-                                    <React.Fragment key={ctx.id}>
-                                        <span style={{ color: 'var(--color-text-dim)' }}>/</span>
-                                        <span
-                                            onClick={() => { setContextStack(contextStack.slice(0, i + 1)); setActiveClassFilter(null); }}
-                                            style={{ cursor: 'pointer', color: i === contextStack.length - 1 ? 'var(--color-text-primary)' : 'var(--color-accent)' }}
-                                        >
-                                            {ctx.handle?.label || ctx.id}
-                                        </span>
-                                    </React.Fragment>
-                                ))}
-                            </div>
-
                         </div>
                     </header>
 
-                    {/* ── SEARCH & DYNAMIC FILTERS ── */}
+                    {/* Search & Modes */}
                     <div className="stack--tight" style={{ marginBottom: 'var(--space-6)' }}>
                         <div className="shelf--tight" style={{ width: '100%', gap: 'var(--space-2)' }}>
-                            {contextStack.length > 0 && (
-                                <button 
-                                    onClick={() => setContextStack(contextStack.slice(0, -1))}
-                                    className="btn btn--mini btn--ghost"
-                                    title={t('GO_BACK')}
-                                >
-                                    <IndraIcon name="CHEVRON_LEFT" size="14px" />
-                                </button>
-                            )}
                             <div className="shelf--tight terminal-inset fill" style={{ padding: 'var(--space-2) var(--space-4)' }}>
                                 <IndraIcon name="SEARCH" size="14px" style={{ opacity: 0.4 }} />
                                 <input
@@ -198,128 +215,48 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
                                     className="fill"
-                                    style={{ 
-                                        background: 'transparent', border: 'none', 
-                                        color: 'inherit', 
-                                        fontSize: '13px', fontFamily: 'var(--font-mono)', 
-                                        outline: 'none' 
-                                    }}
+                                    style={{ background: 'transparent', border: 'none', color: 'inherit', fontSize: '13px', fontFamily: 'var(--font-mono)', outline: 'none' }}
                                 />
                             </div>
                             
-                            {/* BOTONES DE IMPORTACIÓN */}
                             <div className="shelf--tight" style={{ gap: 'var(--space-1)' }}>
-                                <button 
-                                    className="btn btn--ghost btn--mini resonance-glow-bridge"
-                                    onClick={handleImportFromCosmos}
-                                    disabled={loading || isCatalogLoading}
-                                    style={{ 
-                                        height: '34px',
-                                        borderRadius: 'var(--radius-sm)',
-                                        padding: '0 12px',
-                                        border: '1px solid var(--color-border)',
-                                        display: 'flex',
-                                        gap: '8px',
-                                        background: 'var(--color-bg-void)'
-                                    }}
-                                >
+                                <button className="btn btn--ghost btn--mini resonance-glow-bridge" onClick={handleImportFromCosmos}>
                                     <IndraIcon name="LAYERS" size="12px" color="var(--color-accent)" />
                                     <span style={{ fontSize: '9px', fontWeight: 'bold' }}>COSMOS</span>
-                                </button>
-
-                                <button 
-                                    className="btn btn--ghost btn--mini"
-                                    onClick={handleImportVault}
-                                    disabled={loading}
-                                    style={{ 
-                                        height: '34px',
-                                        borderRadius: 'var(--radius-sm)',
-                                        padding: '0 12px',
-                                        border: '1px solid var(--color-border)',
-                                        display: 'flex',
-                                        gap: '8px'
-                                    }}
-                                >
-                                    <IndraIcon name="VAULT" size="12px" />
-                                    <span style={{ fontSize: '9px', fontWeight: 'bold' }}>VAULT</span>
                                 </button>
                             </div>
                         </div>
 
                         <div className="spread" style={{ marginTop: 'var(--space-2)' }}>
-                            {/* SELECTOR DE MODO (COSMOS vs REALIDAD) */}
-                            {contextStack.length === 0 ? (
-                                <div className="shelf--tight glass" style={{ padding: '3px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-bg-void)' }}>
-                                    <button 
-                                        className={`btn btn--xs ${browserMode === 'PINS' ? 'btn--active-glass' : 'btn--ghost'}`} 
-                                        onClick={() => setBrowserMode('PINS')}
-                                        style={{ fontSize: '9px', padding: '4px 12px', borderRadius: '6px', border: 'none', background: browserMode === 'PINS' ? 'var(--color-accent)' : 'transparent', color: browserMode === 'PINS' ? 'var(--color-text-inverse)' : 'var(--color-text-primary)' }}
-                                    >
-                                        PINS
-                                    </button>
-                                    <button 
-                                        className={`btn btn--xs ${browserMode === 'REALITY' ? 'btn--active-glass' : 'btn--ghost'}`} 
-                                        onClick={() => setBrowserMode('REALITY')}
-                                        style={{ fontSize: '9px', padding: '4px 12px', borderRadius: '6px', border: 'none', background: browserMode === 'REALITY' ? 'var(--color-accent)' : 'transparent', color: browserMode === 'REALITY' ? 'var(--color-text-inverse)' : 'var(--color-text-primary)' }}
-                                    >
-                                        SERVICIOS
-                                    </button>
-                                </div>
-                            ) : <div />}
-
-                            {availableClasses.length > 0 && (
-                                <div className="shelf--tight" style={{ overflowX: 'auto', padding: 'var(--space-1) 0' }}>
-                                    <button
-                                        onClick={() => setActiveClassFilter(null)}
-                                        className={`chip ${!activeClassFilter ? 'active' : ''}`}
-                                    >{t('ALL')}</button>
-                                    {availableClasses.map(cls => (
-                                        <button
-                                            key={cls}
-                                            onClick={() => setActiveClassFilter(cls)}
-                                            className={`chip ${activeClassFilter === cls ? 'active' : ''}`}
-                                        >{cls}</button>
-                                    ))}
-                                </div>
-                            )}
+                            <div className="shelf--tight glass" style={{ padding: '3px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-bg-void)' }}>
+                                <button 
+                                    className={`btn btn--xs`} 
+                                    onClick={() => setBrowserMode('PINS')}
+                                    style={{ fontSize: '9px', padding: '4px 12px', borderRadius: '6px', border: 'none', background: browserMode === 'PINS' ? 'var(--color-accent)' : 'transparent', color: browserMode === 'PINS' ? 'var(--color-text-inverse)' : 'var(--color-text-primary)' }}
+                                >
+                                    PINS
+                                </button>
+                                <button 
+                                    className={`btn btn--xs`} 
+                                    onClick={() => setBrowserMode('REALITY')}
+                                    style={{ fontSize: '9px', padding: '4px 12px', borderRadius: '6px', border: 'none', background: browserMode === 'REALITY' ? 'var(--color-accent)' : 'transparent', color: browserMode === 'REALITY' ? 'var(--color-text-inverse)' : 'var(--color-text-primary)' }}
+                                >
+                                    SERVICIOS
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    {/* ── BROWSER AREA ── */}
-                    <div className="fill stack" style={{ overflowY: 'auto', minHeight: '300px', gap: '2px', paddingRight: 'var(--space-2)' }}>
-                        {loading ? (
+                    {/* Tree Discovery Area */}
+                    <div className="fill scroll-y" style={{ minHeight: '300px', paddingRight: 'var(--space-2)' }}>
+                        {(loading || isCatalogLoading) ? (
                             <div className="fill center" style={{ opacity: 0.2, fontFamily: 'var(--font-mono)', fontSize: '10px' }}>{t('PULSING_CORE')}</div>
                         ) : (
-                            items
-                                .map((projection, index) => {
-                                    if (!projection) return null;
-                                    const titleStr = String(projection.title || 'SIN_TITULO');
-                                    const idStr = String(projection.id || 'SIN_ID');
-                                    const searchStr = String(searchTerm || '').toUpperCase();
-
-                                    const matchesSearch = !searchTerm ||
-                                        (titleStr.toUpperCase().includes(searchStr)) ||
-                                        (idStr.toUpperCase().includes(searchStr));
-                                    const matchesClass = !activeClassFilter || projection.class === activeClassFilter;
-                                    
-                                    if (!matchesSearch || !matchesClass) return null;
-
-                                    return (
-                                        <button 
-                                            key={`${projection.provider}_${projection.class}_${projection.id}_${index}`} 
-                                            className="shelf--loose glass-hover" 
-                                            onClick={() => handleDrillDown(projection.raw)}
-                                            style={{ borderRadius: 'var(--radius-sm)', padding: 'var(--space-3)' }}
-                                        >
-                                            <IndraIcon name={projection.theme.icon} size="16px" style={{ opacity: 1, color: projection.theme.color }} />
-                                            <div className="stack--tight fill" style={{ textAlign: 'left' }}>
-                                                <span style={{ fontSize: '13px', color: 'var(--color-text-primary)', fontWeight: 'bold' }}>{projection.title}</span>
-                                                <span style={{ fontSize: '9px', opacity: 0.5, fontFamily: 'var(--font-mono)' }}>{projection.subtitle}</span>
-                                            </div>
-                                            {projection.capabilities.raw.includes('HIERARCHY_TREE') && <IndraIcon name="CHEVRON_RIGHT" size="12px" style={{ opacity: 0.3 }} />}
-                                        </button>
-                                    );
-                                })
+                            <IndraFractalTree 
+                                data={treeData}
+                                renderItem={renderNode}
+                                onExpand={handleExpandBranch}
+                            />
                         )}
                     </div>
                 </div>

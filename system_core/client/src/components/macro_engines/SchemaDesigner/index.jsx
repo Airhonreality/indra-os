@@ -17,6 +17,7 @@ import React, { useState, useEffect } from 'react';
 import { LayersPanel } from './LayersPanel';
 import { BlueprintCanvas } from './BlueprintCanvas';
 import { DNAInspector } from './DNAInspector';
+import { SchemaIgnitionPanel } from './SchemaIgnitionPanel';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
 import { IndraEngineHood } from '../../utilities/IndraEngineHood';
 import { IndraIcon } from '../../utilities/IndraIcons';
@@ -633,15 +634,15 @@ export function SchemaDesigner({ atom, bridge }) {
                                     }}
                                 />
                             ) : (
-                                <div className="fill center stack" style={{ opacity: 0.3, padding: 'var(--space-8)' }}>
-                                    <IndraIcon name="SCHEMA" size="32px" />
-                                    <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', textAlign: 'center', letterSpacing: '0.05em', display: 'block' }}>
-                                        SELECCIONA UN CAMPO
-                                    </span>
-                                    <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', textAlign: 'center', letterSpacing: '0.05em', opacity: 0.7, display: 'block' }}>
-                                        PARA INSPECCIONAR
-                                    </span>
-                                </div>
+                                <SchemaIgnitionPanel 
+                                    atom={localAtom} 
+                                    bridge={bridge} 
+                                    onIgnited={(updatedAtom) => {
+                                        setLocalAtom(updatedAtom);
+                                        pushToHistory(updatedAtom);
+                                        lastSavedRef.current = JSON.stringify(updatedAtom);
+                                    }} 
+                                />
                             )}
                         </div>
                     </div>

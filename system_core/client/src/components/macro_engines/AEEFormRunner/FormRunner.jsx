@@ -51,6 +51,7 @@ function FormNode({ field, value, onChange, disabled, isDesignMode }) {
     const isRepeater = field.type === 'REPEATER';
     const isStaticText = field.type === 'STATIC_TEXT';
     const isStaticImage = field.type === 'STATIC_IMAGE';
+    const isSiloShareCreator = field.type === 'SILO_SHARE_CREATOR';
     const t = useLexicon();
     const [isHovered, setIsHovered] = useState(false);
 

@@ -9,11 +9,17 @@ import { CoreConnectionView } from '../CoreConnectionView';
 import { WelcomeTab } from './WelcomeTab';
 import { ArquitecturaTab } from './ArquitecturaTab';
 import { ManualesTab } from './ManualesTab';
+import { ToolsDockTab } from './ToolsDockTab';
+
+// AEE / Engines Overlays
+const MIEEngine = React.lazy(() => import('../../macro_engines/MIEEngine/MIEEngine'));
+const SiloShareGuestView = React.lazy(() => import('../../macro_engines/MIEEngine/guest/SiloShareGuestView').then(m => ({ default: m.SiloShareGuestView })));
 
 /**
  * LandingView (Solar Punk / Axiomatic Edition)
  */
 export const LandingView = () => {
+    const [activeSubPage, setActiveSubPage] = useState(null);
     const activeTab = useAppState(s => s.docsTab);
     const isConnected = useAppState(s => s.isConnected);
     const sessionSecret = useAppState(s => s.sessionSecret);
@@ -27,6 +33,8 @@ export const LandingView = () => {
     } = useAppState();
 
     const googleUser = useAppState(s => s.googleUser);
+    const activeTool = useAppState(s => s.activeTool);
+    const openIngestSession = useAppState(s => s.openIngestSession);
     const { theme, setTheme } = useShell();
     
     // Si ya tenemos usuario de google pero no conectado al core → mostramos el conector directo
@@ -35,6 +43,21 @@ export const LandingView = () => {
             openConnector();
         }
     }, [googleUser, isConnected]);
+
+    // Lógica Sincera: Detección de link de ingesta pública o silo público
+    useEffect(() => {
+        const hash = window.location.hash;
+        
+        // Detección de Ingesta Masiva / Silo Público
+        if (hash.startsWith('#/ingest') || hash.startsWith('#/silo')) {
+            const params = new URLSearchParams(hash.split('?')[1]);
+            const token = params.get('token');
+            if (token) {
+                console.info("[IndraForge] Detectado link atómico externo...");
+                openIngestSession(token);
+            }
+        }
+    }, [openIngestSession]);
 
     const scrollContainerRef = useRef(null);
 
@@ -49,10 +72,20 @@ export const LandingView = () => {
     };
 
     const tabs = [
-        { id: 'BIENVENIDA', label: 'INICIO' },
-        { id: 'ARQUITECTURA', label: 'ARQUITECTURA' },
-        { id: 'MANUALES', label: 'MANUALES' }
+        { id: 'BIENVENIDA', label: 'INICIO', isSubPage: false },
+        { id: 'ARQUITECTURA', label: 'ARQUITECTURA', isSubPage: false },
+        { id: 'MANUALES', label: 'MANUALES', isSubPage: false },
+        { id: 'HERRAMIENTAS', label: 'HERRAMIENTAS', isSubPage: true }
     ];
+
+    const handleTabClick = (tab) => {
+        if (tab.isSubPage) {
+            setActiveSubPage(tab.id);
+        } else {
+            setActiveSubPage(null);
+            scrollToSection(tab.id);
+        }
+    };
 
     useEffect(() => {
         if (showConnector || !scrollContainerRef.current) return;
@@ -89,14 +122,11 @@ export const LandingView = () => {
 
     if (showConnector) {
         return (
-            <div className="landing-axiomatic-connector">
-                <style>{`
-                    .landing-axiomatic-connector { 
-                        display: flex; flex-direction: column; align-items: center; justify-content: center; 
-                        min-height: 100vh; background: var(--color-bg-void); color: var(--color-text-primary); 
-                        width: 100%; top: 0; left: 0; position: fixed; z-index: 2000;
-                    }
-                `}</style>
+            <div className="landing-axiomatic-connector" style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                minHeight: '100vh', background: 'var(--color-bg-void)', color: 'var(--color-text-primary)',
+                width: '100%', top: 0, left: 0, position: 'fixed', zIndex: 2000
+            }}>
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                     <button className="btn btn--ghost btn--mini" onClick={closeConnector}>
                         <IndraIcon name="BACK" size="10px" style={{ marginRight: '8px' }} />
@@ -105,6 +135,32 @@ export const LandingView = () => {
                 </div>
                 <CoreConnectionView />
             </div>
+        );
+    }
+
+    // Renderizado del gestor de silo público
+    if (activeTool === 'SILO_GUEST') {
+        // En este caso renderizamos la vista especializada de Silo en vez del Engine crudo
+        return (
+            <React.Suspense fallback={<div className="fill center status-panel">ABRIENDO SILO COMPARTIDO...</div>}>
+                <SiloShareGuestView />
+            </React.Suspense>
+        );
+    }
+
+    // AXIOMA DE LIBERTAD: Renderizado del motor activo (MIE)
+    if (activeTool === 'MIE' || activeTool === 'INGEST_GUEST' || activeTool === 'INGEST_EXPIRED') {
+        return (
+            <React.Suspense fallback={<div className="fill center status-panel">CARGANDO MOTOR NUCLEAR...</div>}>
+                <MIEEngine />
+            </React.Suspense>
+        );
+    }
+
+    // AXIOMA DE LIBRERÍA LIBRE: Sub-página de herramientas como overlay soberano
+    if (activeSubPage === 'HERRAMIENTAS') {
+        return (
+            <ToolsDockTab onBack={() => setActiveSubPage(null)} />
         );
     }
 
@@ -135,10 +191,11 @@ export const LandingView = () => {
                 }
 
                 .engine-hood-tab {
-                    padding: 8px 24px; border-radius: var(--radius-pill); font-size: 10px;
+                    padding: 8px 16px; border-radius: var(--radius-pill); font-size: 10px;
                     letter-spacing: 0.1em; font-weight: 300; background: transparent;
                     color: var(--color-text-secondary); border: none;
                     display: flex; align-items: center; gap: 8px; transition: all 0.4s ease; cursor: pointer;
+                    white-space: nowrap;
                 }
                 .engine-hood-tab.active {
                     color: var(--color-text-primary);
@@ -165,7 +222,7 @@ export const LandingView = () => {
             <div style={{ 
                 position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', 
                 width: '90%', maxWidth: '1200px', zIndex: 1000,
-                // Quitar pointerEvents: none para asegurar clics en los botones
+                pointerEvents: 'none' // IMPIDE QUE EL WRAPPER BLOQUEE CLICS GLOBALES, LOS HIJOS TIENEN AUTO
             }}>
                 <div style={{
                     background: 'rgba(var(--color-bg-void-rgb), 0.3)',
@@ -180,11 +237,11 @@ export const LandingView = () => {
                                 {tabs.map(tab => (
                                     <div 
                                         key={tab.id} 
-                                        className={`engine-hood-tab ${activeTab === tab.id ? 'active' : ''}`}
-                                        onClick={() => scrollToSection(tab.id)}
+                                        className={`engine-hood-tab ${(tab.isSubPage ? activeSubPage : activeTab) === tab.id ? 'active' : ''}`}
+                                        onClick={() => handleTabClick(tab)}
                                         style={{ pointerEvents: 'auto' }}
                                     >
-                                        <div className="dot" style={{ width: '4px', height: '4px', borderRadius: '50%', background: activeTab === tab.id ? 'var(--color-accent)' : 'transparent' }} />
+                                        <div className="dot" style={{ width: '4px', height: '4px', borderRadius: '50%', background: (tab.isSubPage ? activeSubPage : activeTab) === tab.id ? 'var(--color-accent)' : 'transparent' }} />
                                         {tab.label}
                                     </div>
                                 ))}
@@ -229,6 +286,7 @@ export const LandingView = () => {
                         <ManualesTab />
                     </div>
                 </div>
+
             </div>
         </div>
     );

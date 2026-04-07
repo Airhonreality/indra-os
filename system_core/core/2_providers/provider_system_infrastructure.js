@@ -1117,3 +1117,135 @@ function _system_listAllAtomFiles_() {
     }
     return files;
 }
+
+/**
+ * SYSTEM_SCHEMA_IGNITE: Protocolo de Ignición de Infraestructura.
+ * Toma un DATA_SCHEMA (Idea) y lo manifiesta en un Silo Físico (Materia) via ATOM_CREATE.
+ */
+function _system_handleSchemaIgnite(uqo) {
+  const schemaId = uqo.context_id;
+  const targetProvider = uqo.data?.target_provider || 'drive';
+  const folderId = uqo.data?.target_folder_id || null;
+  const traceId = _system_buildTraceId_('SYSTEM_SCHEMA_IGNITE', schemaId);
+
+  if (!schemaId) throw createError('INVALID_INPUT', 'SYSTEM_SCHEMA_IGNITE requiere context_id (schema_id).');
+
+  // 1. Leer el ADN (Esquema)
+  const schemaAtomRes = _system_readAtom(schemaId, uqo.provider);
+  const schemaAtom = schemaAtomRes.items?.[0];
+  if (!schemaAtom || schemaAtom.class !== DATA_SCHEMA_CLASS_) {
+    throw createError('NOT_FOUND', 'Esquema de datos no encontrado para ignitar.', { trace_id: traceId });
+  }
+
+  // 2. Extraer el ADN completo de los campos (Types, Labels, Config)
+  const fields = schemaAtom.payload?.fields || [];
+  if (fields.length === 0) {
+    throw createError('INVALID_STATE', 'El esquema no tiene campos definidos. No se puede ignitar un vacío.', { trace_id: traceId });
+  }
+
+  // 3. Ejecutar la Ignición (Creación física)
+  // AXIOMA: Delegamos al Protocol Router para que la ignición sea agnóstica al provider destino.
+  const createUqo = {
+    provider: targetProvider,
+    protocol: 'ATOM_CREATE',
+    data: {
+      class: 'TABULAR',
+      name: schemaAtom.handle?.label || 'Nueva Tabla',
+      fields: fields, // Ahora enviamos el array completo de objetos FIELD
+      context_id: folderId
+    }
+  };
+
+  logInfo(`[system] Iniciando ignición de esquema ${schemaId} en ${targetProvider}...`);
+  
+  // 'route' es la función global del protocol_router.gs (ya disponible en el scope global de GAS)
+  const createResult = route(createUqo);
+  
+  if (createResult.metadata?.status !== 'OK' || !createResult.items?.[0]) {
+    const errorMsg = createResult.metadata?.error || 'Error desconocido en el provider destino';
+    throw createError('GENESIS_FAILED', `La ignición falló en el provider "${targetProvider}": ${errorMsg}`, { trace_id: traceId });
+  }
+
+  const siloAtom = createResult.items[0];
+  logInfo(`[system] Silo ignitado con éxito: ${siloAtom.id} (${targetProvider})`);
+
+  // 4. Vincular el ID y Provider en el Esquema (Incarnation)
+  const updateData = {
+    payload: {
+      ...schemaAtom.payload,
+      target_silo_id: siloAtom.id,
+      target_provider: targetProvider,
+      status: 'LIVE' // Marcamos como publicado al cobrar vida física
+    }
+  };
+
+  const updateRes = _system_updateAtom(schemaId, updateData, uqo.provider);
+  
+  return {
+    items: updateRes.items || [],
+    metadata: {
+      status: 'OK',
+      trace_id: traceId,
+      silo_atom: siloAtom,
+      target_provider: targetProvider
+    }
+  };
+}
+
+/**
+ * SYSTEM_CORE_DISCOVERY: Protocolo de Enlace para el Satélite Remoto.
+ * Verifica un Google ID Token y retorna la URL del Core del usuario.
+ * 
+ * AXIOMA DE SEGURIDAD: Este endpoint es la "puerta de entrada soberana" para
+ * el Satélite. Es el único protocolo que no requiere sessionSecret previo.
+ */
+function _system_handleCoreDiscovery(uqo) {
+  const idToken = uqo.data?.id_token;
+  if (!idToken) throw createError('INVALID_INPUT', 'SYSTEM_CORE_DISCOVERY requiere data.id_token.');
+
+  // 1. Verificar el ID Token de Google via tokeninfo
+  let tokenPayload;
+  try {
+    const tokenInfoUrl = `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`;
+    const response = UrlFetchApp.fetch(tokenInfoUrl, { muteHttpExceptions: true });
+    const parsed = JSON.parse(response.getContentText());
+    if (parsed.error) throw createError('AUTH_INVALID', `Token inválido: ${parsed.error_description}`);
+    tokenPayload = parsed;
+  } catch (e) {
+    throw createError('AUTH_INVALID', `No se pudo verificar el ID Token: ${e.message}`);
+  }
+
+  const googleEmail = tokenPayload.email;
+  if (!googleEmail) throw createError('AUTH_INVALID', 'El token no contiene un email válido.');
+
+  // 2. Verificar que el email es el dueño del Core
+  const ownerEmail = PropertiesService.getScriptProperties().getProperty('SYS_CORE_OWNER_EMAIL');
+  if (ownerEmail && ownerEmail !== googleEmail) {
+    throw createError('SECURITY_VIOLATION', `El email ${googleEmail} no es el propietario de este Core.`);
+  }
+
+  // 3. Leer el session_secret existente del Core
+  const existingSecret = PropertiesService.getScriptProperties().getProperty('SYS_SESSION_SECRET');
+  if (!existingSecret) {
+    throw createError('CORE_NOT_INITIALIZED', 'El Core no está inicializado. Completa la instalación en la UI de Indra primero.');
+  }
+
+  // 4. Retornar la URL del propio script (autodescubrimiento)
+  const coreUrl = ScriptApp.getService().getUrl();
+
+  logInfo(`[system] CORE_DISCOVERY exitoso para: ${googleEmail}`);
+
+  return {
+    items: [{
+      id: googleEmail,
+      class: 'SATELLITE_SESSION',
+      handle: { label: googleEmail },
+      payload: {
+        core_url: coreUrl,
+        session_secret: existingSecret,
+        user_handle: googleEmail.split('@')[0]
+      }
+    }],
+    metadata: { status: 'OK' }
+  };
+}

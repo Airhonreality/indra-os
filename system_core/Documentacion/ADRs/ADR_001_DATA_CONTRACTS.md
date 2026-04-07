@@ -264,4 +264,37 @@ Debido a los límites de ejecución de GAS, las inducciones complejas no deben s
 
 ---
 
-*Documento fundacional. Toda contradicción entre código y este ADR debe resolverse actualizando el código.*
+## 11. PROTOCOLO DE IGNICIÓN (Forward Engineering)
+
+Como simetría a la Inducción (ADR-020), la **Ignición** permite que un `DATA_SCHEMA` (ADN) se manifieste como un recurso físico (Materia) en un proveedor externo.
+
+### 11.1 El Contrato de Creación de Materia (ATOM_CREATE para TABULAR)
+
+Para que la ignición sea inteligente, el protocolo `ATOM_CREATE` en la clase `TABULAR` evoluciona para recibir el ADN completo de los campos:
+
+- **Request Payload:**
+```json
+{
+  "class":    "TABULAR",
+  "name":     "Nombre del Silo",
+  "fields":   [
+    { "id": "f1", "label": "Nombre", "type": "TEXT" },
+    { "id": "f2", "label": "Precio", "type": "CURRENCY" },
+    { "id": "f3", "label": "Fecha", "type": "DATE" }
+  ],
+  "context_id": "parent_folder_or_page_id"
+}
+```
+
+### 11.2 Sinceridad de Tipos en Ignición
+Todo provider que implemente `ATOM_CREATE` para la clase `TABULAR` DEBE realizar un esfuerzo de **Mapeo de Tipos Nativos** (ej: crear columnas de tipo Date en Notion o aplicar formatos de moneda en Sheets). Si el provider no soporta un tipo específico, debe degradar a `TEXT` de forma graciosa.
+
+### 11.3 El Vínculo de Encarnación
+Tras una ignición exitosa, el sistema actualiza el `DATA_SCHEMA` original inyectando:
+- `payload.target_silo_id`: El ID nativo del recurso creado.
+- `payload.target_provider`: El ID del proveedor donde reside la materia.
+- `payload.status`: "LIVE" (Auto-publicación).
+
+---
+
+*Documento fundacional. Toda contradicción entre código y este ADR debe resolverse actualizando el código.* (Actualizado ADR-032)

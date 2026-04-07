@@ -458,6 +458,8 @@ function _notion_handleAtomRead(uqo, apiKey) {
 function _notion_handleAtomCreate(uqo, apiKey) {
   const data = uqo.data || {};
   const label = data.handle?.label || data.name;
+  const classType = data.class || 'DOCUMENT';
+
   if (!label) {
     const err = createError('INVALID_INPUT', 'ATOM_CREATE requiere data.handle.label o data.name.');
     return { items: [], metadata: { status: 'ERROR', error: err.message } };
@@ -468,6 +470,38 @@ function _notion_handleAtomCreate(uqo, apiKey) {
   }
 
   try {
+    // ── MODO TABULAR: Crear Database con Propiedades Tipadas (ADR-032)
+    if (classType === 'TABULAR') {
+      const parentId = uqo.context_id;
+      const fields = data.fields || data.payload?.fields || [];
+      
+      const notionProperties = {
+        "Nombre": { "title": {} } // Indra usa 'Nombre' por convención en Notion
+      };
+
+      if (Array.isArray(fields)) {
+        fields.forEach(f => {
+          const name = typeof f === 'object' ? (f.label || f.alias || f.id) : f;
+          if (name === 'Nombre' || name === 'Name') return; 
+          const type = typeof f === 'object' ? f.type : 'TEXT';
+          notionProperties[name] = _notion_translateTypeToNotion(type);
+        });
+      }
+
+      const dbPayload = {
+        parent: { page_id: parentId },
+        title: [ { text: { content: label } } ],
+        properties: notionProperties
+      };
+
+      const created = _notion_notionRequest('/databases', { method: 'POST', payload: dbPayload, apiKey });
+      const atom = _notion_notionObjectToAtom(created, uqo.provider);
+
+      logInfo(`[provider_notion] DATABASE Creada inteligentemente: "${label}" con ${Object.keys(notionProperties).length} props.`);
+      return { items: atom ? [atom] : [], metadata: { status: 'OK' } };
+    }
+
+    // ── MODO DOCUMENT: Crear Página simple
     const pagePayload = {
       parent: { page_id: uqo.context_id },
       properties: {
@@ -478,7 +512,7 @@ function _notion_handleAtomCreate(uqo, apiKey) {
     const created = _notion_notionRequest('/pages', { method: 'POST', payload: pagePayload, apiKey });
     const atom = _notion_notionObjectToAtom(created, uqo.provider);
 
-    logInfo(`[provider_notion] ATOM_CREATE: Created resource: "${label}" under ${uqo.context_id}`);
+    logInfo(`[provider_notion] PÁGINA Creada: "${label}" bajo ${uqo.context_id}`);
     return { items: atom ? [atom] : [], metadata: { status: 'OK' } };
 
   } catch (err) {
@@ -1195,13 +1229,33 @@ function _notion_handleSchemaMutate(uqo, apiKey) {
  * @private
  */
 function _notion_translateTypeToNotion(indraType) {
-  switch (indraType) {
-    case 'NUMBER': return { number: { format: 'number' } };
-    case 'BOOLEAN': return { checkbox: {} };
-    case 'DATE': return { date: {} };
-    case 'ENUM': return { select: {} };
-    case 'ARRAY': return { multi_select: {} };
+  const norm = (indraType || '').toUpperCase();
+  switch (norm) {
+    case 'NUMBER': 
+    case 'CURRENCY':
+      return { number: { format: 'number' } };
+    case 'BOOLEAN': 
+    case 'CHECKBOX':
+      return { checkbox: {} };
+    case 'DATE': 
+    case 'DATETIME':
+      return { date: {} };
+    case 'SELECT':
+    case 'RADIO':
+    case 'ENUM':
+      return { select: {} };
+    case 'MULTISELECT':
+    case 'CHECKBOX_GROUP':
+    case 'ARRAY':
+      return { multi_select: {} };
+    case 'URL':
+      return { url: {} };
+    case 'EMAIL':
+      return { email: {} };
+    case 'PHONE':
+      return { phone_number: {} };
     case 'TEXT':
+    case 'LONG_TEXT':
     default:
       return { rich_text: {} };
   }

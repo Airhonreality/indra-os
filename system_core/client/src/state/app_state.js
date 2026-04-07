@@ -3,6 +3,7 @@ import { createAuthSlice } from './slices/auth.slice';
 import { createIgnitionSlice } from './slices/ignition.slice';
 import { createDomainSlice } from './slices/domain.slice';
 import { createUiSlice } from './slices/ui.slice';
+import { createToolsSlice } from './slices/tools.slice';
 
 /**
  * =============================================================================
@@ -17,4 +18,5 @@ export const useAppState = create((...args) => ({
     ...createIgnitionSlice(...args),
     ...createDomainSlice(...args),
     ...createUiSlice(...args),
+    ...createToolsSlice(...args),
 }));

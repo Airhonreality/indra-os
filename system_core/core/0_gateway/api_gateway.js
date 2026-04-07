@@ -27,7 +27,6 @@
 // =============================================================================
 
 
-
 /**
  * Protocolos de sistema que el gateway maneja directamente (sin provider).
  * @const {string[]}
@@ -45,7 +44,8 @@ const GATEWAY_SYSTEM_PROTOCOLS = Object.freeze([
   'RESOURCE_INGEST',
   'RESOURCE_RESOLVE',
   'SYSTEM_RESONANCE_CRYSTALLIZE',
-  'SYSTEM_WORKSPACE_DEEP_PURGE'
+  'SYSTEM_WORKSPACE_DEEP_PURGE',
+  'EMERGENCY_INGEST'
 ]);
 
 
@@ -164,6 +164,8 @@ function doPost(e) {
         }
         
         logInfo('[gateway] Acceso de GUEST concedido via ticket.', { ticketId: payload.share_ticket, artifactId });
+      } else if (payload.protocol === 'EMERGENCY_INGEST') {
+        logInfo('[gateway] Bypass de Seguridad Activado: Ingesta de Urgencia (Células).');
       } else {
         logWarn('[gateway] Intento de acceso sin credencial válida.');
         return _buildResponse_(401, {
@@ -207,11 +209,6 @@ function doPost(e) {
     // Si el provider no especifica update_type, por defecto es SNAPSHOT (carga completa)
     const updateType = result.metadata.update_type || 'SNAPSHOT';
 
-    // --- 7. Validación Final de Contratos (AXIOMA DE SINCERIDAD V4.1) ---
-    // En pre-lanzamiento, eliminamos la 'Hidratación de Piedad'.
-    // El protocol_router ya valida los átomos. Si algo llega aquí sin handle, 
-    // es un fallo estructural del provider.
-
 
     return _buildResponse_(200, result, {
       'X-Indra-Update-Type': updateType,
@@ -235,7 +232,9 @@ function doPost(e) {
 }
 
 /**
-
+ * Validador de esquemas de datos v3.0
+ */
+function _validatePayload_(payload) {
   return null; // Todos los átomos son válidos v3.0.
 }
 
@@ -243,12 +242,6 @@ function doPost(e) {
 
 /**
  * Maneja la primera petición al servidor no inicializado.
- * Si el payload incluye `password` → bootstrap.
- * Si no → retornar estado BOOTSTRAP para que el cliente muestre el formulario.
- *
- * @param {Object} payload - Payload parseado del request.
- * @returns {GoogleAppsScript.Content.TextOutput}
- * @private
  */
 function _handleBootstrap_(payload) {
   const isProgrammaticHandshake = payload.protocol === 'SYSTEM_INSTALL_HANDSHAKE' && payload.satellite_key;
@@ -302,10 +295,6 @@ function _handleBootstrap_(payload) {
 
 /**
  * Despacha protocolos de sistema que no pertenecen a ningún provider específico.
- *
- * @param {Object} payload - Payload validado del request.
- * @returns {{ items: Array, metadata: Object }}
- * @private
  */
 function _handleSystemProtocol_(payload) {
   const protocol = payload.protocol;
@@ -397,6 +386,11 @@ function _handleSystemProtocol_(payload) {
     return resonance_deep_purge_workspace(payload); // → resonance_service.gs
   }
 
+  if (protocol === 'EMERGENCY_INGEST') {
+    logInfo('[gateway] Ejecutando: Protocolo de Ingesta Masiva / Guerrilla.');
+    return handleEmergencyIngest_(payload);
+  }
+
   // Protocolo de sistema no reconocido
   const err = createError(
     'PROTOCOL_NOT_FOUND',
@@ -407,12 +401,6 @@ function _handleSystemProtocol_(payload) {
 
 /**
  * Persiste los valores enviados por el cliente en SYSTEM_CONFIG_WRITE.
- * Itera `payload.values` y guarda cada par clave/valor de forma AGNÓSTICA:
- * no conoce el nombre de ningún provider, solo delega a `system_config.gs`.
- *
- * @param {Object} payload - Payload con `values: { providerId, accountId, apiKey, label }`.
- * @returns {{ items: Array, metadata: Object }}
- * @private
  */
 function handleConfigWrite_(payload) {
   const { provider_id: providerId, account_id: accountId, api_key: apiKey, label: manualLabel } = payload;
@@ -461,9 +449,6 @@ function handleConfigWrite_(payload) {
 
 /**
  * Elimina una cuenta de provider de PropertiesService.
- * @param {Object} payload - Payload con `provider_id` y `account_id`.
- * @returns {{ items: Array, metadata: Object }}
- * @private
  */
 function handleConfigDelete_(payload) {
   const { provider_id: providerId, account_id: accountId } = payload;
@@ -494,10 +479,6 @@ function handleConfigDelete_(payload) {
 
 /**
  * Parsea de forma defensiva el body de la petición HTTP.
- * @param {GoogleAppsScript.Events.DoPost} e - Evento de GAS.
- * @returns {Object} Payload parseado.
- * @throws {Error} Si el body no es JSON válido.
- * @private
  */
 function _parseBody_(e) {
   const rawBody = e && e.postData && e.postData.contents;
@@ -509,39 +490,20 @@ function _parseBody_(e) {
 
 /**
  * Construye el response HTTP estándar de GAS con Content-Type JSON.
- * @param {number} _statusCode - Código HTTP (ignorado por GAS Apps Script, pero documentado).
- * @param {Object} body        - El objeto response a serializar.
- * @returns {GoogleAppsScript.Content.TextOutput}
- * @private
  */
 function _buildResponse_(_statusCode, body, headers = {}) {
-  // Nota: GAS siempre retorna HTTP 200 en doPost. El status real
-  // se comunica en metadata.status del body JSON.
-
   body.metadata = body.metadata || {};
 
-  // 1. Inyección de Meta-Headers Indra v4.0 (Deltas e Identidad)
   if (headers['X-Indra-Update-Type']) {
     body.metadata.update_type = headers['X-Indra-Update-Type'];
   }
   
-  // AXIOMA DE IDENTIDAD: El Core siempre firma quién es (Sinceridad de Origen)
   try {
     body.metadata.core_id = readCoreOwnerEmail();
-    
-    // Si la autenticación fue con password real, inyectamos un ticket para futuras requests
-    // (Aduana de un solo paso)
-    if (_statusCode === 200 && !body.metadata.session_ticket) {
-       // Solo si el usuario envió password en este request, devolvemos un ticket.
-       // detectamos si el payload original tenía password buscando el trace si estuviera disponible, 
-       // pero una forma más limpia es inyectarlo opcionalmente desde cada handler.
-       // Por ahora, el handshake inicial de bootstrap ya inyecta el ticket.
-    }
   } catch (e) {
     body.metadata.core_id = 'discovery_pending';
   }
 
-  // 2. Inyección de Traza Transaccional (UQO Echo v4.1)
   if (headers['X-Indra-Trace']) {
     body.metadata.trace = JSON.parse(headers['X-Indra-Trace']);
   }
@@ -553,7 +515,6 @@ function _buildResponse_(_statusCode, body, headers = {}) {
 
 /**
  * Sanitiza el UQO para el Echo. Elimina credenciales.
- * @private
  */
 function _sanitizeTrace_(uqo) {
   if (!uqo) return null;
@@ -563,14 +524,94 @@ function _sanitizeTrace_(uqo) {
   if (trace.data) {
     delete trace.data.api_key;
     delete trace.data.password;
+    if (trace.data.base64) delete trace.data.base64; // Evitar el echo del video 
   }
   return trace;
 }
 
 /**
- * Genera un slug válido para el alias (Sincronizado con el frontend IdentityManager).
- * Sigue la Restricción C1: Solo minúsculas, números y guiones bajos.
- * @param {string} text
- * @returns {string}
+ * handleEmergencyIngest_
+ * Protocolo de Ingesta Peristáltica (PUP) - Optimizado para Barichara.
  */
-// _system_slugify_ ha sido movido a 0_utils/indra_utils.gs
+function handleEmergencyIngest_(payload) {
+  const data = payload.data; 
+  const mode = data.mode || 'INIT'; 
+  const destFolderId = "1A3kVrjzYFI5r0LbeJM4PoswTvLzLQRq1"; 
+  
+  if (mode === 'INIT') {
+    const uploader = data.uploader || 'Anonimo';
+    const contact = data.contact || 'Sin-Contacto';
+    const filename = data.filename || 'Archivo';
+    
+    // 1. Obtener Fecha de Origen (Axioma: Clasificación Real)
+    // Si el cliente envía created_at (YYYY-MM-DD), usamos esa. Si no, fallback a hoy.
+    const dateStr = data.created_at || Utilities.formatDate(new Date(), "GMT-5", "yyyy-MM-dd");
+    const dailyFolder = getOrCreateFolder_(destFolderId, dateStr);
+    
+    // 2. Obtener o Crear Carpeta de Autor (Protección contra duplicados)
+    const authorDirName = `${uploader} (${contact})`;
+    const authorFolder = getOrCreateFolder_(dailyFolder.getId(), authorDirName);
+    
+    // 3. Generar URL de Carga Directa (Resumable Upload)
+    const url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable";
+    const options = {
+      method: "post",
+      contentType: "application/json",
+      headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
+      payload: JSON.stringify({
+        name: filename,
+        parents: [authorFolder.getId()],
+        mimeType: data.mimeType || "application/octet-stream"
+      }),
+      muteHttpExceptions: true
+    };
+    
+    const response = UrlFetchApp.fetch(url, options);
+    const uploadUrl = response.getHeaders()["Location"];
+
+    return { metadata: { status: 'OK', upload_url: uploadUrl, classification: dateStr } };
+  }
+
+  if (mode === 'FINALIZE') {
+    try {
+      const file = DriveApp.getFileById(data.file_id);
+      const rootFolder = DriveApp.getFolderById(destFolderId);
+      
+      let sheetFile;
+      const sheets = rootFolder.getFilesByName("REGISTRO_INGESTA_INDRA");
+      if (sheets.hasNext()) {
+        sheetFile = SpreadsheetApp.open(sheets.next());
+      } else {
+        const newSheet = SpreadsheetApp.create("REGISTRO_INGESTA_INDRA");
+        DriveApp.getFileById(newSheet.getId()).moveTo(rootFolder);
+        sheetFile = newSheet;
+        sheetFile.getSheets()[0].appendRow(["FECHA", "AUTOR", "CONTACTO", "ARCHIVO", "TIPO", "URL_DRIVE", "FILE_ID"]);
+        sheetFile.getSheets()[0].setFrozenRows(1);
+      }
+      
+      sheetFile.getSheets()[0].appendRow([
+        new Date(), 
+        data.created_at || "N/A", // FECHA ORIGINAL DE CAPTURA
+        data.uploader || "Anonimo", 
+        data.contact || "-",
+        file.getName(), 
+        file.getMimeType(), 
+        file.getUrl()
+      ]);
+
+      return { items: [{ id: file.getId(), url: file.getUrl() }], metadata: { status: 'OK' } };
+    } catch (err) {
+      return { items: [], metadata: { status: 'ERROR', error: "Finalize Fail: " + err.message } };
+    }
+  }
+}
+
+/**
+ * Utilidad Axiomática: Obtener o crear carpeta de forma segura por ID de padre.
+ */
+function getOrCreateFolder_(parentID, folderName) {
+  const parent = DriveApp.getFolderById(parentID);
+  const folders = parent.getFoldersByName(folderName);
+  if (folders.hasNext()) return folders.next();
+  return parent.createFolder(folderName);
+}

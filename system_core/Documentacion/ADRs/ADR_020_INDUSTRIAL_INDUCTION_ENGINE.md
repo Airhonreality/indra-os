@@ -78,7 +78,8 @@ Aunque la implementación inicial se centra en Notion, el `InductionOrchestrator
 
 ### Próximos Pasos (Phase 3):
 - Implementar **Rollback Atómico**: Si la creación del `BRIDGE` falla, el sistema debe eliminar automáticamente el `DATA_SCHEMA` huérfano para evitar basura en el Drive.
-- **Sugerencia de Tipos por IA**: Utilizar un LLM para analizar el contenido de los datos (no solo el título de la columna) y proponer tipos semánticos más precisos (ej: detectar que una columna de texto es en realidad una dirección de Ethereum).
+- **Inducción Tácita** (Shadow Learning): El sistema aprende de la interacción manual del usuario para refinar los esquemas automáticamente.
+- **Sincronía con Ignición (ADR-032)**: Se cierra el círculo de soberanía permitiendo tanto la lectura (Inducción) como la escritura (Ignición) de infraestructuras complejas.
 
 ---
-*Este documento canoniza la transición de INDRA de "Herramienta de Configuración" a "Plataforma de Inducción Industrial".*
+*Este documento canoniza la transición de INDRA de "Herramienta de Configuración" a "Plataforma de Inducción Industrial".* (Actualizado ADR-032)

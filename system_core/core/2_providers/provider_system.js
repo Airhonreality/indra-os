@@ -26,7 +26,7 @@ function CONF_SYSTEM() {
       'ACCOUNT_RESOLVE', 'SYSTEM_AUDIT', 'REVISIONS_LIST', 'ATOM_ROLLBACK',
       'GETMCEPMANIFEST', 'INTELLIGENCE_CHAT',
       'INDUCTION_START', 'INDUCTION_INDUCE_FULL_STACK', 'INDUCTION_STATUS', 'INDUCTION_CANCEL', 'INDUCTION_DRIFT_CHECK',
-      'SYSTEM_BLUEPRINT_SYNC', 'NATIVE_DOCUMENT_RENDER'
+      'SYSTEM_BLUEPRINT_SYNC', 'NATIVE_DOCUMENT_RENDER', 'SYSTEM_SCHEMA_IGNITE', 'SYSTEM_CORE_DISCOVERY'
     ],
     implements: {
       ATOM_READ: 'handleSystem',
@@ -58,6 +58,8 @@ function CONF_SYSTEM() {
       INDUCTION_DRIFT_CHECK: 'handleSystem',
       SYSTEM_BLUEPRINT_SYNC: 'handleSystem',
       NATIVE_DOCUMENT_RENDER: 'handleSystem',
+      SYSTEM_SCHEMA_IGNITE: 'handleSystem',
+      SYSTEM_CORE_DISCOVERY: 'handleSystem',
     },
 
     capabilities: {
@@ -81,7 +83,9 @@ function CONF_SYSTEM() {
       INDUCTION_STATUS: { sync: 'BLOCKING', purge: 'NONE' },
       INDUCTION_CANCEL: { sync: 'BLOCKING', purge: 'NONE' },
       INDUCTION_DRIFT_CHECK: { sync: 'BLOCKING', purge: 'NONE' },
-      SYSTEM_BLUEPRINT_SYNC: { sync: 'BLOCKING', purge: 'ALL' }
+      SYSTEM_BLUEPRINT_SYNC: { sync: 'BLOCKING', purge: 'ALL' },
+      SYSTEM_SCHEMA_IGNITE: { sync: 'BLOCKING', purge: 'ALL' },
+      SYSTEM_CORE_DISCOVERY: { sync: 'BLOCKING', purge: 'NONE' }
     },
 
     protocol_meta: {
@@ -185,6 +189,13 @@ function CONF_SYSTEM() {
           context_id: { type: 'string', required: true, desc: 'ID del Átomo DOCUMENT (Plantilla)' },
           variables: { type: 'object', desc: 'Mapa de variables para sustituir {{key}}' }
         }
+      },
+      SYSTEM_SCHEMA_IGNITE: {
+        desc: "Manifiesta físicamente un esquema de datos (ADN) en un silo tabular (Físico) de forma agnóstica.",
+        inputs: {
+          context_id: { type: 'string', required: true, desc: 'ID del DATA_SCHEMA a ignitar.' },
+          data: { type: 'object', required: true, desc: '{ target_provider: drive|notion|sql, target_folder_id? }' }
+        }
       }
     }
   });
@@ -239,6 +250,8 @@ function handleSystem(uqo) {
 
   // ─── HANDLER DE BLUEPRINTS (blueprint_manager.gs)
   if (protocol === 'SYSTEM_BLUEPRINT_SYNC') return system_blueprint_sync(uqo);
+  if (protocol === 'SYSTEM_SCHEMA_IGNITE') return _system_handleSchemaIgnite(uqo);
+  if (protocol === 'SYSTEM_CORE_DISCOVERY') return _system_handleCoreDiscovery(uqo);
 
   const err = createError('PROTOCOL_NOT_FOUND', `System no soporta: ${protocol}`);
   return { items: [], metadata: { status: 'ERROR', error: err.message, code: err.code } };

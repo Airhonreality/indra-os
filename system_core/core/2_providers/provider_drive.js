@@ -86,7 +86,7 @@ function CONF_DRIVE() {
         desc: "Crea una nueva FOLDER o DOCUMENT en Google Drive.",
         inputs: {
           name: { type: 'string', required: true, label: 'NOMBRE_RECURSO' },
-          class: { type: 'string', required: true, label: 'TIPO_RECURSO', options: ['FOLDER', 'DOCUMENT'] },
+          class: { type: 'string', required: true, label: 'TIPO_RECURSO', options: ['FOLDER', 'DOCUMENT', 'TABULAR'] },
           context_id: { type: 'string', required: false, label: 'CARPETA_PADRE' }
         }
       }
@@ -124,7 +124,7 @@ const MIME_TO_CLASS_ = Object.freeze({
  */
 const MIME_TO_PROTOCOLS_ = Object.freeze({
   'application/vnd.google-apps.folder': ['HIERARCHY_TREE', 'ATOM_CREATE'],
-  'application/vnd.google-apps.spreadsheet': ['TABULAR_STREAM', 'ATOM_READ'],
+  'application/vnd.google-apps.spreadsheet': ['TABULAR_STREAM', 'ATOM_READ', 'ATOM_CREATE'],
   'application/vnd.google-apps.document': ['ATOM_READ'],
 });
 
@@ -318,6 +318,33 @@ function _drive_handleAtomCreate(uqo) {
       const newFile = parentFolder.createFile(blob);
       atom = _drive_fileToAtom(newFile, uqo.provider, false);
       logInfo(`[provider_drive] Archivo generado: "${label}" (${mimeType}) en "${parentFolder.getName()}"`);
+    } else if (source.class === 'TABULAR') {
+      // ── MODO TABULAR: Crear Google Sheet con cabeceras (Hito de Impresión de Backend)
+      const ss = SpreadsheetApp.create(label.trim());
+      const file = DriveApp.getFileById(ss.getId());
+      
+      // Mover a la carpeta destino
+      parentFolder.addFile(file);
+      DriveApp.getRootFolder().removeFile(file);
+
+      // Inyectar cabeceras si existen (fields)
+      // AXIOMA: Soporte para 'Dynamic Tables' (Hito Futuro: API Sheets v4 para Tablas Oficiales)
+      const fields = source.fields || source.payload?.fields || [];
+      if (Array.isArray(fields) && fields.length > 0) {
+        const sheet = ss.getSheets()[0];
+        const headers = fields.map(f => (typeof f === 'object' ? (f.label || f.alias || f.id) : f));
+        
+        // Formateo Premium de la fila de cabecera
+        const range = sheet.getRange(1, 1, 1, headers.length);
+        range.setValues([headers]);
+        sheet.setFrozenRows(1);
+        range.setFontWeight("bold").setBackground("#f3f4f6").setFontFamily("Inter, Roboto, sans-serif");
+        
+        logInfo(`[provider_drive] Tabular "PREMIUM" configurado con ${headers.length} columnas.`);
+      }
+
+      atom = _drive_fileToAtom(file, uqo.provider, true);
+      logInfo(`[provider_drive] Hoja de cálculo generada: "${label}" en "${parentFolder.getName()}"`);
     } else {
       // ── MODO CARPETA: Comportamiento original
       const newFolder = parentFolder.createFolder(label.trim());

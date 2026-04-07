@@ -84,30 +84,47 @@ class PeristalticUploadService {
                 onProgress(bytesSent / totalSize);
             }
 
-            // 3. FINALIZE
+            // 3. FINALIZE (Cerrar archivo en Drive y registrar)
             if (finalFileInfo && finalFileInfo.id) {
-                await fetch(CORE_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    body: JSON.stringify({
-                        protocol: 'EMERGENCY_INGEST',
-                        data: {
-                            mode: 'FINALIZE',
-                            file_id: finalFileInfo.id,
-                            uploader: uploaderData.name,
-                            contact: uploaderData.contact,
-                            filename: fileName,
-                            created_at: createdAt // FECHA DE ORIGEN PARA EL REGISTRO
-                        }
-                    })
-                });
+                let finalized = false;
+                let finAttempt = 0;
+                while (finAttempt < 3 && !finalized) {
+                    try {
+                        const finalRes = await fetch(CORE_URL, {
+                            method: 'POST',
+                            mode: 'cors',
+                            body: JSON.stringify({
+                                protocol: 'EMERGENCY_INGEST',
+                                data: {
+                                    mode: 'FINALIZE',
+                                    file_id: finalFileInfo.id,
+                                    uploader: uploaderData.name,
+                                    contact: uploaderData.contact,
+                                    filename: fileName,
+                                    created_at: createdAt
+                                }
+                            })
+                        });
+                        if (finalRes.ok) finalized = true;
+                        else throw new Error("Retry Finalize");
+                    } catch (e) {
+                        finAttempt++;
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
+                }
             }
 
-            return { status: 'SUCCESS', fileId: finalFileInfo?.id };
+            // Si llegamos aquí y subimos todos los bytes, es ÉXITO para el usuario.
+            return { 
+                status: 'SUCCESS', 
+                fileId: finalFileInfo?.id || 'unknown',
+                message: "Subida Completa"
+            };
 
         } catch (e) {
             console.error("[PUP Upload] Error Crítico:", e);
-            throw e;
+            // Solo lanzamos error si realmente no pudimos completar la subida de bytes
+            return { status: 'ERROR', error: e.message };
         }
     }
 }

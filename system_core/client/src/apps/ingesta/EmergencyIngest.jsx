@@ -15,13 +15,19 @@ import { ingestManager } from '../../services/multimedia_core/PeristalticIngestM
 // Video 1x1 base64 (Silencioso y de 0 bytes de ancho de banda)
 const SILENT_V = "data:video/mp4;base64,AAAAHGZ0eXBpc29tAAAAAGlzb21tcDQyAAAACHZyZWQAAAAIdm9pZAAAAAhpbmV0AAAACGRhdGEAAAAIZnJlZQAAAAA=";
 
-const LongPressTrash = ({ onConfirm, isRunning }) => {
-    const [pressing, setPressing] = useState(false);
-    const timerRef = useRef(null);
-    const start = () => { if (isRunning) return; setPressing(true); timerRef.current = setTimeout(() => { onConfirm(); setPressing(false); }, 800); };
-    const stop = () => { setPressing(false); if (timerRef.current) clearTimeout(timerRef.current); };
+const SimpleTrash = ({ onConfirm, isRunning }) => {
     return (
-        <button onPointerDown={start} onPointerUp={stop} onPointerLeave={stop} style={{ background: 'transparent', border: 'none', padding: '10px', color: pressing ? '#DC2626' : '#CCC', transition: '0.2s', transform: pressing ? 'scale(1.2)' : 'scale(1)' }}>
+        <button 
+            onClick={() => onConfirm()} 
+            style={{ 
+                background: 'transparent', 
+                border: 'none', 
+                padding: '12px', 
+                color: '#CCC', 
+                cursor: 'pointer',
+                zIndex: 10
+            }}
+        >
             <IndraIcon name="DELETE" size="14px" />
         </button>
     );
@@ -145,11 +151,18 @@ export const EmergencyIngest = () => {
                                 
                                 {item.status === 'PROCESSING' && <div style={{ fontSize: '9px', fontWeight: 800, color: '#666', marginTop: '4px' }}>⚙️ Preparando...</div>}
                                 {item.status === 'COMPLETED' && <div style={{ fontSize: '9px', fontWeight: 800, color: '#059669', marginTop: '4px' }}>✅ Listo</div>}
-                                {item.status === 'ERROR' && <div style={{ fontSize: '9px', fontWeight: 800, color: '#B91C1C', marginTop: '4px' }}>❌ Error</div>}
+                                {item.status === 'ERROR' && (
+                                    <div style={{ marginTop: '4px' }}>
+                                        <div style={{ fontSize: '9px', fontWeight: 800, color: '#B91C1C' }}>❌ Error</div>
+                                        <div style={{ fontSize: '7px', fontWeight: 700, color: '#B91C1C', textTransform: 'uppercase', opacity: 0.8, marginTop: '2px' }}>
+                                            {item.errorMsg || 'Falla Crítica de Datos'}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             
                             <div style={{ display: 'flex', alignItems: 'center', marginLeft: '10px' }}>
-                                {item.status === 'COMPLETED' ? <span style={{ color: '#10B981', fontWeight: 900 }}>✓</span> : <LongPressTrash onConfirm={() => handleRemoveItem(item.id)} isRunning={isRunning} />}
+                                {item.status === 'COMPLETED' ? <span style={{ color: '#10B981', fontWeight: 900 }}>✓</span> : <SimpleTrash onConfirm={() => handleRemoveItem(item.id)} isRunning={isRunning} />}
                             </div>
                         </div>
                     ))}

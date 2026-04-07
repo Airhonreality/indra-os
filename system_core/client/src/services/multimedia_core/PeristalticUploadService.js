@@ -16,32 +16,37 @@ class PeristalticUploadService {
      * @param {Function} onProgress - Callback de %
      * @param {String} createdAt - Fecha ISO (YYYY-MM-DD) de creación real del archivo.
      */
-    async upload(blob, fileName, uploaderData, onProgress = () => {}, createdAt = null) {
-        let uploadUrl = null;
-        let bytesSent = 0;
+    async upload(blob, fileName, uploaderData, onProgress = () => {}, createdAt = null, resumeData = null, onSessionReady = () => {}) {
+        let uploadUrl = resumeData?.uploadUrl || null;
+        let bytesSent = resumeData?.byteOffset || 0;
         const totalSize = blob.size;
 
         try {
-            // 1. INIT Handshake (Aduana Diamante)
-            const response = await fetch(CORE_URL, {
-                method: 'POST',
-                mode: 'cors',
-                body: JSON.stringify({
-                    protocol: 'EMERGENCY_INGEST',
-                    data: {
-                        mode: 'INIT',
-                        filename: fileName,
-                        mimeType: blob.type,
-                        uploader: uploaderData.name,
-                        contact: uploaderData.contact,
-                        created_at: createdAt // FECHA REAL DEL ARCHIVO
-                    }
-                })
-            });
-            
-            const initResult = await response.json();
-            if (initResult.metadata?.status !== 'OK') throw new Error("Aduana Core Cerrada");
-            uploadUrl = initResult.metadata.upload_url;
+            // 1. INIT Handshake (Solo si no tenemos una sesión previa)
+            if (!uploadUrl) {
+                const response = await fetch(CORE_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    body: JSON.stringify({
+                        protocol: 'EMERGENCY_INGEST',
+                        data: {
+                            mode: 'INIT',
+                            filename: fileName,
+                            mimeType: blob.type,
+                            uploader: uploaderData.name,
+                            contact: uploaderData.contact,
+                            created_at: createdAt
+                        }
+                    })
+                });
+                
+                const initResult = await response.json();
+                if (initResult.metadata?.status !== 'OK') throw new Error("Aduana Core Cerrada");
+                uploadUrl = initResult.metadata.upload_url;
+                
+                // NOTIFICAR SESIÓN (Cableado de Resiliencia)
+                onSessionReady(uploadUrl);
+            }
 
             // 2. TRANSFERENCIA POR FRAGMENTOS
             let finalFileInfo = null;

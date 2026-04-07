@@ -84,12 +84,32 @@ class PeristalticQueue {
         const record = await metaStore.get(id);
         
         if (record) {
-            Object.assign(record, { status, ...updates });
+            // Preservar metadatos de progreso previos si no vienen en el update
+            const progressData = {
+                uploadUrl: updates.uploadUrl || record.uploadUrl,
+                byteOffset: updates.byteOffset !== undefined ? updates.byteOffset : record.byteOffset,
+                lastAttempt: Date.now()
+            };
+
+            Object.assign(record, { status, ...updates, ...progressData });
+            
             if (updates.blob) {
                 await tx.objectStore(BLOB_STORE).put({ id, blob: updates.blob });
                 delete record.blob;
             }
             await metaStore.put(record);
+        }
+        await tx.done;
+    }
+
+    async updateProgress(id, progress, byteOffset) {
+        const db = await this.dbPromise;
+        const tx = db.transaction(META_STORE, 'readwrite');
+        const record = await tx.objectStore(META_STORE).get(id);
+        if (record) {
+            record.progress = progress;
+            record.byteOffset = byteOffset;
+            await tx.objectStore(META_STORE).put(record);
         }
         await tx.done;
     }

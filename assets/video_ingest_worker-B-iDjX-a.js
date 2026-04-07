@@ -21,18 +21,8 @@ self.onmessage = async (e) => {
         try {
             console.log(`[MIE VideoWorker] Iniciando Ingesta: ${file.name}`);
 
-            // 1. Instanciar Muxer de Salida
-            const muxer = new Mp4Muxer.Muxer({
-                target: new Mp4Muxer.ArrayBufferTarget(),
-                video: {
-                    codec: 'avc',
-                    width: 0, // Se definirá dinámicamente
-                    height: 0
-                },
-                fastStart: 'in-memory' 
-            });
-
-            // 2. Instanciar el VideoEncoder
+            // 1. Preparar Encoders (Se instanciarán tras el onReady)
+            let muxer;
             let videoEncoder;
             let audioEncoder;
             let videoConfigured = false;
@@ -52,8 +42,16 @@ self.onmessage = async (e) => {
                 width = width % 2 === 0 ? width : width + 1;
                 height = height % 2 === 0 ? height : height + 1;
 
-                muxer.videoOptions.width = width;
-                muxer.videoOptions.height = height;
+                // INSTANCIACIÓN DETERMINISTA DEL MUXER (Elimina Deuda 6)
+                muxer = new Mp4Muxer.Muxer({
+                    target: new Mp4Muxer.ArrayBufferTarget(),
+                    video: {
+                        codec: 'avc',
+                        width: width,
+                        height: height
+                    },
+                    fastStart: 'in-memory' 
+                });
 
                 videoEncoder = new VideoEncoder({
                     output: (chunk, metadata) => muxer.addVideoChunk(chunk, metadata),
@@ -178,35 +176,32 @@ self.onmessage = async (e) => {
             mp4boxfile.appendBuffer(buffer);
             mp4boxfile.flush();
 
-            // 4. LEY DEL DRAIN (Finalización)
-            // Esperar a que los decodificadores y codificadores terminen
-            // En una implementación real usaríamos contadores de frames pendientes
-            setTimeout(async () => {
-                if (videoDecoder) await videoDecoder.flush();
-                if (audioDecoder) await audioDecoder.flush();
-                if (videoEncoder) await videoEncoder.flush();
-                if (audioEncoder) await audioEncoder.flush();
+            // 4. FINALIZACIÓN DETERMINISTA
+            // Esperamos a que todos los buffers se vacíen en el muxer
+            if (videoDecoder) await videoDecoder.flush();
+            if (audioDecoder) await audioDecoder.flush();
+            if (videoEncoder) await videoEncoder.flush();
+            if (audioEncoder) await audioEncoder.flush();
 
-                muxer.finalize();
+            muxer.finalize();
 
-                const resultBlob = new Blob([muxer.target.buffer], { type: 'video/mp4' });
+            const resultBlob = new Blob([muxer.target.buffer], { type: 'video/mp4' });
 
-                const result = {
-                    fileId: id,
-                    originalName: file.name,
-                    canonicalName: file.name.replace(/\.[^/.]+$/, "") + ".mp4",
-                    canonicalBlob: resultBlob,
-                    mimeType: 'video/mp4',
-                    metadata: {
-                        originalSize: file.size,
-                        finalSize: resultBlob.size,
-                        compressionRatio: Number((resultBlob.size / file.size).toFixed(3)),
-                        preset: config.id
-                    }
-                };
+            const result = {
+                fileId: id,
+                originalName: file.name,
+                canonicalName: file.name.replace(/\.[^/.]+$/, "") + ".mp4",
+                canonicalBlob: resultBlob,
+                mimeType: 'video/mp4',
+                metadata: {
+                    originalSize: file.size,
+                    finalSize: resultBlob.size,
+                    compressionRatio: Number((resultBlob.size / file.size).toFixed(3)),
+                    preset: config.id
+                }
+            };
 
-                self.postMessage({ type: 'DONE', data: result });
-            }, 2000); // Fallback temporal para la demo/fase 1
+            self.postMessage({ type: 'DONE', data: result });
 
         } catch (err) {
             console.error("[MIE VideoWorker] Fallo Crítico:", err);

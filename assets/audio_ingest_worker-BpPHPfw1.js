@@ -50,17 +50,26 @@ self.onmessage = async (e) => {
             
             const processAudioFile = () => new Promise(async (resolve, reject) => {
                 const mp4boxfile = MP4Box.createFile();
-                
+                let totalSamples = 0;
+                let decodedSamples = 0;
+                let allSamplesDispatched = false;
+
                 mp4boxfile.onReady = (info) => {
                     const audioTrack = info.audioTracks[0];
                     if (!audioTrack) return reject(new Error("No audio track found"));
+                    
+                    totalSamples = audioTrack.nb_samples;
 
                     const decoder = new AudioDecoder({
-                        output: (audioData) => {
-                            // Aquí se aplicaría la normalización técnica si está habilitada
-                            // Por ahora, pasamos directo al encoder
+                        output: async (audioData) => {
                             encoder.encode(audioData);
                             audioData.close();
+                            decodedSamples++;
+                            // FIX B: Resolver solo cuando TODOS los samples están procesados
+                            if (allSamplesDispatched && decodedSamples >= totalSamples) {
+                                await encoder.flush();
+                                resolve();
+                            }
                         },
                         error: (err) => reject(err)
                     });
@@ -77,26 +86,28 @@ self.onmessage = async (e) => {
 
                 mp4boxfile.onSamples = (id, user, samples) => {
                     for (const sample of samples) {
-                        const chunk = new EncodedAudioChunk({
+                        decoder.decode(new EncodedAudioChunk({
                             type: 'key',
                             timestamp: (sample.cts / sample.timescale) * 1_000_000,
                             duration: (sample.duration / sample.timescale) * 1_000_000,
                             data: sample.data
-                        });
-                        decoder.decode(chunk);
+                        }));
                     }
                 };
 
-                const buffer = await file.arrayBuffer();
-                buffer.fileStart = 0;
-                mp4boxfile.appendBuffer(buffer);
+                // FIX A: Streaming real por bloques de 10MB (no más arrayBuffer total)
+                const CHUNK_SIZE = 10 * 1024 * 1024;
+                let offset = 0;
+                while (offset < file.size) {
+                    const end = Math.min(offset + CHUNK_SIZE, file.size);
+                    const arrayBuffer = await file.slice(offset, end).arrayBuffer();
+                    arrayBuffer.fileStart = offset;
+                    mp4boxfile.appendBuffer(arrayBuffer);
+                    offset = end;
+                    if (offset % (CHUNK_SIZE * 5) === 0) await new Promise(r => setTimeout(r, 0));
+                }
                 mp4boxfile.flush();
-                
-                // Esperar a que todo se procese
-                setTimeout(async () => {
-                    await encoder.flush();
-                    resolve();
-                }, 1000); // Poll rudimentario, idealmente trackear samples vs decoded
+                allSamplesDispatched = true;
             });
 
             await processAudioFile();

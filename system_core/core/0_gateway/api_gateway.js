@@ -17,7 +17,10 @@ const GATEWAY_SYSTEM_PROTOCOLS = Object.freeze([
   'RESOURCE_INGEST',
   'RESOURCE_RESOLVE',
   'SYSTEM_RESONANCE_CRYSTALLIZE',
-  'SYSTEM_WORKSPACE_DEEP_PURGE'
+  'SYSTEM_WORKSPACE_DEEP_PURGE',
+  'SYSTEM_KEYCHAIN_GENERATE',
+  'SYSTEM_KEYCHAIN_REVOKE',
+  'SYSTEM_KEYCHAIN_AUDIT'
 ]);
 
 function doGet(e) {
@@ -42,10 +45,8 @@ function doPost(e) {
 
     if (!isBootstrapped()) return _handleBootstrap_(payload);
 
-    // ADR-034: Llave de Soberanía para Sistemas Remotos (Tickets Maestros de Integración)
-    const storedToken = PropertiesService.getScriptProperties().getProperty('SATELLITE_TOKEN') || 'indra_satellite_omega';
-    const isSatelliteSystem = payload.satellite_token === storedToken;
-    const isAuthenticated = verifyPassword(payload.password) || isSatelliteSystem;
+    // ADR-041: Validación dinámica vía Keychain Engine (Ledger)
+    const isAuthenticated = verifyPassword(payload.password) || _keychain_validate(payload.satellite_token);
 
     if (!isAuthenticated) {
       if (payload.share_ticket) {
@@ -82,6 +83,9 @@ function _handleSystemProtocol_(payload) {
   if (protocol === 'SYSTEM_SHARE_CREATE') return _share_createTicket(payload);
   if (protocol === 'SYSTEM_QUEUE_READ') return { items: pulse_ledger_getPending(), metadata: { status: 'OK' } };
   if (protocol === 'PULSE_WAKEUP') { pulse_service_process_next(); return { metadata: { status: 'OK' } }; }
+  if (protocol === 'SYSTEM_KEYCHAIN_GENERATE') return _keychain_generate(payload);
+  if (protocol === 'SYSTEM_KEYCHAIN_REVOKE') return _keychain_revoke(payload);
+  if (protocol === 'SYSTEM_KEYCHAIN_AUDIT') return _keychain_audit(payload);
   
   return { metadata: { status: 'ERROR', error: 'Protocol not found' } };
 }

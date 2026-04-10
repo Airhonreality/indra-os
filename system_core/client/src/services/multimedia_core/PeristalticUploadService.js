@@ -25,7 +25,7 @@ class PeristalticUploadService {
             // 1. INIT Handshake (Solo si no tenemos una sesión previa)
             if (!uploadUrl) {
                 const directive = {
-                    protocol: 'EMERGENCY_INGEST', // Mantener compatibilidad de protocolo interna
+                    protocol: 'EMERGENCY_INGEST', 
                     data: {
                         mode: 'INIT',
                         filename: fileName,
@@ -37,11 +37,9 @@ class PeristalticUploadService {
 
                 let initResult;
                 if (bridge) {
-                    // MODO NATIVO / SATELLITE
                     const response = await bridge.request({ ...directive, provider: 'system' });
                     initResult = response;
                 } else {
-                    // MODO EMERGENCY (FALLBACK)
                     const response = await fetch(CORE_URL, {
                         method: 'POST',
                         mode: 'cors',
@@ -49,13 +47,20 @@ class PeristalticUploadService {
                     });
                     initResult = await response.json();
                 }
+
+                uploadUrl = initResult.metadata?.uploadUrl;
+                const fileId = initResult.metadata?.file_id;
+
+                if (!uploadUrl || uploadUrl === 'null') {
+                    throw new Error("URL de subida inválida proporcionada por el Gateway");
+                }
                 
                 // NOTIFICAR SESIÓN (Resiliencia e ID de archivo)
-                const fileId = initResult.metadata.file_id;
                 onSessionReady({ uploadUrl, fileId });
                 
                 // NOTIFICACIÓN DE VICTORIA ANTICIPADA (Axioma de Barichara)
-                onHandshake({ uploadUrl, fileId });
+                // En este punto del servicio, el blob ya viene transcodificado desde el Manager.
+                onHandshake({ uploadUrl, fileId }); 
             }
 
             // 2. TRANSFERENCIA POR FRAGMENTOS
@@ -94,8 +99,6 @@ class PeristalticUploadService {
                 onProgress(bytesSent / totalSize);
             }
 
-            // Si llegamos aquí y subimos todos los bytes, es ÉXITO para el usuario.
-            // Axioma de Barichara: Los bytes mandan sobre el registro.
             return { 
                 status: 'SUCCESS', 
                 fileId: finalFileInfo?.id || 'unknown',
@@ -104,7 +107,6 @@ class PeristalticUploadService {
 
         } catch (e) {
             console.error("[PUP Upload] Error Crítico:", e);
-            // Solo lanzamos error si realmente no pudimos completar la subida de bytes
             return { status: 'ERROR', error: e.message };
         }
     }

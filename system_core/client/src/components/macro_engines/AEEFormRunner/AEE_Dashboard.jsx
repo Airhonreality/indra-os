@@ -391,6 +391,7 @@ export function AEEDashboard({ atom, bridge }) {
                                         onFieldChange={updateField}
                                         onExecute={executeLogic}
                                         status={status}
+                                        bridge={bridge}
                                         customButtonLabel={previewAtom.payload?.button_label}
                                         customButtonVariant={previewAtom.payload?.button_variant}
                                         isDesignMode={true}

@@ -1,43 +1,25 @@
 /**
- * PeristalticQueue.js
- * ORIGEN: Sintonía de Inicio v4.9.
- * RESPONSABILIDAD: Persistencia disociada con Autocierre de Conflictos.
- * AXIOMA: Si la versión de DB choca, forzar apertura nueva.
+ * PeristalticQueue.js — v4.65
+ * Evolución: Separación de metadatos y persistencia de blobs.
  */
-
 import { openDB } from 'idb';
 
-const DB_NAME = 'INDRA_VAULT_MASTER_v49'; 
+const DB_NAME = 'indra-multimedia-ingest';
+const VERSION = 1;
 const META_STORE = 'metadata';
 const BLOB_STORE = 'blobs';
 
 class PeristalticQueue {
     constructor() {
-        this.dbPromise = openDB(DB_NAME, 1, {
+        this.dbPromise = openDB(DB_NAME, VERSION, {
             upgrade(db) {
-                if (!db.objectStoreNames.contains(META_STORE)) {
-                    db.createObjectStore(META_STORE, { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains(BLOB_STORE)) {
-                    db.createObjectStore(BLOB_STORE, { keyPath: 'id' });
-                }
+                if (!db.objectStoreNames.contains(META_STORE)) db.createObjectStore(META_STORE, { keyPath: 'id' });
+                if (!db.objectStoreNames.contains(BLOB_STORE)) db.createObjectStore(BLOB_STORE, { keyPath: 'id' });
             },
-            blocked() {
-                console.warn("[IDB] DB bloqueada. Por favor cierra otras pestañas.");
-            },
-            blocking() {
-                console.warn("[IDB] DB bloqueando. Cerrando automáticamente.");
-            },
-            terminated() {
-                console.error("[IDB] DB terminada inesperadamente.");
-            }
         });
     }
 
-    async addFile(file, metadata = {}) {
-        const db = await this.dbPromise;
-        const id = 'indra-' + Math.random().toString(36).substring(2, 10) + '-' + Date.now().toString(36);
-        
+    async addMetadata(id, file, metadata = {}) {
         const metaRecord = {
             id,
             name: file.name,
@@ -45,59 +27,35 @@ class PeristalticQueue {
             size: file.size,
             status: metadata.is_duplicate ? 'COMPLETED' : 'STAGED',
             progress: metadata.is_duplicate ? 1 : 0,
-            metadata: {
-                ...metadata,
-                timestamp: Date.now()
-            }
+            metadata: { ...metadata, timestamp: Date.now() }
         };
-
-        const blobRecord = { id, blob: file };
-
-        const tx = db.transaction([META_STORE, BLOB_STORE], 'readwrite');
-        await tx.objectStore(META_STORE).put(metaRecord);
-        await tx.objectStore(BLOB_STORE).put(blobRecord);
-        await tx.done;
-
+        const db = await this.dbPromise;
+        await db.put(META_STORE, metaRecord);
         return metaRecord;
     }
 
-    async getAllMetadata() {
+    async persistBlob(id, file) {
+        // REGLA DE SEGURIDAD: No persistir en disco local archivos mayores a 200MB 
+        // para evitar bloqueos de IO en móviles.
+        if (file.size > 200 * 1024 * 1024) {
+            console.warn(`[Queue] Archivo ${file.name} es muy grande para IDB. Solo vivirá en RAM.`);
+            return;
+        }
         try {
             const db = await this.dbPromise;
-            return await db.getAll(META_STORE);
+            await db.put(BLOB_STORE, { id, blob: file });
         } catch (e) {
-            console.error("[IDB] Error al leer metadata:", e);
-            return [];
+            console.warn("[Queue] No se pudo persistir Blob en IDB (Quota o IO):", e);
         }
     }
 
-    async getFileBlob(id) {
+    async updateStatus(id, status, extra = {}) {
         const db = await this.dbPromise;
-        const record = await db.get(BLOB_STORE, id);
-        return record ? record.blob : null;
-    }
-
-    async updateStatus(id, status, updates = {}) {
-        const db = await this.dbPromise;
-        const tx = db.transaction([META_STORE, BLOB_STORE], 'readwrite');
-        const metaStore = tx.objectStore(META_STORE);
-        const record = await metaStore.get(id);
-        
-        if (record) {
-            // Preservar metadatos de progreso previos si no vienen en el update
-            const progressData = {
-                uploadUrl: updates.uploadUrl || record.uploadUrl,
-                byteOffset: updates.byteOffset !== undefined ? updates.byteOffset : record.byteOffset,
-                lastAttempt: Date.now()
-            };
-
-            Object.assign(record, { status, ...updates, ...progressData });
-            
-            if (updates.blob) {
-                await tx.objectStore(BLOB_STORE).put({ id, blob: updates.blob });
-                delete record.blob;
-            }
-            await metaStore.put(record);
+        const tx = db.transaction(META_STORE, 'readwrite');
+        const store = tx.objectStore(META_STORE);
+        const item = await store.get(id);
+        if (item) {
+            await store.put({ ...item, status, ...extra });
         }
         await tx.done;
     }
@@ -105,11 +63,10 @@ class PeristalticQueue {
     async updateProgress(id, progress, byteOffset) {
         const db = await this.dbPromise;
         const tx = db.transaction(META_STORE, 'readwrite');
-        const record = await tx.objectStore(META_STORE).get(id);
-        if (record) {
-            record.progress = progress;
-            record.byteOffset = byteOffset;
-            await tx.objectStore(META_STORE).put(record);
+        const store = tx.objectStore(META_STORE);
+        const item = await store.get(id);
+        if (item) {
+            await store.put({ ...item, progress, byteOffset });
         }
         await tx.done;
     }
@@ -120,6 +77,29 @@ class PeristalticQueue {
         await tx.objectStore(META_STORE).delete(id);
         await tx.objectStore(BLOB_STORE).delete(id);
         await tx.done;
+    }
+
+    async clearAll() {
+        const db = await this.dbPromise;
+        const tx = db.transaction([META_STORE, BLOB_STORE], 'readwrite');
+        await tx.objectStore(META_STORE).clear();
+        await tx.objectStore(BLOB_STORE).clear();
+        await tx.done;
+    }
+
+    async getAllMetadata() {
+        try {
+            const db = await this.dbPromise;
+            return await db.getAll(META_STORE);
+        } catch (e) {
+            return [];
+        }
+    }
+
+    async getFileBlob(id) {
+        const db = await this.dbPromise;
+        const record = await db.get(BLOB_STORE, id);
+        return record ? record.blob : null;
     }
 }
 

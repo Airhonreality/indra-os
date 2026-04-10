@@ -46,7 +46,7 @@ const StaticImageRenderer = ({ field, isDesignMode, onUpdate }) => {
 /**
  * Componente Recursivo para renderizar nodos del esquema.
  */
-function FormNode({ field, value, onChange, disabled, isDesignMode }) {
+function FormNode({ field, value, onChange, disabled, isDesignMode, bridge }) {
     const isFrame = field.type === 'FRAME';
     const isRepeater = field.type === 'REPEATER';
     const isStaticText = field.type === 'STATIC_TEXT';
@@ -96,6 +96,7 @@ function FormNode({ field, value, onChange, disabled, isDesignMode }) {
                                 onChange={(alias, val) => onChange(field.alias, { ...value, [alias]: val })}
                                 disabled={disabled}
                                 isDesignMode={isDesignMode}
+                                bridge={bridge}
                             />
                         ))}
                     </div>
@@ -147,6 +148,7 @@ function FormNode({ field, value, onChange, disabled, isDesignMode }) {
                                                 onChange={(alias, val) => updateItem(idx, { ...item, [alias]: val })}
                                                 disabled={disabled}
                                                 isDesignMode={isDesignMode}
+                                                bridge={bridge}
                                             />
                                         ))}
                                     </div>
@@ -211,12 +213,13 @@ function FormNode({ field, value, onChange, disabled, isDesignMode }) {
                 value={value} 
                 onChange={(alias, val) => onChange(alias, val)}
                 disabled={disabled}
+                bridge={bridge}
             />
         </Wrapper>
     );
 }
 
-export function FormRunner({ schema, formData, onFieldChange, onExecute, status, customButtonLabel, customButtonVariant, isDesignMode }) {
+export function FormRunner({ schema, formData, onFieldChange, onExecute, status, customButtonLabel, customButtonVariant, isDesignMode, bridge }) {
     const t = useLexicon();
 
     // Lógica para Canvas Libre: Priorizamos los campos seleccionados en el Micro-Explorador.
@@ -261,6 +264,7 @@ export function FormRunner({ schema, formData, onFieldChange, onExecute, status,
                             onChange={onFieldChange}
                             disabled={status === 'EXECUTING'}
                             isDesignMode={isDesignMode}
+                            bridge={bridge}
                         />
                     ))
                 ) : (

@@ -16,7 +16,7 @@ class PeristalticUploadService {
      * @param {Function} onProgress - Callback de %
      * @param {String} createdAt - Fecha ISO (YYYY-MM-DD) de creación real del archivo.
      */
-    async upload(blob, fileName, uploaderData, onProgress = () => {}, createdAt = null, resumeData = null, onSessionReady = () => {}) {
+    async upload(blob, fileName, uploaderData, onProgress = () => {}, createdAt = null, resumeData = null, onSessionReady = () => {}, onHandshake = () => {}, bridge = null) {
         let uploadUrl = resumeData?.uploadUrl || null;
         let bytesSent = resumeData?.byteOffset || 0;
         const totalSize = blob.size;
@@ -24,28 +24,38 @@ class PeristalticUploadService {
         try {
             // 1. INIT Handshake (Solo si no tenemos una sesión previa)
             if (!uploadUrl) {
-                const response = await fetch(CORE_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    body: JSON.stringify({
-                        protocol: 'EMERGENCY_INGEST',
-                        data: {
-                            mode: 'INIT',
-                            filename: fileName,
-                            mimeType: blob.type,
-                            uploader: uploaderData.name,
-                            contact: uploaderData.contact,
-                            created_at: createdAt
-                        }
-                    })
-                });
+                const directive = {
+                    protocol: 'EMERGENCY_INGEST', // Mantener compatibilidad de protocolo interna
+                    data: {
+                        mode: 'INIT',
+                        filename: fileName,
+                        mimeType: blob.type,
+                        created_at: createdAt,
+                        ...uploaderData
+                    }
+                };
+
+                let initResult;
+                if (bridge) {
+                    // MODO NATIVO / SATELLITE
+                    const response = await bridge.request({ ...directive, provider: 'system' });
+                    initResult = response;
+                } else {
+                    // MODO EMERGENCY (FALLBACK)
+                    const response = await fetch(CORE_URL, {
+                        method: 'POST',
+                        mode: 'cors',
+                        body: JSON.stringify(directive)
+                    });
+                    initResult = await response.json();
+                }
                 
-                const initResult = await response.json();
-                if (initResult.metadata?.status !== 'OK') throw new Error("Aduana Core Cerrada");
-                uploadUrl = initResult.metadata.upload_url;
+                // NOTIFICAR SESIÓN (Resiliencia e ID de archivo)
+                const fileId = initResult.metadata.file_id;
+                onSessionReady({ uploadUrl, fileId });
                 
-                // NOTIFICAR SESIÓN (Cableado de Resiliencia)
-                onSessionReady(uploadUrl);
+                // NOTIFICACIÓN DE VICTORIA ANTICIPADA (Axioma de Barichara)
+                onHandshake({ uploadUrl, fileId });
             }
 
             // 2. TRANSFERENCIA POR FRAGMENTOS
@@ -84,37 +94,8 @@ class PeristalticUploadService {
                 onProgress(bytesSent / totalSize);
             }
 
-            // 3. FINALIZE (Cerrar archivo en Drive y registrar)
-            if (finalFileInfo && finalFileInfo.id) {
-                let finalized = false;
-                let finAttempt = 0;
-                while (finAttempt < 3 && !finalized) {
-                    try {
-                        const finalRes = await fetch(CORE_URL, {
-                            method: 'POST',
-                            mode: 'cors',
-                            body: JSON.stringify({
-                                protocol: 'EMERGENCY_INGEST',
-                                data: {
-                                    mode: 'FINALIZE',
-                                    file_id: finalFileInfo.id,
-                                    uploader: uploaderData.name,
-                                    contact: uploaderData.contact,
-                                    filename: fileName,
-                                    created_at: createdAt
-                                }
-                            })
-                        });
-                        if (finalRes.ok) finalized = true;
-                        else throw new Error("Retry Finalize");
-                    } catch (e) {
-                        finAttempt++;
-                        await new Promise(r => setTimeout(r, 2000));
-                    }
-                }
-            }
-
             // Si llegamos aquí y subimos todos los bytes, es ÉXITO para el usuario.
+            // Axioma de Barichara: Los bytes mandan sobre el registro.
             return { 
                 status: 'SUCCESS', 
                 fileId: finalFileInfo?.id || 'unknown',
@@ -125,6 +106,29 @@ class PeristalticUploadService {
             console.error("[PUP Upload] Error Crítico:", e);
             // Solo lanzamos error si realmente no pudimos completar la subida de bytes
             return { status: 'ERROR', error: e.message };
+        }
+    }
+
+    async verify(fileInfo) {
+        if (!fileInfo || !fileInfo.filename) return false;
+        try {
+            const res = await fetch(CORE_URL, {
+                method: 'POST',
+                mode: 'cors',
+                body: JSON.stringify({
+                    protocol: 'EMERGENCY_INGEST',
+                    data: {
+                        mode: 'VERIFY_SEMANTIC',
+                        filename: fileInfo.filename,
+                        uploader: fileInfo.uploader,
+                        created_at: fileInfo.created_at
+                    }
+                })
+            });
+            const data = await res.json();
+            return data.metadata?.status === 'FOUND' || data.metadata?.status === 'OK';
+        } catch (e) {
+            return false;
         }
     }
 }

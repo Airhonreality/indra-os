@@ -154,7 +154,7 @@ function doPost(e) {
 
     if (!isAuthenticated) {
       // ADR-019: ¿Es un acceso de invitado con ticket válido?
-      if (payload.share_ticket && (payload.protocol === 'ATOM_READ' || payload.protocol === 'LOGIC_EXECUTE' || payload.protocol === 'SYSTEM_MANIFEST')) {
+      if (payload.share_ticket && (payload.protocol === 'ATOM_READ' || payload.protocol === 'LOGIC_EXECUTE' || payload.protocol === 'SYSTEM_MANIFEST' || payload.protocol === 'EMERGENCY_INGEST')) {
         const artifactId = payload.context_id || (payload.data && payload.data.artifact_id);
         ticket = _share_validateTicket(payload.share_ticket, artifactId);
         
@@ -387,7 +387,8 @@ function _handleSystemProtocol_(payload) {
   }
 
   if (protocol === 'EMERGENCY_INGEST') {
-    logInfo('[gateway] Ejecutando: Protocolo de Ingesta Masiva / Guerrilla.');
+    logInfo('[gateway] ATENCIÓN: Ejecutando Protocolo de Emergencia (Modo Guerrilla).');
+    logWarn('[gateway] Este código es una Célula Externa temporal. Extirpar en 2 semanas tras migración nativa.');
     return handleEmergencyIngest_(payload);
   }
 
@@ -531,25 +532,27 @@ function _sanitizeTrace_(uqo) {
 
 /**
  * handleEmergencyIngest_
- * Protocolo de Ingesta Peristáltica (PUP) - Optimizado para Barichara.
+ * PROTOCOLO DE EMERGENCIA - DISEÑADO PARA BARICHARA (ALTA LATENCIA).
+ * ADVERTENCIA: Este bloque de código debe ser eliminado tras la integración 
+ * del sistema nativo de subida de Indra v4.0.
  */
 function handleEmergencyIngest_(payload) {
   const data = payload.data; 
   const mode = data.mode || 'INIT'; 
-  const destFolderId = "1A3kVrjzYFI5r0LbeJM4PoswTvLzLQRq1"; 
+  // AXIOMA: Prioridad al Satélite. Si el código manda un folder, lo respetamos (Soberanía del Dev).
+  const destFolderId = data.target_folder_id || "1A3kVrjzYFI5r0LbeJM4PoswTvLzLQRq1"; 
   
   if (mode === 'INIT') {
     const uploader = data.uploader || 'Anonimo';
     const contact = data.contact || 'Sin-Contacto';
     const filename = data.filename || 'Archivo';
     
-    // 1. Obtener Fecha de Origen (Axioma: Clasificación Real)
-    // Si el cliente envía created_at (YYYY-MM-DD), usamos esa. Si no, fallback a hoy.
+    // JERARQUÍA CRONOLÓGICA REAL: Preferimos la fecha del archivo a la de subida.
     const dateStr = data.created_at || Utilities.formatDate(new Date(), "GMT-5", "yyyy-MM-dd");
     const dailyFolder = getOrCreateFolder_(destFolderId, dateStr);
     
-    // 2. Obtener o Crear Carpeta de Autor (Protección contra duplicados)
-    const authorDirName = `${uploader} (${contact})`;
+    // 2. Obtener o Crear Carpeta de Autor (LIMPIEZA DE IDENTIDAD: Solo nombre, sin contacto)
+    const authorDirName = uploader.trim();
     const authorFolder = getOrCreateFolder_(dailyFolder.getId(), authorDirName);
     
     // 3. Generar URL de Carga Directa (Resumable Upload)

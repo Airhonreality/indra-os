@@ -4,6 +4,7 @@ import { DatePickerWidget } from './widgets/DatePickerWidget';
 import { SelectWidget } from './widgets/SelectWidget';
 import { CurrencyWidget } from './widgets/CurrencyWidget';
 import { FileAttachmentWidget } from './widgets/FileAttachmentWidget';
+import { MultimediaUploaderWidget } from './widgets/MultimediaUploaderWidget';
 
 /**
  * Mapeo de Tipos Semánticos a Componentes de UI.
@@ -16,8 +17,9 @@ export const COMPONENT_MAP = {
     'DATE': DatePickerWidget,
     'SELECT': SelectWidget,
     'RELATION_SELECT': SelectWidget,
-    'IMAGE': ImageUploader,          // Solo imágenes — preview visual
-    'FILE_ATTACHMENT': FileAttachmentWidget, // Cualquier binario (SKP, CDR, PDF...) — ADR-023
+    'IMAGE': ImageUploader,          
+    'FILE_ATTACHMENT': FileAttachmentWidget, 
+    'MULTIMEDIA_UPLOADER': MultimediaUploaderWidget, // Ingesta Masiva Transcodificada
     'CURRENCY': CurrencyWidget,
     'DEFAULT': GenericInput
 };

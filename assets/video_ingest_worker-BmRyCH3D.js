@@ -1,6 +1,6 @@
 /**
- * video_ingest_worker.js — v4.69
- * Blindaje Safari: Extracción de Parameter Sets para decodificación exitosa en iOS.
+ * video_ingest_worker.js — v4.70
+ * Blindaje Nuclear: Muxer con ColorSpace inyectado en constructor y salida de encoder.
  */
 import * as Mp4BoxPkg from 'mp4box';
 import * as Mp4Muxer from 'mp4-muxer';
@@ -34,13 +34,33 @@ self.onmessage = async (e) => {
 
                 muxer = new Mp4Muxer.Muxer({
                     target: new Mp4Muxer.ArrayBufferTarget(),
-                    video: { codec: 'avc', width, height },
+                    video: { 
+                        codec: 'avc', 
+                        width, 
+                        height,
+                        // BLINDAJE: Perfil de color inyectado en el nacimiento del archivo
+                        colorSpace: {
+                            primary: 'bt709',
+                            transfer: 'bt709',
+                            matrix: 'bt709',
+                            fullRange: true
+                        }
+                    },
                     fastStart: 'in-memory' 
                 });
 
                 videoEncoder = new VideoEncoder({
                     output: (chunk, metadata) => {
+                        // Blindaje adicional en el flujo de salida
                         if (metadata && metadata.decoderConfig) {
+                            if (!metadata.decoderConfig.colorSpace) {
+                                metadata.decoderConfig.colorSpace = {
+                                    primary: 'bt709',
+                                    transfer: 'bt709',
+                                    matrix: 'bt709',
+                                    fullRange: true
+                                };
+                            }
                             muxer.addVideoChunk(chunk, metadata);
                         } else {
                             muxer.addVideoChunk(chunk);
@@ -61,7 +81,7 @@ self.onmessage = async (e) => {
                 if (aTrack) {
                     audioEncoder = new AudioEncoder({
                         output: (chunk, metadata) => muxer.addAudioChunk(chunk, metadata),
-                        error: (e) => console.error("[MIE AudioEncoder] Error:", err)
+                        error: (e) => console.error("[MIE AudioEncoder] Error:", e)
                     });
                     audioEncoder.configure({
                         codec: config.audio.codec || 'mp4a.40.2',
@@ -101,7 +121,6 @@ self.onmessage = async (e) => {
                     error: (e) => console.error("[MIE VideoDecoder] Error:", e)
                 });
 
-                // --- HACK PARA SAFARI/IPHONE: Extracción de Description (SPS/PPS) ---
                 const rawTrack = mp4boxfile.getTrackById(vTrack.id);
                 let description = null;
                 if (rawTrack && rawTrack.mdia && rawTrack.mdia.minf && rawTrack.mdia.minf.stbl && rawTrack.mdia.minf.stbl.stsd) {
@@ -110,7 +129,7 @@ self.onmessage = async (e) => {
                         const box = entry.avcC;
                         const stream = new MP4Box.DataStream(undefined, 0, MP4Box.DataStream.BIG_ENDIAN);
                         box.write(stream);
-                        description = new Uint8Array(stream.buffer, 8); // Saltamos el header de la box
+                        description = new Uint8Array(stream.buffer, 8);
                     } else if (entry.hvcC) {
                         const box = entry.hvcC;
                         const stream = new MP4Box.DataStream(undefined, 0, MP4Box.DataStream.BIG_ENDIAN);
@@ -123,7 +142,7 @@ self.onmessage = async (e) => {
                     codec: vTrack.codec,
                     width: vTrack.video.width,
                     height: vTrack.video.height,
-                    description: description // Esto es lo que Safari necesita para no fallar
+                    description: description
                 });
 
                 if (aTrack && audioEncoder) {

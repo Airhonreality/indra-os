@@ -26,6 +26,7 @@ class PeristalticUploadService {
                         filename: fileName,
                         mimeType: blob.type,
                         created_at: createdAt,
+                        uploader: uploaderData.uploader || uploaderData.name || "anonimo",
                         ...uploaderData
                     }
                 };

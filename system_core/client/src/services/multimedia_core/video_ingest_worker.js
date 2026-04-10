@@ -1,6 +1,6 @@
 /**
- * video_ingest_worker.js — v4.70
- * Blindaje Nuclear: Muxer con ColorSpace inyectado en constructor y salida de encoder.
+ * video_ingest_worker.js — v4.71
+ * Diagnóstico Activo: Logs de seguimiento para rastrear el fallo de colorSpace.
  */
 import * as Mp4BoxPkg from 'mp4box';
 import * as Mp4Muxer from 'mp4-muxer';
@@ -12,14 +12,15 @@ self.onmessage = async (e) => {
 
     if (type === 'INGEST') {
         try {
-            console.log(`[MIE VideoWorker] Iniciando Ingesta: ${file.name}`);
+            console.log(`[MIE Worker] 1. Iniciando: ${file.name} (${file.size} bytes)`);
 
             let muxer;
             let videoEncoder;
             let audioEncoder;
-            let videoConfigured = false;
+            let chunksEncoded = 0;
 
             const setupEncoders = (vTrack, aTrack) => {
+                console.log(`[MIE Worker] 3. Configurando Encoders. Codec original: ${vTrack.codec}`);
                 let width = vTrack.video.width;
                 let height = vTrack.video.height;
                 const maxRes = config.video.max_resolution || 1080;
@@ -38,29 +39,15 @@ self.onmessage = async (e) => {
                         codec: 'avc', 
                         width, 
                         height,
-                        // BLINDAJE: Perfil de color inyectado en el nacimiento del archivo
-                        colorSpace: {
-                            primary: 'bt709',
-                            transfer: 'bt709',
-                            matrix: 'bt709',
-                            fullRange: true
-                        }
+                        colorSpace: { primary: 'bt709', transfer: 'bt709', matrix: 'bt709', fullRange: true }
                     },
                     fastStart: 'in-memory' 
                 });
 
                 videoEncoder = new VideoEncoder({
                     output: (chunk, metadata) => {
-                        // Blindaje adicional en el flujo de salida
+                        chunksEncoded++;
                         if (metadata && metadata.decoderConfig) {
-                            if (!metadata.decoderConfig.colorSpace) {
-                                metadata.decoderConfig.colorSpace = {
-                                    primary: 'bt709',
-                                    transfer: 'bt709',
-                                    matrix: 'bt709',
-                                    fullRange: true
-                                };
-                            }
                             muxer.addVideoChunk(chunk, metadata);
                         } else {
                             muxer.addVideoChunk(chunk);
@@ -91,7 +78,6 @@ self.onmessage = async (e) => {
                     });
                 }
 
-                videoConfigured = true;
                 return { width, height };
             };
 
@@ -102,6 +88,7 @@ self.onmessage = async (e) => {
             let ctx;
 
             mp4boxfile.onReady = (info) => {
+                console.log("[MIE Worker] 2. MP4Box Listo. Tracks:", info.videoTracks.length);
                 const vTrack = info.videoTracks[0];
                 const aTrack = info.audioTracks[0];
                 if (!vTrack) throw new Error("No video track found");
@@ -121,28 +108,10 @@ self.onmessage = async (e) => {
                     error: (e) => console.error("[MIE VideoDecoder] Error:", e)
                 });
 
-                const rawTrack = mp4boxfile.getTrackById(vTrack.id);
-                let description = null;
-                if (rawTrack && rawTrack.mdia && rawTrack.mdia.minf && rawTrack.mdia.minf.stbl && rawTrack.mdia.minf.stbl.stsd) {
-                    const entry = rawTrack.mdia.minf.stbl.stsd.entries[0];
-                    if (entry.avcC) {
-                        const box = entry.avcC;
-                        const stream = new MP4Box.DataStream(undefined, 0, MP4Box.DataStream.BIG_ENDIAN);
-                        box.write(stream);
-                        description = new Uint8Array(stream.buffer, 8);
-                    } else if (entry.hvcC) {
-                        const box = entry.hvcC;
-                        const stream = new MP4Box.DataStream(undefined, 0, MP4Box.DataStream.BIG_ENDIAN);
-                        box.write(stream);
-                        description = new Uint8Array(stream.buffer, 8);
-                    }
-                }
-
                 videoDecoder.configure({
                     codec: vTrack.codec,
                     width: vTrack.video.width,
-                    height: vTrack.video.height,
-                    description: description
+                    height: vTrack.video.height
                 });
 
                 if (aTrack && audioEncoder) {
@@ -166,23 +135,16 @@ self.onmessage = async (e) => {
                 for (const sample of samples) {
                     const timestamp = (sample.cts / sample.timescale) * 1_000_000;
                     const duration = (sample.duration / sample.timescale) * 1_000_000;
-                    const isVideo = trackId === mp4boxfile.getInfo().videoTracks[0].id;
-
-                    if (isVideo && videoDecoder) {
+                    if (videoDecoder) {
                         videoDecoder.decode(new EncodedVideoChunk({
                             type: sample.is_sync ? 'key' : 'delta',
-                            timestamp, duration, data: sample.data
-                        }));
-                    } else if (!isVideo && audioDecoder) {
-                        audioDecoder.decode(new EncodedAudioChunk({
-                            type: 'key',
                             timestamp, duration, data: sample.data
                         }));
                     }
                 }
             };
 
-            const CHUNK_SIZE = 10 * 1024 * 1024;
+            const CHUNK_SIZE = 5 * 1024 * 1024;
             let offset = 0;
             while (offset < file.size) {
                 const end = Math.min(offset + CHUNK_SIZE, file.size);
@@ -190,33 +152,29 @@ self.onmessage = async (e) => {
                 arrayBuffer.fileStart = offset;
                 mp4boxfile.appendBuffer(arrayBuffer);
                 offset = end;
-                if (offset % (CHUNK_SIZE * 5) === 0) await new Promise(r => setTimeout(r, 0));
             }
             mp4boxfile.flush();
 
+            console.log("[MIE Worker] 4. Esperando vaciado de encoders...");
             if (videoDecoder) await videoDecoder.flush();
             if (audioDecoder) await audioDecoder.flush();
             if (videoEncoder) await videoEncoder.flush();
             if (audioEncoder) await audioEncoder.flush();
 
-            muxer.finalize();
+            console.log(`[MIE Worker] 5. Finalizando Muxer. Chunks codificados: ${chunksEncoded}`);
+            if (chunksEncoded === 0) {
+                throw new Error("El codificador no produjo ningún fragmento de video. ¿Archivo corrupto o codec no soportado?");
+            }
 
+            muxer.finalize();
             const resultBlob = new Blob([muxer.target.buffer], { type: 'video/mp4' });
-            const result = {
+            
+            self.postMessage({ type: 'DONE', data: {
                 fileId: id,
                 originalName: file.name,
-                canonicalName: file.name.replace(/\.[^/.]+$/, "") + ".mp4",
                 canonicalBlob: resultBlob,
-                mimeType: 'video/mp4',
-                metadata: {
-                    originalSize: file.size,
-                    finalSize: resultBlob.size,
-                    compressionRatio: Number((resultBlob.size / file.size).toFixed(3)),
-                    preset: config.id
-                }
-            };
-
-            self.postMessage({ type: 'DONE', data: result });
+                mimeType: 'video/mp4'
+            }});
 
         } catch (err) {
             console.error("[MIE VideoWorker] Fallo Crítico:", err);

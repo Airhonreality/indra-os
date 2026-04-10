@@ -22,6 +22,7 @@ class PeristalticUploadService {
                     provider: 'drive',
                     protocol: 'ATOM_CREATE',
                     context_id: uploaderData.target_folder_id || 'ROOT',
+                    satellite_token: 'indra_satellite_omega', // ADR-034: Llave de Soberanía
                     data: {
                         name: fileName,
                         class: 'DOCUMENT',

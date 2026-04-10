@@ -65,29 +65,21 @@ function CONF_DRIVE() {
       MEDIA_RESOLVE: { sync: 'BLOCKING', purge: 'NONE' },
     },
     protocol_meta: {
-      SEARCH_DEEP: {
-        desc: "Busca archivos o carpetas en todo el Google Drive por nombre o contenido.",
-        inputs: { search_term: { type: 'string', required: true } }
-      },
-      ATOM_READ: {
-        desc: "Lee la metadata detallada de un archivo o carpeta de Drive.",
-        inputs: { context_id: { type: 'string', required: true } }
-      },
-      MEDIA_RESOLVE: {
-        desc: "(ADR-024) Universal media resolver: BY_ID, BY_NAME_IN_CONTAINER, DIRECT_URL. Retorna INDRA_MEDIA.",
+      TRANSFER_HANDSHAKE: {
+        desc: "Inicia una sesión de transferencia resumible para archivos grandes.",
         inputs: { 
-          strategy: { type: 'string', required: true, desc: 'BY_ID | BY_NAME_IN_CONTAINER | DIRECT_URL' },
-          asset_id: { type: 'string', required: false },
-          container_ref: { type: 'string', required: false },
-          asset_name: { type: 'string', required: false }
+          filename: { type: 'string', required: true },
+          mimeType: { type: 'string', required: true },
+          parent_id: { type: 'string', required: false }
         }
       },
       ATOM_CREATE: {
-        desc: "Crea una nueva FOLDER o DOCUMENT en Google Drive.",
+        desc: "Crea una nueva FOLDER o un DOCUMENT (vía handshake si es pesado).",
         inputs: {
-          name: { type: 'string', required: true, label: 'NOMBRE_RECURSO' },
-          class: { type: 'string', required: true, label: 'TIPO_RECURSO', options: ['FOLDER', 'DOCUMENT', 'TABULAR'] },
-          context_id: { type: 'string', required: false, label: 'CARPETA_PADRE' }
+          name: { type: 'string', required: true },
+          class: { type: 'string', required: true },
+          context_id: { type: 'string', required: false },
+          intent: { type: 'string', required: false, desc: 'TRANSFER | DIRECT' }
         }
       }
     }
@@ -157,10 +149,9 @@ function handleDrive(uqo) {
   if (protocol === 'TABULAR_STREAM') return _drive_handleTabularStream(uqo);
   if (protocol === 'ATOM_CREATE')    return _drive_handleAtomCreate(uqo);
   if (protocol === 'ATOM_UPDATE')    return _drive_handleAtomUpdate(uqo);
-  if (protocol === 'ATOM_DELETE')    return _drive_handleAtomDelete(uqo);
   if (protocol === 'SEARCH_DEEP')    return _drive_handleSearchDeep(uqo);
-  // ADR-024: Universal Media Resolver (agnóstico a provider)
-  if (protocol === 'MEDIA_RESOLVE')  return _drive_handleMediaResolve(uqo);
+  if (protocol === 'TRANSFER_HANDSHAKE') return _drive_handleTransferHandshake(uqo);
+  if (protocol === 'MEDIA_RESOLVE')   return _drive_handleMediaResolve(uqo);
 
   const err = createError('PROTOCOL_NOT_FOUND',
     `El Silo "Drive" no soporta el protocolo: "${protocol}".`
@@ -345,6 +336,16 @@ function _drive_handleAtomCreate(uqo) {
 
       atom = _drive_fileToAtom(file, uqo.provider, true);
       logInfo(`[provider_drive] Hoja de cálculo generada: "${label}" en "${parentFolder.getName()}"`);
+    } else if (source.class === 'DOCUMENT' && source.intent === 'TRANSFER') {
+      // ── MODO TRANSFERENCIA: Emitir Handshake para el Cliente
+      return _drive_handleTransferHandshake({ 
+        ...uqo, 
+        data: { 
+          filename: label, 
+          mimeType: source.mime_type || 'application/octet-stream',
+          parent_id: uqo.context_id 
+        } 
+      });
     } else {
       // ── MODO CARPETA: Comportamiento original
       const newFolder = parentFolder.createFolder(label.trim());
@@ -895,6 +896,52 @@ function _drive_buildMediaAtom(file, providerId) {
   };
 
   return mediaAtom;
+}
+
+/**
+ * TRANSFER_HANDSHAKE: Genera una sesión de subida resumible en Google Drive.
+ * ADR-025: Inteligencia Multimodal Adaptativa.
+ * @private
+ */
+function _drive_handleTransferHandshake(uqo) {
+  const data = uqo.data || {};
+  const filename = data.filename || 'Untitled';
+  const mimeType = data.mimeType || 'application/octet-stream';
+  const parentId = data.parent_id || 'ROOT';
+
+  logInfo(`[provider_drive] Negociando Handshake para: ${filename}`);
+
+  try {
+    const url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable";
+    const options = {
+      method: "post",
+      contentType: "application/json",
+      headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
+      payload: JSON.stringify({
+        name: filename,
+        parents: [parentId],
+        mimeType: mimeType
+      }),
+      muteHttpExceptions: true
+    };
+    
+    const response = UrlFetchApp.fetch(url, options);
+    const uploadUrl = response.getHeaders()["Location"];
+
+    if (!uploadUrl) throw new Error("Google Drive denegó la creación de sesión resumible.");
+
+    return { 
+      metadata: { 
+        status: 'HANDSHAKE_READY', 
+        transfer_protocol: 'GOOGLE_RESUMABLE',
+        upload_url: uploadUrl,
+        intent: 'TRANSFER'
+      } 
+    };
+  } catch (err) {
+    logError('[provider_drive] Fallo en Transfer Handshake.', err);
+    return { metadata: { status: 'ERROR', error: err.message } };
+  }
 }
 
 

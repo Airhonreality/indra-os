@@ -10,11 +10,6 @@ const CHUNK_SIZE_BASE = 1 * 1024 * 1024;
 class PeristalticUploadService {
     /**
      * Sube un bloque de datos (Blob) al repositorio Indra.
-     * @param {Blob} blob - El archivo transcodificado.
-     * @param {String} fileName - Nombre canónico.
-     * @param {Object} uploaderData - {name, contact}
-     * @param {Function} onProgress - Callback de %
-     * @param {String} createdAt - Fecha ISO (YYYY-MM-DD) de creación real del archivo.
      */
     async upload(blob, fileName, uploaderData, onProgress = () => {}, createdAt = null, resumeData = null, onSessionReady = () => {}, onHandshake = () => {}, bridge = null) {
         let uploadUrl = resumeData?.uploadUrl || null;
@@ -22,7 +17,7 @@ class PeristalticUploadService {
         const totalSize = blob.size;
 
         try {
-            // 1. INIT Handshake (Solo si no tenemos una sesión previa)
+            // 1. INIT Handshake
             if (!uploadUrl) {
                 const directive = {
                     protocol: 'EMERGENCY_INGEST', 
@@ -48,18 +43,20 @@ class PeristalticUploadService {
                     initResult = await response.json();
                 }
 
-                uploadUrl = initResult.metadata?.uploadUrl;
-                const fileId = initResult.metadata?.file_id;
+                console.log("[PUP] Init Result:", JSON.stringify(initResult));
 
-                if (!uploadUrl || uploadUrl === 'null') {
+                // Extracción flexible de metadata
+                const meta = initResult.metadata || initResult;
+                uploadUrl = meta.uploadUrl;
+                const fileId = meta.file_id || meta.fileId;
+
+                if (!uploadUrl || uploadUrl === 'null' || uploadUrl === 'undefined') {
+                    console.error("[PUP] Fallo al resolver URL de subida. Result:", initResult);
                     throw new Error("URL de subida inválida proporcionada por el Gateway");
                 }
                 
-                // NOTIFICAR SESIÓN (Resiliencia e ID de archivo)
                 onSessionReady({ uploadUrl, fileId });
-                
-                // NOTIFICACIÓN DE VICTORIA ANTICIPADA (Axioma de Barichara)
-                // En este punto del servicio, el blob ya viene transcodificado desde el Manager.
+                // El Manager activará el Handshake después de la fase MIE
                 onHandshake({ uploadUrl, fileId }); 
             }
 
@@ -99,11 +96,7 @@ class PeristalticUploadService {
                 onProgress(bytesSent / totalSize);
             }
 
-            return { 
-                status: 'SUCCESS', 
-                fileId: finalFileInfo?.id || 'unknown',
-                message: "Subida Completa"
-            };
+            return { status: 'SUCCESS', fileId: finalFileInfo?.id || 'unknown' };
 
         } catch (e) {
             console.error("[PUP Upload] Error Crítico:", e);
@@ -119,19 +112,12 @@ class PeristalticUploadService {
                 mode: 'cors',
                 body: JSON.stringify({
                     protocol: 'EMERGENCY_INGEST',
-                    data: {
-                        mode: 'VERIFY_SEMANTIC',
-                        filename: fileInfo.filename,
-                        uploader: fileInfo.uploader,
-                        created_at: fileInfo.created_at
-                    }
+                    data: { mode: 'VERIFY_SEMANTIC', ...fileInfo }
                 })
             });
             const data = await res.json();
             return data.metadata?.status === 'FOUND' || data.metadata?.status === 'OK';
-        } catch (e) {
-            return false;
-        }
+        } catch (e) { return false; }
     }
 }
 

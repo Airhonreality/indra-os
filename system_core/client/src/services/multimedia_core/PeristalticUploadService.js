@@ -1,15 +1,12 @@
 /**
  * PeristalticUploadService.js
- * ORIGEN: Sincronía Diamante v4.0.
- * RESPONSABILIDAD: Subida quirúrgica de archivos individuales con reporte de estado.
+ * ORIGEN: Sincronía Diamante v4.1 (Agnosticismo Total)
+ * RESPONSABILIDAD: Negociar y ejecutar transferencias masivas usando protocolos canónicos.
  */
-
-const CORE_URL = "https://script.google.com/macros/s/AKfycbyhEucpkr6GtpMqQ0LnenhP4SIUXOUJ2M4ycFIVGLBmUuxWYL6hXRTUOBESiC6LlpfA/exec";
-const CHUNK_SIZE_BASE = 1 * 1024 * 1024; 
 
 class PeristalticUploadService {
     /**
-     * Sube un bloque de datos (Blob) al repositorio Indra.
+     * Sube un bloque de datos usando el estándar ADR-025 (Transfer Handshake).
      */
     async upload(blob, fileName, uploaderData, onProgress = () => {}, createdAt = null, resumeData = null, onSessionReady = () => {}, onHandshake = () => {}, bridge = null) {
         let uploadUrl = resumeData?.uploadUrl || null;
@@ -17,54 +14,52 @@ class PeristalticUploadService {
         const totalSize = blob.size;
 
         try {
-            // 1. INIT Handshake
+            // 1. NEGOCIACIÓN DE TRANSFERENCIA (ATOM_CREATE + TRANSFER INTENT)
             if (!uploadUrl) {
+                console.log("[PUP] Solicitando Handshake Canónico para:", fileName);
+                
                 const directive = {
-                    protocol: 'EMERGENCY_INGEST', 
+                    provider: 'drive',
+                    protocol: 'ATOM_CREATE',
+                    context_id: uploaderData.target_folder_id || 'ROOT',
                     data: {
-                        mode: 'INIT',
-                        filename: fileName,
-                        mimeType: blob.type,
-                        created_at: createdAt,
-                        uploader: uploaderData.uploader || uploaderData.name || "anonimo",
-                        ...uploaderData
+                        name: fileName,
+                        class: 'DOCUMENT',
+                        intent: 'TRANSFER',
+                        mime_type: blob.type,
+                        uploader: uploaderData.uploader || uploaderData.name || 'anonimo',
+                        created_at: createdAt
                     }
                 };
 
-                let initResult;
+                let response;
                 if (bridge) {
-                    const response = await bridge.request({ ...directive, provider: 'system' });
-                    initResult = response;
+                    response = await bridge.request(directive);
                 } else {
-                    const response = await fetch(CORE_URL, {
-                        method: 'POST',
-                        mode: 'cors',
-                        body: JSON.stringify(directive)
-                    });
-                    initResult = await response.json();
+                    // Fallback para entornos sin bridge (Indra Standard Fetch)
+                    // Nota: En producción, el bridge gestiona la seguridad y la ruta.
+                    throw new Error("Bridge no disponible. El estandard Indra requiere Bridge para Negociación.");
                 }
 
-                console.log("[PUP] Init Result:", JSON.stringify(initResult));
+                console.log("[PUP] Respuesta del Provider:", JSON.stringify(response));
 
-                // Extracción flexible: Soportar ambos formatos (camelCase y snake_case)
-                const meta = initResult.metadata || initResult;
-                uploadUrl = meta.upload_url || meta.uploadUrl;
-                const fileId = meta.file_id || meta.fileId;
-
-                if (!uploadUrl || uploadUrl === 'null' || uploadUrl === 'undefined') {
-                    console.error("[PUP] Fallo al resolver URL de subida. Result:", initResult);
-                    throw new Error("URL de subida inválida proporcionada por el Gateway");
+                const meta = response.metadata || {};
+                
+                if (meta.status === 'HANDSHAKE_READY') {
+                    uploadUrl = meta.upload_url;
+                    console.log("[PUP] Handshake EXITOSO. Iniciando transferencia directa a Google.");
+                } else {
+                    console.error("[PUP] El Provider no aceptó la negociación de transferencia.");
+                    throw new Error(meta.error || "Fallo en la negociación del Silo.");
                 }
                 
-                onSessionReady({ uploadUrl, fileId });
-                // El Manager activará el Handshake después de la fase MIE
-                onHandshake({ uploadUrl, fileId }); 
+                onSessionReady({ uploadUrl, fileId: meta.file_id || 'pending' });
+                onHandshake({ uploadUrl, fileId: meta.file_id || 'pending' }); 
             }
 
-            // 2. TRANSFERENCIA POR FRAGMENTOS
-            let finalFileInfo = null;
+            // 2. TRANSFERENCIA DIRECTA (Soberanía del Frontend)
             while (bytesSent < totalSize) {
-                const chunkEnd = Math.min(bytesSent + CHUNK_SIZE_BASE, totalSize);
+                const chunkEnd = Math.min(bytesSent + (1024 * 1024), totalSize);
                 const chunk = blob.slice(bytesSent, chunkEnd);
                 
                 let success = false;
@@ -84,41 +79,24 @@ class PeristalticUploadService {
                             bytesSent = chunkEnd;
                             success = true;
                         } else if (res.ok) {
-                            finalFileInfo = await res.json();
                             bytesSent = chunkEnd;
                             success = true;
                         } else { throw new Error("Retry"); }
                     } catch (e) {
                         attempt++;
-                        await new Promise(r => setTimeout(r, Math.pow(1.5, attempt) * 1000));
+                        await new Promise(r => setTimeout(r, Math.min(5000, 1000 * Math.pow(1.5, attempt))));
                     }
                 }
-                if (!success) throw new Error("Fallo de red tras reintentos");
+                if (!success) throw new Error("Fallo de red persistente.");
                 onProgress(bytesSent / totalSize);
             }
 
-            return { status: 'SUCCESS', fileId: finalFileInfo?.id || 'unknown' };
+            return { status: 'SUCCESS' };
 
         } catch (e) {
-            console.error("[PUP Upload] Error Crítico:", e);
+            console.error("[PUP] Error Crítico de Transferencia:", e);
             return { status: 'ERROR', error: e.message };
         }
-    }
-
-    async verify(fileInfo) {
-        if (!fileInfo || !fileInfo.filename) return false;
-        try {
-            const res = await fetch(CORE_URL, {
-                method: 'POST',
-                mode: 'cors',
-                body: JSON.stringify({
-                    protocol: 'EMERGENCY_INGEST',
-                    data: { mode: 'VERIFY_SEMANTIC', ...fileInfo }
-                })
-            });
-            const data = await res.json();
-            return data.metadata?.status === 'FOUND' || data.metadata?.status === 'OK';
-        } catch (e) { return false; }
     }
 }
 

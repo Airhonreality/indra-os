@@ -1256,23 +1256,40 @@ const DEFAULT_SATELLITE_TOKEN_ = 'indra_satellite_omega';
 
 /**
  * Obtiene el ledger de llaves desde el almacenamiento persistente.
+ * ADR-041: Incluye blindaje de resiliencia (try-catch) ante corrupción del JSON.
  * @private
  */
 function _keychain_getLedger_() {
     const raw = PropertiesService.getScriptProperties().getProperty(KEYCHAIN_STORAGE_KEY_);
-    if (!raw) {
-        // Bootstrap: Crear el primer token si el sistema está virgen
-        const initial = {};
-        initial[DEFAULT_SATELLITE_TOKEN_] = {
-            name: "Sistema Monolítico (Bootstrap)",
-            status: "ACTIVE",
-            created_at: new Date().toISOString(),
-            scopes: ["ALL"]
-        };
-        _keychain_saveLedger_(initial);
-        return initial;
+    
+    // CASO: Sistema virgen (Instalación nueva)
+    if (!raw) return _keychain_bootstrap_();
+
+    try {
+        return JSON.parse(raw);
+    } catch (e) {
+        // CABLE DE RESILIENCIA: El JSON está corrupto.
+        logError("[keychain] LEDGER CORRUPTO. Ejecutando protocolo de recuperación de emergencia.", e);
+        return _keychain_bootstrap_();
     }
-    return JSON.parse(raw);
+}
+
+/**
+ * Protocolo de recuperación / inicio de Llaveros.
+ * @private
+ */
+function _keychain_bootstrap_() {
+    const initial = {};
+    initial[DEFAULT_SATELLITE_TOKEN_] = {
+        name: "Sistema Monolítico (Bootstrap)",
+        status: "ACTIVE",
+        class: "MASTER", // CABLE DE JURISDICCIÓN: Nivel de acceso absoluto
+        created_at: new Date().toISOString(),
+        scopes: ["ALL"]
+    };
+    _keychain_saveLedger_(initial);
+    logWarn("[keychain] Bootstrap de emergencia ejecutado.");
+    return initial;
 }
 
 function _keychain_saveLedger_(ledger) {
@@ -1281,12 +1298,18 @@ function _keychain_saveLedger_(ledger) {
 
 /**
  * Valida si un token existe y está activo.
+ * Retorna el contexto del satélite si es válido, o null si no.
  */
 function _keychain_validate(token) {
-    if (!token) return false;
+    if (!token) return null;
     const ledger = _keychain_getLedger_();
     const entry = ledger[token];
-    return entry && entry.status === 'ACTIVE';
+    
+    if (entry && entry.status === 'ACTIVE') {
+        return entry; // Retornamos el perfil completo para validación de jurisdicción en el Gateway
+    }
+    
+    return null;
 }
 
 /**
@@ -1303,6 +1326,7 @@ function _keychain_generate(uqo) {
     ledger[newToken] = {
         name: name,
         status: "ACTIVE",
+        class: "MASTER", // Por defecto se crean como MASTER
         created_at: new Date().toISOString(),
         scopes: scopes
     };

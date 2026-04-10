@@ -46,7 +46,8 @@ function doPost(e) {
     if (!isBootstrapped()) return _handleBootstrap_(payload);
 
     // ADR-041: Validación dinámica vía Keychain Engine (Ledger)
-    const isAuthenticated = verifyPassword(payload.password) || _keychain_validate(payload.satellite_token);
+    const satelliteContext = _keychain_validate(payload.satellite_token);
+    const isAuthenticated = verifyPassword(payload.password) || !!satelliteContext;
 
     if (!isAuthenticated) {
       if (payload.share_ticket) {
@@ -98,6 +99,7 @@ function _sanitizeTrace_(uqo) {
   const t = { ...uqo };
   delete t.password;
   delete t.api_key;
+  delete t.satellite_token; // ADR-041: Privacidad de llave maestra
   return t;
 }
 

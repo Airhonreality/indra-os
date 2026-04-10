@@ -45,9 +45,9 @@ class PeristalticUploadService {
 
                 console.log("[PUP] Init Result:", JSON.stringify(initResult));
 
-                // Extracción flexible de metadata
+                // Extracción flexible: Soportar ambos formatos (camelCase y snake_case)
                 const meta = initResult.metadata || initResult;
-                uploadUrl = meta.uploadUrl;
+                uploadUrl = meta.upload_url || meta.uploadUrl;
                 const fileId = meta.file_id || meta.fileId;
 
                 if (!uploadUrl || uploadUrl === 'null' || uploadUrl === 'undefined') {

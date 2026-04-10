@@ -30,15 +30,41 @@ export function useIngestBridge(bridge = null) {
         };
     }
 
-    // MODO EMERGENCY: Fallback absoluto para proyectos sin sesión (Cero-Fricción)
+    // MODO PUBLIC_SATELLITE: Entorno configurado estáticamente vía SATELLITE_TOKEN (ADR-041)
+    // Se usa cuando el Satélite es público (sin sesión OAuth) pero tiene llaves maestras en variables globales.
+    const globalCoreUrl = window?.INDRA_CORE_URL;
+    const globalSatelliteToken = window?.INDRA_SATELLITE_TOKEN;
+
+    if (globalCoreUrl && globalSatelliteToken) {
+        return {
+            mode: 'PUBLIC_SATELLITE',
+            request: async (directive) => {
+                // Inyectar el token maestro en la directiva
+                const payload = { ...directive, satellite_token: globalSatelliteToken };
+                const res = await fetch(globalCoreUrl, { 
+                    method: 'POST', 
+                    mode: 'cors',
+                    body: JSON.stringify(payload) 
+                });
+                return await res.json();
+            }
+        };
+    }
+
+    // MODO FALLBACK LEGACY (Montechico Original)
     return {
-        mode: 'EMERGENCY',
+        mode: 'LEGACY_FALLBACK',
         request: async (directive) => {
             const URL = "https://script.google.com/macros/s/AKfycbyhEucpkr6GtpMqQ0LnenhP4SIUXOUJ2M4ycFIVGLBmUuxWYL6hXRTUOBESiC6LlpfA/exec";
+            // Asegurar que si el servicio no inyectó el token, mandamos el omega
+            const payload = { 
+                satellite_token: 'indra_satellite_omega', 
+                ...directive 
+            };
             const res = await fetch(URL, { 
                 method: 'POST', 
                 mode: 'cors',
-                body: JSON.stringify(directive) 
+                body: JSON.stringify(payload) 
             });
             return await res.json();
         }

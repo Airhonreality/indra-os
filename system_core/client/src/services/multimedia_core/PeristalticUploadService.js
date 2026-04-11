@@ -4,11 +4,13 @@
  * RESPONSABILIDAD: Negociar y ejecutar transferencias masivas usando protocolos canónicos.
  */
 
+import { IngestBridge } from '../IngestBridge';
+
 class PeristalticUploadService {
     /**
      * Sube un bloque de datos usando el estándar ADR-025 (Transfer Handshake).
      */
-    async upload(blob, fileName, uploaderData, onProgress = () => {}, createdAt = null, resumeData = null, onSessionReady = () => {}, onHandshake = () => {}, bridge = null) {
+    async upload(blob, fileName, uploaderData, onProgress = () => {}, createdAt = null, resumeData = null, onSessionReady = () => {}, onHandshake = () => {}) {
         let uploadUrl = resumeData?.uploadUrl || null;
         let bytesSent = resumeData?.byteOffset || 0;
         const totalSize = blob.size;
@@ -24,6 +26,7 @@ class PeristalticUploadService {
                     context_id: uploaderData.target_folder_id || 'ROOT',
                     data: {
                         name: fileName,
+                        handle: { label: fileName },
                         class: 'DOCUMENT',
                         intent: 'TRANSFER',
                         mime_type: blob.type,
@@ -32,14 +35,13 @@ class PeristalticUploadService {
                     }
                 };
 
-                let response;
-                if (bridge) {
-                    response = await bridge.request(directive);
-                } else {
-                    // Fallback para entornos sin bridge (Indra Standard Fetch)
-                    // Nota: En producción, el bridge gestiona la seguridad y la ruta.
+                const activeBridge = IngestBridge.getBridge();
+
+                if (!activeBridge) {
                     throw new Error("Bridge no disponible. El estandard Indra requiere Bridge para Negociación.");
                 }
+
+                let response = await activeBridge.request(directive);
 
                 console.log("[PUP] Respuesta del Provider:", JSON.stringify(response));
 

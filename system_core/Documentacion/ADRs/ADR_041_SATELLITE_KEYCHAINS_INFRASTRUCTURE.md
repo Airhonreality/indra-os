@@ -66,5 +66,22 @@ const isAuthenticated = verifyPassword(payload.password) || isSatelliteSystem;
 
 ---
 
-## 6. Conclusión
-La arquitectura de Keychains permite que Indra escale de un simple script a una **Plataforma de Operaciones Multitenant**, donde cada empresa gestiona su propio ecosistema de satélites con seguridad de nivel industrial y rapidez de despliegue "Lightning-Fast".
+## 7. Implementación del Singleton (Bootstrapping)
+
+Para evitar dependencias del ciclo de vida de UI (React Hooks), el sistema adopta un Singleton puramente agnóstico:
+
+```javascript
+// IngestBridge.js (Singleton)
+class IngestBridge {
+  init(config) { ... }
+  getBridge() { ... }
+}
+```
+
+Este modelo garantiza que los servicios de fondo (`PeristalticUploadService`) siempre tengan acceso al canal de comunicación sin importar el estado del renderizado.
+
+---
+
+## 8. Conclusión
+
+La arquitectura de Keychains y el Singleton Bridge permiten que Indra escale de un simple script a una **Plataforma de Operaciones Multitenant**, donde cada empresa gestiona su propio ecosistema de satélites con seguridad de nivel industrial y rapidez de despliegue "Lightning-Fast".

@@ -72,7 +72,14 @@ export async function executeDirective(uqo, coreUrl, sessionSecret) {
             throw new Error(`CORE_PARSING_ERROR: La respuesta no es JSON. Contenido: ${responseText.substring(0, 100)}...`);
         }
 
-        // Validar The Return Law
+        // --- ESCUDO DE RESILIENCIA (ADR-003-B) ---
+        // Si hay metadatos de éxito pero el backend fue "perezoso" y no envió 'items',
+        // completamos el contrato preventivamente para no romper la ejecución.
+        if (result && result.metadata && !result.items) {
+            result.items = [];
+        }
+
+        // Validar The Return Law (Nivel Estricto)
         if (!result || !result.metadata) {
             console.groupEnd();
             throw new Error('CONTRACT_VIOLATION: Missing metadata in response');

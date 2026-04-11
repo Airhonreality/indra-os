@@ -84,7 +84,7 @@ class PeristalticIngestManager {
 
             // Si NO existe, es un archivo nuevo
             const id = fingerprintId;
-            this.filesVault.set(id, { blob: file, bridge: uploader?.bridge });
+            this.filesVault.set(id, { blob: file });
             const optimisticMeta = {
                 id,
                 name: file.name,
@@ -192,9 +192,6 @@ class PeristalticIngestManager {
                     currentStep = "UPLOAD";
                     await this._updateItemStatus(item.id, 'UPLOADING', { name: processedName, uploadUrl: item.uploadUrl });
 
-                    // Obtener bridge desde el vaultData ya extraído arriba
-                    const bridge = vaultData?.bridge || null;
-
                     const uploadResult = await peristalticUploadService.upload(
                         processedBlob,
                         processedName,
@@ -206,15 +203,14 @@ class PeristalticIngestManager {
                         ({ uploadUrl, fileId }) => {
                             console.log(`[Manager] Handshake OK: ${item.name}. Marcando Éxito Anticipado.`);
                             this._updateItemStatus(item.id, 'COMPLETED', { uploadUrl, fileId, progress: 1 });
-                        },
-                        bridge
+                        }
                     );
 
                     if (uploadResult.status === 'SUCCESS') {
                         await this._updateItemStatus(item.id, 'COMPLETED', { progress: 1 });
                     } else {
                         // --- PRUEBA DE VERDAD DE LOS BYTES (AXIOMA OPTIMISTA) ---
-                        const currentItem = this.queue.find(q => q.id === id);
+                        const currentItem = this.queue.find(q => q.id === item.id);
                         const bytesRemaining = currentItem ? (processedBlob.size - (currentItem.byteOffset || 0)) : processedBlob.size;
                         const isFullySent = bytesRemaining < 2048; 
                         
@@ -247,8 +243,7 @@ class PeristalticIngestManager {
 
     async relinkFile(id, newFile) {
         // Restaurar el puntero físico en la bóveda de RAM
-        const existingBridge = this.filesVault.get(id)?.bridge;
-        this.filesVault.set(id, { blob: newFile, bridge: existingBridge });
+        this.filesVault.set(id, { blob: newFile });
         
         // Persistir en disco si es < 200MB (para redundancia futura)
         peristalticQueue.persistBlob(id, newFile);

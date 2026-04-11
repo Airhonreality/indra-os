@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { IndraIcon } from '../../components/utilities/IndraIcons';
 import { ingestManager } from '../../services/multimedia_core/PeristalticIngestManager';
+import { IngestBridge } from '../../services/IngestBridge';
 
 const PULSE_V = "data:video/mp4;base64,AAAAHGZ0eXBpc29tAAAAAGlzb21tcDQyAAAACHZyZWQAAAAIdm9pZAAAAAhpbmV0AAAACGRhdGEAAAAIZnJlZQAAAAA="; 
 
@@ -27,6 +28,14 @@ export const EmergencyIngest = () => {
     const pulseIntervalRef = useRef(null);
 
     useEffect(() => {
+        // Inicializar el Bridge en modo Satélite real (ADR-041)
+        // Esto lanzará un error ruidoso si las variables globales no están presentes.
+        IngestBridge.init({ 
+            mode: 'SATELLITE', 
+            coreUrl: window.INDRA_CORE_URL, 
+            satelliteToken: window.INDRA_SATELLITE_TOKEN 
+        });
+        
         ingestManager.init();
         const unsubscribe = ingestManager.subscribe((state) => {
             setQueue(state.queue);

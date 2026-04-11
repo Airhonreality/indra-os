@@ -35,10 +35,9 @@ export function MultimediaUploaderWidget({ field, value, onChange, disabled, bri
     const handleFile = (e) => {
         if (!e.target.files.length) return;
         
-        // Inyectamos el bridge en el manager para esta tanda de archivos
+        // Inyectamos los archivos en el manager
         ingestManager.addFiles(Array.from(e.target.files), { 
-            uploader: 'User', 
-            bridge 
+            uploader: 'User'
         });
         
         // Disparar procesamiento de cola

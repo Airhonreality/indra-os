@@ -201,12 +201,15 @@ function _validateInputContract_(uqo) {
  * Valida que el objeto retornado por un provider cumple The Return Law:
  * `{ items: Array, metadata: Object }`.
  *
- * @param {*} result          - El resultado retornado por el handler.
+ * CIVISMO CONTEXTUAL (ADR-003-C): El rigor de la ley se modula según el protocolo.
+ *
+ * @param {Object} result     - El resultado retornado por el handler.
  * @param {string} providerId - ID del provider para mensajes de error.
+ * @param {string} protocol   - Protocolo ejecutado para determinar el rigor.
  * @throws {Object} Error estructurado si el retorno viola The Return Law.
  * @private
  */
-function _validateReturnLaw_(result, providerId) {
+function _validateReturnLaw_(result, providerId, protocol) {
   if (!result || typeof result !== 'object') {
     throw createError(
       'CONTRACT_VIOLATION',
@@ -215,11 +218,25 @@ function _validateReturnLaw_(result, providerId) {
     );
   }
 
+  const normalizedProto = (protocol || '').toUpperCase();
+  
+  // PROTOCOLOS DE ACCIÓN / NEGOCIACIÓN (Donde 'items' es opcional o secundario)
+  const ACTION_PROTOCOLS = [
+    'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 
+    'ATOM_ALIAS_RENAME', 'TRANSFER_PUSH', 'MEDIA_RESOLVE',
+    'HANDSHAKE_INIT', 'SIGNAL_PULSE'
+  ];
+
+  // Si falta 'items' en un protocolo de acción, el sistema lo inyecta (Escudo de Resiliencia Backend)
   if (!Object.prototype.hasOwnProperty.call(result, 'items')) {
-    throw createError(
-      'CONTRACT_VIOLATION',
-      `Provider "${providerId}" violó The Return Law: falta el campo "items".`
-    );
+    if (ACTION_PROTOCOLS.includes(normalizedProto)) {
+      result.items = [];
+    } else {
+      throw createError(
+        'CONTRACT_VIOLATION',
+        `Provider "${providerId}" violó The Return Law en protocolo de lectura "${normalizedProto}": falta el campo "items".`
+      );
+    }
   }
 
   if (!Object.prototype.hasOwnProperty.call(result, 'metadata')) {
@@ -372,7 +389,7 @@ function route(uqo) {
   }
 
   // --- Validar retorno: The Return Law y contrato de átomo ---
-  _validateReturnLaw_(result, providerId);
+  _validateReturnLaw_(result, providerId, protocol);
   _validateAtomContract_(result.items, providerId, protocol);
 
   // ADR-008: VALIDACIÓN RADICAL DE SCHEMAS EN STREAMS

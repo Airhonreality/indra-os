@@ -59,9 +59,11 @@ function CONF_DRIVE() {
     config_schema: [],
     capabilities: {
       ATOM_CREATE: { sync: 'BLOCKING', purge: 'ALL' },
+      ATOM_READ: { sync: 'BLOCKING', purge: 'NONE' },
       ATOM_UPDATE: { sync: 'BLOCKING', purge: 'ID' },
       ATOM_DELETE: { sync: 'BLOCKING', purge: 'ALL' },
       HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE' },
+      SEARCH_DEEP: { sync: 'BLOCKING', purge: 'NONE' },
       MEDIA_RESOLVE: { sync: 'BLOCKING', purge: 'NONE' },
     },
     protocol_meta: {

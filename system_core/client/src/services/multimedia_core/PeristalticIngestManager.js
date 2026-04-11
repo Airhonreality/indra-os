@@ -1,10 +1,7 @@
-/**
- * PeristalticIngestManager.js — v4.74
- * DIAGNÓSTICO DE ALTA PRECISIÓN: Captura de etapa y motivo de muerte.
- */
 import { peristalticQueue } from './PeristalticQueue';
 import { peristalticUploadService } from './PeristalticUploadService';
 import { MIEOrchestrator } from './MIEOrchestrator';
+import { IngestBridge } from '../IngestBridge';
 
 class PeristalticIngestManager {
     constructor() {
@@ -13,6 +10,7 @@ class PeristalticIngestManager {
         this.listeners = new Set();
         this.orchestrator = new MIEOrchestrator();
         this.filesVault = new Map();
+        this.folderCache = new Map(); // Cache para evitar redundancia en resolución de rutas
         this._initialized = false;
     }
 
@@ -189,6 +187,42 @@ class PeristalticIngestManager {
                     }
 
                     // FASE 2: UPLOAD (Un Solo Disparo - Evita Duplicados)
+                    currentStep = "RESOLVE_CONTEXT";
+                    const rootFolderId = uploaderData.target_folder_id || 'root';
+                    const formName = uploaderData.form_name || 'Ingesta_Indra';
+                    const fileDate = item.metadata?.created_at || new Date().toISOString().split('T')[0];
+
+                    const formFolderId = await this._ensureFolder(formName, rootFolderId);
+                    const finalFolderId = await this._ensureFolder(fileDate, formFolderId);
+                    
+                    // Actualizamos la metadata del ítem para que el UploadService sepa dónde guardarlo
+                    item.metadata.target_folder_id = finalFolderId;
+
+                    // FASE 1.7: ESCUDO DE DEDUPLICACIÓN SOBERANA (Remota)
+                    currentStep = "CHECK_REMOTE";
+                    console.log(`[Deduplicator] Verificando existencia remota para: ${processedName}`);
+                    
+                    const remoteSearch = await IngestBridge.getBridge().request({
+                        provider: 'drive',
+                        protocol: 'ATOM_READ',
+                        query: { 
+                            name: processedName, 
+                            parentId: finalFolderId, 
+                            trashed: false 
+                        }
+                    });
+
+                    if (remoteSearch.items && remoteSearch.items.length > 0) {
+                        console.log(`[Deduplicator] ¡COINCIDENCIA REMOTA DETECTADA! El archivo ya existe. Saltando subida.`);
+                        const remoteFileId = remoteSearch.items[0].id;
+                        await this._updateItemStatus(item.id, 'COMPLETED', { 
+                            progress: 1, 
+                            fileId: remoteFileId,
+                            errorMsg: 'Deduplicado (Ya existía en nube)' 
+                        });
+                        continue; // Saltamos a la siguiente tarea de la cola
+                    }
+
                     currentStep = "UPLOAD";
                     await this._updateItemStatus(item.id, 'UPLOADING', { name: processedName, uploadUrl: item.uploadUrl });
 
@@ -270,6 +304,61 @@ class PeristalticIngestManager {
         this.queue = this.queue.map(q => q.id === id ? { ...q, progress, byteOffset } : q);
         this._notify();
         await peristalticQueue.updateProgress(id, progress, byteOffset);
+    }
+
+    /**
+     * ASEGURAMIENTO SOBERANO DE CONTEXTO (ADR-041-S)
+     * Busca o crea una carpeta en Drive usando protocolos nativos.
+     */
+    async _ensureFolder(name, parentId = 'root') {
+        const cacheKey = `${parentId}:${name}`;
+        if (this.folderCache.has(cacheKey)) return this.folderCache.get(cacheKey);
+
+        console.log(`[ContextResolver] Asegurando carpeta: "${name}" en padre: ${parentId}`);
+        const bridge = IngestBridge.getBridge();
+        
+        // 1. EXPLORACIÓN: ¿Existe ya?
+        const searchRes = await bridge.request({
+            provider: 'drive',
+            protocol: 'ATOM_READ',
+            query: { 
+                name: name, 
+                parentId: parentId, 
+                mimeType: 'application/vnd.google-apps.folder', 
+                trashed: false 
+            }
+        });
+
+        if (searchRes.items && searchRes.items.length > 0) {
+            const folderId = searchRes.items[0].id;
+            console.log(`[ContextResolver] Carpeta encontrada: ${name} -> ${folderId}`);
+            this.folderCache.set(cacheKey, folderId);
+            return folderId;
+        }
+
+        // 2. CIMENTACIÓN: No existe, la creamos soberanamente
+        const createRes = await bridge.request({
+            provider: 'drive',
+            protocol: 'ATOM_CREATE',
+            data: { 
+                name: name, 
+                class: 'FOLDER', 
+                context_id: parentId,
+                handle: { label: name } 
+            }
+        });
+
+        // Gracias al "Escudo de Resiliencia", si el Core devuelve items:[] lo manejamos,
+        // pero esperamos que ATOM_CREATE de Carpeta devuelva el ID en items[0].
+        const newId = createRes.items?.[0]?.id || createRes.metadata?.file_id;
+
+        if (newId) {
+            console.log(`[ContextResolver] Carpeta creada exitosamente: ${name} -> ${newId}`);
+            this.folderCache.set(cacheKey, newId);
+            return newId;
+        }
+
+        throw new Error(`Soberanía Fallida: No se pudo asegurar la carpeta "${name}".`);
     }
 }
 

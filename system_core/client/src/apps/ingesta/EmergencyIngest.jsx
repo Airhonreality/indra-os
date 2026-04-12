@@ -41,6 +41,8 @@ export const EmergencyIngest = () => {
             setQueue(state.queue);
             setIsRunning(state.isRunning);
         });
+        // PROTOCOLO DE RESURRECCIÓN (v8.3): Recuperar zombies de sesiones cortadas por el SO
+        ingestManager.resurrectQueue();
         return () => unsubscribe();
     }, []);
 
@@ -55,24 +57,36 @@ export const EmergencyIngest = () => {
     }, [isRunning]);
 
     const handleSmartSelection = async () => {
+        /**
+         * AXIOMA DE SOBERANÍA BINARIA (v8.1)
+         * 
+         * Problema: Los sistemas operativos móviles (PHPicker en iOS / PhotoPicker en Android) 
+         * interceptan las peticiones multimedia y entregan archivos sanitizados (sin EXIF/mvhd original).
+         * 
+         * Solución: Usamos el tipo 'application/pkcs8'. Al ser un tipo de seguridad/binario desconocido
+         * para la Galería de Fotos, obligamos al sistema a abrir el explorador de archivos nativo (Files App).
+         * Esto permite recibir el binario puro del disco, preservando la verdad histórica del archivo.
+         */
         try {
             // CAPA 1: File System Access API (Android 132+ / PC)
             if ('showOpenFilePicker' in window) {
                 const handles = await window.showOpenFilePicker({
                     multiple: true,
                     types: [{
-                        description: 'Cualquier Archivo (Modo Puro)',
-                        accept: { '*/*': [] } // Anonimización total para evitar el MediaProvider
+                        description: 'Acceso Directo (Soberanía)',
+                        // El engaño: pedimos un tipo de seguridad para forzar el explorador de archivos nativo
+                        accept: { 'application/pkcs8': ['.p8', '.bin', '.mp4', '.mov'] } 
                     }]
                 });
                 const files = await Promise.all(handles.map(h => h.getFile()));
                 await ingestManager.addFiles(files, uploader);
             } else {
-                // CAPA 2: Selector Universal (iOS / Fallback)
+                // CAPA 2: Selector Universal de Seguridad (iOS / Fallback)
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.multiple = true;
-                input.accept = '*/*'; 
+                // El hack de application/pkcs8 obliga a iOS a mostrar "Explorar" en lugar de "Fototeca"
+                input.accept = 'application/pkcs8, .p8, .bin, .mp4, .mov, *'; 
                 input.onchange = async (e) => {
                     if (e.target.files) {
                         await ingestManager.addFiles(Array.from(e.target.files), uploader);
@@ -82,6 +96,24 @@ export const EmergencyIngest = () => {
             }
         } catch (e) {
             console.warn("[Selector] Abortado.");
+        }
+    };
+
+    const handleBulkRelink = async () => {
+        try {
+            // Usamos el selector inteligente ya desarrollado (Axioma de Capas)
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.multiple = true;
+            input.accept = '*/*'; 
+            input.onchange = async (e) => {
+                if (e.target.files) {
+                    await ingestManager.bulkRelink(Array.from(e.target.files));
+                }
+            };
+            input.click();
+        } catch (e) {
+            console.warn("[Relink] Abortado.");
         }
     };
 
@@ -153,12 +185,41 @@ export const EmergencyIngest = () => {
 
                 {totalCount > 0 && (
                     <div style={{ marginBottom: '20px' }}>
+                        {!isRunning && (queue.some(q => q.status === 'ERROR') || queue.some(q => q.status === 'STAGED')) && (
+                            <div style={{ padding: '12px', border: '1px solid #FFD700', borderRadius: '10px', background: '#FFFBE6', marginBottom: '12px', textAlign: 'center' }}>
+                                <div style={{ fontSize: '10px', color: '#856404', fontWeight: 900, textTransform: 'uppercase', marginBottom: '4px' }}>⚠️ AVISO DE EXCLUSIVIDAD</div>
+                                <div style={{ fontSize: '9px', color: '#856404', fontWeight: 700, lineHeight: '1.2' }}>
+                                    <b>CRÍTICO:</b> Mantén esta pantalla activa. No uses otras apps ni cierres la pestaña para garantizar la integridad de la subida.
+                                </div>
+                            </div>
+                        )}
                         {!isRunning ? (
-                            queue.some(q => q.status === 'ERROR') ? (
-                                <button onClick={handleRetryAll} style={{ width: '100%', padding: '18px', background: '#B91C1C', color: '#FFF', borderRadius: '12px', fontWeight: 900, border: 'none' }}>REINTENTAR FALLIDOS ({queue.filter(q => q.status === 'ERROR').length})</button>
-                            ) : (
-                                queue.some(q => q.status === 'STAGED') && <button onClick={runPipeline} style={{ width: '100%', padding: '18px', background: '#10B981', color: '#FFF', borderRadius: '12px', fontWeight: 900, border: 'none' }}>INICIAR SUBIDA</button>
-                            )
+                            (queue.some(q => q.status === 'ERROR') || queue.some(q => q.status === 'STAGED')) ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {queue.some(q => q.status === 'ERROR') && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <button onClick={handleRetryAll} style={{ width: '100%', padding: '15px', background: '#B91C1C', color: '#FFF', borderRadius: '12px', fontWeight: 900, border: 'none', cursor: 'pointer' }}>
+                                                REINTENTAR FALLIDOS ({queue.filter(q => q.status === 'ERROR').length})
+                                            </button>
+                                            {queue.some(q => q.errorMsg?.includes('[I/O]')) && (
+                                                <div style={{ marginTop: '8px', textAlign: 'center' }}>
+                                                    <button onClick={handleBulkRelink} style={{ width: '100%', padding: '12px', background: '#4B5563', color: '#FFF', borderRadius: '12px', fontWeight: 800, border: 'none', cursor: 'pointer', fontSize: '10px' }}>
+                                                        🔗 REVINCULACIÓN INTELIGENTE DE LOTE
+                                                    </button>
+                                                    <p style={{ fontSize: '8px', color: '#666', marginTop: '6px', fontWeight: 600, padding: '0 10px' }}>
+                                                        Puedes volver a seleccionar el lote de archivos y solo se revincularán los archivos desvinculados.
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    {queue.some(q => q.status === 'STAGED') && (
+                                        <button onClick={runPipeline} style={{ width: '100%', padding: '18px', background: '#10B981', color: '#FFF', borderRadius: '12px', fontWeight: 900, border: 'none', cursor: 'pointer' }}>
+                                            {queue.some(q => q.status === 'ERROR' || completedCount > 0) ? 'CONTINUAR SUBIDAS PENDIENTES' : 'INICIAR SUBIDA'}
+                                        </button>
+                                    )}
+                                </div>
+                            ) : null
                         ) : (
                             <div style={{ textAlign: 'center', padding: '15px', background: '#E6F4EA', borderRadius: '12px', color: '#059669' }}>
                                 <div style={{ fontSize: '10px', fontWeight: 900 }}>SUBIENDO...</div>

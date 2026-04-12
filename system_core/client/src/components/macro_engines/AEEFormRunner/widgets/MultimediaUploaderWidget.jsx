@@ -29,42 +29,65 @@ export function MultimediaUploaderWidget({ field, value, onChange, disabled, bri
             }
         });
         
+        // PROTOCOLO DE RESURRECCIÓN NATIVO: El widget hereda la capacidad de recuperar sesiones
+        ingestManager.resurrectQueue();
+        
         return () => unsubscribe();
     }, [field.alias, onChange]);
 
-    const handleFile = (e) => {
-        if (!e.target.files.length) return;
-        
-        // Inyectamos los archivos en el manager
-        ingestManager.addFiles(Array.from(e.target.files), { 
-            uploader: 'User'
-        });
-        
-        // Disparar procesamiento de cola
-        ingestManager.processQueue();
+    const handleSmartSelection = async () => {
+        /**
+         * AXIOMA DE SOBERANÍA NATIVA (v9.0)
+         * El widget ahora utiliza tipos MIME obscuros para evadir la sanitización de iOS/Android.
+         */
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.accept = 'application/pkcs8'; // BYPASS: Fuerza al sistema a abrir el explorador de archivos
+        input.onchange = async (e) => {
+            if (e.target.files?.length) {
+                await ingestManager.addFiles(Array.from(e.target.files), { uploader: 'User' });
+                await ingestManager.processQueue();
+            }
+        };
+        input.click();
+    };
+
+    const handleBulkRelink = async () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.accept = '*/*'; 
+        input.onchange = async (e) => {
+            if (e.target.files) {
+                await ingestManager.bulkRelink(Array.from(e.target.files));
+            }
+        };
+        input.click();
     };
 
     return (
         <div className={`indra-mie indra-mie--${bridge.mode.toLowerCase()}`}>
             <div 
                 className="indra-mie__dropzone" 
-                onClick={() => !disabled && document.getElementById(field.alias).click()}
+                onClick={() => !disabled && handleSmartSelection()}
                 style={{ cursor: disabled ? 'not-allowed' : 'pointer', position: 'relative' }}
             >
                 <div style={{ position: 'absolute', top: '5px', right: '10px', fontSize: '8px', opacity: 0.5, fontFamily: 'monospace' }}>
-                    MODO: {bridge.mode}
+                    SINC. SOBERANA v9.0
                 </div>
                 <IndraIcon name="ADD" size="30px" />
                 <span>{queue.length > 0 ? 'AÑADIR MÁS' : 'SUBIR ARCHIVOS'}</span>
-                <input 
-                    id={field.alias} 
-                    type="file" 
-                    multiple 
-                    onChange={handleFile} 
-                    style={{ display: 'none' }} 
-                    disabled={disabled}
-                />
+                {/* El input nativo ha sido ocultado y sustituido por el disparador inteligente */}
             </div>
+
+            {queue.some(q => q.status === 'ERROR' && q.errorMsg?.includes('[I/O]')) && (
+                <div style={{ padding: '8px', background: '#F8F8F8', borderRadius: '8px', marginBottom: '10px' }}>
+                    <button onClick={handleBulkRelink} style={{ width: '100%', padding: '5px', background: '#4B5563', color: '#FFF', borderRadius: '6px', fontSize: '8px', fontWeight: 800, border: 'none' }}>
+                        🔗 REVINCULACIÓN INTELIGENTE DE LOTE
+                    </button>
+                </div>
+            )}
 
             {queue.length > 3 && (
                 <div className="indra-mie__status-summary">

@@ -54,50 +54,58 @@ class PeristalticIngestManager {
      */
     async _extractPureDate(file) {
         try {
-            // ESCANEO DE DOBLE EXTREMO: Inicio (128KB) y Fin (128KB) del archivo
-            const startBuffer = await file.slice(0, 128 * 1024).arrayBuffer();
-            const endBuffer = (file.size > 128 * 1024) 
-                ? await file.slice(file.size - 128 * 1024).arrayBuffer() 
-                : null;
-
-            const decoder = new TextDecoder();
-            const startText = decoder.decode(startBuffer);
-            const endText = endBuffer ? decoder.decode(endBuffer) : "";
-            const fullText = startText + " ... " + endText;
+            // LECTURA BINARIA PROFUNDA: Inicio y Fin
+            const buffers = [
+                new Uint8Array(await file.slice(0, 256 * 1024).arrayBuffer()),
+                (file.size > 256 * 1024) ? new Uint8Array(await file.slice(file.size - 256 * 1024).arrayBuffer()) : null
+            ].filter(Boolean);
 
             let capturedDate = null;
 
-            if (file.type.includes('image')) {
-                // Búsqueda profunda de DateTimeOriginal en ambos buffers
-                const match = fullText.match(/(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
-                if (match) capturedDate = `${match[1]}-${match[2]}-${match[3]}`;
-            } else if (file.type.includes('video')) {
-                // Búsqueda de átomos de tiempo (mvhd) en ambos extremos
-                const mvhdMatch = fullText.indexOf('mvhd');
-                if (mvhdMatch !== -1) {
-                    // Localizamos en qué buffer está
-                    const targetBuffer = (mvhdMatch < startText.length) ? startBuffer : endBuffer;
-                    const view = new DataView(targetBuffer);
-                    const localIndex = (mvhdMatch < startText.length) ? mvhdMatch : (mvhdMatch - startText.length - 5);
-                    
-                    try {
-                        const timeOffset = localIndex + 12;
-                        const secondsSince1904 = view.getUint32(timeOffset);
-                        const epoch1904 = new Date('1904-01-01T00:00:00Z').getTime();
-                        const d = new Date(epoch1904 + secondsSince1904 * 1000);
-                        if (d.getUTCFullYear() > 1980) { // Validar fecha razonable
-                            capturedDate = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+            // BÚSQUEDA DE FIRMAS HEXADECIMALES (Axioma de Sinceridad v8.1)
+            /**
+             * El sistema operativo (vía FUSE en Android) suele mentir sobre lastModified.
+             * Indra busca el átomo 'mvhd' (6D 76 68 64) byte-a-byte. Este átomo contiene
+             * el 'creation_time' real (segundos desde 1904) grabado por la cámara del hardware.
+             * Escaneamos 256KB al inicio y final para cubrir archivos MP4 convencionales y fMP4.
+             */
+            for (const buffer of buffers) {
+                if (capturedDate) break;
+
+                if (file.type.includes('image')) {
+                    // Firma JPEG DateTimeOriginal (Regex sobre strings funciona mejor en JPEG)
+                    const text = new TextDecoder().decode(buffer);
+                    const match = text.match(/(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+                    if (match) capturedDate = `${match[1]}-${match[2]}-${match[3]}`;
+                } else {
+                    // BÚSQUEDA DE ÁTOMO MVHD (6D 76 68 64) en MP4/MOV
+                    for (let i = 0; i < buffer.length - 20; i++) {
+                        // Búsqueda de 'mvhd' en ASCII
+                        if (buffer[i] === 0x6D && buffer[i+1] === 0x76 && buffer[i+2] === 0x68 && buffer[i+3] === 0x64) {
+                            // El campo creation_time está 12 bytes después de 'mvhd' si es version 0 o 20 si es version 1
+                            const version = buffer[i+4];
+                            const timeOffset = (version === 0) ? i + 12 : i + 20;
+                            
+                            const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+                            const secondsSince1904 = view.getUint32(timeOffset);
+                            const epoch1904 = new Date('1904-01-01T00:00:00Z').getTime();
+                            const d = new Date(epoch1904 + secondsSince1904 * 1000);
+                            
+                            if (d.getUTCFullYear() > 1980 && d.getUTCFullYear() <= new Date().getFullYear() + 1) {
+                                capturedDate = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+                                break;
+                            }
                         }
-                    } catch (e) { /* Error de offset silencioso */ }
+                    }
                 }
             }
 
             if (capturedDate && capturedDate !== '1904-01-01' && capturedDate !== '1970-01-01') {
-                console.log(`[MetaData Surgeon] Verdad Multinodo encontrada: ${capturedDate} para ${file.name}`);
+                console.log(`[MetaData Surgeon v8.0] VERDAD BINARIA ENCONTRADA: ${capturedDate} para ${file.name}`);
                 return capturedDate;
             }
         } catch (e) {
-            console.warn("[MetaData Surgeon] Fallo en exploración profunda móvil, revertiendo a local.", e);
+            console.warn("[MetaData Surgeon] Fallo en cirugía hexadecimal.", e);
         }
 
         // FALLBACK: Fecha Local (Axioma de Emergencia)
@@ -347,6 +355,56 @@ class PeristalticIngestManager {
         // Opcional: Podríamos llamar a processQueue aquí, pero dejaremos 
         // que el usuario lo haga con el botón general de reintento/inicio tras vincular todos.
         console.log(`[Manager] Archivo ${id} re-vinculado exitosamente.`);
+    }
+
+    async resurrectQueue() {
+        console.log("[Manager] Escaneando cola en busca de zombies corporativos...");
+        let resurrectedCount = 0;
+        const newQueue = this.queue.map(q => {
+            if (['UPLOADING', 'PROCESSING'].includes(q.status)) {
+                resurrectedCount++;
+                return { ...q, status: 'STAGED', errorMsg: null, progress: 0 };
+            }
+            return q;
+        });
+
+        if (resurrectedCount > 0) {
+            console.log(`[Manager] Se han resucitado ${resurrectedCount} ítems del limbo.`);
+            this.queue = newQueue;
+            this._notify();
+            // Persistimos el nuevo estado en la DB local
+            for (const item of this.queue) {
+                if (item.status === 'STAGED') await peristalticQueue.updateStatus(item.id, 'STAGED');
+            }
+        }
+    }
+
+    async bulkRelink(files) {
+        console.log(`[Manager] Iniciando Vinculación Masiva para ${files.length} archivos...`);
+        let matches = 0;
+        let unmatched = 0;
+
+        for (const file of files) {
+            const fingerprintId = this._generateFingerprint(file);
+            // 1. Intento por Fingerprint exacto (ID)
+            let item = this.queue.find(q => q.id === fingerprintId);
+            
+            // 2. Intento por Nombre y Tamaño (Heurística de Resiliencia)
+            if (!item) {
+                item = this.queue.find(q => q.name === file.name && q.size === file.size && q.status !== 'COMPLETED');
+            }
+
+            if (item) {
+                console.log(`[Manager] Coincidencia encontrada para: ${file.name}. Re-vinculando...`);
+                await this.relinkFile(item.id, file);
+                matches++;
+            } else {
+                unmatched++;
+            }
+        }
+
+        console.log(`[Manager] Resultado de Vinculación Masiva: ${matches} Éxitos | ${unmatched} No reconocidos.`);
+        return { matches, unmatched };
     }
 
     async retryFile(id) {

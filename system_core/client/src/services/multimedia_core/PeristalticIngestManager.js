@@ -48,6 +48,63 @@ class PeristalticIngestManager {
         }
     }
 
+    /**
+     * CIRUGÍA BINARIA: Extrae la fecha de creación real desde dentro del archivo.
+     * Basado en la investigación 'Metadata transcode.md'.
+     */
+    async _extractPureDate(file) {
+        try {
+            // ESCANEO DE DOBLE EXTREMO: Inicio (128KB) y Fin (128KB) del archivo
+            const startBuffer = await file.slice(0, 128 * 1024).arrayBuffer();
+            const endBuffer = (file.size > 128 * 1024) 
+                ? await file.slice(file.size - 128 * 1024).arrayBuffer() 
+                : null;
+
+            const decoder = new TextDecoder();
+            const startText = decoder.decode(startBuffer);
+            const endText = endBuffer ? decoder.decode(endBuffer) : "";
+            const fullText = startText + " ... " + endText;
+
+            let capturedDate = null;
+
+            if (file.type.includes('image')) {
+                // Búsqueda profunda de DateTimeOriginal en ambos buffers
+                const match = fullText.match(/(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+                if (match) capturedDate = `${match[1]}-${match[2]}-${match[3]}`;
+            } else if (file.type.includes('video')) {
+                // Búsqueda de átomos de tiempo (mvhd) en ambos extremos
+                const mvhdMatch = fullText.indexOf('mvhd');
+                if (mvhdMatch !== -1) {
+                    // Localizamos en qué buffer está
+                    const targetBuffer = (mvhdMatch < startText.length) ? startBuffer : endBuffer;
+                    const view = new DataView(targetBuffer);
+                    const localIndex = (mvhdMatch < startText.length) ? mvhdMatch : (mvhdMatch - startText.length - 5);
+                    
+                    try {
+                        const timeOffset = localIndex + 12;
+                        const secondsSince1904 = view.getUint32(timeOffset);
+                        const epoch1904 = new Date('1904-01-01T00:00:00Z').getTime();
+                        const d = new Date(epoch1904 + secondsSince1904 * 1000);
+                        if (d.getUTCFullYear() > 1980) { // Validar fecha razonable
+                            capturedDate = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+                        }
+                    } catch (e) { /* Error de offset silencioso */ }
+                }
+            }
+
+            if (capturedDate && capturedDate !== '1904-01-01' && capturedDate !== '1970-01-01') {
+                console.log(`[MetaData Surgeon] Verdad Multinodo encontrada: ${capturedDate} para ${file.name}`);
+                return capturedDate;
+            }
+        } catch (e) {
+            console.warn("[MetaData Surgeon] Fallo en exploración profunda móvil, revertiendo a local.", e);
+        }
+
+        // FALLBACK: Fecha Local (Axioma de Emergencia)
+        const d = new Date(file.lastModified || Date.now());
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
     _generateFingerprint(file) {
         // Generar una huella de identidad única y determinista
         const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -77,8 +134,8 @@ class PeristalticIngestManager {
                 continue;
             }
 
-            // Extracción de Fecha Real (Axioma: Clasificación Cronológica Original)
-            const realDate = new Date(file.lastModified).toISOString().split('T')[0];
+            // AXIOMA DE PUREZA: Extracción binaria de metadatos antes del Staging
+            let realDate = await this._extractPureDate(file);
 
             // Si NO existe, es un archivo nuevo
             const id = fingerprintId;
@@ -93,7 +150,7 @@ class PeristalticIngestManager {
                 errorMsg: null,
                 metadata: { 
                     ...uploader, 
-                    created_at: realDate, // Fecha de captura real
+                    created_at: realDate, // FECHA PURA (No alterada por el navegador)
                     timestamp: Date.now() 
                 }
             };
@@ -187,13 +244,15 @@ class PeristalticIngestManager {
                     }
 
                     // FASE 2: UPLOAD (Un Solo Disparo - Evita Duplicados)
-                    currentStep = "RESOLVE_CONTEXT";
                     const rootFolderId = uploaderData.target_folder_id || 'root';
-                    const formName = uploaderData.form_name || 'Ingesta_Indra';
-                    const fileDate = item.metadata?.created_at || new Date().toISOString().split('T')[0];
+                    const uploaderName = uploaderData.name || 'Anónimo';
+                    
+                    // AXIOMA DE CRONOLOGÍA: Usar siempre la fecha capturada en el staging (Herencia Inmortal)
+                    const fileDate = item.metadata?.created_at || 'Desconocido';
 
-                    const formFolderId = await this._ensureFolder(formName, rootFolderId);
-                    const finalFolderId = await this._ensureFolder(fileDate, formFolderId);
+                    // AXIOMA DE JERARQUÍA: Base > Fecha > Nombre
+                    const dateFolderId = await this._ensureFolder(fileDate, rootFolderId);
+                    const finalFolderId = await this._ensureFolder(uploaderName, dateFolderId);
                     
                     // Actualizamos la metadata del ítem para que el UploadService sepa dónde guardarlo
                     item.metadata.target_folder_id = finalFolderId;

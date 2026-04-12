@@ -43,10 +43,18 @@ self.onmessage = async (e) => {
             const format = `image/${config.image.format || 'webp'}`;
             const quality = config.image.quality || 0.8;
             
-            const resultBlob = await canvas.convertToBlob({ 
+            let resultBlob = await canvas.convertToBlob({ 
                 type: format, 
                 quality: quality 
             });
+
+            // AXIOMA DE SOBERANÍA: Inyección de Metadata Original (Solo para JPEG por ahora)
+            if (file.type === 'image/jpeg' && format === 'image/jpeg') {
+                try {
+                    const { MetadataAxiom } = await import('./utils/MetadataAxiom');
+                    resultBlob = await MetadataAxiom.stitchJpegMetadata(file, resultBlob);
+                } catch (metaErr) { console.warn("[MIE ImageWorker] No se pudo inyectar metadata:", metaErr); }
+            }
 
             // 5. Metadatos Sinceros
             const result = {

@@ -18,7 +18,7 @@ const SimpleTrash = ({ onConfirm, isRunning }) => (
 export const EmergencyIngest = () => {
     const [uploader, setUploader] = useState({ 
         name: localStorage.getItem('indra_ingest_name') || '',
-        target_folder_id: "1A3kVrjzYFI5r0LbeJM4PoswTvLzLQRq1" // Folder Bio-Inspiración
+        target_folder_id: "1A3kVrjzYFI5r0LbeJM4PoswTvLzLQRq1" 
     });
     const [queue, setQueue] = useState([]);
     const [isRunning, setIsRunning] = useState(false);
@@ -54,10 +54,35 @@ export const EmergencyIngest = () => {
         }
     }, [isRunning]);
 
-    const handleFileSelection = async (e) => {
-        if (!e.target.files) return;
-        await ingestManager.addFiles(Array.from(e.target.files), uploader);
-        e.target.value = '';
+    const handleSmartSelection = async () => {
+        try {
+            // CAPA 1: File System Access API (Android 132+ / PC)
+            if ('showOpenFilePicker' in window) {
+                const handles = await window.showOpenFilePicker({
+                    multiple: true,
+                    types: [{
+                        description: 'Cualquier Archivo (Modo Puro)',
+                        accept: { '*/*': [] } // Anonimización total para evitar el MediaProvider
+                    }]
+                });
+                const files = await Promise.all(handles.map(h => h.getFile()));
+                await ingestManager.addFiles(files, uploader);
+            } else {
+                // CAPA 2: Selector Universal (iOS / Fallback)
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.multiple = true;
+                input.accept = '*/*'; 
+                input.onchange = async (e) => {
+                    if (e.target.files) {
+                        await ingestManager.addFiles(Array.from(e.target.files), uploader);
+                    }
+                };
+                input.click();
+            }
+        } catch (e) {
+            console.warn("[Selector] Abortado.");
+        }
     };
 
     const runPipeline = async () => {
@@ -114,8 +139,15 @@ export const EmergencyIngest = () => {
 
                 {!isRunning && (
                     <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                        <input type="file" multiple accept="image/*,video/*" onChange={handleFileSelection} style={{ display: 'none' }} id="mx" />
-                        <label htmlFor="mx" style={{ padding: '12px 24px', background: '#000', color: '#FFF', borderRadius: '30px', fontWeight: 900, fontSize: '11px', cursor: 'pointer' }}>SINCRONIZAR GALERÍA</label>
+                        <button 
+                            onClick={handleSmartSelection} 
+                            style={{ padding: '12px 24px', background: '#000', color: '#FFF', border: 'none', borderRadius: '30px', fontWeight: 900, fontSize: '11px', cursor: 'pointer' }}
+                        >
+                            SINCRONIZAR MULTIMEDIA
+                        </button>
+                        <p style={{ fontSize: '8px', color: '#AAA', marginTop: '8px', fontWeight: 600 }}>
+                            Tip: En iOS, elige "Seleccionar archivos" para máxima resolución.
+                        </p>
                     </div>
                 )}
 

@@ -15,6 +15,9 @@ if ($LASTEXITCODE -ne 0) {
 # 2. Entrar a la carpeta de distribución
 cd dist
 
+# 2.1 Evitar que GitHub Pages active Jekyll (AXIOMA: Somos una SPA, no un blog)
+New-Item -Path .nojekyll -ItemType File -Force | Out-Null
+
 # 3. Preparar repositorio efímero de despliegue
 Remove-Item -Path .git -Recurse -Force -ErrorAction SilentlyContinue 
 git init

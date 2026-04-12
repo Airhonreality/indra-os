@@ -47,34 +47,22 @@ function CONF_NOTION() {
       label: 'Notion',
       icon: 'DATABASE'
     },
-    class: 'FOLDER',         // class del átomo-silo en el manifest
-    version: '1.0',
-    protocols: ['HIERARCHY_TREE', 'TABULAR_STREAM', 'ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 'SEARCH_DEEP', 'SYSTEM_CONNECTION_TEST', 'ACCOUNT_RESOLVE', 'SCHEMA_MUTATE'],
-    implements: {
-      HIERARCHY_TREE: 'handleNotion',
-      TABULAR_STREAM: 'handleNotion',
-      ATOM_READ: 'handleNotion',
-      ATOM_CREATE: 'handleNotion',
-      ATOM_UPDATE: 'handleNotion',
-      ATOM_DELETE: 'handleNotion',
-      SEARCH_DEEP: 'handleNotion',
-      SYSTEM_CONNECTION_TEST: 'handleNotion',
-      ACCOUNT_RESOLVE: 'handleNotion',
-      SCHEMA_MUTATE: 'handleNotion'
-    },
+    class: 'FOLDER',
+    version: '1.1 (Synthesis)',
     config_schema: [
       { key: 'NOTION_API_KEY', type: 'password', label: 'API Key de Notion', required: true },
     ],
     capabilities: {
-      ATOM_READ: { sync: 'BLOCKING', purge: 'NONE' },
-      ATOM_CREATE: { sync: 'BLOCKING', purge: 'ALL' },
-      ATOM_UPDATE: { sync: 'BLOCKING', purge: 'ID' },
-      ATOM_DELETE: { sync: 'BLOCKING', purge: 'ALL' },
-      SCHEMA_MUTATE: { sync: 'BLOCKING', purge: 'ID' },
-      TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE' },
-      HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE' },
-      SEARCH_DEEP: { sync: 'BLOCKING', purge: 'NONE' },
-      SYSTEM_CONNECTION_TEST: { sync: 'BLOCKING', purge: 'NONE' }
+      ATOM_READ: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleNotion' },
+      ATOM_CREATE: { sync: 'BLOCKING', purge: 'ALL', handler: 'handleNotion' },
+      ATOM_UPDATE: { sync: 'BLOCKING', purge: 'ID', handler: 'handleNotion' },
+      ATOM_DELETE: { sync: 'BLOCKING', purge: 'ALL', handler: 'handleNotion' },
+      SCHEMA_MUTATE: { sync: 'BLOCKING', purge: 'ID', handler: 'handleNotion' },
+      TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleNotion' },
+      HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleNotion' },
+      SEARCH_DEEP: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleNotion' },
+      SYSTEM_CONNECTION_TEST: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleNotion' },
+      ACCOUNT_RESOLVE: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleNotion' }
     },
     protocol_meta: {
       HIERARCHY_TREE: { label: 'Conectando con Notion', help: 'Escaneando páginas y bases de datos en la raíz.' },

@@ -129,17 +129,25 @@ function buildManifest() {
 
     if (accounts.length === 0) {
       // Caso 1: Provider configurado pero sin cuentas específicas (o no requiere config)
-      // Ojo: Si requiere config pero no tiene cuentas -> needs_setup: true
+      const protocols = conf.protocols || (conf.capabilities ? Object.keys(conf.capabilities) : []);
+      const implementsMap = conf.implements || (conf.capabilities ? Object.keys(conf.capabilities).reduce((acc, p) => {
+        acc[p] = conf.capabilities[p].handler || 
+                 conf.default_handler || 
+                 `handle${conf.id.charAt(0).toUpperCase() + conf.id.slice(1)}`;
+        return acc;
+      }, {}) : {});
+
       manifestItems.push({
         id: conf.id,
         handle: {
           ns: `com.indra.system.silo`,
           alias: conf.id,
           label: conf.handle?.label || conf.id,
-          icon: conf.handle?.icon || null // AXIOMA DE IDENTIDAD VISUAL: El Core dicta el icono.
+          icon: conf.handle?.icon || null
         },
         class: (conf.class || 'SILO').toUpperCase(),
-        protocols: Object.keys(conf.implements || {}).map(p => p.toUpperCase()),
+        protocols: protocols.map(p => p.toUpperCase()),
+        implements: implementsMap,
         capabilities: conf.capabilities || {},
         provider: conf.id,
         provider_base: conf.id,
@@ -152,6 +160,14 @@ function buildManifest() {
     } else {
       accounts.forEach(acc => {
         const accountLabel = acc.label || acc.account_id;
+        const protocols = conf.protocols || (conf.capabilities ? Object.keys(conf.capabilities) : []);
+        const implementsMap = conf.implements || (conf.capabilities ? Object.keys(conf.capabilities).reduce((acc, p) => {
+          acc[p] = conf.capabilities[p].handler || 
+                   conf.default_handler || 
+                   `handle${conf.id.charAt(0).toUpperCase() + conf.id.slice(1)}`;
+          return acc;
+        }, {}) : {});
+
         manifestItems.push({
           id: `${conf.id}:${acc.account_id}`,
           handle: {
@@ -161,7 +177,8 @@ function buildManifest() {
             icon: conf.handle?.icon || null
           },
           class: (conf.class || 'SILO').toUpperCase(),
-          protocols: Object.keys(conf.implements || {}).map(p => p.toUpperCase()),
+          protocols: protocols.map(p => p.toUpperCase()),
+          implements: implementsMap,
           capabilities: conf.capabilities || {},
           provider: `${conf.id}:${acc.account_id}`,
           provider_base: conf.id,
@@ -236,7 +253,28 @@ function getProviderConf(providerId) {
   }
 
   try {
-    return manifestFunc();
+    const rawConf = manifestFunc();
+    // AXIOMA DE SÍNTESIS (Evolución): Clonamos el objeto para poder enriquecerlo aunque esté congelado.
+    const conf = JSON.parse(JSON.stringify(rawConf));
+    
+    // Si el provider es parsimonioso (modelo nuevo), el registry lo enriquece al vuelo.
+    if (conf.capabilities) {
+      // 1. Sintetizar protocolos (si no existen)
+      conf.protocols = conf.protocols || Object.keys(conf.capabilities);
+      
+      // 2. Sintetizar mapa de implementación
+      if (!conf.implements) {
+        conf.implements = {};
+        Object.keys(conf.capabilities).forEach(p => {
+          // Prioridad: handler explícito en capacidad > default_handler > handleNombreProvider
+          conf.implements[p] = conf.capabilities[p].handler || 
+                              conf.default_handler || 
+                              `handle${conf.id.charAt(0).toUpperCase() + conf.id.slice(1)}`;
+        });
+      }
+    }
+    
+    return conf;
   } catch (e) {
     logError(`[provider_registry] Error al resolver configuración del Silo "${baseId}"`, e);
     return null;

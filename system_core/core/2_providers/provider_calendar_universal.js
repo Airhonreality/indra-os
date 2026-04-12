@@ -38,40 +38,17 @@ function CONF_CALENDAR_UNIVERSAL() {
     // La autenticación es implícita a través del runtime de Google Apps Script.
     needs_setup: false,
     class: 'FOLDER',
-    version: '2.0 (Native CalendarApp)',
-    protocols: [
-      'HIERARCHY_TREE',
-      'TABULAR_STREAM',
-      'ATOM_READ',
-      'ATOM_CREATE',
-      'ATOM_UPDATE',
-      'ATOM_DELETE',
-      'CALENDAR_BATCH',
-      'SYSTEM_CONNECTION_TEST',
-      'ACCOUNT_RESOLVE'
-    ],
-    implements: {
-      HIERARCHY_TREE:         'handleCalendarUniversal',
-      TABULAR_STREAM:         'handleCalendarUniversal',
-      ATOM_READ:              'handleCalendarUniversal',
-      ATOM_CREATE:            'handleCalendarUniversal',
-      ATOM_UPDATE:            'handleCalendarUniversal',
-      ATOM_DELETE:            'handleCalendarUniversal',
-      CALENDAR_BATCH:         'handleCalendarUniversal',
-      SYSTEM_CONNECTION_TEST: 'handleCalendarUniversal',
-      ACCOUNT_RESOLVE:        'handleCalendarUniversal'
-    },
-    // AXIOMA: Sin config_schema. No hay nada que configurar manualmente.
-    config_schema: [],
+    version: '2.1 (Synthesis)',
     capabilities: {
-      ATOM_READ:      { sync: 'BLOCKING', purge: 'NONE' },
-      ATOM_CREATE:    { sync: 'BLOCKING', purge: 'ALL'  },
-      ATOM_UPDATE:    { sync: 'BLOCKING', purge: 'ID'   },
-      ATOM_DELETE:    { sync: 'BLOCKING', purge: 'ALL'  },
-      TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE' },
-      HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE' },
-      CALENDAR_BATCH: { sync: 'ASYNC',    purge: 'ALL'  },
-      ACCOUNT_RESOLVE: { sync: 'BLOCKING', purge: 'NONE' }
+      ATOM_READ:      { sync: 'BLOCKING', purge: 'NONE', handler: 'handleCalendarUniversal' },
+      ATOM_CREATE:    { sync: 'BLOCKING', purge: 'ALL',  handler: 'handleCalendarUniversal' },
+      ATOM_UPDATE:    { sync: 'BLOCKING', purge: 'ID',   handler: 'handleCalendarUniversal' },
+      ATOM_DELETE:    { sync: 'BLOCKING', purge: 'ALL',  handler: 'handleCalendarUniversal' },
+      TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleCalendarUniversal' },
+      HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleCalendarUniversal' },
+      CALENDAR_BATCH: { sync: 'ASYNC',    purge: 'ALL',  handler: 'handleCalendarUniversal' },
+      ACCOUNT_RESOLVE: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleCalendarUniversal' },
+      SYSTEM_CONNECTION_TEST: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleCalendarUniversal' }
     },
     protocol_meta: {
       HIERARCHY_TREE: { label: 'Descubriendo Calendarios', help: 'Listando calendarios disponibles en la sesión.' },

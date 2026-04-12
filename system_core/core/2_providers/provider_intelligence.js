@@ -16,18 +16,10 @@ function CONF_INTELLIGENCE() {
     id: 'intelligence',
     handle: { ns: 'com.indra.system.ai', alias: 'oracle', label: 'Indra Intelligence', icon: 'COGNITIVE' },
     class: 'COGNITIVE_ENGINE',
-    version: '1.0.0',
-    protocols: [
-      'INTELLIGENCE_CHAT',
-      'INTELLIGENCE_DISCOVERY'
-    ],
-    implements: {
-      INTELLIGENCE_CHAT: 'handleIntelligence',
-      INTELLIGENCE_DISCOVERY: 'handleIntelligence'
-    },
+    version: '1.1 (Synthesis)',
     capabilities: {
-      INTELLIGENCE_CHAT: { sync: 'BLOCKING', exposure: 'public' },
-      INTELLIGENCE_DISCOVERY: { sync: 'BLOCKING', exposure: 'public' }
+      INTELLIGENCE_CHAT: { sync: 'BLOCKING', exposure: 'public', handler: 'handleIntelligence' },
+      INTELLIGENCE_DISCOVERY: { sync: 'BLOCKING', exposure: 'public', handler: 'handleIntelligence' }
     },
     config_schema: [
       { id: 'default_provider', label: 'Proveedor por Defecto', type: 'TEXT', default: 'gemini' },

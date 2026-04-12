@@ -340,10 +340,10 @@ class PeristalticIngestManager {
         const createRes = await bridge.request({
             provider: 'drive',
             protocol: 'ATOM_CREATE',
+            context_id: parentId, // Nivel superior (Correcto)
             data: { 
                 name: name, 
                 class: 'FOLDER', 
-                context_id: parentId,
                 handle: { label: name } 
             }
         });

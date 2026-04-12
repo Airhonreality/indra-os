@@ -44,27 +44,17 @@ function CONF_DRIVE() {
       icon: 'FOLDER'
     },
     class: 'FOLDER',
-    version: '1.1',
-    protocols: ['HIERARCHY_TREE', 'ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 'SEARCH_DEEP', 'TABULAR_STREAM', 'MEDIA_RESOLVE'],
-    implements: {
-      HIERARCHY_TREE: 'handleDrive',
-      ATOM_READ: 'handleDrive',
-      TABULAR_STREAM: 'handleDrive',
-      ATOM_CREATE: 'handleDrive',
-      ATOM_UPDATE: 'handleDrive',
-      ATOM_DELETE: 'handleDrive',
-      SEARCH_DEEP: 'handleDrive',
-      MEDIA_RESOLVE: 'handleDrive',       // ADR-024: Universal media resolver (agnóstico a provider)
-    },
-    config_schema: [],
+    version: '1.2 (Sovereign Synthesis)',
     capabilities: {
-      ATOM_CREATE: { sync: 'BLOCKING', purge: 'ALL' },
       ATOM_READ: { sync: 'BLOCKING', purge: 'NONE' },
+      ATOM_CREATE: { sync: 'BLOCKING', purge: 'ALL' },
       ATOM_UPDATE: { sync: 'BLOCKING', purge: 'ID' },
       ATOM_DELETE: { sync: 'BLOCKING', purge: 'ALL' },
       HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE' },
       SEARCH_DEEP: { sync: 'BLOCKING', purge: 'NONE' },
+      TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE' },
       MEDIA_RESOLVE: { sync: 'BLOCKING', purge: 'NONE' },
+      TRANSFER_HANDSHAKE: { sync: 'BLOCKING', purge: 'NONE' }
     },
     protocol_meta: {
       TRANSFER_HANDSHAKE: {
@@ -244,8 +234,36 @@ function _drive_handleHierarchyTree(uqo) {
  * @private
  */
 function _drive_handleAtomRead(uqo) {
-  if (!uqo.context_id) {
-    const err = createError('INVALID_INPUT', 'ATOM_READ requiere context_id.');
+  const contextId = uqo.context_id;
+  const query = uqo.query || {};
+
+  // AXIOMA DE RESOLUCIÓN SOBERANA: Si no tenemos ID, intentamos resolver por nombre y padre (Navegación Relativa)
+  if (!contextId) {
+    if (query.name && query.parentId) {
+      logInfo(`[provider_drive] Resolviendo átomo por nombre: "${query.name}" en padre: ${query.parentId}`);
+      try {
+        const parent = _drive_resolveFolder(query.parentId);
+        if (!parent) throw new Error("Carpeta padre no existe.");
+        
+        const files = parent.getFilesByName(query.name);
+        if (files.hasNext()) {
+          const file = files.next();
+          return { items: [_drive_fileToAtom(file, uqo.provider, true)], metadata: { status: 'OK', resolution: 'BY_NAME' } };
+        }
+        
+        const folders = parent.getFoldersByName(query.name);
+        if (folders.hasNext()) {
+          const folder = folders.next();
+          return { items: [_drive_folderToAtom(folder, uqo.provider)], metadata: { status: 'OK', resolution: 'BY_NAME' } };
+        }
+
+        return { items: [], metadata: { status: 'OK', message: 'No se encontró el elemento por nombre.', items: [] } };
+      } catch (e) {
+        logWarn(`[provider_drive] Fallo en resolución relativa: ${e.message}`);
+      }
+    }
+    
+    const err = createError('INVALID_INPUT', 'ATOM_READ requiere context_id o (query.name + query.parentId).');
     return { items: [], metadata: { status: 'ERROR', error: err.message } };
   }
 
@@ -253,15 +271,15 @@ function _drive_handleAtomRead(uqo) {
     // Intentar como archivo primero, luego como carpeta
     let atom = null;
     try {
-      const file = DriveApp.getFileById(uqo.context_id);
+      const file = DriveApp.getFileById(contextId);
       atom = _drive_fileToAtom(file, uqo.provider, true);
     } catch (e) {
       // No es un archivo — intentar como carpeta
       try {
-        const folder = DriveApp.getFolderById(uqo.context_id);
+        const folder = DriveApp.getFolderById(contextId);
         atom = _drive_folderToAtom(folder, uqo.provider);
       } catch (e2) {
-        const err = createError('NOT_FOUND', `Elemento "${uqo.context_id}" no encontrado.`);
+        const err = createError('NOT_FOUND', `Elemento "${contextId}" no encontrado.`);
         return { items: [], metadata: { status: 'ERROR', error: err.message } };
       }
     }
@@ -907,11 +925,14 @@ function _drive_buildMediaAtom(file, providerId) {
  */
 function _drive_handleTransferHandshake(uqo) {
   const data = uqo.data || {};
-  const filename = data.filename || 'Untitled';
+  const filename = data.filename || data.name || 'Untitled';
   const mimeType = data.mimeType || 'application/octet-stream';
-  const parentId = data.parent_id || 'ROOT';
+  
+  // AXIOMA DE UBICACIÓN: Prioridad al context_id del UQO (Aduana) sobre el campo de datos.
+  let parentId = uqo.context_id || data.parent_id || 'root';
+  if (parentId === 'ROOT') parentId = 'root'; // Normalización para API v3
 
-  logInfo(`[provider_drive] Negociando Handshake para: ${filename}`);
+  logInfo(`[provider_drive] Negociando Handshake para: ${filename} en padre: ${parentId}`);
 
   try {
     const url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable";

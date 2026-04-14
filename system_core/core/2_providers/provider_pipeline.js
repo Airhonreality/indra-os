@@ -26,21 +26,13 @@ function CONF_PIPELINE() {
     class: 'LOGIC_ENGINE',
     version: '1.0',
     exposure: 'internal', // El usuario no necesita configurar el motor de cómputo
-    protocols: [
-      'TRANSFORM_FILTER',
-      'TRANSFORM_MAP',
-      'TRANSFORM_COMPUTE',
-      'TRANSFORM_AGGREGATE',
-      'TRANSFORM_SORT',
-      'TRANSFORM_TEMPLATE'
-    ],
-    implements: {
-      TRANSFORM_FILTER: 'handlePipeline',
-      TRANSFORM_MAP: 'handlePipeline',
-      TRANSFORM_COMPUTE: 'handlePipeline',
-      TRANSFORM_AGGREGATE: 'handlePipeline',
-      TRANSFORM_SORT: 'handlePipeline',
-      TRANSFORM_TEMPLATE: 'handlePipeline',
+    capabilities: {
+      TRANSFORM_FILTER: { handler: 'handlePipeline' },
+      TRANSFORM_MAP: { handler: 'handlePipeline' },
+      TRANSFORM_COMPUTE: { handler: 'handlePipeline' },
+      TRANSFORM_AGGREGATE: { handler: 'handlePipeline' },
+      TRANSFORM_SORT: { handler: 'handlePipeline' },
+      TRANSFORM_TEMPLATE: { handler: 'handlePipeline' }
     },
     config_schema: [], // No requiere API Keys ni configuración persistente
   });

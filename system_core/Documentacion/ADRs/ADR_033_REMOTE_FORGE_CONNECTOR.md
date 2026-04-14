@@ -1,45 +1,47 @@
 # ADR_033: REMOTE_FORGE_CONNECTOR (El Satélite)
 
-> **Versión:** 1.0 (Arquitectura de Control Headless)
-> **Estado:** PROPUESTA — Pendiente de Revisión
-> **Alcance:** Integración de Indra en frontends externos (NOMON, etc.) mediante inyección dinámica.
-
-## 1. Contexto y Problema
-Un Arquitecto de Indra diseña UIs personalizadas (Soberanas) fuera del ecosistema de Indra. Sin embargo, necesita mantener la **Sinceridad de Datos** con su Core. En lugar de copiar carpetas o configurar URLs manualmente, el sistema requiere un método de **"Cero Fricción"** para conectar el código local con la infraestructura de Indra.
-
-## 2. Decisión Arquitectónica
-Se implementará el **Indra Satellite HUD**, un micro-script inyectable que dota a cualquier frontend de capacidades de "Forja" en tiempo de desarrollo.
-
-### 2.1 El Mecanismo de Inyección (The Probe)
-El Arquitecto añade una sonda única a su proyecto:
-```html
-<script src="https://indra.io/satellite/v1/hud.js"></script>
-```
-
-### 2.2 Autodescubrimiento y Auth (Handshake)
-En lugar de `config.json` manuales:
-- **Google OAuth:** El usuario se loguea en el HUD.
-- **Core Discovery:** El HUD consulta a un servicio central de Indra: *"¿Cuál es la URL del Core de este usuario?"*.
-- **Puntero Dinámico:** El HUD se conecta automáticamente al GAS del usuario.
-
-### 2.3 El Patrón "Vigilante" (Drift Detection)
-- **Local Schema Discovery:** El HUD escanea el objeto `window.INDRA_SCHEMAS` (declarado por el dev en su código).
-- **Remote Schema Fetch:** El HUD lee los esquemas del Core.
-- **Sync Logic:** Si hay diferencias, el HUD muestra una alerta visual y ofrece un botón de `[SINCRONIZAR]`.
-
-### 2.4 Restricciones de Seguridad
-- **Dev-Only:** El HUD solo se renderiza si `window.location.hostname === 'localhost'` o mediante un `SovereignToken`.
-- **Shadow DOM:** El HUD vive en un Shadow DOM para no contaminar los estilos del proyecto anfitrión ni sufrir interferencias de CSS externo.
-
-## 3. Experiencia de Usuario (HUD Interface)
-- Un icono flotante (Indra Luma) en la esquina inferior.
-- Al expandirse: Lista de esquemas detectados localmente vs en Indra.
-- Botones de acción: **Ignitar Silo**, **Sincronizar ADN**, **Abrir Designer**.
-
-## 4. Artefactos y Modos de Despliegue
-- `satellite/hud.js`: Script de entrada ligero.
-- `satellite/discovery.gs`: Endpoint en el Core para resolver identidades.
-- `satellite/manual_publico.md`: Documentación para desarrolladores PRO.
+> **Versión:** 1.5 (Arquitectura de Control Headless - v4.1)
+> **Estado:** VIGENTE — Implementación de Producción
+> **Alcance:** Integración de Indra en frontends externos (NOMON, Sitios de Clientes, etc.) mediante inyección agnóstica.
 
 ---
-*Este ADR canoniza a Indra como un Servicio Ubicuo, agnóstico al soporte físico de la interfaz.*
+
+## 1. Contexto y Problema
+Un Arquitecto de Indra diseña UIs personalizadas (Soberanas) fuera del ecosistema base. Necesita un enlace "Cero Fricción" que conecte su código local con el Core en la nube sin hardcodear URLs ni tokens sensibles, permitiendo la **Sinceridad de Datos** en tiempo real.
+
+## 2. Decisión Arquitectónica
+Se implementa el **Indra Satellite HUD**, un motor inyectable que dota a cualquier frontend de capacidades de "Forja".
+
+### 2.1 El Mecanismo de Inyección (The Bridge)
+El proyecto anfitrión inyecta la librería `IndraBridge.js` o el componente `IndraHUD`. La librería es agnóstica al framework.
+
+### 2.2 Autodescubrimiento (Handshake Soberano)
+Se elimina la configuración manual de archivos `json`. El flujo es:
+1.  **Google One Tap / OAuth**: El usuario se identifica con su cuenta de Google.
+2.  **Core Discovery Protocol**: El Satélite envía el `id_token` a la `window.INDRA_DISCOVERY_URL`.
+3.  **Resolución de Core**: El servicio de descubrimiento valida el token y retorna:
+    *   `core_url`: La URL del Google Apps Script del usuario.
+    *   `session_secret`: Una llave temporal para la sesión actual.
+4.  **Auto-Conexión**: El Satélite se configura automáticamente y está listo para operar.
+
+### 2.3 El Patrón "Vigilante" (Drift Detection)
+- **Local Schema Scan**: El HUD escanea `window.INDRA_SCHEMAS`.
+- **Remote Schema Fetch**: Consulta al Core el estado real de los modelos de datos.
+- **Diff Engine**: Si el código local difiere de la infraestructura física, el HUD ofrece:
+    *   **SYNC ADN**: Actualiza el esquema en el Core.
+    *   **IGNITE MATERIA**: Crea la tabla física (Google Sheets/Notion) basada en el esquema local.
+
+### 2.4 Seguridad y Aislamiento
+- **Shadow DOM**: El HUD se renderiza en un Shadow DOM para evitar colisiones de CSS.
+- **Dev-Only**: Por defecto, solo se activa en `localhost` o mediante un `SovereignToken`.
+- **Modo Espejo (Mirror)**: Si el acceso es vía `share_ticket`, el Satélite entra en modo solo lectura de forma forzada.
+
+---
+
+## 3. Artefactos del Ecosistema
+- `lib/IndraBridge.js`: El corazón de la comunicación.
+- `hud/Index.jsx`: La interfaz de control (Luma HUD).
+- `services/core_discovery.gs`: Endpoint nativo en el Core para validación de identidad.
+
+---
+*Este ADR canoniza a Indra como un Servicio Ubicuo, agnóstico al soporte físico de la interfaz e integrado nativamente con la identidad de Google.*

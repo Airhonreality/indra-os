@@ -48,30 +48,33 @@ function _scanProviders() {
   const configs = [];
   const knownPrefixes = ['CONF_SYSTEM', 'CONF_DRIVE', 'CONF_NOTION', 'CONF_EMAIL', 'CONF_LLM', 'CONF_INTELLIGENCE'];
 
-  // Intento 1: Iteración sobre el contexto global (Sincronía Glandular)
-  // En GAS V8, 'globalThis' contiene todas las funciones globales declaradas en cualquier archivo del proyecto.
   const scope = globalThis || this;
 
-  // Escaneo dinámico: Buscamos todas las llaves que sigan el protocolo CONF_*
-  // Esto permite que el sistema sea 100% "Plug & Play".
-  const keysToTry = Object.keys(scope).filter(k => k.startsWith(SILO_MANIFEST_PREFIX));
+  const keysToTry = Array.from(new Set([
+    ...Object.keys(scope).filter(k => k.startsWith(SILO_MANIFEST_PREFIX)),
+    ...knownPrefixes
+  ]));
 
-  if (keysToTry.length === 0) {
-    // Si no detectamos nada (raro en V8), es que el Core está en un estado de vacío atómico.
-    logWarn('[provider_registry] Sin manifestaciones detectadas en globalThis.');
-  }
+  logInfo(`[provider_registry] Iniciando escaneo. Llaves potenciales: ${keysToTry.length}`);
 
   keysToTry.forEach(key => {
-    if (typeof scope[key] !== 'function') return;
+    if (typeof scope[key] !== 'function') {
+      logInfo(`[provider_registry] Saltando "${key}": No es una función en este scope.`);
+      return;
+    }
 
     try {
       const conf = scope[key]();
-      if (!conf || typeof conf !== 'object' || !conf.id || !conf.implements) {
+      // AXIOMA ESTRUCTURAL: Todo proveedor debe usar el mapa enriquecido "capabilities" (Estándar Moderno).
+      // Ya no se aceptan contratos antiguos ('implements' / 'protocols' planos).
+      if (!conf || typeof conf !== 'object' || !conf.id || !conf.capabilities) {
+        logInfo(`[provider_registry] Rechazando "${key}": Contrato inválido o incompleto (Falta id o capabilities)`);
         return;
       }
+      logInfo(`[provider_registry] Provider detectado con éxito: ${conf.id}`);
       configs.push(conf);
     } catch (e) {
-      // Silencioso para no romper el manifest si un provider falla individualmente
+      logError(`[provider_registry] Error fatal al ejecutar "${key}": ${e.message}`);
     }
   });
 
@@ -118,11 +121,8 @@ function buildManifest() {
   }
 
   allConfigs.forEach(conf => {
-    // AXIOMA DE EXPOSICIÓN (Velo de Maia): Los motores de infraestructura no se proyectan al usuario.
-    if (conf.exposure === 'internal') {
-      logDebug(`[provider_registry] Ocultando motor interno: ${conf.id}`);
-      return;
-    }
+    // AXIOMA DE SINCERIDAD (Nivel Suh): El Core proyecta toda su realidad detectada.
+    // El filtrado por 'exposure' o 'class' es responsabilidad de la Capa de Presentación.
 
     const accounts = listProviderAccounts(conf.id);
     const hasSchema = conf.config_schema && conf.config_schema.length > 0;
@@ -137,8 +137,11 @@ function buildManifest() {
         return acc;
       }, {}) : {});
 
+      // AXIOMA DE EXISTENCIA: Si el provider es 'system', su ID de cuenta es 'internal'
+      const finalSiloId = conf.id === 'system' ? 'system' : conf.id;
+      
       manifestItems.push({
-        id: conf.id,
+        id: finalSiloId,
         handle: {
           ns: `com.indra.system.silo`,
           alias: conf.id,

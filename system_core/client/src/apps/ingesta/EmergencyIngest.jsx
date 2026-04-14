@@ -23,6 +23,9 @@ export const EmergencyIngest = () => {
     const [queue, setQueue] = useState([]);
     const [isRunning, setIsRunning] = useState(false);
     
+    // AXIOMA DE ENTORNO (v9.2): Detección agnóstica de hardware
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
     const wakeLockRef = useRef(null);
     const videoSentinelRef = useRef(null);
     const pulseIntervalRef = useRef(null);
@@ -119,7 +122,28 @@ export const EmergencyIngest = () => {
 
     const runPipeline = async () => {
         if (!uploader.name.trim()) return alert("Ingresa tu nombre");
+        
+        // SISTEMA DE CONFIANZA MÁXIMA (v9.2): Consentimiento informado adaptativo
+        const batchSize = queue.filter(q => q.status === 'STAGED').length;
+        if (batchSize > 5) {
+            const contextMsg = isMobile 
+                ? "RECUERDA: No minimices esta pestaña ni bloquees tu celular manualmente."
+                : "RECUERDA: Mantén esta ventana abierta y activa hasta completar el proceso.";
+                
+            const confirmed = window.confirm(
+                `Indra Upload: Vas a subir ${batchSize} archivos masivos.\n\n` +
+                `Para garantizar el éxito, hemos activado el bloqueo de suspensión.\n` +
+                `${contextMsg}\n\n` +
+                `¿Deseas iniciar la sincronización soberana con confianza máxima?`
+            );
+            if (!confirmed) return;
+        }
+
         try { 
+            // Solicitar permisos de notificación para alertar al completar si el SO lo permite
+            if ('Notification' in window && Notification.permission !== 'granted') {
+                try { await Notification.requestPermission(); } catch(e){}
+            }
             if (videoSentinelRef.current) {
                 videoSentinelRef.current.play().catch(() => console.warn("Sentinel bloqueado por el navegador."));
             }
@@ -177,15 +201,17 @@ export const EmergencyIngest = () => {
                         >
                             SINCRONIZAR MULTIMEDIA
                         </button>
-                        <p style={{ fontSize: '8px', color: '#AAA', marginTop: '8px', fontWeight: 600 }}>
-                            Tip: En iOS, elige "Seleccionar archivos" para máxima resolución.
-                        </p>
+                        {isMobile && (
+                            <p style={{ fontSize: '8px', color: '#AAA', marginTop: '8px', fontWeight: 600 }}>
+                                Tip: En iOS, elige "Seleccionar archivos" para máxima resolución.
+                            </p>
+                        )}
                     </div>
                 )}
 
                 {totalCount > 0 && (
                     <div style={{ marginBottom: '20px' }}>
-                        {!isRunning && (queue.some(q => q.status === 'ERROR') || queue.some(q => q.status === 'STAGED')) && (
+                        {isMobile && !isRunning && (queue.some(q => q.status === 'ERROR') || queue.some(q => q.status === 'STAGED')) && (
                             <div style={{ padding: '12px', border: '1px solid #FFD700', borderRadius: '10px', background: '#FFFBE6', marginBottom: '12px', textAlign: 'center' }}>
                                 <div style={{ fontSize: '10px', color: '#856404', fontWeight: 900, textTransform: 'uppercase', marginBottom: '4px' }}>⚠️ AVISO DE EXCLUSIVIDAD</div>
                                 <div style={{ fontSize: '9px', color: '#856404', fontWeight: 700, lineHeight: '1.2' }}>
@@ -221,9 +247,14 @@ export const EmergencyIngest = () => {
                                 </div>
                             ) : null
                         ) : (
-                            <div style={{ textAlign: 'center', padding: '15px', background: '#E6F4EA', borderRadius: '12px', color: '#059669' }}>
-                                <div style={{ fontSize: '10px', fontWeight: 900 }}>SUBIENDO...</div>
-                                <div style={{ fontSize: '8px', fontWeight: 800, opacity: 0.7, marginTop: '2px' }}>✓ PANTALLA ACTIVA</div>
+                            <div style={{ textAlign: 'center', padding: '15px', background: '#E6F4EA', borderRadius: '12px', color: '#059669', position: 'relative' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                    <div style={{ width: '10px', height: '10px', border: '2px solid #059669', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                                    <div style={{ fontSize: '10px', fontWeight: 900 }}>SUBIENDO LOTE...</div>
+                                </div>
+                                <div style={{ fontSize: '8px', fontWeight: 800, opacity: 0.7, marginTop: '4px', textTransform: 'uppercase' }}>
+                                    Status: {completedCount}/{totalCount} | Pantalla Protegida
+                                </div>
                             </div>
                         )}
                     </div>
@@ -263,6 +294,15 @@ export const EmergencyIngest = () => {
                         </div>
                     ))}
                 </div>
+
+                {isMobile && (
+                    <div style={{ marginTop: '40px', padding: '20px 0', borderTop: '1px solid #F0F0F0', textAlign: 'center' }}>
+                        <p style={{ fontSize: '8px', color: '#BBB', lineHeight: '1.4', fontWeight: 600 }}>
+                            Indra upload ofrece todos sus servicios en el navegador para que no tengas que instalar apps, por lo tanto tenemos nuestras limitantes; <br/>
+                            <b>No salgas de esta pestaña hasta que se haya subido la totalidad del contenido.</b>
+                        </p>
+                    </div>
+                )}
 
                 <style>{`
                     @keyframes pulseLight { 0% { opacity: 0.2; } 50% { opacity: 0.8; } 100% { opacity: 0.2; } }

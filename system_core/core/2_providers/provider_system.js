@@ -14,9 +14,9 @@
 function CONF_SYSTEM() {
   return Object.freeze({
     id: 'system',
-    exposure: 'internal', // El Core no necesita ser "vinculado" manualmente por el usuario
+    exposure: 'internal', 
     handle: { ns: 'com.indra.system.core', alias: 'system', label: 'Indra System', icon: 'VAULT' },
-    class: 'FOLDER',
+    class: 'CORE_INTERNAL',
     version: '1.2 (Fractal)',
     version: '1.3 (Synthesis)',
     capabilities: {

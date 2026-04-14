@@ -380,31 +380,36 @@ class PeristalticIngestManager {
     }
 
     async bulkRelink(files) {
-        console.log(`[Manager] Iniciando Vinculación Masiva para ${files.length} archivos...`);
+        /**
+         * AXIOMA DE RECONOCIMIENTO QUIRÚRGICO (v9.3)
+         * Este proceso es un FILTRO, no un recolector.
+         * Solo acepta archivos que ya vivan en el manifiesto con errores de I/O.
+         */
+        console.log(`[Manager] Iniciando Vinculación Quirúrgica para ${files.length} archivos...`);
         let matches = 0;
-        let unmatched = 0;
+        let ignoredCount = 0;
 
         for (const file of files) {
-            const fingerprintId = this._generateFingerprint(file);
-            // 1. Intento por Fingerprint exacto (ID)
-            let item = this.queue.find(q => q.id === fingerprintId);
-            
-            // 2. Intento por Nombre y Tamaño (Heurística de Resiliencia)
-            if (!item) {
-                item = this.queue.find(q => q.name === file.name && q.size === file.size && q.status !== 'COMPLETED');
-            }
+            // Intentar match por Nombre y Tamaño (Heurística de Resiliencia)
+            // Ignoramos el ID exacto porque lastModified puede cambiar al re-descargar o mover archivos.
+            const item = this.queue.find(q => 
+                q.name === file.name && 
+                q.size === file.size && 
+                q.status !== 'COMPLETED'
+            );
 
             if (item) {
-                console.log(`[Manager] Coincidencia encontrada para: ${file.name}. Re-vinculando...`);
+                console.log(`[Manager] MATCH ENCONTRADO: ${file.name}. Restaurando vínculo binario...`);
                 await this.relinkFile(item.id, file);
                 matches++;
             } else {
-                unmatched++;
+                // SOBERANÍA: Si no te conozco, no te subo.
+                ignoredCount++;
             }
         }
 
-        console.log(`[Manager] Resultado de Vinculación Masiva: ${matches} Éxitos | ${unmatched} No reconocidos.`);
-        return { matches, unmatched };
+        console.log(`[Manager] Reporte de Cirugía: ${matches} Re-vinculados | ${ignoredCount} Ignorados (No estaban en la lista negra).`);
+        return { matches, unmatched: ignoredCount };
     }
 
     async retryFile(id) {

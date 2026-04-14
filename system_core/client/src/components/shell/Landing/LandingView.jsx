@@ -10,6 +10,7 @@ import { WelcomeTab } from './WelcomeTab';
 import { ArquitecturaTab } from './ArquitecturaTab';
 import { ManualesTab } from './ManualesTab';
 import { ToolsDockTab } from './ToolsDockTab';
+import { IgnitionTab } from './IgnitionTab';
 
 // AEE / Engines Overlays
 const MIEEngine = React.lazy(() => import('../../macro_engines/MIEEngine/MIEEngine'));
@@ -73,6 +74,7 @@ export const LandingView = () => {
 
     const tabs = [
         { id: 'BIENVENIDA', label: 'INICIO', isSubPage: false },
+        { id: 'IGNICION', label: 'IGNICIÓN', isSubPage: false },
         { id: 'ARQUITECTURA', label: 'ARQUITECTURA', isSubPage: false },
         { id: 'MANUALES', label: 'MANUALES', isSubPage: false },
         { id: 'HERRAMIENTAS', label: 'HERRAMIENTAS', isSubPage: true }
@@ -271,6 +273,12 @@ export const LandingView = () => {
                 <div id="BIENVENIDA" className="indra-section-anchor">
                     <div className="indra-section" style={{ padding: 0 }}>
                         <WelcomeTab />
+                    </div>
+                </div>
+
+                <div id="IGNICION" className="indra-section-anchor">
+                    <div className="indra-section">
+                        <IgnitionTab />
                     </div>
                 </div>
 

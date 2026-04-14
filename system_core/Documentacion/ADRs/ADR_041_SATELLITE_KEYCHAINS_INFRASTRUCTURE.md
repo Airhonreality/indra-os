@@ -1,87 +1,70 @@
 # ADR 041: Infraestructura de Llaveros de Satélite (Indra Keychains)
 
-**Estado: IMPLEMENTADO (FASE BOOTSTRAP) / EVOLUCIÓN A LEDGER**  
-**Contexto:** Necesidad de permitir que sistemas externos (Satélites) operen de forma soberana sobre el Core sin requerir login humano (Google OAuth) ni comprometer la seguridad mediante bypasses.
+> **Versión:** 1.2 (Sincronización v4.1 - Producción)
+> **Estado:** VIGENTE — Implementación Centralizada
+> **Contexto:** Establece el mecanismo soberano para que sistemas externos (Satélites) operen sobre el Core mediante identidades de máquina sin requerir OAuth humano constante.
 
 ---
 
 ## 1. Visión Holística (Soberanía de Máquina)
 
-En la Teoría de Sistemas de Indra, un **Satélite** es una célula periférica que necesita interactuar con el Core. Para que esta interacción sea segura, el sistema debe pasar de una "Confianza Implícita" (bypass) a una **"Autorización de Identidad de Máquina"**.
-
-Los **Keychains** actúan como el Registro Civil de los Satélites, permitiendo que el Core reconozca a un sistema aliado y le otorgue permisos totales de ejecución sin intervención humana.
+En la Teoría de Sistemas de Indra, un **Satélite** es una célula periférica que requiere autorización persistente. Los **Keychains** actúan como el Registro Civil del ecosistema, permitiendo la delegación de capacidades master a aplicaciones autorizadas.
 
 ---
 
 ## 2. Marco Axiomático de los Llaveros
 
-*   **Axioma I (Identidad Delegada):** Un Token de Satélite no representa a un usuario, sino a una **Instancia de Software** autorizada por el Propietario del Core.
-*   **Axioma II (Persistencia Asíncrona):** El Satélite debe poder operar 24/7 sin caducidad de sesión, mientras su llave esté marcada como `ACTIVE` en el registro.
-*   **Axioma III (Revocación Atómica):** El Core debe ser capaz de "desactivar" un solo satélite sin afectar la integridad o conexión de los demás.
+*   **Axioma I (Identidad Delegada):** El `satellite_token` identifica a la **Instancia de Software**, no al usuario.
+*   **Axioma II (Persistencia de Sesión):** Una llave `ACTIVE` permite la ejecución 24/7 sin caducidad, ideal para servicios de fondo (Peristálticos).
+*   **Axioma III (Revocación Atómica):** El Core puede anular una sola llave sin degradar el resto del ecosistema.
 
 ---
 
 ## 3. Arquitectura del Engine (KeyChainEngine)
 
 ### A. Registro de Identidades (The Ledger)
-El sistema utiliza un almacén de datos (inicialmente `ScriptProperties`, evolucionando a una Google Sheet oculta llamada `LEDGER_SATELLITE_KEYS`) con la siguiente estructura:
+El sistema utiliza un almacén de datos persistente en `ScriptProperties` bajo la clave maestra:
+**`INDRA_KEYCHAIN_LEDGER`**
 
-| Campo | Tipo | Función |
-|---|---|---|
-| `key_id` | `UUID` | El token secreto que viaja en el UQO. |
-| `alias` | `STRING` | Nombre legible (ej: "Montechico_Ingest", "Nomón_ERP"). |
-| `status` | `ENUM` | `ACTIVE` | `REVOKED` | `PAUSED`. |
-| `scope` | `ARRAY` | Protocolos permitidos (ej: `['ATOM_CREATE', 'DRIVE_INGEST']`). |
-| `created_at` | `DATE` | Fecha de ignición de la llave. |
+El Ledger es un diccionario JSON de tokens donde cada entrada contiene:
+- `name`: Alias humano del satélite.
+- `status`: `ACTIVE`, `REVOKED` o `PAUSED`.
+- `class`: `MASTER` (Acceso total) o `RESTRICTED`.
+- `scopes`: Array de protocolos permitidos (v2).
+- `created_at`: Marca de tiempo de ignición.
 
-### B. Protocolos de Gestión
-1.  **`SYSTEM_SATELLITE_KEY_GENERATE`**: Crea una nueva llave y la registra en el Ledger.
-2.  **`SYSTEM_SATELLITE_KEY_REVOKE`**: Invalida un token de forma inmediata.
+### B. Protocolos de Gestión Real (Capa 2)
+El `provider_system_infrastructure.gs` implementa los siguientes protocolos:
+1.  **`SYSTEM_KEYCHAIN_GENERATE`**: Registra un nuevo satélite y devuelve su token.
+2.  **`SYSTEM_KEYCHAIN_REVOKE`**: Inactiva un token de forma inmediata.
+3.  **`SYSTEM_KEYCHAIN_AUDIT`**: Lista todas las llaves y su estado actual.
 
 ### C. El Protocolo Omega (Bootstrap Token)
-Para garantizar la velocidad de despliegue en núcleos nuevos, el sistema nace con un **Token de Emergencia Predeterminado**:
-*   **Token:** `indra_satellite_omega`
-*   **Uso:** Inmediato tras la instalación, permitiendo la subida de archivos sin configuración previa.
-*   **Recomendación:** Los administradores deben cambiar este token en `ScriptProperties > SATELLITE_TOKEN` tras el despliegue inicial.
+Para permitir la autoinstalación ("Zero-Day Ignition"), el motor ejecuta un `_keychain_bootstrap_` si el Ledger no existe:
+*   **Token de Emergencia:** `indra_satellite_omega`
+*   **Alcance:** Acceso Master total.
+*   **Nota:** Se recomienda generar llaves personalizadas para cada satélite productivo y revocar la llave omega tras la estabilización.
 
 ---
 
-## 4. Implementación Técnica en el Gateway
+## 4. Validación en el Gateway (Aduana)
 
-El `api_gateway.js` ahora implementa la validación multimodal:
+El `api_gateway.js` realiza la validación multimodal en cada petición:
 
 ```javascript
-const storedToken = PropertiesService.getScriptProperties().getProperty('SATELLITE_TOKEN') || 'indra_satellite_omega';
-const isSatelliteSystem = payload.satellite_token === storedToken;
-const isAuthenticated = verifyPassword(payload.password) || isSatelliteSystem;
+// Validación centralizada vía Keychain Engine
+const satelliteContext = _keychain_validate(payload.satellite_token);
+const isAuthenticated = verifyPassword(payload.password) || !!satelliteContext;
 ```
 
 ---
 
-## 5. Hoja de Ruta (Keychains v2)
+## 5. El IndraBridge (SDK Semilla)
 
-- [ ] **Fase 1:** Implementar vista de Administrador en el Dashboard para ver / revocar llaves activas.
-- [ ] **Fase 2:** Migrar el almacenamiento de `ScriptProperties` a una hoja de cálculo protegida para auditoría extensiva.
-- [ ] **Fase 3:** Implementar "Scopes" para que un satélite solo pueda crear archivos en una carpeta específica y no en todo el Drive.
-
----
-
-## 7. Implementación del Singleton (Bootstrapping)
-
-Para evitar dependencias del ciclo de vida de UI (React Hooks), el sistema adopta un Singleton puramente agnóstico:
-
-```javascript
-// IngestBridge.js (Singleton)
-class IngestBridge {
-  init(config) { ... }
-  getBridge() { ... }
-}
-```
-
-Este modelo garantiza que los servicios de fondo (`PeristalticUploadService`) siempre tengan acceso al canal de comunicación sin importar el estado del renderizado.
+Para interactuar con este motor, el satélite utiliza el `IndraBridge`, que se encarga de:
+1.  Adjuntar el `satellite_token` en todas las peticiones.
+2.  Manejar el header `Content-Type: text/plain` para bypass de CORS.
+3.  Implementar la arquitectura de 3 capas (Materia, Espíritu, Forma).
 
 ---
-
-## 8. Conclusión
-
-La arquitectura de Keychains y el Singleton Bridge permiten que Indra escale de un simple script a una **Plataforma de Operaciones Multitenant**, donde cada empresa gestiona su propio ecosistema de satélites con seguridad de nivel industrial y rapidez de despliegue "Lightning-Fast".
+*Este ADR formaliza la seguridad de máquina en Indra, permitiendo un ecosistema multitenant escalable y robusto.*

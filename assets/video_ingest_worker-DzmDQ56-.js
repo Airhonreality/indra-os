@@ -173,7 +173,12 @@ self.onmessage = async (e) => {
                 fileId: id,
                 originalName: file.name,
                 canonicalBlob: resultBlob,
-                mimeType: 'video/mp4'
+                mimeType: 'video/mp4',
+                metadata: {
+                    originalCreationDate: info.created, // Fecha del átomo mvhd (Inmortal)
+                    originalModificationDate: info.modified,
+                    duration: info.duration / info.timescale
+                }
             }});
 
         } catch (err) {

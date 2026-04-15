@@ -21,6 +21,58 @@ export function ShellProvider({ children }) {
     const getSystemTheme = () => window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
     
     const [theme, setTheme] = useState(localStorage.getItem('indra-theme') || getSystemTheme());
+    const [pendingReturns, setPendingReturns] = useState(new Map());
+
+    useEffect(() => {
+        const handleMessage = (event) => {
+            const { type, payload, request_id } = event.data || {};
+
+            if (type === 'INDRA_UI_INVOKE' && request_id) {
+                // 1. Guardamos la ruta de retorno
+                setPendingReturns(prev => new Map(prev).set(request_id, {
+                    source: event.source,
+                    origin: event.origin
+                }));
+
+                // 2. Abrimos el artefacto solicitado
+                // El payload suele traer { module: 'CLASS', data: { ...atom } }
+                openArtifact({
+                    class: payload.module,
+                    id: payload.payload?.id || 'temp_invoke',
+                    ...payload.payload,
+                    _invoke_id: request_id // Marcamos que es una invocación
+                });
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, [openArtifact]);
+
+    // Interceptor de cierre para devolver datos
+    const closeArtifactAndReturn = (resultData = null) => {
+        const invokeId = activeArtifact?._invoke_id;
+        
+        if (invokeId && pendingReturns.has(invokeId)) {
+            const { source, origin } = pendingReturns.get(invokeId);
+            source.postMessage({
+                type: 'INDRA_UI_RESPONSE',
+                request_id: invokeId,
+                payload: {
+                    status: 'SUCCESS',
+                    data: resultData || activeArtifact.payload // Devolvemos el estado actual
+                }
+            }, origin);
+            
+            setPendingReturns(prev => {
+                const next = new Map(prev);
+                next.delete(invokeId);
+                return next;
+            });
+        }
+        
+        closeArtifact();
+    };
 
     useEffect(() => {
         // Escuchador de cambios en el sistema si el usuario no ha forzado un tema manualmente
@@ -61,7 +113,7 @@ export function ShellProvider({ children }) {
     const value = {
         activeArtifact,
         openArtifact,
-        closeArtifact,
+        closeArtifact: closeArtifactAndReturn,
         lang,
         isStyleEngineOpen,
         setIsStyleEngineOpen,

@@ -19,6 +19,7 @@ import { Spinner } from './components/utilities/primitives/Spinner';
 import { useLexicon } from './services/lexicon';
 import { SacredField } from './components/utilities/SacredField';
 import { ManifestResolver } from './components/shell/ManifestResolver';
+import './styles/ui_invoke.css';
 
 /**
  * EngineViewport
@@ -128,6 +129,42 @@ function EngineViewport({ activeArtifact, closeArtifact, coreUrl, sessionSecret,
 }
 
 /**
+ * InvokePortal
+ * Componente que proyecta un motor React sobre el satélite.
+ */
+function InvokePortal({ activeArtifact, closeArtifact, coreUrl, sessionSecret, lang, registerSync, finishSync }) {
+    if (!activeArtifact?._invoke_id) return null;
+
+    return (
+        <div className="indra-invoke-overlay">
+            <div className="indra-invoke-portal">
+                <div className="indra-invoke-header">
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <IndraIcon name="RESONANCE" size="14px" />
+                        <span style={{ marginLeft: '10px' }}>INVOKE_PORTAL :: {activeArtifact.class}</span>
+                    </div>
+                    <button className="indra-invoke-close" onClick={() => closeArtifact()}>
+                        <IndraIcon name="CLOSE" size="12px" />
+                        SALIR_DEL_PORTAL
+                    </button>
+                </div>
+                <div className="indra-invoke-content">
+                    <EngineViewport 
+                        activeArtifact={activeArtifact}
+                        closeArtifact={closeArtifact}
+                        coreUrl={coreUrl}
+                        sessionSecret={sessionSecret}
+                        lang={lang}
+                        registerSync={registerSync}
+                        finishSync={finishSync}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/**
  * IndraAppContent
  * Punto de entrada operacional del orquestador.
  */
@@ -169,6 +206,17 @@ function IndraAppContent() {
     const renderOverlays = () => (
         <>
             {isServiceManagerOpen && <ServiceManager />}
+            {activeArtifact?._invoke_id && (
+                <InvokePortal 
+                    activeArtifact={activeArtifact}
+                    closeArtifact={closeArtifact}
+                    coreUrl={coreUrl}
+                    sessionSecret={sessionSecret}
+                    lang={lang}
+                    registerSync={registerSync}
+                    finishSync={finishSync}
+                />
+            )}
             {isDiagnosticHubOpen && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 2000 }}>
                     <div 
@@ -198,8 +246,8 @@ function IndraAppContent() {
         );
     }
 
-    // NIVEL 3: Macro Engine Activo
-    if (activeArtifact) {
+    // NIVEL 3: Macro Engine Activo (Excepto si es invocado por un satélite)
+    if (activeArtifact && !activeArtifact._invoke_id) {
         return (
             <>
                 <EngineViewport 

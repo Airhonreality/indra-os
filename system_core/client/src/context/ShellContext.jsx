@@ -11,6 +11,7 @@ import { IndraContextMenu } from '../components/utilities/IndraContextMenu';
 export function ShellProvider({ children }) {
     const activeArtifact = useAppState(s => s.activeArtifact);
     const openArtifact = useAppState(s => s.openArtifact);
+    const openServiceManager = useAppState(s => s.openServiceManager);
     const closeArtifact = useAppState(s => s.closeArtifact);
     const lang = useAppState(s => s.lang);
 
@@ -33,6 +34,11 @@ export function ShellProvider({ children }) {
                     source: event.source,
                     origin: event.origin
                 }));
+
+                if (payload.module === 'SERVICE_MANAGER') {
+                    openServiceManager();
+                    return;
+                }
 
                 // 2. Abrimos el artefacto solicitado
                 // El payload suele traer { module: 'CLASS', data: { ...atom } }

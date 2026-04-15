@@ -17,6 +17,7 @@ El sistema detecta operaciones de persistencia asíncronas y propaga su estado d
 - **Sinceridad de Interfaz**: La UI debe reflejar fielmente el estado de la materia en el Core. Si el dato no es ley en el Core, no es editable en el Cliente.
 - **Agnosticismo de Componente**: Los componentes individuales no deben gestionar su propio estado de carga. La carga es una propiedad del sistema inyectada por el entorno.
 - **No Intervención Proactiva**: El sistema de resonancia solo reacciona a actos de voluntad del usuario (Save, Blur, Enter, Unmount).
+- **Axioma de Integridad Documental Relacional**: Cualquier cambio en la gramática de contratos o protocolos debe resonar tanto en el código como en la documentación técnica del ecosistema (Axiomas del Satélite Semilla). El silencio documental tras un cambio de código se considera un fallo de integridad sistémica.
 
 ### Restricciones Técnicas
 - **Prohibición de Spinners Hardcodeados**: No se permite el uso de spinners locales dentro de motores para operaciones de persistencia. Se debe usar el sistema de pulso y transparencia global.

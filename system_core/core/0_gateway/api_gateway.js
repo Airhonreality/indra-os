@@ -106,7 +106,28 @@ function doPost(e) {
     });
 
   } catch (fatalError) {
-    return _buildResponse_(500, { metadata: { status: 'ERROR', error: fatalError.message } });
+    const errorCode = fatalError.code || 'SYSTEM_FAILURE';
+    const errorAtom = {
+        id: `err_${Date.now()}`,
+        handle: {
+          ns: `com.indra.error.gateway`,
+          alias: 'fatal_error',
+          label: 'Fallo Catastrófico del Core'
+        },
+        class: 'ERROR_REPORT',
+        protocols: ['ATOM_READ'],
+        payload: {
+          message: fatalError.message || 'Error desconocido',
+          severity: 'CRITICAL',
+          code: errorCode,
+          stack: fatalError.stack || '',
+          remediation: 'Revisa la sintaxis del UQO o los logs de ejecución de Apps Script.'
+        }
+    };
+    return _buildResponse_(500, { 
+      items: [errorAtom], 
+      metadata: { status: 'ERROR', error: fatalError.message, axiom_violated: errorCode } 
+    });
   }
 }
 

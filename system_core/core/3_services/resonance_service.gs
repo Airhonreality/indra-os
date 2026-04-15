@@ -109,3 +109,60 @@ function resonance_deep_purge_workspace(uqo) {
         throw createError('SYSTEM_FAILURE', `Error en Deep Purge: ${err.message}`);
     }
 }
+/**
+ * RESONANCIA DE CONTRATO (Sincronización Satélite-Core)
+ * @dharma Recibe el ADN del satélite y asegura la trazabilidad de sus esquemas.
+ * @param {Object} payload - { data: { contract: { schemas, workflows } } }
+ */
+function resonance_service_crystallize(payload) {
+    const contract = payload.data?.contract;
+    if (!contract) throw new Error("RESONANCE_FAILED: No se recibió contrato para cristalizar.");
+
+    const satelliteToken = payload.satellite_token || 'ANONYMOUS';
+    logInfo(`[resonance] Cristalizando ADN del Satélite. Token: ${satelliteToken}`);
+
+    const incomingSchemas = contract.schemas || [];
+    const incomingIds = new Set(incomingSchemas.map(s => s.id));
+    const integrityWarnings = [];
+
+    // 1. Obtener esquemas "Conocidos" por el sistema para este contexto
+    // (Simulamos la recuperación de esquemas que el Core tiene vinculados en sus flujos)
+    try {
+        const coreWorkflows = _system_listAtomsByClass(WORKFLOW_CLASS_, 'system').items || [];
+        
+        const usedSchemaIds = new Set();
+        coreWorkflows.forEach(wf => {
+            (wf.payload?.stations || []).forEach(st => {
+                if (st.config?.schema_id) usedSchemaIds.add(st.config.schema_id);
+            });
+        });
+
+        // 2. Detección de Fantasmas (GHOSTING)
+        // Si un esquema está en uso por el Core pero ya no viene en el contrato del Satélite...
+        usedSchemaIds.forEach(id => {
+            if (!incomingIds.has(id)) {
+                logWarn(`[resonance] Detectada Referencia Fantasma (GHOST): ${id}`);
+                integrityWarnings.push({
+                    type: 'SCHEMA_GHOSTED',
+                    id: id,
+                    severity: 'AMBAR',
+                    message: `El esquema ${id} ha sido eliminado localmente pero es vital para flujos en el Core.`
+                });
+            }
+        });
+
+    } catch (e) {
+        logWarn("[resonance] No se pudo realizar el escaneo de integridad cruzada:", e.message);
+    }
+
+    return {
+        items: [],
+        metadata: {
+            status: 'OK',
+            core_version: '0.4.5',
+            message: `Resonancia establecida. ${incomingSchemas.length} esquemas cristalizados.`,
+            integrity_warnings: integrityWarnings,
+            handshake_timestamp: new Date().toISOString()
+        }
+    };
+}

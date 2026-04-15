@@ -40,7 +40,7 @@ function _system_handleRead(uqo) {
     if (contextId === 'documents') targetClass = DOCUMENT_CLASS_;
 
     if (targetClass) {
-        return _system_listAtomsByClass(targetClass, uqo.provider);
+        return _system_listAtomsByClass(targetClass, uqo.provider, uqo);
     }
     
     // AXIOMA: Si llegamos aquí y es una de las palabras protegidas pero no hay targetClass, 
@@ -57,7 +57,7 @@ function _system_handleCreate(uqo) {
     const data = uqo.data || {};
     const label = data.handle?.label || data.label || 'Sin título';
     const atomClass = data.class || WORKSPACE_CLASS_;
-    const result = _system_createAtom(atomClass, label.trim(), data, uqo.provider);
+    const result = _system_createAtom(atomClass, label.trim(), uqo);
     
     // Si es un WORKFLOW, sincronizamos sus disparadores (ADR-018)
     if (atomClass === WORKFLOW_CLASS_ && result.items?.[0]) {
@@ -461,10 +461,10 @@ function _system_handleExists(uqo) {
 
 // ─── OPERACIONES DE ÁTOMOS EN DRIVE ───────────────────────────────────────────
 
-function _system_listAtomsByClass(atomClass, providerId) {
+function _system_listAtomsByClass(atomClass, providerId, uqo) {
     try {
         const folderName = _system_getFolderForClass(atomClass);
-        const folder = _system_getOrCreateSubfolder_(folderName);
+        const folder = _system_getOrCreateSubfolder_(folderName, uqo);
         const files = folder.getFiles();
         const items = [];
 
@@ -496,13 +496,16 @@ function _system_readAtom(atomId, providerId) {
     }
 }
 
-function _system_createAtom(atomClass, label, extraData, providerId) {
+function _system_createAtom(atomClass, label, uqo) {
     try {
         if (!atomClass || !label) throw createError('CONTRACT_VIOLATION', '[infra] ATOM_CREATE: requiere class y handle.label.');
 
+        const providerId = uqo.provider;
+        const extraData = uqo.data || {};
+
         const folderName = _system_getFolderForClass(atomClass);
         const now = new Date().toISOString();
-        const subfolder = _system_getOrCreateSubfolder_(folderName);
+        const subfolder = _system_getOrCreateSubfolder_(folderName, uqo);
         const alias = _system_slugify_(label);
         const fileName = `${alias}_${Date.now()}.json`;
 
@@ -671,10 +674,28 @@ function _system_getFolderForClass(atomClass) {
     return WORKSPACES_FOLDER_NAME_;
 }
 
-function _system_getOrCreateSubfolder_(folderName) {
+function _system_getOrCreateSubfolder_(folderName, contextUqo) {
     const homeRoot = _system_ensureHomeRoot();
+    let folder;
     const subFolders = homeRoot.getFoldersByName(folderName);
-    return subFolders.hasNext() ? subFolders.next() : homeRoot.createFolder(folderName);
+    folder = subFolders.hasNext() ? subFolders.next() : homeRoot.createFolder(folderName);
+
+    // AXIOMA DE AISLAMIENTO SANDBOX:
+    // Si la petición viene en modo SANDBOX, desviamos la cristalización a una carpeta de basura.
+    const isSandbox = (contextUqo && (contextUqo.environment === 'SANDBOX' || contextUqo.mode === 'SANDBOX'));
+    
+    if (isSandbox) {
+        const sandboxName = '.sandbox_trash';
+        const sandboxFolders = folder.getFoldersByName(sandboxName);
+        if (sandboxFolders.hasNext()) {
+            folder = sandboxFolders.next();
+        } else {
+            folder = folder.createFolder(sandboxName);
+            logWarn(`[infrastructure] Creada zona de juegos Sandbox: ${folderName}/${sandboxName}`);
+        }
+    }
+
+    return folder;
 }
 
 function _system_findAtomFile(contextId) {

@@ -60,6 +60,7 @@ function doPost(e) {
     }
 
     // AXIOMA DE JURISDICCIÓN: Inyectamos identidad efectiva (ADR-041)
+    payload.environment = payload.environment || 'PRODUCTION'; 
     if (satelliteContext) {
         payload.effective_owner = satelliteContext.core_id || readCoreOwnerEmail();
         payload.is_master_access = (satelliteContext.class === 'MASTER');
@@ -123,6 +124,7 @@ function _handleSystemProtocol_(payload) {
   if (protocol === 'SYSTEM_KEYCHAIN_AUDIT') return _keychain_audit(payload);
   if (protocol === 'SYSTEM_BATCH_EXECUTE') return _handleBatchExecute_(payload);
   if (protocol === 'SYSTEM_INSTALL_HANDSHAKE') return { metadata: { status: 'OK' } };
+  if (protocol === 'SYSTEM_RESONANCE_CRYSTALLIZE') return resonance_service_crystallize(payload);
   
   // ADR-036: Handlers Peristálticos (Puente al PeristalticService)
   if (protocol.startsWith('EMERGENCY_INGEST')) return _handlePeristalticIngest_(payload);

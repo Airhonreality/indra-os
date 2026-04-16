@@ -116,6 +116,18 @@ class IndraBridge {
             `width=${width},height=${height},top=${top},left=${left}`
         );
 
+        // --- VIGILANCIA DE CIERRE MANUAL (UX RESCUE) ---
+        const watchDog = setInterval(() => {
+            if (popup.closed) {
+                clearInterval(watchDog);
+                if (!this.satelliteToken) {
+                    // El usuario cerró la ventana a la fuerza antes de completar la resonancia
+                    console.warn("[IndraBridge] El nexo de resonancia se cerró prematuramente.");
+                    this.clearState(); // Lanza el evento de fallo para resetear el botón "CONECTANDO..."
+                }
+            }
+        }, 500);
+
         if (!popup) throw new Error("POPUP_BLOCKED");
 
         return new Promise((resolve, reject) => {

@@ -1,8 +1,10 @@
 /**
  * =============================================================================
- * INDRA RESONANCE SYNC (Orchestrator v3.1)
+ * INDRA RESONANCE SYNC (Orchestrator v3.3 - Branching Edition)
  * =============================================================================
- * Responsibilidad: Orquestación de la persistencia mutua y cristalización.
+ * Responsibilidad: Orquestación de las dos ramas de soberanía:
+ * Rama A: Anclaje de Ciudadanía (Nuevo Satélite)
+ * Rama B: Sincronización de ADN (Satélite Existente)
  * =============================================================================
  */
 
@@ -12,60 +14,78 @@ export class ResonanceSync {
     }
 
     /**
-     * @dharma El gran ciclo de sincronización.
-     * 1. Cristaliza ADN en el Core.
-     * 2. Persiste Configuración en el Daemon (JS).
-     * 3. Dispara compilación remota.
+     * RAMA A: Anclaje de Ciudadanía (Génesis)
+     * Se usa cuando el satélite no reconoce un workspace local.
      */
-    async masterSync() {
+    async anchorCitizenship() {
+        console.log("[ResonanceSync:BranchA] Iniciando Anclaje de Ciudadanía...");
+        return await this._executeAtomicSync(true);
+    }
+
+    /**
+     * RAMA B: Sincronización de ADN (Soberanía)
+     * Se usa cuando ya existe un workspace pero el ADN ha divergido.
+     */
+    async syncDNA() {
+        console.log("[ResonanceSync:BranchB] Iniciando Sincronización de ADN...");
+        return await this._executeAtomicSync(false);
+    }
+
+    /**
+     * @dharma El gran ciclo atómico de sincronización progresiva.
+     */
+    async _executeAtomicSync(isNewSatellite = false) {
         const { bridge } = this;
         if (!bridge.coreUrl || !bridge.satelliteToken) throw new Error("AUTH_REQUIRED");
         
-        console.log("[ResonanceSync] Iniciando Cristalización Atómica...");
         const localChecksum = bridge.contractCortex.calculateChecksum(bridge.contract.schemas);
 
         try {
             // 1. Cristalizar en Core (Nube)
+            // Si es un satélite nuevo, enviamos null en workspace para forzar creación
+            const targetWorkspace = isNewSatellite ? null : bridge.activeWorkspaceId;
+
             const crystalResponse = await bridge.execute({
                 protocol: 'SYSTEM_RESONANCE_CRYSTALLIZE',
                 provider: 'system',
-                data: { contract: bridge.contract, checksum: localChecksum }
+                data: { 
+                    contract: bridge.contract, 
+                    checksum: localChecksum,
+                    force_new: isNewSatellite,
+                    requested_workspace: targetWorkspace
+                }
             });
 
             if (!crystalResponse || crystalResponse.metadata?.status === 'ERROR') {
                 throw new Error(crystalResponse?.metadata?.error || "CRYSTALLIZE_FAILED");
             }
 
-            // 2. Extraer Ciudadanía
+            // 2. Extraer Identidad Asignada
             if (crystalResponse.metadata?.generated_workspace_id) {
                 bridge.activeWorkspaceId = crystalResponse.metadata.generated_workspace_id;
             }
 
-            // 3. Persistencia Soberana en Disco (JS Module via Daemon)
+            // 3. Persistencia Soberana en Disco (Módulo JS)
             const saveResult = await this.persistMetadata();
-            if (saveResult.status !== 'ok') {
-                console.warn("[ResonanceSync] El Daemon no pudo persistir el ADN en disco.");
-            }
-
-            // 4. Triggerear Compilador Local (Genera el contrato final)
+            
+            // 4. Triggerear Compilador Local
             const apiOrigin = window.location.origin;
             await fetch(`${apiOrigin}/api/indra/sync`, { method: 'POST' });
 
-            // 5. Recarga en Caliente (Hot Reload del ADN)
+            // 5. Recarga y Verificación Final
             await bridge.contractCortex.load();
             
+            console.log(`[ResonanceSync] Sincronía Exitosa. Modo: ${isNewSatellite ? 'GÉNESIS' : 'RESIDENTE'}`);
             window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
+            
             return true;
 
         } catch (e) {
-            console.error("[ResonanceSync] Fallo crítico en sincronización:", e);
+            console.error("[ResonanceSync] Fallo en el Ciclo Atómico:", e);
             throw e;
         }
     }
 
-    /**
-     * @dharma Petición al Daemon para escribir el indra_config.js
-     */
     async persistMetadata() {
         const payload = {
             satellite_name: this.bridge.contract.satellite_name,

@@ -178,7 +178,7 @@ class IndraBridgeHUD extends HTMLElement {
         super();
         this.attachShadow({ mode: 'open' });
         this._bridge = null;
-        this._resonanceMode = 'GHOST';
+        this._mode = 'GHOST';
     }
 
     connectedCallback() {
@@ -197,8 +197,7 @@ class IndraBridgeHUD extends HTMLElement {
     }
 
     handleResonanceUpdate(detail) {
-        const { mode } = detail;
-        this._resonanceMode = mode;
+        this._mode = detail.mode; // Sincronizar con el modo soberano
         this.updateUI();
     }
 
@@ -207,7 +206,7 @@ class IndraBridgeHUD extends HTMLElement {
 
         const body = this.shadowRoot.getElementById('hud-body');
         const status = this.shadowRoot.getElementById('master-status');
-        const citizen = this.shadowRoot.getElementById('citizen-badge');
+        const citizenBadge = this.shadowRoot.getElementById('citizen-badge');
         const actionBtn = this.shadowRoot.getElementById('btn-master-action');
         const satNameInput = this.shadowRoot.getElementById('config-sat-name');
         const coreUrlInput = this.shadowRoot.getElementById('config-core-id');
@@ -232,23 +231,32 @@ class IndraBridgeHUD extends HTMLElement {
             unlockBtn.classList.toggle('unlocked', !this._configLocked);
         }
 
-        // --- MÁQUINA DE ESTADOS LINEAL ---
-        switch (this._resonanceMode) {
+        // --- MÁQUINA DE ESTADOS SECUENCIAL (Branched v3.3) ---
+        switch (this._mode) {
             case 'GHOST':
-                status.innerText = 'ESTADO: HUÉRFANO (SIN NEXO)';
-                status.className = 'badge badge-core';
-                actionBtn.innerText = '🔗 CONECTAR AL CORE';
+                status.innerText = 'PASO 1: CONECTAR CORE';
+                status.className = 'badge';
+                actionBtn.innerText = '🔗 VINCULAR NODO';
                 actionBtn.className = 'btn-master';
                 actionBtn.onclick = () => this.handleIgnition();
                 body.classList.add('locked');
                 break;
 
-            case 'DIVERGENT':
-                status.innerText = 'ALERTA: ADN DIVERGENTE';
+            case 'ORPHAN':
+                status.innerText = 'PASO 2: ANCLAR CIUDADANÍA';
                 status.className = 'badge badge-divergent';
-                actionBtn.innerText = '🧬 CRISTALIZAR Y SINCRONIZAR';
+                actionBtn.innerText = '👑 GÉNESIS DE SATÉLITE';
                 actionBtn.className = 'btn-master divergent';
-                actionBtn.onclick = () => this.handleMasterSync();
+                actionBtn.onclick = () => this.handleAnchorCitizenship();
+                body.classList.add('locked');
+                break;
+
+            case 'DIVERGENT':
+                status.innerText = 'ADVERTENCIA: ADN DIVERGENTE';
+                status.className = 'badge badge-divergent';
+                actionBtn.innerText = '🧬 SINCRONIZAR ADN';
+                actionBtn.className = 'btn-master divergent';
+                actionBtn.onclick = () => this.handleDNAsync();
                 body.classList.add('locked');
                 break;
 
@@ -265,24 +273,24 @@ class IndraBridgeHUD extends HTMLElement {
                 status.innerText = 'ERROR: ADN ROTO';
                 status.className = 'badge badge-divergent';
                 actionBtn.innerText = '⚠️ EJECUTAR SYNC';
-                actionBtn.className = 'btn-master divergent';
-                actionBtn.onclick = () => window.location.reload(); // Un reload puede limpiar el cache del import
+                actionBtn.onclick = () => window.location.reload();
                 body.classList.add('locked');
                 break;
 
-            case 'OFFLINE':
+            default:
                 status.innerText = 'MODO LOCAL / OFFLINE';
-                status.className = 'badge';
                 actionBtn.innerText = 'REINTENTAR';
                 actionBtn.onclick = () => this._bridge.init();
                 body.classList.remove('locked');
                 break;
         }
 
-        // Mostrar Badge de Ciudadano si existe ID
+        // Mostrar Badge de Ciudadano si existe
         if (this._bridge.activeWorkspaceId) {
-            citizen.style.display = 'inline-block';
-            citizen.innerText = `CIUDADANO: ${this._bridge.activeWorkspaceId.substring(0,8)}`;
+            citizenBadge.style.display = 'inline-block';
+            citizenBadge.innerText = `CIUDADANO: ${this._bridge.activeWorkspaceId.substring(0,8)}`;
+        } else {
+            citizenBadge.style.display = 'none';
         }
 
         // Proyectar datos a widgets solo si no está bloqueado
@@ -303,26 +311,36 @@ class IndraBridgeHUD extends HTMLElement {
     async handleIgnition() {
         const btn = this.shadowRoot.getElementById('btn-master-action');
         btn.disabled = true;
-        btn.innerText = "RESONANDO...";
+        btn.innerText = "VINCULANDO...";
         try {
             await this._bridge.ignite();
         } catch (e) {
-            console.error(e);
             btn.disabled = false;
             this.updateUI();
         }
     }
 
-    async handleMasterSync() {
+    async handleAnchorCitizenship() {
         const btn = this.shadowRoot.getElementById('btn-master-action');
         btn.disabled = true;
-        btn.innerText = "GÉNESIS EN CURSO...";
+        btn.innerText = "GÉNESIS...";
         try {
-            // Actualizar nombre en el contrato antes de sincronizar
-            this._bridge.contract.satellite_name = this.shadowRoot.getElementById('config-sat-name').value;
-            await this._bridge.masterSync();
+            await this._bridge.anchorCitizenship();
         } catch (e) {
-            alert("Error en Sincronización Maestra: " + e.message);
+            alert("Fallo el génesis: " + e.message);
+            btn.disabled = false;
+            this.updateUI();
+        }
+    }
+
+    async handleDNAsync() {
+        const btn = this.shadowRoot.getElementById('btn-master-action');
+        btn.disabled = true;
+        btn.innerText = "TEJIENDO...";
+        try {
+            await this._bridge.syncDNA();
+        } catch (e) {
+            alert("Error de sincronía: " + e.message);
             btn.disabled = false;
             this.updateUI();
         }

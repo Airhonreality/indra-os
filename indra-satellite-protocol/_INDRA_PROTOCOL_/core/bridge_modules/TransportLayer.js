@@ -13,7 +13,14 @@ export class TransportLayer {
         this.bridge = bridge;
         this.activeRequests = 0;
         this.requestQueue = [];
-        this.MAX_CONCURRENT = 1;
+        this.MAX_CONCURRENT = 5; // Mayor paralelismo para evitar bloqueos en handshakes
+    }
+
+    purgeQueue() {
+        console.warn("[TransportLayer] Purgando cola de peticiones...");
+        this.requestQueue.forEach(resolve => resolve());
+        this.requestQueue = [];
+        this.activeRequests = 0;
     }
 
     async execute(uqo, options = {}) {

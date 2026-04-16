@@ -1,8 +1,8 @@
 /**
  * =============================================================================
- * INDRA SATELLITE BRIDGE (v3.0) - FRAKTAL NEXUS
+ * INDRA SATELLITE BRIDGE (v3.3) - BRANCHING NEXUS
  * =============================================================================
- * Responsibilidad: Orquestación modular y soberana.
+ * Responsibilidad: Orquestación modular con separación de ramas de soberanía.
  * =============================================================================
  */
 
@@ -13,20 +13,17 @@ import { ResonanceSync } from './bridge_modules/ResonanceSync.js';
 
 class IndraBridge {
     constructor(config = {}) {
-        const savedSync = JSON.parse(localStorage.getItem('INDRA_SATELLITE_LINK') || '{}');
-
         // --- ESTADO NUCLEO ---
-        this.coreUrl = config.coreUrl || savedSync.coreUrl || "https://airhonreality.github.io/indra-os";
-        this.satelliteToken = config.satelliteToken || savedSync.token || null;
-        this.activeWorkspaceId = savedSync.workspaceId || null; 
+        this.coreUrl = config.coreUrl || "https://airhonreality.github.io/indra-os";
+        this.satelliteToken = null;
+        this.activeWorkspaceId = null; 
         this.environment = config.environment || 'PRODUCTION';
-        this.shareTicket = config.shareTicket || null;
 
         // --- DATOS ADN ---
-        this.contract = { satellite_name: 'Nuevo Satélite', capabilities: { protocols: [], providers: [] }, schemas: [] };
+        this.contract = { satellite_name: 'Satélite Anónimo', capabilities: { protocols: [], providers: [] }, schemas: [] };
         this.capabilities = { protocols: [], providers: [], core_version: '0.0' };
         
-        // --- MODULOS (Fractalidad) ---
+        // --- MODULOS ---
         this.transport = new TransportLayer(this);
         this.identity = new IdentityNode(this);
         this.contractCortex = new ContractCortex(this);
@@ -38,67 +35,67 @@ class IndraBridge {
         this.onStateChange = config.onStateChange || null;
     }
 
-    // --- DELEGACIÓN DE IDENTIDAD ---
-    async ignite() { return await this.identity.ignite(); }
+    // --- RAMAS DE SOBERANÍA ---
+    async ignite() { 
+        this.transport.purgeQueue(); // Limpiar ruidos previos
+        return await this.identity.ignite(); 
+    }
     
+    // RAMA A: Anclaje de nueva identidad
+    async anchorCitizenship() { return await this.resonanceSync.anchorCitizenship(); }
+    
+    // RAMA B: Sincronización de DNA existente
+    async syncDNA() { return await this.resonanceSync.syncDNA(); }
+
     clearState() {
         this.satelliteToken = null;
+        this.activeWorkspaceId = null;
         localStorage.removeItem('INDRA_SATELLITE_LINK');
-        this._notify('sync', { status: 'DISCONNECTED' });
-        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'OFFLINE' } }));
+        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'GHOST' } }));
     }
 
-    // --- DELEGACIÓN DE ADN ---
-    async loadContract(path) { 
-        return await this.contractCortex.load(path).then(c => {
-            this._notify('contract_loaded', c);
-            return c;
-        });
-    }
-
-    // --- DELEGACIÓN DE COMUNICACIÓN ---
+    async loadContract(path) { return await this.contractCortex.load(path); }
     async execute(uqo, options) { return await this.transport.execute(uqo, options); }
 
-    // --- DELEGACIÓN DE SINCRONIZACIÓN ---
-    async masterSync() { return await this.resonanceSync.masterSync(); }
-    async persistMetadata() { return await this.resonanceSync.persistMetadata(); }
-
     /**
-     * @dharma Inicializar el sistema nervioso completo.
+     * @dharma Inicializar el sistema nervioso (Nexo de Conectividad).
      */
     async init() {
         if (this._initializing) return this._initPromise;
         this._initializing = true;
         
         this._initPromise = (async () => {
-            console.log("[IndraBridge:Nexus] Inicializando...");
+            console.log("[IndraBridge:Nexus] Analizando Vias de Resonancia...");
             await this.loadContract();
 
             if (this.coreUrl && this.satelliteToken) {
                 try {
                     const localChecksum = this.contractCortex.calculateChecksum(this.contract.schemas);
                     const statusPulse = await this.execute({ protocol: 'SYSTEM_MANIFEST', provider: 'system' });
-                    
-                    const coreChecksum = statusPulse.metadata?.schema_checksum;
                     this.capabilities = statusPulse.metadata || {};
-                    
-                    if (localChecksum !== coreChecksum) {
-                        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
-                            detail: { mode: 'DIVERGENT', local: localChecksum, core: coreChecksum } 
-                        }));
-                    } else {
-                        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
-                    }
 
-                    if (statusPulse.metadata?.generated_workspace_id) {
-                        this.activeWorkspaceId = statusPulse.metadata.generated_workspace_id;
+                    // --- DECISIÓN DE RAMA AXIOMÁTICA ---
+                    if (!this.activeWorkspaceId) {
+                        // RAMA A: Conectado pero sin Ciudadanía (Huérfano)
+                        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'ORPHAN' } }));
+                    } else {
+                        // RAMA B: Ciudadano detectado (Residente)
+                        const coreChecksum = statusPulse.metadata?.schema_checksum;
+                        if (localChecksum !== coreChecksum) {
+                            window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
+                                detail: { mode: 'DIVERGENT', local: localChecksum, core: coreChecksum } 
+                            }));
+                        } else {
+                            window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
+                        }
                     }
 
                 } catch (e) {
-                    console.warn("[IndraBridge:Nexus] Fallo en handshake core.", e);
+                    console.warn("[IndraBridge:Nexus] Error en Handshake. Modo Offline.", e);
                     window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'OFFLINE' } }));
                 }
             } else {
+                // Estado inicial: Sin conexión al Core
                 window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'GHOST' } }));
             }
 
@@ -111,20 +108,8 @@ class IndraBridge {
 
     _notify(event, data) {
         if (this.onStateChange) this.onStateChange(this, event, data);
-        if (this._listeners[event]) this._listeners[event].forEach(cb => cb(data));
         window.dispatchEvent(new CustomEvent(`indra:${event}`, { detail: data }));
         if (event === 'sync') window.dispatchEvent(new CustomEvent('indra-ready', { detail: data }));
-    }
-
-    audit() {
-        const report = {
-            id: this.contract.core_id || 'ANONYMOUS',
-            status: this.coreUrl ? 'CONNECTED' : 'LOCAL_ONLY',
-            schemas: this.contract.schemas.length,
-            auth: this.satelliteToken ? 'PRESENT' : 'MISSING'
-        };
-        console.table(report);
-        return report;
     }
 
     async runWorkflow(workflowJson, triggerData = {}) {

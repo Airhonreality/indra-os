@@ -1,5 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import { useAppState } from '../state/app_state';
+import { executeDirective } from '../services/directive_executor';
 
 const ProtocolContext = createContext();
 
@@ -18,6 +19,16 @@ export function ProtocolProvider({ children }) {
     const clearError = useAppState(s => s.clearError);
     const bootstrap = useAppState(s => s.bootstrap);
 
+    /**
+     * execute: Disparador universal de protocolos (UQO)
+     * Abstrae la URL y el Secreto para los componentes.
+     */
+    const execute = async (uqo) => {
+        // Si no se especifica provider, asumimos 'system' por defecto (Core)
+        const payload = { provider: 'system', ...uqo };
+        return await executeDirective(payload, coreUrl, sessionSecret);
+    };
+
     const value = {
         coreUrl,
         sessionSecret,
@@ -27,7 +38,8 @@ export function ProtocolProvider({ children }) {
         setCoreConnection,
         disconnect,
         clearError,
-        bootstrap
+        bootstrap,
+        execute // <--- El Motor de Soberanía
     };
 
     return (

@@ -1,7 +1,10 @@
 import React from 'react';
-import { ProtocolProvider } from './ProtocolContext';
-import { WorkspaceProvider } from './WorkspaceContext';
-import { ShellProvider } from './ShellContext';
+import { ProtocolProvider, useProtocol } from './ProtocolContext';
+import { WorkspaceProvider, useWorkspace } from './WorkspaceContext';
+import { ShellProvider, useShell } from './ShellContext';
+
+// Exportación centralizada de Hooks (Façade Pattern)
+export { useProtocol, useWorkspace, useShell };
 
 /**
  * NeuralSplitter

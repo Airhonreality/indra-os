@@ -58,7 +58,8 @@ export const createIgnitionSlice = (set, get) => ({
         const { googleUser } = get();
         if (!googleUser || !googleUser.accessToken) return;
 
-        set({ isConnecting: true, error: null, installStatus: { step: 'INICIANDO_IGNICION', progress: 5 } });
+        set({ isConnecting: true, error: null, installStatus: { step: '🔴 [v4.22-PROBE] INICIANDO_IGNICION...', progress: 5 } });
+        console.log('🔴 [v4.22-PROBE] INICIANDO IGNICIÓN INDRA CORE...');
         try {
             const result = await OrchestratorService.installCore(
                 googleUser.accessToken, 
@@ -79,6 +80,7 @@ export const createIgnitionSlice = (set, get) => ({
                         isConnecting: false, 
                         error: 'AUTORIZACION_PENDIENTE',
                         pendingCoreUrl: result.coreUrl,
+                        pendingEditorUrl: `https://script.google.com/home/projects/${result.manifest.script_id}/edit`,
                         installStatus: { step: 'AUTORIZACIÓN REQUERIDA', progress: 97 }
                     });
                     

@@ -1,4 +1,5 @@
 [
+  { "path": "0_AUTHORIZE_MANUALLY.gs", "name": "0_AUTHORIZE_MANUALLY" },
   { "path": "appsscript.json", "name": "appsscript", "type": "JSON" },
   { "path": "0_gateway/api_gateway.js", "name": "api_gateway" },
   { "path": "0_gateway/core_diagnostics.js", "name": "core_diagnostics" },

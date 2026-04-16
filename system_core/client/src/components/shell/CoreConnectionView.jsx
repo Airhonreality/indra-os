@@ -25,7 +25,8 @@ export function CoreConnectionView() {
         setCoreConnection,
         removeCore,
         googleLogout,
-        installStatus
+        installStatus,
+        pendingEditorUrl
     } = useAppState();
 
     const [showLegacy, setShowLegacy] = useState(false);
@@ -199,13 +200,13 @@ export function CoreConnectionView() {
                                     
                                     <div className="stack" style={{ gap: '10px' }}>
                                         <a 
-                                            href={useAppState.getState().pendingCoreUrl} 
+                                            href={pendingEditorUrl || useAppState.getState().pendingCoreUrl} 
                                             target="_blank" 
                                             rel="noreferrer"
                                              className="btn btn--accent ripple"
                                              style={{ textDecoration: 'none', padding: '12px', fontWeight: 'bold' }}
                                          >
-                                            1. ABRIR NÚCLEO Y AUTORIZAR
+                                            1. ABRIR EDITOR Y EJECUTAR "INDRA_MANUAL_GENESIS"
                                         </a>
                                         <button 
                                             className="btn btn--ghost"
@@ -216,8 +217,8 @@ export function CoreConnectionView() {
                                         </button>
                                     </div>
                                     <p className="text-hint" style={{ fontSize: '9px', marginTop: '15px', opacity: 0.6 }}>
-                                        * Se abrirá una pestaña de Google. Dale a "Continuar" o "Autorizar". <br />
-                                        Cuando veas un mensaje de "Indra Core Active", vuelve aquí.
+                                        * Selecciona la función en el menú superior y pulsa "Ejecutar". <br />
+                                        Cuando veas "Indra ha despertado" en los logs, vuelve aquí.
                                     </p>
                                 </div>
                             ) : (

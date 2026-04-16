@@ -22,18 +22,25 @@ async function ignite() {
     const hud = document.getElementById('main-hud');
     if (hud) hud.bridge = bridge;
 
-    // 4. Lógica de Identidad (Capa Satélite)
+    // 4. Lógica de Identidad Real (Resonancia Proactiva)
     const loginBtn = document.getElementById('btn-login-google');
     if (loginBtn) {
-        loginBtn.onclick = () => {
-             console.log("🔑 Simulando Google Auth...");
-             // En un entorno real, aquí usarías google.accounts.id.prompt()
-             // Por ahora, inyectamos una identidad de prueba para validar el HUD
-             bridge.satelliteToken = "ya29.a0AfH6SMC..."; 
-             
-             // Forzamos la notificación al HUD
-             bridge._notify(); 
-             alert("Sincronización de Identidad Exitosa.");
+        loginBtn.onclick = async () => {
+             try {
+                 const originalText = loginBtn.innerText;
+                 loginBtn.innerText = "RESONANDO...";
+                 loginBtn.disabled = true;
+
+                 await bridge.ignite();
+
+                 loginBtn.innerText = "CONECTADO";
+                 console.log("💎 Resonancia Establecida.");
+             } catch (e) {
+                 console.error("❌ Fallo de Resonancia:", e);
+                 loginBtn.innerText = "ERROR DE IGNICIÓN";
+                 loginBtn.disabled = false;
+                 alert(`Error: ${e.message}`);
+             }
         };
     }
 

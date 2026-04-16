@@ -1,0 +1,20 @@
+export default {
+  "id": "sys_genesis_express",
+  "metadata": { "category": "SYSTEM", "artifact": "UTIL", "version": "1.0" },
+  "payload": {
+    "label": "🛠️ GÉNESIS: Materializar Infraestructura",
+    "stations": [
+      {
+        "id": "ST_GENESIS",
+        "type": "PROTOCOL",
+        "protocol": "SYSTEM_GENESIS_SILO",
+        "config": {
+          "data": { 
+            "schema_alias": "{trigger.target_schema}", 
+            "provider": "{trigger.provider || 'google_sheets'}" 
+          }
+        }
+      }
+    ]
+  }
+};

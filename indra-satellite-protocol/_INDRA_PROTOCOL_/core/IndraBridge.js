@@ -165,26 +165,13 @@ class IndraBridge {
     }
 
     /**
-     * @dharma Escáner de Materia Local (Vite-Ready).
-     * Permite que el satélite se auto-sincronice con la carpeta /src/score/
-     * sin ejecutar comandos de terminal.
+     * @dharma Escáner de Materia Local.
+     * En modo estático (Public), dependemos del indra_contract.json consolidado.
      */
     async _harvestLocalAssets() {
         const assets = { schemas: [], workflows: [] };
-        
-        try {
-            // AXIOMA DE AUTODESCUBRIMIENTO: Usamos el poder de Vite para mapear el disco duro
-            // Nota: Estos globs son resueltos en tiempo de compilación/dev por Vite.
-            const schemaFiles = import.meta.glob('/src/score/schemas/*.json', { eager: true });
-            const workflowFiles = import.meta.glob('/src/score/workflows/*.json', { eager: true });
-
-            assets.schemas = Object.values(schemaFiles).map(m => m.default || m);
-            assets.workflows = Object.values(workflowFiles).map(m => m.default || m);
-        } catch (e) {
-            // En producción (fuera de Vite), esto fallará silenciosamente
-            console.warn("[IndraBridge] Auto-Scanner no disponible (Production Mode).");
-        }
-
+        // El auto-scanner vía import.meta.glob solo funciona en SRC, no en PUBLIC.
+        // Por ahora, devolvemos vacío para no romper el hilo de ejecución.
         return assets;
     }
 

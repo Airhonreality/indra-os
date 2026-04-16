@@ -47,9 +47,11 @@ npm run ignite
 
 ---
 
-## 🚀 Ignición del Satélite en Producción
+## 🚀 Ignición Rápida (Template)
 
-Este protocolo soporta tres modos de inicio, dependiendo de la autonomía del satélite.
+1. **Clonar**: `git clone --recursive https://github.com/Airhonreality/indra-satellite-protocol.git`
+2. **Integración en Indra OS**: Si este repositorio se usa como submódulo en `indra-os`, su ubicación oficial para despliegue es: `/system_core/client/public/indra-satellite-protocol/`.
+3. **Desarrollar**: Edita los esquemas en `src/score/schemas` y el Satélite se auto-sincronizará mediante el Bridge.
 
 ### 1. El Modo "Huérfano Orquestado" (Recomendado)
 Para satélites que viven dentro de un Iframe o son abiertos desde la Shell Madre oficial de Indra. **No requiere configurar Google Auth ni Client IDs.**

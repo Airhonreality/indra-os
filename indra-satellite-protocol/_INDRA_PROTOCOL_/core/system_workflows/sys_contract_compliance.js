@@ -1,0 +1,15 @@
+export default {
+  "id": "sys_contract_compliance",
+  "metadata": { "category": "SYSTEM", "artifact": "UTIL" },
+  "payload": {
+    "label": "🛠️ CONTRATO: Validar Integridad",
+    "stations": [
+      {
+        "id": "ST_VALIDATE",
+        "type": "PROTOCOL",
+        "protocol": "SYSTEM_CONTRACT_AUDIT",
+        "config": { "data": { "deep_check": true } }
+      }
+    ]
+  }
+};

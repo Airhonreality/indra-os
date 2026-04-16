@@ -155,6 +155,40 @@ function resonance_service_crystallize(payload) {
         logWarn("[resonance] No se pudo realizar el escaneo de integridad cruzada:", e.message);
     }
 
+    // 3. PROTOCOLO DE GÉNESIS (CIUDADANÍA SATELITAL)
+    let generatedWorkspaceId = null;
+    const satelliteName = contract.satellite_name || contract.core_id || 'Nuevo Workspace';
+    
+    try {
+        const existingWorkspaces = _system_listAtomsByClass('WORKSPACE', 'system').items || [];
+        const genesisTarget = existingWorkspaces.find(ws => 
+            (ws.handle?.label === satelliteName) || 
+            (ws.name === satelliteName) || 
+            (ws.handle?.alias === _system_slugify_(satelliteName))
+        );
+
+        if (genesisTarget) {
+            logInfo(`[resonance] Ciudadanía Confirmada. Workspace existente: ${genesisTarget.id}`);
+            generatedWorkspaceId = genesisTarget.id;
+        } else {
+            logInfo(`[resonance] Iniciando Génesis para nuevo Satélite: ${satelliteName}`);
+            const genesisResponse = _system_handleCreate({
+                provider: 'system',
+                class: 'WORKSPACE',
+                data: {
+                    name: satelliteName,
+                    description: `Dharma de Jurisdicción creado automáticamente para el satélite ${satelliteName}.`
+                }
+            });
+            if (genesisResponse.items && genesisResponse.items.length > 0) {
+                generatedWorkspaceId = genesisResponse.items[0].id;
+                logInfo(`[resonance] Génesis Completada. Workspace asignado: ${generatedWorkspaceId}`);
+            }
+        }
+    } catch (e) {
+        logWarn(`[resonance] Error en Génesis de Workspace para ${satelliteName}`, e);
+    }
+
     return {
         items: [],
         metadata: {
@@ -162,7 +196,8 @@ function resonance_service_crystallize(payload) {
             core_version: '0.4.5',
             message: `Resonancia establecida. ${incomingSchemas.length} esquemas cristalizados.`,
             integrity_warnings: integrityWarnings,
-            handshake_timestamp: new Date().toISOString()
+            handshake_timestamp: new Date().toISOString(),
+            generated_workspace_id: generatedWorkspaceId
         }
     };
 }

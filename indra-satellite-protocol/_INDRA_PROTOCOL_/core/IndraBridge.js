@@ -213,7 +213,7 @@ class IndraBridge {
         await this.loadContract();
 
         // 2. Handshake y Checksum de Sinceridad
-        if (this.coreUrl) {
+        if (this.coreUrl && this.satelliteToken) {
             try {
                 const localChecksum = this._generateChecksum(this.contract.schemas);
                 
@@ -224,55 +224,75 @@ class IndraBridge {
                 });
                 
                 const coreChecksum = statusPulse.metadata?.schema_checksum;
-                
+                this.capabilities = statusPulse.metadata || {};
+                this.coreVersion = this.capabilities.core_version;
+
                 if (localChecksum !== coreChecksum) {
-                    this.logger.warn(`[IndraBridge] Divergencia de ADN detectada (Local: ${localChecksum} vs Core: ${coreChecksum}). Forzando Cristalización...`);
-                    // ADR-Resonancia: Empujamos el ADN local para cristalizarlo en el Core
-                    const crystalResponse = await this.execute({
-                        protocol: 'SYSTEM_RESONANCE_CRYSTALLIZE',
-                        provider: 'system',
-                        data: { contract: this.contract, checksum: localChecksum }
-                    });
-                    this.capabilities = crystalResponse.metadata || {};
-                    this.resonanceWarnings = crystalResponse.metadata?.integrity_warnings || [];
-                    
-                    // PROTOCOLO DE CIUDADANÍA: Asignar Workspace Generado Automáticamente
-                    if (crystalResponse.metadata?.generated_workspace_id && !this.activeWorkspaceId) {
-                        this.activeWorkspaceId = crystalResponse.metadata.generated_workspace_id;
-                        // Actualizamos el storage soberano para amarrar este satélite a su nuevo hogar
-                        const savedSync = JSON.parse(localStorage.getItem('INDRA_SATELLITE_LINK') || '{}');
-                        savedSync.workspaceId = this.activeWorkspaceId;
-                        localStorage.setItem('INDRA_SATELLITE_LINK', JSON.stringify(savedSync));
-                        console.log(`[IndraBridge] 🏛️ Ciudadanía confirmada. Workspace anclado: ${this.activeWorkspaceId}`);
-                        
-                        // AUTO-PERSISTENCIA EN DAEMON (Zero-Touch Sovereignty)
-                        this.persistMetadata().catch(e => console.warn("[IndraBridge] Auto-persist failed. Normal in non-dev env."));
-                    }
-                    
-                    window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'CRYSTALLIZED' } }));
+                    console.warn(`[IndraBridge] Divergencia de ADN: Local(${localChecksum}) != Core(${coreChecksum || 'MISSING'})`);
+                    window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'DIVERGENT', local: localChecksum, core: coreChecksum } }));
                 } else {
-                    console.log("[IndraBridge] Resonancia perfecta. No se requiere cristalización.");
-                    this.capabilities = statusPulse.metadata || {};
+                    console.log("[IndraBridge] Resonancia perfecta.");
                     window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
                 }
                 
-                this.coreVersion = this.capabilities.core_version;
-                
-                if (this.resonanceWarnings.length > 0) {
-                    this.logger.warn("⚠️ Advertencias de Resonancia detectadas:", this.resonanceWarnings);
+                if (statusPulse.metadata?.generated_workspace_id) {
+                    this.activeWorkspaceId = statusPulse.metadata.generated_workspace_id;
                 }
 
-                console.log("[IndraBridge] Resonancia establecida con el Core.");
             } catch (e) {
-                this.logger.warn("⚠️ Fallo en Handshake/Cristalización. Operando en modo Local/Desconectado.", e);
+                this.logger.warn("⚠️ Fallo en Handshake. Operando en modo Local.", e);
+                window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'OFFLINE' } }));
             }
+        } else {
+             window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'GHOST' } }));
         }
 
-        this._notify('sync', { status: 'CONNECTED' });
+        this._notify('sync', { status: this.satelliteToken ? 'CONNECTED' : 'DISCONNECTED' });
         return { 
             core: this.capabilities, 
             contract: this.contract 
         };
+    }
+
+    /**
+     * @dharma ORQUESTADOR DE RESONANCIA MAESTRA (Fase 2)
+     * Ejecuta la cristalización atómica y asienta la ciudadanía en un solo pulso.
+     */
+    async masterSync() {
+        if (!this.coreUrl || !this.satelliteToken) throw new Error("AUTH_REQUIRED");
+        
+        console.log("[IndraBridge] Iniciando Cristalización Maestra...");
+        const localChecksum = this._generateChecksum(this.contract.schemas);
+
+        // 1. Empujar ADN al Core
+        const crystalResponse = await this.execute({
+            protocol: 'SYSTEM_RESONANCE_CRYSTALLIZE',
+            provider: 'system',
+            data: { contract: this.contract, checksum: localChecksum }
+        });
+
+        this.capabilities = crystalResponse.metadata || {};
+        
+        // 2. Asentar Ciudadanía
+        if (crystalResponse.metadata?.generated_workspace_id) {
+            this.activeWorkspaceId = crystalResponse.metadata.generated_workspace_id;
+            const savedSync = JSON.parse(localStorage.getItem('INDRA_SATELLITE_LINK') || '{}');
+            savedSync.workspaceId = this.activeWorkspaceId;
+            localStorage.setItem('INDRA_SATELLITE_LINK', JSON.stringify(savedSync));
+        }
+
+        // 3. Persistencia Local (Daemon)
+        await this.persistMetadata().catch(e => console.warn("[IndraBridge] Daemon local no disponible para persistencia."));
+
+        // 4. Disparar Sincronización Remota (Compiler) vía API
+        const apiOrigin = window.location.origin;
+        await fetch(`${apiOrigin}/api/indra/sync`, { method: 'POST' }).catch(e => console.warn("[IndraBridge] No se pudo triggerear el compilador remoto."));
+
+        // 5. Recarga Final
+        await this.loadContract();
+        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
+        
+        return true;
     }
 
     /**
@@ -284,7 +304,9 @@ class IndraBridge {
             core_id: this.contract.core_id,
             workspace_id: this.activeWorkspaceId
         };
-        const response = await fetch('/api/indra/metadata', {
+        // Axioma de Dinamismo: Usar el origin del navegador para evitar fallos de puerto
+        const apiOrigin = window.location.origin;
+        const response = await fetch(`${apiOrigin}/api/indra/metadata`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

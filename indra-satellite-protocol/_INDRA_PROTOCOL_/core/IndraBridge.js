@@ -111,7 +111,7 @@ class IndraBridge {
         const top = (window.innerHeight / 2) - (height / 2);
         
         const popup = window.open(
-            `${INDRA_MOTHER_SHELL}#/resonate?origin=${encodeURIComponent(window.location.origin)}`,
+            `${INDRA_MOTHER_SHELL}#/resonate?origin=${encodeURIComponent(window.location.origin)}&name=${encodeURIComponent(this.contract.satellite_name || 'Nuevo Satélite')}`,
             "IndraResonance",
             `width=${width},height=${height},top=${top},left=${left}`
         );

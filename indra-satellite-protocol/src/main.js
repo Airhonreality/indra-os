@@ -35,6 +35,9 @@ async function ignite() {
     }
     if (bridge.satelliteToken) {
         inputToken.value = bridge.satelliteToken;
+    } else {
+        // AXIOMA DE INICIO: Token OMEGA por defecto para facilitar el enlace inicial
+        inputToken.value = "OMEGA";
     }
 
     // 3. EVENTO: Ignición Automática (Google / Resonance)

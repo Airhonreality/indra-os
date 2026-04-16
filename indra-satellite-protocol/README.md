@@ -41,7 +41,9 @@ A diferencia de las aplicaciones tradicionales que "te piden permiso", los saté
 La Nave Nodriza (Core) mantiene un registro de identidades llamado `keychain_service.js`. Este archivo es el corazón de la seguridad y determina quién tiene derecho a operar sobre la materia (tus datos).
 
 1.  **Identidad Delegada (Sesión)**: Es efímera. Se basa en que estás logueado en Google. Es cómoda pero dependiente de la interfaz de Indra OS.
-2.  **Identidad Soberana (Tokens)**: Es persistente y agnóstica. Al usar el token `indra_satellite_omega`, el satélite adquiere jerarquía de **MASTER** directamente sobre el API Gateway, permitiendo automatizaciones y flujos multi-usuario sin intervención humana constante.
+2.  **Identidad Soberana (Tokens)**: Es persistente y agnóstica. El Core utiliza el **Keychain Engine (ADR-041)** para emitir llaves con dos niveles de jerarquía:
+    -   **Nivel MASTER**: Acceso total a todos los Workspaces y servicios del Core (ej: `indra_satellite_omega`).
+    -   **Nivel SCOPED**: Acceso restringido a un único Workspace o recurso. El API Gateway bloqueará cualquier intento de saltar a otro contexto (Error 403).
 
 ---
 

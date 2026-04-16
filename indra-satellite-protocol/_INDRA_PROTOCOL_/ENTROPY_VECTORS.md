@@ -28,3 +28,8 @@ La entropía es el desorden natural que degrada los sistemas. En Indra, la entro
 **Síntoma:** El Agente intenta "arreglar" un problema de negocio (ej. añadir un botón de Cotización) modificando archivos dentro de `_INDRA_PROTOCOL_` o `system_core/client/src/satellite/`.
 **Impacto:** Destrucción del desacoplamiento. El satélite deja de ser portátil. El Bridge se vuelve un espagueti de lógica de negocio que el Core no puede procesar.
 **Antídoto:** Mantener una frontera absoluta. La lógica de negocio vive en `src/`. La infraestructura es intocable. Si necesitas una nueva funcionalidad, pídele al Core un nuevo protocolo, no parches el Bridge.
+
+## 🚩 Vector 6: La Basura Espacial de Identidad (Entropía de Keychain)
+**Síntoma:** El Agente o Usuario elimina un Workspace o desactiva un Satélite, pero deja los tokens de acceso marcados como `ACTIVE` en el `keychain_service.gs`.
+**Impacto:** "Puertas Traseras" latentes. Un atacante con un token antiguo podría seguir accediendo a infraestructuras huérfanas o, peor aún, si el token es MASTER, a todo el Core.
+**Antídoto:** Implementar una **Purga en Cascada**. Cada vez que se elimina un átomo de clase `WORKSPACE`, el sistema debe invocar `SYSTEM_KEYCHAIN_REVOKE` para todas las llaves vinculadas a ese `context_id`. La soberanía sin limpieza es inseguridad.

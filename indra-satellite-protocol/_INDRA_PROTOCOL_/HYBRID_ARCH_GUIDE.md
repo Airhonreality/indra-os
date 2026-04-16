@@ -14,6 +14,18 @@ Para garantizar la **Sinceridad del Sistema**, el satélite identifica el origen
 
 ---
 
+## 🔐 Aduana de Soberanía (ADR-041: Keychain Engine)
+La arquitectura v2.5 introduce la **Aduana de Scopes**. Ya no es necesario que un satélite tenga acceso total para funcionar. 
+
+### El Handshake de Ámbito:
+1.  **Emisión**: La Shell Madre (React) emite un **Token de Sinceridad** con un `scope_id` vinculado a un Workspace.
+2.  **Identificación**: El satélite almacena este token en su pacto manual.
+3.  **Filtrado**: El **API Gateway** intercepta cada petición. Si el `context_id` de la petición no coincide con el `scope_id` del token (y el token no es MASTER), el Core rechaza la operación con un **Error 403 (Scope Violation)**.
+
+*Esto permite crear satélites especializados (ej: App de Inventario) que no pueden ver datos sensibles de otros Workspaces (ej: Nóminas).*
+
+---
+
 ## 🛠️ Indra Tools: El Arsenal Universal
 El satélite inyecta automáticamente una pestaña de herramientas de infraestructura para operar el Core al 100% de su capacidad.
 

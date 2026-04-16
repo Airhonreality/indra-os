@@ -229,15 +229,15 @@ class IndraBridge {
             }
         }
 
-        this._notify();
+        this._notify('sync', { status: 'CONNECTED' });
         return { 
             core: this.capabilities, 
             contract: this.contract 
         };
     }
 
-    _notify() {
-        if (this.onStateChange) this.onStateChange(this);
+    _notify(event, data) {
+        if (this.onStateChange) this.onStateChange(this, event, data);
     }
 
     /**

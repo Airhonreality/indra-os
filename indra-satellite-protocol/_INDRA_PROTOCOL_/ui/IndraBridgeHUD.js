@@ -11,6 +11,7 @@ import './widgets/IndraSchemaProjector.js';
 import './widgets/IndraUniversalPicker.js';
 import './widgets/IndraWorkflowRibbon.js';
 import './widgets/IndraParamModal.js';
+import './widgets/IndraKeychainWidget.js';
 
 const TEMPLATE = `
 <style>
@@ -92,6 +93,9 @@ const TEMPLATE = `
 
     <div class="hud-body">
         <div class="panel">
+            <h3 class="panel-title">Soberanía (Keychain)</h3>
+            <indra-keychain-widget id="keychain-ctrl" style="margin-bottom:20px;"></indra-keychain-widget>
+            
             <h3 class="panel-title">Espina Dorsal (Schemas)</h3>
             <indra-schema-projector id="schema-projector"></indra-schema-projector>
         </div>
@@ -126,6 +130,11 @@ class IndraBridgeHUD extends HTMLElement {
     set bridge(instance) {
         this._bridge = instance;
         this._bridge.onStateChange = () => this.updateUI();
+        
+        // Inyectar Bridge al Llavero
+        const keychain = this.shadowRoot.getElementById('keychain-ctrl');
+        if (keychain) keychain.bridge = instance;
+
         this.updateUI();
     }
 

@@ -73,3 +73,24 @@ Las actualizaciones de contratos son **Transaccionales**:
 3.  **Reflejo en AI**: Antigravity lee el cambio y ajusta su escritura de partituras.
 
 **Falla en cualquiera de los 3 puntos de contrato json rompe la Soberanía del Satélite.**
+
+---
+
+## 6. CONTRATO DE IDENTIDAD (KEYCHAIN - ADR-041)
+Define la estructura de las llaves que residen en el `keychain_service.gs`.
+
+### Estructura de Llave (Ledger Entry):
+| Campo | Tipo | Valores / Descripción |
+| :--- | :--- | :--- |
+| `name` | `String` | Etiqueta humana del satélite (ej: "Bot_Finanzas"). |
+| `status` | `String` | `ACTIVE` \| `REVOKED`. |
+| `class` | `String` | `MASTER` (Full) \| `SCOPED` (Restringido). |
+| `parent_id` | `String` \| `null` | El token que emitió esta llave (Vínculo de Jerarquía). |
+| `can_delegate` | `Boolean` | Determina si esta llave puede emitir sub-tokens hijos. |
+| `scopes` | `Array` | Lista de `context_id` autorizados (ej: `["DRIVE_FOLDER_ID"]`). |
+| `scope_label` | `String` | Nombre del ámbito para visualización en el HUD. |
+
+### Clase SATELLITE_SESSION:
+El protocolo `CORE_DISCOVERY` y las validaciones de Gateway retornan un átomo de clase `SATELLITE_SESSION`.
+*   **Payload**: Debe incluir `core_url`, `session_secret` (si aplica) y `user_handle`.
+*   **Identidad**: El `id` de la sesión siempre será el email del propietario del Core o el Token ID del satélite.

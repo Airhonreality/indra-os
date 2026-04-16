@@ -239,6 +239,15 @@ class IndraBridgeHUD extends HTMLElement {
                 body.classList.remove('locked');
                 break;
 
+            case 'BROKEN':
+                status.innerText = 'ERROR: ADN ROTO';
+                status.className = 'badge badge-divergent';
+                actionBtn.innerText = '⚠️ EJECUTAR SYNC';
+                actionBtn.className = 'btn-master divergent';
+                actionBtn.onclick = () => window.location.reload(); // Un reload puede limpiar el cache del import
+                body.classList.add('locked');
+                break;
+
             case 'OFFLINE':
                 status.innerText = 'MODO LOCAL / OFFLINE';
                 status.className = 'badge';

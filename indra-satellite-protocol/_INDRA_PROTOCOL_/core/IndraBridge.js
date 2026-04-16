@@ -67,38 +67,46 @@ class IndraBridge {
      * @dharma Inicializar el sistema nervioso completo.
      */
     async init() {
-        console.log("[IndraBridge:Nexus] Inicializando...");
-        await this.loadContract();
+        if (this._initializing) return this._initPromise;
+        this._initializing = true;
+        
+        this._initPromise = (async () => {
+            console.log("[IndraBridge:Nexus] Inicializando...");
+            await this.loadContract();
 
-        if (this.coreUrl && this.satelliteToken) {
-            try {
-                const localChecksum = this.contractCortex.calculateChecksum(this.contract.schemas);
-                const statusPulse = await this.execute({ protocol: 'SYSTEM_MANIFEST', provider: 'system' });
-                
-                const coreChecksum = statusPulse.metadata?.schema_checksum;
-                this.capabilities = statusPulse.metadata || {};
-                
-                if (localChecksum !== coreChecksum) {
-                    window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
-                        detail: { mode: 'DIVERGENT', local: localChecksum, core: coreChecksum } 
-                    }));
-                } else {
-                    window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
+            if (this.coreUrl && this.satelliteToken) {
+                try {
+                    const localChecksum = this.contractCortex.calculateChecksum(this.contract.schemas);
+                    const statusPulse = await this.execute({ protocol: 'SYSTEM_MANIFEST', provider: 'system' });
+                    
+                    const coreChecksum = statusPulse.metadata?.schema_checksum;
+                    this.capabilities = statusPulse.metadata || {};
+                    
+                    if (localChecksum !== coreChecksum) {
+                        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
+                            detail: { mode: 'DIVERGENT', local: localChecksum, core: coreChecksum } 
+                        }));
+                    } else {
+                        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
+                    }
+
+                    if (statusPulse.metadata?.generated_workspace_id) {
+                        this.activeWorkspaceId = statusPulse.metadata.generated_workspace_id;
+                    }
+
+                } catch (e) {
+                    console.warn("[IndraBridge:Nexus] Fallo en handshake core.", e);
+                    window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'OFFLINE' } }));
                 }
-
-                if (statusPulse.metadata?.generated_workspace_id) {
-                    this.activeWorkspaceId = statusPulse.metadata.generated_workspace_id;
-                }
-
-            } catch (e) {
-                console.warn("[IndraBridge:Nexus] Fallo en handshake core.", e);
-                window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'OFFLINE' } }));
+            } else {
+                window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'GHOST' } }));
             }
-        } else {
-            window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'GHOST' } }));
-        }
 
-        this._notify('sync', { status: this.satelliteToken ? 'CONNECTED' : 'DISCONNECTED' });
+            this._notify('sync', { status: this.satelliteToken ? 'CONNECTED' : 'DISCONNECTED' });
+            this._initializing = false;
+        })();
+
+        return this._initPromise;
     }
 
     _notify(event, data) {

@@ -1,6 +1,6 @@
 /**
  * =============================================================================
- * INDRA CONTRACT CORTEX (Agnostic JS Edition)
+ * INDRA CONTRACT CORTEX (Agnostic JS Edition v3.2.1)
  * =============================================================================
  * Responsibilidad: Gestión del ADN local vía ES Modules.
  * =============================================================================
@@ -13,29 +13,31 @@ export class ContractCortex {
 
     /**
      * @dharma Carga el contrato y la configuración vía Módulos JS Dinámicos.
-     * Esto elimina la dependencia de 'fetch' y 'JSON.parse' para activos locales.
      */
     async load() {
         try {
             // 1. Cargar Configuración de Ciudadanía (JS)
-            // Blindaje contra corrupción de archivo: Si el .js está mal formado, caemos a un objeto seguro.
+            // Ubicación: _INDRA_PROTOCOL_/indra_config.js (2 niveles arriba de 'bridge_modules/')
             let config = {};
             try {
-                // Query param dinámico para romper caché de disco en caliente
-                const configModule = await import(`../indra_config.js?t=${Date.now()}`);
+                const configModule = await import(`../../indra_config.js?t=${Date.now()}`);
                 config = configModule.INDRA_CONFIG || {};
             } catch (importErr) {
-                console.warn("[ContractCortex] Error cargando 'indra_config.js' (posible corrupción). Usando memoria.");
+                console.warn("[ContractCortex] indra_config.js no detectado o corrupto. Usando estado en memoria.");
             }
 
             // 2. Cargar Contrato Maestro Consolidado (JS)
-            // Este archivo es el resultado del tejido de 'sync_core.js'
+            // Ubicación: _INDRA_PROTOCOL_/indra_contract.js (2 niveles arriba)
             let contract = { schemas: [], workflows: [] };
             try {
-                const contractModule = await import(`../indra_contract.js?t=${Date.now()}`);
+                const contractModule = await import(`../../indra_contract.js?t=${Date.now()}`);
                 contract = contractModule.INDRA_CONTRACT || contract;
             } catch (contractErr) {
-                console.warn("[ContractCortex] Error cargando 'indra_contract.js'. ¿Has ejecutado 'npm run sync'?");
+                console.error("[ContractCortex] ERROR FATAL: No se encontró 'indra_contract.js'.");
+                window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
+                    detail: { mode: 'BROKEN', message: 'Falta Tejido de ADN. Ejecuta npm run sync' } 
+                }));
+                throw contractErr;
             }
 
             // 3. Inyección y Sincronía Final
@@ -45,17 +47,17 @@ export class ContractCortex {
             this.bridge.contract = contract;
             this.bridge.activeWorkspaceId = config.workspace_id || this.bridge.activeWorkspaceId;
 
-            console.log("[ContractCortex] ADN JS sincronizado.");
+            console.log("[ContractCortex] ADN JS sincronizado exitosamente.");
             return contract;
         } catch (e) {
-            console.error('[ContractCortex] Error cargando ADN:', e);
+            console.error('[ContractCortex] Fallo en la carga del ADN:', e);
             return { schemas: [], workflows: [] };
         }
     }
 
     calculateChecksum(schemas) {
         // Normalizamos el JSON (ordenar llaves) para evitar divergencias falsas por formato
-        const str = JSON.stringify(schemas || [], Object.keys(schemas || []).sort());
+        const str = JSON.stringify(schemas || [], Object.keys(schemas || [] || {}).sort());
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);

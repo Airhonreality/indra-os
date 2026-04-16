@@ -169,7 +169,7 @@ class IndraWorkflowRibbon extends HTMLElement {
                     </div>
                 </div>
                 `;
-            }).join('') || `<div style="opacity:0.3; font-size:11px; text-align:center; padding: 20px;">SIN FLUJOS EN ${activeCategory}</div>`}
+            }).join('') || `<div style="opacity:0.3; font-size:11px; text-align:center; padding: 20px;">SIN FLUJOS EN ${activeCategory}</div>`)}
         </div>
         `;
     }
@@ -182,7 +182,8 @@ class IndraWorkflowRibbon extends HTMLElement {
             return alert("❌ ERROR DE MOTOR: El satélite está en MODO_LOCAL.\n\nPara ejecutar Génesis o cualquier flujo, debes abrir el satélite desde la Shell de Indra o configurar una coreUrl válida.");
         }
 
-        const wf = this._workflows.find(w => w.id === id);
+        const allWorkflows = [...this.systemTools, ...(this._clientWorkflows || [])];
+        const wf = allWorkflows.find(w => w.id === id);
         if (!wf) return;
 
         const portal = hud.shadowRoot.getElementById('param-portal');

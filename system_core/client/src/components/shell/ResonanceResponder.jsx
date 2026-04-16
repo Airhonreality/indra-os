@@ -40,6 +40,13 @@ export const ResonanceResponder = () => {
         }
     }, [bootstrap]);
 
+    // 1.5. AUTO-RETORNO TRAS LOGIN: Si se abre el conector y se logra la identidad, volver al panel
+    useEffect(() => {
+        if (showConnector && activeUrl && activeSecret) {
+            setShowConnector(false);
+        }
+    }, [showConnector, activeUrl, activeSecret]);
+
     // 2. CONCEDER RESONANCIA DE FORMA EXPLÍCITA
     const handleGrantResonance = () => {
         if (!activeSecret || !activeUrl) {

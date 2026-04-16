@@ -1,0 +1,2 @@
+# Este archivo le indica a GitHub Pages que NO debe procesar este sitio con Jekyll.
+# Es necesario para permitir el acceso a carpetas que empiezan con guion bajo (ej: _INDRA_PROTOCOL_).

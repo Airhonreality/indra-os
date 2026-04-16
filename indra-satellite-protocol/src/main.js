@@ -1,6 +1,6 @@
 /**
  * =============================================================================
- * MAIN SATELLITE ENTRY POINT (Consolidated v2.3)
+ * MAIN SATELLITE ENTRY POINT (Decoupled Nexus v3.3)
  * =============================================================================
  */
 import IndraBridge from '../_INDRA_PROTOCOL_/core/IndraBridge.js';
@@ -10,10 +10,7 @@ async function ignite() {
     console.log("🚀 Ignición Axial...");
 
     // 1. Inicializar el motor consolidado
-    const bridge = new IndraBridge({
-        // coreUrl: '...', 
-        // satelliteToken: '...'
-    });
+    const bridge = new IndraBridge();
 
     // 2. Inicialización Automática
     await bridge.init();
@@ -105,9 +102,6 @@ async function ignite() {
             authStatusChip.style.color = "white";
         }
     });
-
-    // Reporte Técnico
-    bridge.audit();
 }
 
 ignite().catch(err => console.error("❌ ERROR EN IGNICIÓN:", err));

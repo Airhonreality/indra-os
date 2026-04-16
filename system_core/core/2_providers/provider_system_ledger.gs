@@ -6,7 +6,7 @@
 // =============================================================================
 
 const LEDGER_SHEET_NAME = 'ATOMS';
-const LEDGER_COLUMNS = ['gid', 'drive_id', 'class', 'alias', 'label', 'owner_id', 'updated_at', 'payload_json'];
+const MASTER_MASTER_LEDGER_COLUMNS = ['gid', 'drive_id', 'class', 'alias', 'label', 'owner_id', 'updated_at', 'payload_json'];
 
 /**
  * Obtiene la Sheet del Ledger. Lanza error fatal si no existe o no es accesible.
@@ -26,7 +26,7 @@ function _ledger_get_sheet_(allowMissing = false) {
     if (!sheet && allowMissing) {
       // Si estamos reconstruyendo, nos aseguramos de que la pestaña exista
       sheet = ss.insertSheet(LEDGER_SHEET_NAME);
-      sheet.appendRow(LEDGER_COLUMNS);
+      sheet.appendRow(MASTER_LEDGER_COLUMNS);
       sheet.setFrozenRows(1);
     }
     if (!sheet) {
@@ -134,7 +134,7 @@ function ledger_initialize_new() {
   sheet.setName(LEDGER_SHEET_NAME);
   
   // Congelar cabeceras para higiene visual
-  sheet.appendRow(LEDGER_COLUMNS);
+  sheet.appendRow(MASTER_LEDGER_COLUMNS);
   sheet.setFrozenRows(1);
   
   const ledgerId = ss.getId();
@@ -187,9 +187,9 @@ function ledger_rebuild_from_drive() {
     
     // Limpiar y Volcar (SetValues es O(1) en Google Sheets API interna)
     const lastRow = sheet.getLastRow();
-    if (lastRow > 1) sheet.getRange(2, 1, lastRow - 1, LEDGER_COLUMNS.length).clearContent();
+    if (lastRow > 1) sheet.getRange(2, 1, lastRow - 1, MASTER_LEDGER_COLUMNS.length).clearContent();
     
-    sheet.getRange(2, 1, rows.length, LEDGER_COLUMNS.length).setValues(rows);
+    sheet.getRange(2, 1, rows.length, MASTER_LEDGER_COLUMNS.length).setValues(rows);
     
   } finally {
     lock.releaseLock();

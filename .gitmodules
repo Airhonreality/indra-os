@@ -1,3 +1,6 @@
 [submodule "indra-satellite-protocol"]
 	path = system_core/client/public/indra-satellite-protocol
 	url = https://github.com/Airhonreality/indra-satellite-protocol.git
+[submodule "system_core/client/public/indra-satellite-protocol"]
+	path = system_core/client/public/indra-satellite-protocol
+	url = https://github.com/Airhonreality/indra-satellite-protocol

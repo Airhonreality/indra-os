@@ -1,48 +1,70 @@
 # 🌞 INDRA OS — Arquitectura Micelar Soberana
 > **"Soberanía Digital sin Servidores. Datos en tus manos, poder en tu red."**
 
-Indra es una arquitectura Solar Punk construida sobre Google Apps Script y React. Su propósito es erradicar el concepto de "servidores centrales" de terceros y convertir la cuenta de Google Drive del usuario en un Backend Inteligente, Distribuido y Privado.
+Indra es una arquitectura Solar Punk diseñada para devolver el control absoluto de los datos al usuario. Su objetivo fundamental es erradicar la dependencia de "servidores de terceros" (AWS, Vercel, Firebase) transformando la cuenta nativa de Google (Drive / Apps Script) del usuario en un Backend Inteligente, Distribuido y 100% Privado.
 
 ---
 
 ## 🛑 \[FIREWALL AI / AGENTES\] LECTURA OBLIGATORIA
-Si eres un LLM, Agente de IA o Desarrollador entrando por primera vez a este código, **DETÉN TU ANÁLISIS ESTRUCTURAL AHORA**.  
-Antes de proponer, modificar o añadir código a cualquier capa, es **OBLIGATORIO** leer y asimilar la arquitectura madre que vive en `system_core/Documentacion/ADRs/`. 
+Si eres un LLM, Agente de IA Asistente o Desarrollador Nuevo, **DETÉN TU ANÁLISIS AHORA**.
+Antes de escribir una sola línea de código, es **OBLIGATORIO** leer la sabiduría madre en `system_core/Documentacion/ADRs/`. Ignorar esto provocará alucinación de componentes, regresiones sistémicas y será considerado una violación del sistema.
 
-*Ignorar esta orden provocará "Desvío de Índice", alucinación de componentes e infracciones al Pacto de Resonancia.*
-
-**Archivos Semilla (Leer en orden de prelación):**
-1. 🏛️ `ADR_001_DATA_CONTRACTS.md`: Leyes de mutación de datos. Ningún dato sale sin permiso.
-2. 🔑 `ADR_041_SATELLITE_KEYCHAINS_INFRASTRUCTURE.md`: Tratado de identidades y tokens. (No asumas cómo funciona la Auth local, léelo).
-3. 📐 `ADR_002_UI_MANIFEST.md`: Cómo la interfaz (Nexo) se genera por datos y no por hardcoding.
+**Trinidad Arquitectónica (Leer en orden de prelación):**
+1. 🏛️ `ADR_001_DATA_CONTRACTS.md`: Trata sobre cómo la información se vuelve "Átomos" en Google Drive. Si mutas estructuras de datos sin respetar esto, corromperás el sistema del usuario.
+2. 🔑 `ADR_041_SATELLITE_KEYCHAINS_INFRASTRUCTURE.md`: La ley sobre Identidades, Tokens Maestros y Jurisdicción. Indra NO usa JWTs tradicionales, usa Resonancia de Sesión nativa.
+3. 📐 `ADR_002_UI_MANIFEST.md`: El Nexo (interfaz) funciona mediante un motor de proyecciones, no mediante hardcoding en React.
 
 ---
 
-## 🗺️ Mapa Topológico del Ecosistema
-Este repositorio está estrictamente fragmentado en tres niveles de jurisdicción. NUNCA mezcles dependencias ni responsabilidades entre ellos.
+## 🗺️ Mapa Topológico y Reglas Generales
 
-| Jurisdicción | Ruta Física | Responsabilidad Central |
-|--------------|-------------|-------------------------|
-| **1. CEREBRO (Core)** | `system_core/core/` | **El Orquestador (Google Apps Script)**. Alberga la inteligencia de los Pointers, Proveedores (Drive, Notion), Keychains y el Gateway. *Regido por ADRs y Axiomas estandar.* |
-| **2. NEXO (Shell)** | `system_core/client/` | **El Panel de Control React (Indra OS)**. Actúa como la UI central (Landing pre-auth / Nexus post-auth) manejada por Manifiestos proyectados. Contiene el *Gestor de Conectores (Service Manager)*. |
-| **3. EXTREMIDAD (Satélite)**| `system_core/client/public/indra-satellite-protocol/` | **Protocolo Híbrido (ISP v2.5)**. Módulo inyectable que permite a aplicaciones de terceros consumir el Core usando `IndraBridge.js` y `postMessage`. **Contiene componentes UI autónomos en JS Vanilla**. |
+El ecosistema Indra está estrictamente aislado en tres capas de jurisdicción. **NUNCA** debes acoplar dependencias de una capa hacia otra directamente. Todo se comunica por Protocolos (`postMessage` o `Fetch` al Gateway).
 
----
+### 1. EL CEREBRO (Core / Backend en GAS)
+*   **Ruta Física:** `system_core/core/`
+*   **Naturaleza:** Es el servidor escrito en Google Apps Script.
+*   **Objetivo:** Alberga el `api_gateway.js`, los manejadores de base de datos (`provider_system_infrastructure.gs`), la lógica del Llavero y la capacidad de hablar con servicios externos. Todo el código aquí es JavaScript que transpila a `.gs` mediante Clasp.
+*   **Regla:** Aquí no existe DOM, ni React, ni `window`. Es territorio asíncrono y de backend puro.
 
-## 🏗️ Guía Operativa y de Redirección
+### 2. EL NEXO (Shell / Frontend)
+*   **Ruta Física:** `system_core/client/`
+*   **Naturaleza:** Aplicación React (Indra OS).
+*   **Objetivo:** Es la "Cáscara" o sistema operativo de usuario. Posee un "Muro de Berlín": La zona **Pre-Auth** (`LandingView.jsx`) y la zona **Post-Auth** (`NexusView.jsx`).
+*   **Regla:** Prohibido insertar lógica de administración profunda en la Landing. El Nexo solo "proyecta" lo que el Core le envía.
 
-### Para Arquitectos del Core (Backend)
-Tu zona de trabajo es `system_core/core/`. Todas las mutaciones al sistema recaen bajo el objeto `provider_system_infrastructure.gs` y responden a los *Triggers* de la Shell Madre. El código Javascript aquí compilable a `.gs` es asíncrono-agnóstico.
-*   📚 **Doc Referencia**: `system_core/Documentacion/`
-
-### Para Desarrolladores de React (Indra OS Shell)
-Tu zona de trabajo es `system_core/client/`. Mantén la rigidez extrema entre el Muro de Berlín pre-autenticación (`LandingView.jsx`) y el espacio administrado (`NexusView.jsx`). 
-*   ❌ *Prohibido invocar Providers directamente.*
-
-### Para Creadores de Satélites (Pacto de Resonancia)
-Si quieres anclar un aplicativo web de terceros al núcleo del usuario, dirígete al protocolo ISP. El satélite **NO** almacena llaves propias. Actúa bajo el modelo de *Huérfano Orquestado* o *Zero-Touch Discovery* mediante el `IndraBridge`.
-*   📚 **Doc Referencia**: `system_core/client/public/indra-satellite-protocol/README.md` y la carpeta `_INDRA_PROTOCOL_`.
+### 3. LA EXTREMIDAD (El Satélite)
+*   **Ruta Física:** `system_core/client/public/indra-satellite-protocol/` (**SUBMÓDULO GIT**)
+*   **Naturaleza:** Protocolo estándar Vanilla JS (ISP v2.5).
+*   **Objetivo:** Módulo inyectable que permite a aplicaciones de terceros consumir el Core mediante `IndraBridge.js` bajo el paradigma de *Resonancia de Identidad*.
 
 ---
 
-⚡🌞 **La ley está en el Core. La libertad, en el Satélite.** 🌞⚡
+## 🚦 FLUJO GIT (Prevención de Desastres)
+
+**ATENCIÓN: EL SATÉLITE ES UN SUBMÓDULO DE GIT.**
+Este es el punto donde el 90% de los errores de sincronización ocurren. `indra-os` (el root) e `indra-satellite-protocol` son repositorios distintos.
+
+**Reglas de Oro para Commits y Pushes:**
+1. **Regla de Adentro hacia Afuera:** NUNCA hagas un commit en el root (`indra-os`) si tienes cambios pendientes en el Satélite.
+2. Si editas el Satélite, entra en `system_core/client/public/indra-satellite-protocol/`, haz `git add .`, `git commit` y `git push origin main` **primero**.
+3. Una vez subido el submódulo, vuelve a la raíz del proyecto (`indra-os`), haz `git add .`, y un nuevo commit que actualizará el *puntero (hash)* del submódulo.
+4. **Git Pull Blindado:** Para actualizar todo sin romper dependencias locales, usa siempre: `git pull --recurse-submodules`.
+
+---
+
+## ⚙️ Dinámica Operativa
+
+### ¿Por qué Google Apps Script?
+Al usar GAS, eliminamos la necesidad de que el usuario pague y mantenga servidores (AWS, Firebase, etc). Su cuenta de Google se convierte en el entorno de ejecución, y su Drive se convierte en su base de datos jerárquica (NoSQL). **Esa es la verdadera Soberanía.** No hay intermediarios entre el usuario final y sus datos.
+
+### Zero-Touch Ignition
+El despliegue local o remoto no requiere configuración de variables de entorno (ENVs) complejas.
+*   El usuario entra al Shell (`indra-os`).
+*   Inicia sesión con Google.
+*   Si no tiene Core, la Fábrica se lo construye programáticamente en su Drive usando `appsscript.json`.
+*   El Satélite se vincula mediante el evento de ventana canónico: `window.addEventListener('indra-ready')`.
+
+---
+
+⚡🌞 **Indra OS: Construye bajo la Ley, Opera en Soberanía.** 🌞⚡
+

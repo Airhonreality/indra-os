@@ -19,6 +19,7 @@ export const ResonanceResponder = () => {
     const t = useLexicon();
 
     const [origin, setOrigin] = useState(null);
+    const [satName, setSatName] = useState(null);
     const [granted, setGranted] = useState(false);
     const [showConnector, setShowConnector] = useState(false);
     
@@ -33,7 +34,9 @@ export const ResonanceResponder = () => {
         if (hash.startsWith('#/resonate')) {
             const params = new URLSearchParams(hash.split('?')[1]);
             const o = params.get('origin');
+            const n = params.get('name');
             if (o) setOrigin(o);
+            if (n) setSatName(n);
         }
     }, [bootstrap]);
 
@@ -125,7 +128,9 @@ export const ResonanceResponder = () => {
             }}>
                 <div>
                     <label style={{ fontSize: '10px', opacity: 0.5, letterSpacing: '0.1em' }}>SATÉLITE SOLICITANTE</label>
-                    <div style={{ fontSize: '14px', fontFamily: 'monospace', color: 'var(--color-accent)' }}>{origin}</div>
+                    <div style={{ fontSize: '14px', fontFamily: 'monospace', color: 'var(--color-accent)' }}>
+                        {satName ? <>{satName} <span style={{ opacity: 0.5, fontSize: '10px' }}>({origin})</span></> : origin}
+                    </div>
                 </div>
 
                 <div>

@@ -28,55 +28,89 @@ function _keychain_validate(token) {
 }
 
 /**
- * SYSTEM_KEYCHAIN_GENERATE: Protocolo para emitir nuevas llaves soberanas.
+ * SYSTEM_KEYCHAIN_GENERATE: Protocolo para emitir nuevas llaves (Soberanía Fractal).
  */
 function _keychain_generate(uqo) {
     const data = uqo.data || {};
     const name = data.name || "Nuevo Satélite";
-    const scopes = data.scopes || ["ALL"];
     
+    // 1. Validar Identidad del Emisor (Padre)
+    const parentToken = uqo.satellite_token || null;
+    const parentContext = parentToken ? _keychain_validate(parentToken) : null;
+    
+    // Si el emisor no es MASTER y no tiene permiso de delegar, abortamos
+    if (parentContext && parentContext.can_delegate === false) {
+        throw createError('SECURITY_VIOLATION', 'Este token no tiene autoridad para delegar soberanía.');
+    }
+
+    // 2. Axioma de Herencia: Limitar Scopes al alcance del padre
+    let finalScopes = data.scope_id ? [data.scope_id] : ["ALL"];
+    let isMaster = !data.scope_id && (!parentContext || parentContext.class === 'MASTER');
+
+    if (parentContext && parentContext.class !== 'MASTER') {
+        // Un hijo solo puede tener scopes que el padre ya poseía
+        if (data.scope_id && !parentContext.scopes.includes(data.scope_id)) {
+            throw createError('SCOPE_VIOLATION', 'No puedes delegar acceso a un Workspace que tú no controlas.');
+        }
+        // Si el usuario no especificó scope, hereda los del padre
+        if (!data.scope_id) finalScopes = parentContext.scopes;
+        isMaster = false; // Un hijo de un SCOPED nunca puede ser MASTER
+    }
+
     const newToken = 'indra_' + _system_slugify_(name) + '_' + Math.random().toString(36).substring(2, 11);
     const ledger = _keychain_getLedger_();
     
-    // Si viene un context_id en data, lo convertimos en un Scope restrictivo
-    const isMaster = !data.scope_id;
-    const finalScopes = data.scope_id ? [data.scope_id] : ["ALL"];
-
     ledger[newToken] = {
         name: name,
         status: "ACTIVE",
-        class: isMaster ? "MASTER" : "SCOPED", 
+        class: isMaster ? "MASTER" : "SCOPED",
+        parent_id: parentToken, // Vínculo de Sangre
+        can_delegate: data.can_delegate !== undefined ? data.can_delegate : true,
         created_at: new Date().toISOString(),
         scopes: finalScopes,
-        scope_label: data.scope_label || "Acceso Universal"
+        scope_label: data.scope_label || (isMaster ? "Acceso Universal" : "Acceso Heredado")
     };
     
     _keychain_saveLedger_(ledger);
-    logInfo(`[keychain] Nueva llave generada para: ${name}`);
+    logInfo(`[keychain] Nueva llave jerárquica generada: ${name} (Hijo de ${parentToken || 'RAIZ'})`);
     
     return { 
         items: [{ id: newToken, label: name }], 
-        metadata: { status: 'OK', message: 'Llave generada con éxito.' } 
+        metadata: { status: 'OK', message: 'Llave jerárquica generada con éxito.' } 
     };
 }
 
 /**
- * SYSTEM_KEYCHAIN_REVOKE: Protocolo para invalidar una llave de forma inmediata.
+ * SYSTEM_KEYCHAIN_REVOKE: Protocolo para invalidar una llave y TODA su descendencia.
  */
 function _keychain_revoke(uqo) {
     const token = uqo.context_id || uqo.data?.token;
     if (!token) throw createError('INVALID_INPUT', 'Se requiere el token para revocar.');
     
     const ledger = _keychain_getLedger_();
-    if (ledger[token]) {
-        ledger[token].status = "REVOKED";
-        ledger[token].revoked_at = new Date().toISOString();
-        _keychain_saveLedger_(ledger);
-        logInfo(`[keychain] Llave revocada: ${token}`);
-        return { metadata: { status: 'OK', message: 'Llave revocada correctamente.' } };
-    }
+    if (!ledger[token]) throw createError('NOT_FOUND', 'Token no encontrado.');
+
+    // Protocolo de Matanza de Herencia (Cascading Revocation)
+    const revokeRecursive = (targetId) => {
+        if (!ledger[targetId]) return;
+        
+        // Revocar el actual
+        ledger[targetId].status = "REVOKED";
+        ledger[targetId].revoked_at = new Date().toISOString();
+        logInfo(`[keychain] Revocado: ${targetId}`);
+
+        // Buscar hijos
+        Object.keys(ledger).forEach(childId => {
+            if (ledger[childId].parent_id === targetId && ledger[childId].status === 'ACTIVE') {
+                revokeRecursive(childId);
+            }
+        });
+    };
+
+    revokeRecursive(token);
+    _keychain_saveLedger_(ledger);
     
-    return { metadata: { status: 'ERROR', error: 'Token no encontrado.' } };
+    return { metadata: { status: 'OK', message: 'Llave y toda su descendencia han sido revocadas.' } };
 }
 
 /**

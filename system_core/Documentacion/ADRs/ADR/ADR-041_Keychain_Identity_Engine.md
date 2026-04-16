@@ -17,6 +17,11 @@ Implementar un **Keychain Engine (Llavero)** persistente en la capa de servicios
 *   **Jerarquía de Clases**:
     *   `MASTER`: Tokens con acceso total (Bootstrap: `indra_satellite_omega`).
     *   `SCOPED`: Tokens limitados a uno o más `context_id` (Workspaces).
+*   **Delegación Recursiva (Soberanía Fractal)**:
+    *   **Jerarquía Arbórea**: Los tokens guardan un `parent_id`, formando un árbol genealógico de accesos.
+    *   **Axioma de Herencia**: Un token "hijo" nunca puede tener mayor alcance que su "padre". Los scopes se heredan o se restringen, nunca se expanden.
+    *   **Permiso de Procreación (`can_delegate`)**: Solo los tokens con este flag activo pueden emitir nuevos sub-tokens.
+    *   **Revocación en Cascada**: Al revocar un nodo del árbol, el Core invalida recursivamente a toda su descendencia, garantizando una limpieza atómica de la infraestructura.
 *   **Aduana en el Gateway**: El `api_gateway.gs` valida cada petición. Si un token `SCOPED` intenta tocar un átomo fuera de su ámbito, se emite una sentencia de denegación **Error 403**.
 *   **Persistencia Doble**:
     *   **Core**: Guarda el Ledger en `PropertiesService`.

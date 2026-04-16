@@ -12,6 +12,7 @@ import './widgets/IndraUniversalPicker.js';
 import './widgets/IndraWorkflowRibbon.js';
 import './widgets/IndraParamModal.js';
 import './widgets/IndraKeychainWidget.js';
+import './widgets/IndraWorkspaceSelector.js';
 
 const TEMPLATE = `
 <style>
@@ -109,7 +110,8 @@ const TEMPLATE = `
 
     <div class="hud-body">
         <div class="panel">
-            <h3 class="panel-title">Soberanía (Keychain)</h3>
+            <h3 class="panel-title">Soberanía (Contexto)</h3>
+            <indra-workspace-selector id="workspace-ctrl" style="margin-bottom:20px;"></indra-workspace-selector>
             <indra-keychain-widget id="keychain-ctrl" style="margin-bottom:20px;"></indra-keychain-widget>
             
             <h3 class="panel-title">Espina Dorsal (Schemas)</h3>
@@ -147,9 +149,12 @@ class IndraBridgeHUD extends HTMLElement {
         this._bridge = instance;
         this._bridge.onStateChange = () => this.updateUI();
 
-        // Inyectar Bridge al Llavero
+        // Inyectar Bridge al Llavero y Selector
         const keychain = this.shadowRoot.getElementById('keychain-ctrl');
         if (keychain) keychain.bridge = instance;
+
+        const workspaceCtrl = this.shadowRoot.getElementById('workspace-ctrl');
+        if (workspaceCtrl) workspaceCtrl.bridge = instance;
 
         this.updateUI();
     }

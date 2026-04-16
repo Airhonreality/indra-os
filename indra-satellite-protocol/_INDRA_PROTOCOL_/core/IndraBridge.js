@@ -33,22 +33,32 @@ class IndraBridge {
         this.shareTicket = config.shareTicket || null;
         this.coreVersion = null;
         this.logger = config.logger || console;
-        
+
         // El Contrato es el ADN cargado localmente
         this.contract = { capabilities: { protocols: [], providers: [] }, schemas: [] };
         // Las capacidades son las dinámicas del Core
         this.capabilities = { protocols: [], providers: [], core_version: '0.0' };
 
-        this.MAX_CONCURRENT = config.maxConcurrent || 1; // Axioma Peristáltico: 1 a la vez por defecto
+        this.MAX_CONCURRENT = config.maxConcurrent || 1; 
         this.activeRequests = 0;
         this.requestQueue = [];
-        
+
         this.workflowEngine = null;
         this.resonanceWarnings = []; 
-        this.environment = config.environment || 'PRODUCTION'; // PRODUCTION | SANDBOX
+        this.environment = config.environment || 'PRODUCTION'; 
         this.onStateChange = config.onStateChange || null;
 
-        this.pendingUIRequests = new Map(); // Para rastrear llamadas a la UI del Core
+        this.pendingUIRequests = new Map(); 
+        this._listeners = {}; // Sistema de eventos nativo
+        this.activeWorkspaceId = savedSync.workspaceId || null; // Contexto de jurisdicción
+    }
+
+    /**
+     * @dharma Suscribe un callback a un evento del Bridge.
+     */
+    on(event, callback) {
+        if (!this._listeners[event]) this._listeners[event] = [];
+        this._listeners[event].push(callback);
     }
 
     /**
@@ -238,6 +248,10 @@ class IndraBridge {
 
     _notify(event, data) {
         if (this.onStateChange) this.onStateChange(this, event, data);
+        if (this._listeners[event]) {
+            this._listeners[event].forEach(cb => cb(data));
+        }
+        window.dispatchEvent(new CustomEvent(`indra:${event}`, { detail: data }));
     }
 
     /**
@@ -327,6 +341,7 @@ class IndraBridge {
         const envelope = { 
             satellite_token: this.satelliteToken, 
             environment: this.environment,
+            workspace_id: this.activeWorkspaceId, // Enviamos el contexto de jurisdicción
             ...uqo 
         };
         if (this.shareTicket) envelope.share_ticket = this.shareTicket;

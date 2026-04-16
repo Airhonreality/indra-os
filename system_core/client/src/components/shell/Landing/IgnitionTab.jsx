@@ -1,5 +1,6 @@
 import React from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
+import { MarkdownProjector } from '../../utilities/MarkdownProjector';
 
 /**
  * IgnitionTab - El Sendero del Arquitecto (MCEP v2.3)
@@ -36,8 +37,10 @@ export const IgnitionTab = () => {
                     background: #0d1117;
                     border-radius: 8px;
                     border: 1px solid #30363d;
-                    padding: 16px;
+                    padding: 24px;
                     margin-top: 20px;
+                    max-height: 400px;
+                    overflow-y: auto;
                     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
                 }
                 .repo-header {
@@ -46,7 +49,7 @@ export const IgnitionTab = () => {
                     align-items: center;
                     border-bottom: 1px solid #30363d;
                     padding-bottom: 12px;
-                    margin-bottom: 12px;
+                    margin-bottom: 24px;
                 }
                 .code-block {
                     background: #161b22;
@@ -81,30 +84,26 @@ export const IgnitionTab = () => {
                     </div>
                 </div>
 
-                {/* PASO 2: REPO SEMILLA */}
+                {/* PASO 2: REPO SEMILLA REEMPLAZADO POR PROYECCIÓN REAL */}
                 <div className="ignition-step" style={{ gridRow: 'span 2' }}>
                     <span className="step-number">PASO 02 // COLONIZACIÓN</span>
                     <h3 style={{ margin: '0 0 12px 0' }}>Siembre la Semilla</h3>
                     <p style={{ fontSize: '14px', opacity: 0.6 }}>
-                        Descarga el motor consolidado v2.3. Incluye el Bridge, el Workflow Engine y el HUD de control industrial.
+                        Descarga el motor consolidado del Protocolo Satélite (ISP). Esta sección es una proyección viva del repositorio oficial.
                     </p>
                     
                     <div className="repo-mockup">
                         <div className="repo-header">
                             <div className="flex row gap--10 middle" style={{ display: 'flex', flexDirection: 'row', gap: '10px', alignItems: 'center' }}>
                                 <IndraIcon name="FILE" size="14px" />
-                                <span style={{ color: '#58a6ff', fontWeight: 600, fontSize: '13px' }}>indra-satellite-protocol</span>
+                                <span style={{ color: '#58a6ff', fontWeight: 600, fontSize: '13px' }}>indra-satellite-protocol / README.md</span>
                             </div>
-                            <button className="btn btn--primary btn--mini" style={{ background: '#238636', border: 'none', borderRadius: '6px', color: 'white', padding: '4px 12px', fontSize: '11px', fontWeight: 600 }}>
-                                 DOWNLOAD ZIP
-                            </button>
+                            <a href="https://github.com/Airhonreality/indra-satellite-protocol" target="_blank" className="btn btn--primary btn--mini" style={{ background: '#238636', border: 'none', borderRadius: '6px', color: 'white', padding: '4px 12px', fontSize: '11px', fontWeight: 600, textDecoration: 'none' }}>
+                                 VIEW SOURCE
+                            </a>
                         </div>
-                        <div style={{ fontSize: '11px', color: '#8b949e' }}>
-                            Standardized MCEP Seed for Sovereign Satellites.
-                        </div>
-                        <div className="code-block">
-                            git clone https://github.com/Airhonreality/indra-satellite-protocol.git
-                        </div>
+                        
+                        <MarkdownProjector url="/indra-satellite-protocol/README.md" />
                     </div>
                 </div>
 

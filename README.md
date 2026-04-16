@@ -12,7 +12,7 @@ Indra es una arquitectura Solar Punk diseñada para devolver la soberanía de lo
 |---------|-------------|---------|
 | **La Fábrica (Hub)** | `indra-os` (Este repo) | Orquestador de Ignición. Instala automáticamente el motor en tu cuenta y sirve como Shell oficial. |
 | **El Núcleo (Sun)** | *Instancia Privada* | Tu backend soberano en Google Apps Script, creado por La Fábrica. |
-| **El Espejo (Protocol)**| [indra-satellite-protocol](https://github.com/Airhonreality/indra-satellite-protocol) | Semilla (Seed) para que otros desarrolladores construyan sus propios Satélites. |
+| **El Espejo (Satélite)**| `/public/indra-satellite-protocol/` | Semilla integrada (ISP) para que construyas tus propios Satélites. |
 
 ---
 

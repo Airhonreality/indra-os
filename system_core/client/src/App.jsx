@@ -276,15 +276,24 @@ function IndraAppContent() {
 
 
 
+import { ResonanceResponder } from './components/shell/ResonanceResponder';
+
 export default function App() {
     const urlParams = new URLSearchParams(window.location.search);
     const hasMicelarParams = urlParams.has('u') && urlParams.has('id');
+    const isResonating = window.location.hash.startsWith('#/resonate');
 
     return (
         <NeuralSplitter>
             <ToastProvider>
                 <SacredField>
-                    {hasMicelarParams ? <ManifestResolver /> : <IndraAppContent />}
+                    {isResonating ? (
+                        <ResonanceResponder />
+                    ) : (hasMicelarParams ? (
+                        <ManifestResolver />
+                    ) : (
+                        <IndraAppContent />
+                    ))}
                 </SacredField>
             </ToastProvider>
         </NeuralSplitter>

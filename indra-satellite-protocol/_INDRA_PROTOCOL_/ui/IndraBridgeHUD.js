@@ -296,11 +296,21 @@ class IndraBridgeHUD extends HTMLElement {
         // Proyectar datos a widgets solo si no está bloqueado
         if (!body.classList.contains('locked')) {
             const { contract } = this._bridge;
+            console.groupCollapsed("🛂 [HUD:Aduana] Filtrando Esquemas de Negocio");
             const filteredSchemas = contract ? (contract.schemas || []).filter(s => {
-                if (s.class === 'CONFIG_SCHEMA' || s.class === 'SYSTEM_SCHEMA') return false;
+                if (s.class === 'CONFIG_SCHEMA' || s.class === 'SYSTEM_SCHEMA') {
+                    console.log(`🚫 [Aduana] Esquema [${s.id}] bloqueado por regla: CLASE_SISTEMA`);
+                    return false;
+                }
                 const isSystemId = s.id?.startsWith('INDRA_') || s.handle?.alias?.startsWith('config_') || s.id === 'notion' || s.id === 'intelligence';
-                return !isSystemId;
+                if (isSystemId) {
+                    console.log(`🚫 [Aduana] Esquema [${s.id}] bloqueado por regla: ID_RESERVADO_SHELL`);
+                    return false;
+                }
+                console.log(`✅ [Aduana] Esquema [${s.id}] permitido para proyección.`);
+                return true;
             }) : null;
+            console.groupEnd();
 
             this.shadowRoot.getElementById('schema-projector').schemas = filteredSchemas;
             this.shadowRoot.getElementById('universal-picker').providers = contract?.capabilities?.providers || null;

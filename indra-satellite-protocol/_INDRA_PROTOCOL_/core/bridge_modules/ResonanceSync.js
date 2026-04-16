@@ -44,16 +44,22 @@ export class ResonanceSync {
             // 1. Cristalizar en Core (Nube)
             // Si es un satélite nuevo, enviamos null en workspace para forzar creación
             const targetWorkspace = isNewSatellite ? null : bridge.activeWorkspaceId;
+            const payload = { 
+                contract: bridge.contract, 
+                checksum: localChecksum,
+                force_new: isNewSatellite,
+                requested_workspace: targetWorkspace
+            };
+
+            // --- SONDA TRANSACCIONAL (Sync Probe) ---
+            console.group("💎 [ResonanceSync:Crystallize] Sonda Transaccional");
+            console.log("Payload enviado al Core:", payload);
+            console.groupEnd();
 
             const crystalResponse = await bridge.execute({
                 protocol: 'SYSTEM_RESONANCE_CRYSTALLIZE',
                 provider: 'system',
-                data: { 
-                    contract: bridge.contract, 
-                    checksum: localChecksum,
-                    force_new: isNewSatellite,
-                    requested_workspace: targetWorkspace
-                }
+                data: payload
             });
 
             if (!crystalResponse || crystalResponse.metadata?.status === 'ERROR') {

@@ -72,6 +72,15 @@ class IndraBridge {
                 try {
                     const localChecksum = this.contractCortex.calculateChecksum(this.contract.schemas);
                     const statusPulse = await this.execute({ protocol: 'SYSTEM_MANIFEST', provider: 'system' });
+                    
+                    // --- SONDA DIFERENCIAL (Nexus Probe) ---
+                    console.group("🛰️ [Bridge:Handshake] Pulso de Sincronía");
+                    console.log("Raw Response:", statusPulse);
+                    const coreChecksum = statusPulse.metadata?.schema_checksum;
+                    console.log(`Diferencial: [Local: ${localChecksum}] vs [Core: ${coreChecksum || 'UNDEFINED'}]`);
+                    if (coreChecksum === undefined) console.warn("🚨 [ALERTA] Fallo de Identidad Soberana: El Core no devolvió una firma válida.");
+                    console.groupEnd();
+
                     this.capabilities = statusPulse.metadata || {};
 
                     // --- DECISIÓN DE RAMA AXIOMÁTICA ---

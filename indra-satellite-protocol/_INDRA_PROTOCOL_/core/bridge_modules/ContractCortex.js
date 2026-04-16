@@ -51,10 +51,17 @@ export class ContractCortex {
             this.bridge.contract = contract;
             this.bridge.activeWorkspaceId = config.workspace_id || this.bridge.activeWorkspaceId;
 
-            console.log("[ContractCortex] ADN JS sincronizado exitosamente.");
+            // --- SONDA DE PUREZA (Cortex Probe) ---
+            console.group("🧠 [Cortex:DNA] Resonancia de Módulos");
+            console.log(`Source: ${base}${protocolPath}/indra_contract.js?t=...`);
+            console.log(`Integrity: ${contract.schemas?.length || 0} schemas detectados.`);
+            console.log(`Validation: ${contract.satellite_name} (${contract.core_id || 'SIN_ID'})`);
+            if (!contract.schemas) console.warn("ALERTA: El contrato no contiene la rama 'schemas'.");
+            console.groupEnd();
+
             return contract;
         } catch (e) {
-            console.error('[ContractCortex] Fallo en la carga del ADN:', e);
+            console.error('❌ [Cortex:Error] Fallo crítico en carga de ADN:', e);
             return { schemas: [], workflows: [] };
         }
     }

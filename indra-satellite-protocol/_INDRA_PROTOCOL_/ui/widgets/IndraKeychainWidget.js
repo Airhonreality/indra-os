@@ -16,7 +16,13 @@ class IndraKeychainWidget extends HTMLElement {
     set bridge(val) {
         this._bridge = val;
         this.render();
-        this._bridge.on('sync', () => this.render());
+        
+        /**
+         * AXIOMA ISP v2.5: Resonancia vía Ventana Nativa.
+         * NUNCA asumas que el Bridge tiene métodos .on() o .onStateChange().
+         * El estándar exige escuchar a la window para garantizar desacoplamiento total.
+         */
+        window.addEventListener('indra-ready', () => this.render());
     }
 
     connectedCallback() {

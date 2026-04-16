@@ -145,11 +145,17 @@ class IndraBridgeHUD extends HTMLElement {
         this.render();
     }
 
+    /**
+     * @dharma INYECCIÓN DE SOBERANÍA
+     * Este setter actúa como el punto de ignición para todos los sub-widgets.
+     * Pasa la instancia del Bridge al Llavero y al Selector de Workspace
+     * para que estos puedan iniciar sus propios procesos de resonancia.
+     */
     set bridge(instance) {
         this._bridge = instance;
         this._bridge.onStateChange = () => this.updateUI();
 
-        // Inyectar Bridge al Llavero y Selector
+        // Inyectar Bridge al Llavero y Selector (Jerarquía de Jurisdicción)
         const keychain = this.shadowRoot.getElementById('keychain-ctrl');
         if (keychain) keychain.bridge = instance;
 

@@ -49,14 +49,17 @@ class IndraBridge {
         this.onStateChange = config.onStateChange || null;
 
         this.pendingUIRequests = new Map(); 
-        this._listeners = {}; // Sistema de eventos nativo
-        this.activeWorkspaceId = savedSync.workspaceId || null; // Contexto de jurisdicción
+        this._listeners = this._listeners || {}; 
+        this.activeWorkspaceId = savedSync.workspaceId || null; 
     }
 
     /**
      * @dharma Suscribe un callback a un evento del Bridge.
+     * NOTA: Aunque el Bridge permite suscripciones internas, el estándar ISP v2.5
+     * exige que los componentes externos usen window.addEventListener('indra-ready').
      */
     on(event, callback) {
+        if (!this._listeners) this._listeners = {};
         if (!this._listeners[event]) this._listeners[event] = [];
         this._listeners[event].push(callback);
     }
@@ -246,12 +249,19 @@ class IndraBridge {
         };
     }
 
-    _notify(event, data) {
+     _notify(event, data) {
         if (this.onStateChange) this.onStateChange(this, event, data);
-        if (this._listeners[event]) {
+        if (this._listeners && this._listeners[event]) {
             this._listeners[event].forEach(cb => cb(data));
         }
+        
+        // Axioma: Despacho de eventos de ventana para widgets y Shell
         window.dispatchEvent(new CustomEvent(`indra:${event}`, { detail: data }));
+        
+        // CANON REAL: El evento de ignición establecido en el README
+        if (event === 'sync') {
+            window.dispatchEvent(new CustomEvent(`indra-ready`, { detail: data }));
+        }
     }
 
     /**

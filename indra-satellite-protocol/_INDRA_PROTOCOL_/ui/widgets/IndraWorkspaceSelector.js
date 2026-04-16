@@ -1,8 +1,11 @@
 /**
  * =============================================================================
- * COMPONENTE: IndraWorkspaceSelector
- * RESPONSABILIDAD: Permitir la elección del contexto (Silo) de trabajo.
- * Solo se activa si el Bridge tiene jurisdicción MASTER.
+ * COMPONENTE: IndraWorkspaceSelector (v1.0)
+ * RESPONSABILIDAD: Motor de Selección de Jurisdicción (Contexto).
+ * 
+ * Este widget permite al usuario Maestro definir sobre qué 'Veta' de datos
+ * desea operar. Al cambiar de workspace, el Bridge se re-inicializa para
+ * forzar una nueva cristalización de esquemas y flujos específicos.
  * =============================================================================
  */
 
@@ -17,8 +20,13 @@ class IndraWorkspaceSelector extends HTMLElement {
     set bridge(val) {
         this._bridge = val;
         this.fetchWorkspaces();
-        // Escuchar cambios globales (ej: por si el token cambia)
-        this._bridge.on('sync', () => this.fetchWorkspaces());
+        
+        /**
+         * AXIOMA ISP v2.5: Resonancia vía Ventana Nativa.
+         * Escuchamos 'indra-ready' para refrescar el catálogo de contextos
+         * cada vez que el Bridge establece una conexión sólida.
+         */
+        window.addEventListener('indra-ready', () => this.fetchWorkspaces());
     }
 
     async fetchWorkspaces() {
@@ -104,11 +112,35 @@ class IndraWorkspaceSelector extends HTMLElement {
                         </option>
                     `).join('')}
                 </select>
+                ${this._workspaces.length === 0 ? `
+                    <button id="btn-create-ws" style="margin-top:10px; background: #34A853; color: white; border: none; padding: 6px; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: bold;">
+                        + CREAR PRIMER WORKSPACE
+                    </button>
+                ` : ''}
             </div>
         `;
 
         const select = this.shadowRoot.getElementById('ws-select');
         if (select) select.onchange = (e) => this.handleSelection(e);
+
+        const btnCreate = this.shadowRoot.getElementById('btn-create-ws');
+        if (btnCreate) btnCreate.onclick = () => this.createWorkspace();
+    }
+
+    async createWorkspace() {
+        const name = prompt("Nombre del Nuevo Workspace:", "Mi Veta");
+        if (!name) return;
+
+        try {
+            await this._bridge.execute({
+                protocol: 'ATOM_CREATE',
+                data: { label: name, class: 'WORKSPACE' },
+                provider: 'system'
+            });
+            this.fetchWorkspaces();
+        } catch (e) {
+            alert("Error al crear workspace. Verifica la conexión.");
+        }
     }
 }
 

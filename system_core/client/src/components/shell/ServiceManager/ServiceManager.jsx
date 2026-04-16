@@ -51,18 +51,18 @@ export function ServiceManager({ onClose, filter: propFilter }) {
                     <div className="shelf--loose">
                         <IndraIcon name="VAULT" size="28px" style={{ color: 'var(--color-accent)' }} />
                         <div className="stack--tight">
-                            <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: '24px', margin: 0 }}>
-                                {filter === 'intelligence' ? t('ui_agent_config') : t('ui_infra_manager')}
+                             <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: '24px', margin: 0 }}>
+                                {filter === 'intelligence' ? t('ui_agent_config') : 'GESTOR DE CONECTORES'}
                             </h1>
-                            <div className="shelf">
-                                <span className="vault-status">{t('ui_vault_encryption')}</span>
+                             <div className="shelf">
+                                <span className="vault-status">SEGURIDAD NIVEL CORE</span>
                                 <div className="hud-line" style={{ width: '100px' }}></div>
                             </div>
                         </div>
                     </div>
-                    <button className="btn btn--ghost" onClick={handleClose}>
+                     <button className="btn btn--ghost" onClick={handleClose}>
                         <IndraIcon name="CLOSE" />
-                        {t('ui_exit_infra')}
+                        SALIR
                     </button>
                 </header>
 
@@ -91,8 +91,8 @@ export function ServiceManager({ onClose, filter: propFilter }) {
                     {/* COLUMNA B: SERVICE GRID */}
                     <main className="fill stack" style={{ minHeight: 0, gap: 'var(--space-6)' }}>
                         <div className="shelf--loose">
-                            <span className="util-label">// {t('ui_explorer_services')}</span>
-                            <label className="text-label" style={{ letterSpacing: '0.2em' }}>{t('ui_providers_available')}</label>
+                             <span className="util-label">// EXPLORADOR</span>
+                            <label className="text-label" style={{ letterSpacing: '0.2em' }}>CONECTORES DISPONIBLES</label>
                             <div className="hud-line fill" style={{ opacity: 0.1 }}></div>
                         </div>
 
@@ -172,8 +172,8 @@ export function ServiceManager({ onClose, filter: propFilter }) {
                             <div className="shelf--loose">
                                 <IndraIcon name="LOCK" size="24px" style={{ color: 'var(--color-accent)' }} />
                                 <div className="stack--tight">
-                                    <h2 style={{ margin: 0, fontFamily: 'var(--font-mono)' }}>{t('ui_pairing')} // {selectedService.label}</h2>
-                                    <span className="text-hint">{t('ui_pairing_desc')}</span>
+                                     <h2 style={{ margin: 0, fontFamily: 'var(--font-mono)' }}>VINCULACIÓN // {selectedService.label}</h2>
+                                    <span className="text-hint">Ingrese credenciales para autorizar el túnel.</span>
                                 </div>
                             </div>
                             <button className="btn btn--ghost" onClick={() => setSelectedService(null)}>

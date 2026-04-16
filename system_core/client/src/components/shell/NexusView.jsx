@@ -10,10 +10,16 @@ import { useAppState } from '../../state/app_state';
 import './NexusView.css';
 
 import { IndraMacroHeader } from '../utilities/IndraMacroHeader';
+import { KeychainManager } from './KeychainManager';
 
 /**
- * NexusView (Nivel 1)
- * Centro de navegación asimétrico: Status sistémico + Selector de Workspaces.
+ * =============================================================================
+ * INDRA NEXUS VIEW (POST-AUTHENTICATION ZONE)
+ * =============================================================================
+ * AVISO ARQUITECTÓNICO: Este componente vive en el Espacio Seguro.
+ * NUNCA importar lógica de aquí hacia la LandingView.
+ * La Landing es pre-auth; el Nexus es post-auth. Mantener este muro de Berlín.
+ * =============================================================================
  */
 export function NexusView() {
     const { coreUrl } = useProtocol();
@@ -36,6 +42,7 @@ export function NexusView() {
     } = useWorkspace();
 
     const [isCreating, setIsCreating] = useState(false);
+    const [showKeychain, setShowKeychain] = useState(false);
 
     const t = useLexicon(lang);
 
@@ -95,14 +102,22 @@ export function NexusView() {
                                 <IndraIcon name="LINK" size="10px" />
                                 CAMBIAR_NÚCLEO
                             </button>
+                            <button 
+                                className="btn btn--ghost btn--mini btn--full" 
+                                style={{ marginTop: 'var(--space-2)', fontSize: '9px', border: '1px solid rgba(66, 133, 244, 0.3)' }}
+                                onClick={() => setShowKeychain(true)}
+                            >
+                                <span style={{ marginRight: '6px' }}>🔑</span>
+                                GESTIÓN DE LLAVES
+                            </button>
                         </div>
                     </div>
 
-                    {/* Status de Servicios */}
+                    {/* Lista de Conectores Activos */}
                     <div className="stack" style={{ gap: 'var(--space-5)' }}>
                         <div className="shelf--loose">
                             <span className="util-label">02 //</span>
-                            <label className="text-label" style={{ opacity: 0.8 }}>{t('hud_service_fabric')}</label>
+                            <label className="text-label" style={{ opacity: 0.8 }}>CONECTORES ACTIVOS</label>
                         </div>
                         <div className="stack--tight">
                             {projectedServices.map(svc => (
@@ -127,7 +142,7 @@ export function NexusView() {
                             onClick={() => openServiceManager()}
                         >
                             <IndraIcon name="SERVICE" size="12px" />
-                            {t('action_manage_services')}
+                            GESTOR DE CONECTORES
                         </button>
                     </div>
 
@@ -239,6 +254,36 @@ export function NexusView() {
                 </main>
 
             </div>
+
+            {/* OVERLAY: GESTIÓN DE LLAVES (KEYCHAIN) */}
+            {showKeychain && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 5000,
+                    background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '40px'
+                }}>
+                    <div className="glass stack" style={{ 
+                        width: '100%', maxWidth: '900px', maxHeight: '90vh', 
+                        overflowY: 'auto', position: 'relative', border: '1px solid var(--color-accent)',
+                        boxShadow: '0 0 50px rgba(0, 255, 200, 0.2)'
+                    }}>
+                        <div className="shelf" style={{ padding: 'var(--space-4)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                            <label className="text-label" style={{ opacity: 0.8 }}>GESTIÓN DE LLAVES // ACCESO SATELLITE</label>
+                            <button 
+                                className="btn btn--mini btn--ghost" 
+                                style={{ marginLeft: 'auto' }}
+                                onClick={() => setShowKeychain(false)}
+                            >
+                                <span style={{ marginRight: '6px' }}>✕</span> CERRAR
+                            </button>
+                        </div>
+                        <div style={{ padding: 'var(--space-4)' }}>
+                            <KeychainManager />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,3 +1,12 @@
+/**
+ * =============================================================================
+ * INDRA LANDING VIEW (PRE-AUTHENTICATION ZONE)
+ * =============================================================================
+ * AVISO ARQUITECTÓNICO: Esta es la cara pública del sistema antes de entrar al núcleo.
+ * NUNCA: Inyectar aquí botones de administración, gestión de llaves o servicios post-login.
+ * SIEMPRE: Mantener esta vista ligera e informativa. La lógica de gestión vive en el Nexo.
+ * =============================================================================
+ */
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppState } from '../../../state/app_state';
 import { IndraIcon } from '../../utilities/IndraIcons';
@@ -11,7 +20,6 @@ import { ArquitecturaTab } from './ArquitecturaTab';
 import { ManualesTab } from './ManualesTab';
 import { ToolsDockTab } from './ToolsDockTab';
 import { IgnitionTab } from './IgnitionTab';
-import { KeychainManager } from '../KeychainManager';
 
 // AEE / Engines Overlays
 const MIEEngine = React.lazy(() => import('../../macro_engines/MIEEngine/MIEEngine'));
@@ -74,12 +82,11 @@ export const LandingView = () => {
     };
 
     const tabs = [
-        { id: 'BIENVENIDA', label: 'INICIO', isSubPage: false },
-        { id: 'IGNICION', label: 'IGNICIÓN', isSubPage: false },
-        { id: 'SOBERANIA', label: 'SOBERANÍA', isSubPage: false },
-        { id: 'ARQUITECTURA', label: 'ARQUITECTURA', isSubPage: false },
-        { id: 'MANUALES', label: 'MANUALES', isSubPage: false },
-        { id: 'HERRAMIENTAS', label: 'HERRAMIENTAS', isSubPage: true }
+        { id: 'BIENVENIDA', label: 'INICIO' },
+        { id: 'IGNICION', label: 'IGNICIÓN' },
+        { id: 'ARQUITECTURA', label: 'ARQUITECTURA' },
+        { id: 'HERRAMIENTAS', label: 'HERRAMIENTAS', isSubPage: true },
+        { id: 'MANUALES', label: 'MANUALES' }
     ];
 
     const handleTabClick = (tab) => {
@@ -294,12 +301,6 @@ export const LandingView = () => {
                 <div id="MANUALES" className="indra-section-anchor">
                     <div className="indra-section">
                         <ManualesTab />
-                    </div>
-                </div>
-
-                <div id="SOBERANIA" className="indra-section-anchor">
-                    <div className="indra-section">
-                        <KeychainManager />
                     </div>
                 </div>
 

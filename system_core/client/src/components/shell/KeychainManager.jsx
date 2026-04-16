@@ -86,7 +86,7 @@ export const KeychainManager = () => {
 
     return (
         <div className="keychain-manager" style={{ padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-            <h3 style={{ marginBottom: '20px', fontSize: '14px', letterSpacing: '0.1em' }}>LEYENDA_DE_SOBERANÍA // KEYCHAIN</h3>
+            <h3 style={{ marginBottom: '20px', fontSize: '14px', letterSpacing: '0.1em' }}>GESTIÓN DE LLAVES // KEYCHAIN</h3>
 
             {/* FORMULARIO DE CREACIÓN */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '30px' }}>

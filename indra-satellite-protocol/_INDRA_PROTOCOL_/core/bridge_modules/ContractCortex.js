@@ -28,11 +28,17 @@ export class ContractCortex {
                 console.warn("[ContractCortex] Error cargando 'indra_config.js' (posible corrupción). Usando memoria.");
             }
 
-            // 2. Cargar Contrato Maestro (ADN Declarativo)
-            const contractRes = await fetch('./_INDRA_PROTOCOL_/indra_contract.json').catch(() => null);
-            let contract = contractRes ? await contractRes.json() : { schemas: [], workflows: [] };
+            // 2. Cargar Contrato Maestro Consolidado (JS)
+            // Este archivo es el resultado del tejido de 'sync_core.js'
+            let contract = { schemas: [], workflows: [] };
+            try {
+                const contractModule = await import(`../indra_contract.js?t=${Date.now()}`);
+                contract = contractModule.INDRA_CONTRACT || contract;
+            } catch (contractErr) {
+                console.warn("[ContractCortex] Error cargando 'indra_contract.js'. ¿Has ejecutado 'npm run sync'?");
+            }
 
-            // 3. Inyección y Sincronía
+            // 3. Inyección y Sincronía Final
             contract.satellite_name = config.satellite_name || contract.satellite_name || 'Satélite Anónimo';
             contract.core_id = config.core_id || contract.core_id;
             

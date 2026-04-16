@@ -3,51 +3,64 @@ import path from 'path';
 
 /**
  * =============================================================================
- * INDRA CORE SYNC (The Contract Weaver v2.5)
+ * INDRA CORE SYNC (The Contract Weaver v3.2 - JS Native)
  * =============================================================================
- * Responsabilidad: Sincronizar el Core y Consolidar la Espina Dorsal Local.
- * Objetivo: Crear un único indra_contract.json que fusione la Realidad del Core
- *           con la Intención Soberana del Satélite (Modularidad).
+ * Responsibilidad: Consolidar la realidad del Core y el ADN local en módulos JS.
  * =============================================================================
  */
 
 const CONFIG = {
     coreUrl: 'https://script.google.com/macros/s/AKfycbyhEucpkr6GtpMqQ0LnenhP4SIUXOUJ2M4ycFIVGLBmUuxWYL6hXRTUOBESiC6LlpfA/exec',
     satelliteToken: 'indra_satellite_omega', 
-    outputFile: './_INDRA_PROTOCOL_/indra_contract.json',
+    outputFile: './_INDRA_PROTOCOL_/indra_contract.js',
     scorePath: './src/score'
 };
 
 /**
- * Escanea una carpeta y devuelve un array con el contenido de los JSONs.
+ * Escanea una carpeta y devuelve un array con el contenido de los JSONs y JS modules.
  */
-function harvestJsonFolder(folderName) {
+async function harvestAssets(folderName) {
     const fullPath = path.join(CONFIG.scorePath, folderName);
     if (!fs.existsSync(fullPath)) return [];
     
-    return fs.readdirSync(fullPath)
-        .filter(file => file.endsWith('.json'))
-        .map(file => {
-            const content = fs.readFileSync(path.join(fullPath, file), 'utf8');
+    const files = fs.readdirSync(fullPath);
+    const assets = [];
+
+    for (const file of files) {
+        const filePath = path.join(fullPath, file);
+        
+        // --- CASO JSON (Legacy) ---
+        if (file.endsWith('.json')) {
             try {
-                return JSON.parse(content);
+                const content = fs.readFileSync(filePath, 'utf8');
+                assets.push(JSON.parse(content));
             } catch (e) {
-                console.warn(`⚠️ Error parseando local asset: ${file}`);
-                return null;
+                console.warn(`⚠️ Error parseando JSON: ${file}`);
             }
-        })
-        .filter(Boolean);
+        } 
+        // --- CASO JS (Agnostic ADN) ---
+        else if (file.endsWith('.js')) {
+            try {
+                // Importación dinámica para extraer el export default o named export
+                // Usamos absolute path para evitar líos de módulos
+                const module = await import('file://' + path.resolve(filePath));
+                assets.push(module.default || module.schema || module.workflow || module);
+            } catch (e) {
+                console.warn(`⚠️ Error importando asset JS: ${file}`, e.message);
+            }
+        }
+    }
+    return assets.filter(Boolean);
 }
 
 async function sync() {
-    console.log("🚀 Iniciando Tejido de Contrato...");
-    console.log(`🔗 Core: ${CONFIG.coreUrl}`);
+    console.log("🚀 Iniciando Tejido de Contrato (JS-ADN Mode)...");
 
     try {
         // 1. Cosecha Local (Espina Dorsal)
-        console.log("🧬 Cosechando Espina Dorsal Local...");
-        const localSchemas = harvestJsonFolder('schemas');
-        const localWorkflows = harvestJsonFolder('workflows');
+        console.log("🧬 Cosechando ADN Local (JS/JSON)...");
+        const localSchemas = await harvestAssets('schemas');
+        const localWorkflows = await harvestAssets('workflows');
 
         // 2. Handshake con el Core
         console.log("🛰️ Sincronizando Capacidades del Core...");
@@ -61,11 +74,8 @@ async function sync() {
         });
         
         const manifestData = await manifestRes.json();
-        if (manifestData.metadata?.status !== 'OK' && manifestData.metadata?.status !== 'NEEDS_SETUP') {
-            throw new Error(`Error del Core: ${manifestData.metadata?.error || 'Desconocido'}`);
-        }
-
-        // 3. Obtener Esquemas de configuración globales
+        
+        // 3. Obtener Esquemas Globales
         const schemaRes = await fetch(CONFIG.coreUrl, {
             method: 'POST',
             body: JSON.stringify({
@@ -76,49 +86,48 @@ async function sync() {
         });
         const schemaData = await schemaRes.json();
         
-        // 3.5. Leer Metadata Soberana Local (Si existe)
-        let localMeta = {};
-        const metaPath = path.join(path.dirname(CONFIG.outputFile), 'indra_satellite.meta.json');
-        if (fs.existsSync(metaPath)) {
+        // 4. Leer Configuración Local (indra_config.js)
+        let localConfig = {};
+        const configPath = path.resolve('./_INDRA_PROTOCOL_/indra_config.js');
+        if (fs.existsSync(configPath)) {
             try {
-                localMeta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
-                console.log(`👤 Identidad Sólida detectada: ${localMeta.satellite_name}`);
+                const configModule = await import('file://' + configPath);
+                localConfig = configModule.INDRA_CONFIG || {};
+                console.log(`👤 Identidad Sólida (JS): ${localConfig.satellite_name}`);
             } catch(e) {
-                console.warn("⚠️ Advertencia: No se pudo leer indra_satellite.meta.json.");
+                console.warn("⚠️ Advertencia: No se pudo leer indra_config.js.");
             }
         }
 
-        // 4. Consolidación Final (Axioma de la Realidad Única)
+        // 5. Consolidación Final
         const contract = {
             synced_at: new Date().toISOString(),
-            core_id: localMeta.core_id || manifestData.metadata?.core_id || 'unknown',
-            satellite_name: localMeta.satellite_name || 'Nuevo Satélite',
+            core_id: localConfig.core_id || manifestData.metadata?.core_id || 'unknown',
+            satellite_name: localConfig.satellite_name || 'Nuevo Satélite',
             core_version: manifestData.metadata?.core_version || 'unknown',
             capabilities: {
                 protocols: [...new Set((manifestData.items || []).flatMap(i => i.protocols || []))],
                 providers: (manifestData.items || []).filter(i => i.class === 'SILO').map(s => s.id),
                 workspaces: (manifestData.items || []).filter(i => i.class === 'WORKSPACE').map(w => ({ id: w.id, label: w.handle?.label }))
             },
-            // Fusión de Esquemas Globales + Locales
             schemas: [...(schemaData.items || []), ...localSchemas],
-            // Inyección de Automatizaciones locales
             workflows: localWorkflows
         };
 
-        // 5. Persistencia
+        // 6. Persistencia (Como Módulo JS)
         const dir = path.dirname(CONFIG.outputFile);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         
-        fs.writeFileSync(CONFIG.outputFile, JSON.stringify(contract, null, 2));
+        const fileContent = `/** INDRA GENERATED CONTRACT (Agnostic JS Module) */\nexport const INDRA_CONTRACT = ${JSON.stringify(contract, null, 2)};`;
+        fs.writeFileSync(CONFIG.outputFile, fileContent);
 
-        console.log("✅ ¡Tejido de Contrato completado con éxito!");
-        console.log(`📄 Archivo consolidado: ${CONFIG.outputFile}`);
-        console.log(`💎 Esquemas: ${contract.schemas.length} (Globales + Locales)`);
-        console.log(`⚡ Workflows: ${contract.workflows.length} detectados`);
+        console.log("✅ ¡Tejido de Contrato completado!");
+        console.log(`📄 Módulo JS generado: ${CONFIG.outputFile}`);
+        console.log(`💎 Esquemas: ${contract.schemas.length}`);
+        console.log(`⚡ Workflows: ${contract.workflows.length}`);
         
     } catch (error) {
-        console.error("❌ Fallo en el tejido de contrato:");
-        console.error(error.message);
+        console.error("❌ Fallo en el tejido de contrato:", error);
     }
 }
 

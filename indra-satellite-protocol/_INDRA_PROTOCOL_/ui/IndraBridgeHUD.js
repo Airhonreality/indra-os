@@ -248,28 +248,21 @@ class IndraBridgeHUD extends HTMLElement {
         const { contract } = this._bridge;
 
         // --- FILTRADO DE DHARMA: Separar Negocio de Sistema ---
-        const filteredSchemas = (contract.schemas || []).filter(s => {
-            // REGLA AXIOMÁTICA: Si es un esquema de configuración, es de la Shell, no del Satélite
+        const filteredSchemas = contract ? (contract.schemas || []).filter(s => {
             if (s.class === 'CONFIG_SCHEMA' || s.class === 'SYSTEM_SCHEMA') return false;
-
-            // Filtro de Seguridad por ID (Aduana)
-            const isSystemId = s.id?.startsWith('INDRA_') ||
-                s.handle?.alias?.startsWith('config_') ||
-                s.id === 'notion' ||
-                s.id === 'intelligence';
-
+            const isSystemId = s.id?.startsWith('INDRA_') || s.handle?.alias?.startsWith('config_') || s.id === 'notion' || s.id === 'intelligence';
             return !isSystemId;
-        });
+        }) : null;
 
-        // Proyectar a los Widgets
+        // Proyectar a los Widgets (null = Loading State)
         const projector = this.shadowRoot.getElementById('schema-projector');
         if (projector) projector.schemas = filteredSchemas;
 
         const picker = this.shadowRoot.getElementById('universal-picker');
-        if (picker) picker.providers = contract.capabilities?.providers || [];
+        if (picker) picker.providers = contract ? contract.capabilities?.providers : null;
 
         const ribbon = this.shadowRoot.getElementById('workflow-ribbon');
-        if (ribbon) ribbon.workflows = contract.workflows || [];
+        if (ribbon) ribbon.workflows = contract ? contract.workflows : null;
 
         // 4. Alertas de Resonancia (Trazabilidad)
         const authStatus = this.shadowRoot.getElementById('auth-status');

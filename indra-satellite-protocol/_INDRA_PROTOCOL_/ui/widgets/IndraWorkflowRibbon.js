@@ -13,15 +13,14 @@ class IndraWorkflowRibbon extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
-        this._workflows = [];
+        this._clientWorkflows = null; // null = Loading
         this._activeCategory = 'CLIENTE';
         
         window.addEventListener('indra-resonance-sync', () => this._updateResonanceStatus());
     }
 
     set workflows(data) {
-        // Inyectamos las herramientas nativas del sistema desde el Registro Central
-        this._workflows = [...this.systemTools, ...data];
+        this._clientWorkflows = data;
         this.render();
     }
 
@@ -63,7 +62,14 @@ class IndraWorkflowRibbon extends HTMLElement {
 
     render() {
         const activeCategory = this._activeCategory;
-        const filteredWorkflows = this._workflows.filter(wf => (wf.metadata?.category || 'CLIENTE') === activeCategory);
+        const isLoading = activeCategory === 'CLIENTE' && this._clientWorkflows === null;
+        
+        // Base de datos sobre la que se operará en esta vista
+        const currentData = activeCategory === 'SYSTEM' 
+            ? this.systemTools 
+            : (this._clientWorkflows || []);
+
+        const filteredWorkflows = isLoading ? [] : currentData.filter(wf => (wf.metadata?.category || 'CLIENTE') === activeCategory);
 
         this.shadowRoot.innerHTML = `
         <style>
@@ -86,6 +92,20 @@ class IndraWorkflowRibbon extends HTMLElement {
             .station-list { display: flex; flex-direction: column; padding: 10px; gap: 5px; background: #F8F9FA;}
             .station-item { display: grid; grid-template-columns: 20px 1fr 1fr; gap: 10px; align-items: center; padding: 6px; background: #FFF; border: 1px solid #DADCE0; border-radius: 4px; font-size: 10px; }
             .station-num { font-weight: bold; color: var(--accent); }
+            
+            /* Skeleton Loading Animations */
+            @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+            .skeleton { 
+                background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                background-size: 400px 100%;
+                animation: shimmer 1.5s infinite linear;
+                border-radius: 4px;
+            }
+            .sk-header { height: 16px; width: 40%; }
+            .sk-btn { height: 20px; width: 60px; border-radius: 4px; }
+            .sk-st-num { height: 14px; width: 14px; border-radius: 2px; }
+            .sk-st-text1 { height: 10px; width: 60%; margin-bottom: 4px; }
+            .sk-st-text2 { height: 8px; width: 90%; }
         </style>
 
         <nav class="tabs-nav">
@@ -106,7 +126,22 @@ class IndraWorkflowRibbon extends HTMLElement {
         </nav>
 
         <div class="ribbon-container">
-            ${filteredWorkflows.map(wf => {
+            ${isLoading ? `
+                <div class="workflow-item">
+                    <div class="wf-header"><div class="skeleton sk-header"></div><div class="skeleton sk-btn"></div></div>
+                    <div class="station-list">
+                        <div class="station-item" style="border:none;"><div class="skeleton sk-st-num"></div><div style="display:flex; flex-direction:column; flex:1;"><div class="skeleton sk-st-text1"></div><div class="skeleton sk-st-text2"></div></div></div>
+                        <div class="station-item" style="border:none;"><div class="skeleton sk-st-num"></div><div style="display:flex; flex-direction:column; flex:1;"><div class="skeleton sk-st-text1" style="width:40%"></div><div class="skeleton sk-st-text2" style="width:70%"></div></div></div>
+                    </div>
+                </div>
+                <div class="workflow-item" style="opacity: 0.6">
+                    <div class="wf-header"><div class="skeleton sk-header" style="width:50%"></div><div class="skeleton sk-btn"></div></div>
+                    <div class="station-list">
+                        <div class="station-item" style="border:none;"><div class="skeleton sk-st-num"></div><div style="display:flex; flex-direction:column; flex:1;"><div class="skeleton sk-st-text1" style="width:80%"></div><div class="skeleton sk-st-text2"></div></div></div>
+                    </div>
+                </div>
+            ` : 
+            (filteredWorkflows.map(wf => {
                 const origin = wf.metadata?.origin || 'LOCAL';
                 const icon = origin === 'CORE' ? '☁️' : '🛰️';
                 

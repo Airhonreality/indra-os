@@ -11,15 +11,17 @@ class IndraSchemaProjector extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
-        this._schemas = [];
+        this._schemas = null; // null = Loading State
     }
 
     set schemas(data) {
-        this._schemas = data;
+        this._schemas = data || [];
         this.render();
     }
 
     render() {
+        const isLoading = this._schemas === null;
+        
         this.shadowRoot.innerHTML = `
         <style>
             :host { display: block; font-family: inherit; }
@@ -46,9 +48,41 @@ class IndraSchemaProjector extends HTMLElement {
             .body { padding: 10px 12px; font-size: 11px; }
             .field-row { display: flex; justify-content: space-between; margin-bottom: 4px; color: #3C4043; }
             .field-type { opacity: 0.5; font-size: 9px; }
+            
+            /* Skeleton Loading Animations */
+            @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+            .skeleton { 
+                background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                background-size: 400px 100%;
+                animation: shimmer 1.5s infinite linear;
+                border-radius: 4px;
+            }
+            .sk-header { height: 12px; width: 40%; }
+            .sk-badge { height: 12px; width: 25%; }
+            .sk-row { height: 10px; margin-bottom: 8px; }
+            .sk-row-w1 { width: 70%; }
+            .sk-row-w2 { width: 40%; }
+            .sk-row-w3 { width: 55%; }
         </style>
         <div class="projector-container">
-            ${this._schemas.map(s => `
+            ${isLoading ? `
+                <div class="schema-card">
+                    <div class="header"><div class="skeleton sk-header"></div><div class="skeleton sk-badge"></div></div>
+                    <div class="body">
+                        <div class="skeleton sk-row sk-row-w1"></div>
+                        <div class="skeleton sk-row sk-row-w2"></div>
+                        <div class="skeleton sk-row sk-row-w3"></div>
+                    </div>
+                </div>
+                <div class="schema-card" style="opacity: 0.6">
+                    <div class="header"><div class="skeleton sk-header"></div><div class="skeleton sk-badge"></div></div>
+                    <div class="body">
+                        <div class="skeleton sk-row sk-row-w2"></div>
+                        <div class="skeleton sk-row sk-row-w1"></div>
+                    </div>
+                </div>
+            ` : 
+            (this._schemas.map(s => `
                 <div class="schema-card">
                     <div class="header">
                         <span>${(s.handle?.alias || s.id).toUpperCase()}</span>
@@ -66,7 +100,7 @@ class IndraSchemaProjector extends HTMLElement {
                         `).join('')}
                     </div>
                 </div>
-            `).join('') || '<div style="opacity:0.3; font-size:11px; text-align:center;">SIN ESQUEMAS DETECTADOS</div>'}
+            `).join('') || '<div style="opacity:0.3; font-size:11px; text-align:center; padding: 20px;">SIN ESQUEMAS DETECTADOS</div>')}
         </div>
         `;
     }

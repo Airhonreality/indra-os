@@ -33,20 +33,28 @@ Si eres una IA encargada de construir en este satélite, tus directivas obligato
 4. **Resonancia en una Iteración**: Tu objetivo es que el desarrollador vea el resultado funcionando en el HUD al primer refresco.
 
 ---
+## 🔐 Filosofía: Soberanía de la Llave (Keychain Engine)
 
-## 🔐 Pacto de Resonancia (Autenticación)
+A diferencia de las aplicaciones tradicionales que "te piden permiso", los satélites de Indra operan mediante el **Protocolo de Soberanía de Llaves (ADR-041)**. 
 
-El Satélite Semilla soporta dos modos de ignición para conectarse a tu Core:
+### El Llavero Sincero
+La Nave Nodriza (Core) mantiene un registro de identidades llamado `keychain_service.js`. Este archivo es el corazón de la seguridad y determina quién tiene derecho a operar sobre la materia (tus datos).
 
-### A. Resonancia Automática (Standard)
-Utiliza el portal oficial de Indra OS. Requiere que tengas tu sesión iniciada en la Nave Nodriza. Al pulsar "Ignición", el sistema heredará tu identidad automáticamente mediante el puente de ruteo.
+1.  **Identidad Delegada (Sesión)**: Es efímera. Se basa en que estás logueado en Google. Es cómoda pero dependiente de la interfaz de Indra OS.
+2.  **Identidad Soberana (Tokens)**: Es persistente y agnóstica. Al usar el token `indra_satellite_omega`, el satélite adquiere jerarquía de **MASTER** directamente sobre el API Gateway, permitiendo automatizaciones y flujos multi-usuario sin intervención humana constante.
 
-### B. Pacto Manual (Soberanía Total)
-Si trabajas en entornos aislados o la resonancia automática falla, puedes establecer un **Pacto Manual**:
-1. Copia la URL de despliegue de tu script de Google Apps Script.
-2. Genera un **Token Omega** en tu Core (o usa uno generado previamente).
-3. Pégalos en el panel de control del Satélite y pulsa **"FIRMAR PACTO"**.
-4. ¡Listo! El Satélite guardará este enlace permanentemente en su `localStorage`.
+---
+
+## 🚀 Inicio Rápido: El Pacto de Resonancia
+
+Para conectar este satélite a tu Core, puedes usar el **Panel de Enlace Crítico** en la interfaz:
+
+1.  **URL_DE_LA_NAVE_NODRIZA**: La dirección de tu script de Google Apps Script (GAS).
+2.  **TOKEN_DE_SINCERIDAD**: Por defecto es `indra_satellite_omega` (la llave maestra de bootstrap).
+3.  **IGNICIÓN**: Al pulsar "FIRMAR PACTO", el satélite se anclará a tu Core mediante `localStorage`.
+
+> [!IMPORTANT]
+> Si cambias el token en el archivo `3_services/keychain_service.js` de tu Core, asegúrate de actualizarlo también en tus satélites. La soberanía requiere vigilancia.
 
 ---
 

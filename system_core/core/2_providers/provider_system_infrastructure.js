@@ -340,8 +340,10 @@ function _system_handleAliasCollisionScan(uqo) {
 }
 
 /**
- * SERVICE_PAIR: Vincula una cuenta a un proveedor específico.
+ * SERVICE_PAIR: Vincula una cuenta a un proveedor específico (ADR-041).
  * Soporta 'SYSTEM_NATIVE' para autodescubrimiento en Google Apps Script.
+ * Este handler es el punto de anclaje para vincular servicios de terceros (Notion, Drive)
+ * bajo la soberanía del Llavero del Core.
  */
 function _system_handleServicePair(uqo) {
     const providerId = uqo.context_id || uqo.data?.provider_id;

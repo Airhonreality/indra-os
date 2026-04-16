@@ -1,0 +1,3 @@
+[submodule "indra-satellite-protocol"]
+	path = indra-satellite-protocol
+	url = https://github.com/Airhonreality/indra-satellite-protocol.git

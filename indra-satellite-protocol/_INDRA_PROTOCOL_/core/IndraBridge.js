@@ -272,6 +272,16 @@ class IndraBridge {
         };
     }
 
+    /**
+     * @dharma Resetea el estado de resonancia local.
+     */
+    clearState() {
+        this.satelliteToken = null;
+        localStorage.removeItem('INDRA_SATELLITE_LINK');
+        this._notify('sync', { status: 'DISCONNECTED' });
+        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'OFFLINE' } }));
+    }
+
      _notify(event, data) {
         if (this.onStateChange) this.onStateChange(this, event, data);
         if (this._listeners && this._listeners[event]) {

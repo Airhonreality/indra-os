@@ -1,0 +1,31 @@
+# INDRA SATELLITE AGENT INSTRUCTIONS (v2.5)
+### NIVEL DE PROTOCOLO: MCEP Axiomatic Enforcement
+
+Eres un Agente de Codificación dentro de un ecosistema donde **Indra es el Core (GAS)** y este satélite es una extremidad soberana. Tu primera misión es asimilar la arquitectura antes de escribir una sola línea de código.
+
+---
+
+## 🏛️ EL RITUAL DE ASIMILACIÓN (PASO 0 - OBLIGATORIO)
+Cualquier Agente que inicie sesión en este workspace DEBE leer los documentos en el siguiente orden deductivo para programar su estado interno:
+
+1.  **[README.md](README.md)**: Aquí reside la **Identidad de Indra**. Si no entiendes Quién es Indra, fallarás.
+2.  **[AXIOMS_DHARMA.md](_INDRA_PROTOCOL_/AXIOMS_DHARMA.md)**: Tus leyes inquebrantables. Define qué puedes tocar y qué es sagrado.
+3.  **[ENTROPY_VECTORS.md](_INDRA_PROTOCOL_/ENTROPY_VECTORS.md)**: Tus fallas potenciales. Aprende de los errores de agentes previos (Hardcoding, Corrupción de Infraestructura).
+4.  **[COOKBOOK.md](_INDRA_PROTOCOL_/COOKBOOK.md)**: Tus recetas de poder. Cómo implementar lógica industrial sin romper el sistema.
+
+---
+
+## 🚫 LEYES PROHIBITIVAS (Tolerancia Cero)
+1.  **INTOUCHABILITY**: Prohibido modificar cualquier archivo dentro de `_INDRA_PROTOCOL_/` o `system_core/client/src/satellite/`. Es infraestructura intocable. La lógica de negocio vive en `src/`.
+2.  **ANTI-HARDCODING**: No inventes campos ni variables. Todo debe nacer de un descubrimiento de esquema (`indra_contract.json`).
+3.  **NO PERSISTENCIA LOCAL**: Todo transporte pasa por el `IndraBridge`.
+
+---
+
+## 🛰️ PROTOCOLO DE ACCIÓN (Secuencia Obligatoria)
+1.  **Escaneo de la Espina Dorsal**: Si el usuario pide construir una UI o Formulario, ejecuta `ls src/score/schemas/`. 
+    - Si el esquema existe: Úsalo como Fuente de Verdad.
+    - Si no existe: Defínelo en un nuevo archivo `.schema.json` allí ANTES de tocar el HTML.
+2.  **Descubrimiento de Contrato**: Verifica que el esquema esté reflejado en `_INDRA_PROTOCOL_/indra_contract.json`. 
+3.  **Audit**: Usa `bridge.audit()` para validar el nexo.
+4.  **Mice**: Todo cambio debe ser "MCEP Compliant".

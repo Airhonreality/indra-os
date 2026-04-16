@@ -1,0 +1,9 @@
+# Indra Satellite Protocol - Git Ignore
+node_modules/
+.DS_Store
+.env
+dist/
+build/
+*.log
+.gemini/
+.antigravity/

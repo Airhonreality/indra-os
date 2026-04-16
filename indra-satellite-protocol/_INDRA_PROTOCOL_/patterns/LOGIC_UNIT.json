@@ -1,0 +1,20 @@
+{
+    "pattern_id": "MCEP_LOGIC_UNIT",
+    "label": "Unidad de Lógica Determinista",
+    "dharma": "Realizar cálculos puramente matemáticos sobre una colección de átomos.",
+    "axiom": "No llamar a APIs externas. Usar solo el provider pipeline.",
+    "template": {
+        "id": "workflow_id",
+        "stations": [
+            {
+                "id": "compute_step",
+                "provider": "pipeline",
+                "protocol": "TRANSFORM_COMPUTE",
+                "mapping": {
+                    "formula": "INPUT_FORMULA",
+                    "target_field": "RESULT_FIELD"
+                }
+            }
+        ]
+    }
+}

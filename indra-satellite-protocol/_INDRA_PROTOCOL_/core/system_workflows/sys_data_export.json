@@ -1,0 +1,18 @@
+{
+  "id": "sys_data_export",
+  "metadata": { "category": "SYSTEM", "artifact": "UTIL" },
+  "payload": {
+    "label": "🛠️ SOBERANÍA: Exportar a JSON local",
+    "stations": [
+      {
+        "id": "ST_DUMP",
+        "type": "PROTOCOL",
+        "protocol": "ATOM_READ",
+        "config": { 
+          "context_id": "{trigger.context_id}", 
+          "query": { "format": "json_dump", "include_metadata": true } 
+        }
+      }
+    ]
+  }
+}

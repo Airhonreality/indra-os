@@ -22,27 +22,66 @@ async function ignite() {
     const hud = document.getElementById('main-hud');
     if (hud) hud.bridge = bridge;
 
-    // 4. Lógica de Identidad Real (Resonancia Proactiva)
-    const loginBtn = document.getElementById('btn-login-google');
-    if (loginBtn) {
-        loginBtn.onclick = async () => {
-             try {
-                 const originalText = loginBtn.innerText;
-                 loginBtn.innerText = "RESONANDO...";
-                 loginBtn.disabled = true;
+    // 2. Elementos de la Interfaz
+    const btnLogin = document.getElementById('btn-login-google');
+    const btnManualLink = document.getElementById('btn-manual-link');
+    const inputCoreUrl = document.getElementById('input-core-url');
+    const inputToken = document.getElementById('input-token');
+    const authStatusChip = document.getElementById('auth-status-chip');
 
-                 await bridge.ignite();
-
-                 loginBtn.innerText = "CONECTADO";
-                 console.log("💎 Resonancia Establecida.");
-             } catch (e) {
-                 console.error("❌ Fallo de Resonancia:", e);
-                 loginBtn.innerText = "ERROR DE IGNICIÓN";
-                 loginBtn.disabled = false;
-                 alert(`Error: ${e.message}`);
-             }
-        };
+    // AUTO-RELLENAR: Si hay pacto previo, mostrarlo en pantalla
+    if (bridge.coreUrl && bridge.coreUrl !== "https://airhonreality.github.io/indra-os") {
+        inputCoreUrl.value = bridge.coreUrl;
     }
+    if (bridge.satelliteToken) {
+        inputToken.value = bridge.satelliteToken;
+    }
+
+    // 3. EVENTO: Ignición Automática (Google / Resonance)
+    btnLogin.addEventListener('click', async () => {
+        try {
+            console.log("🚀 Solicitando ignición...");
+            await bridge.ignite();
+        } catch (error) {
+            console.error("❌ Fallo en ignición:", error);
+            alert("Resonancia fallida. Prueba el Pacto Manual.");
+        }
+    });
+
+    // 4. EVENTO: Pacto Manual (Direct Link)
+    btnManualLink.addEventListener('click', async () => {
+        const url = inputCoreUrl.value.trim();
+        const token = inputToken.value.trim();
+
+        if (!url || !token) {
+            alert("Se requiere URL y Token para firmar el pacto.");
+            return;
+        }
+
+        try {
+            btnManualLink.innerText = "FIRMANDO...";
+            btnManualLink.disabled = true;
+            
+            await bridge.establishManualHandshake(url, token);
+            
+            btnManualLink.innerText = "PACTO FIRMADO";
+            btnManualLink.style.background = "#34A853";
+        } catch (error) {
+            console.error("❌ Error en pacto manual:", error);
+            alert("Error al vincular: " + error.message);
+            btnManualLink.innerText = "REINTENTAR";
+            btnManualLink.disabled = false;
+        }
+    });
+
+    // 5. ESCUCHA: Actualizar UI cuando cambie el estado del Bridge
+    bridge.on('sync', (data) => {
+        if (data.status === 'CONNECTED') {
+            authStatusChip.innerText = "CONECTADO";
+            authStatusChip.style.background = "#34A853";
+            authStatusChip.style.color = "white";
+        }
+    });
 
     // Reporte Técnico
     bridge.audit();

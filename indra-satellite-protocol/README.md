@@ -34,6 +34,36 @@ Si eres una IA encargada de construir en este satélite, tus directivas obligato
 
 ---
 
+## 🔐 Pacto de Resonancia (Autenticación)
+
+El Satélite Semilla soporta dos modos de ignición para conectarse a tu Core:
+
+### A. Resonancia Automática (Standard)
+Utiliza el portal oficial de Indra OS. Requiere que tengas tu sesión iniciada en la Nave Nodriza. Al pulsar "Ignición", el sistema heredará tu identidad automáticamente mediante el puente de ruteo.
+
+### B. Pacto Manual (Soberanía Total)
+Si trabajas en entornos aislados o la resonancia automática falla, puedes establecer un **Pacto Manual**:
+1. Copia la URL de despliegue de tu script de Google Apps Script.
+2. Genera un **Token Omega** en tu Core (o usa uno generado previamente).
+3. Pégalos en el panel de control del Satélite y pulsa **"FIRMAR PACTO"**.
+4. ¡Listo! El Satélite guardará este enlace permanentemente en su `localStorage`.
+
+---
+
+## 🛠️ Desarrollo Local
+
+1. Clona este repositorio.
+2. Ejecuta `npm install` y `npm run dev`.
+3. Abre `localhost:3001` (o el puerto asignado).
+4. El Satélite buscará automáticamente esquemas en `/src/score/schemas`.
+
+---
+
+## 💎 Axioma de Soberanía
+Este satélite no almacena datos en servidores externos. La comunicación es directa entre tu navegador y tu cuenta de Google Drive. La seguridad reside en tu **Pacto de Resonancia**. 🚀🛰️
+
+---
+
 ## 🚀 Aranque y Desarrollo Local (Ruta Base)
 
 Para habilitar la edición de workflows, UI híbrida y persistencia de schemas locales (gracias al plugin local-fs), este repositorio utiliza **Vite**. 

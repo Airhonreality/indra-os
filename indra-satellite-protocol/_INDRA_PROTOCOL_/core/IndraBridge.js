@@ -25,8 +25,11 @@ const INDRA_MOTHER_SHELL = "https://airhonreality.github.io/indra-os";
 
 class IndraBridge {
     constructor(config = {}) {
-        this.coreUrl = config.coreUrl || INDRA_MOTHER_SHELL;
-        this.satelliteToken = config.satelliteToken || null;
+        // AXIOMA DE PERSISTENCIA: Intentar recuperar pacto previo del localStorage
+        const savedSync = JSON.parse(localStorage.getItem('INDRA_SATELLITE_LINK') || '{}');
+
+        this.coreUrl = config.coreUrl || savedSync.coreUrl || INDRA_MOTHER_SHELL;
+        this.satelliteToken = config.satelliteToken || savedSync.token || null;
         this.shareTicket = config.shareTicket || null;
         this.coreVersion = null;
         this.logger = config.logger || console;

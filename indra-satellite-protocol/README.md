@@ -74,16 +74,32 @@ Este satélite no almacena datos en servidores externos. La comunicación es dir
 
 ---
 
-## 🚀 Aranque y Desarrollo Local (Ruta Base)
+## 🚀 Desarrollo Local Soberano (Vite Daemon)
 
-Para habilitar la edición de workflows, UI híbrida y persistencia de schemas locales (gracias al plugin local-fs), este repositorio utiliza **Vite**. 
+Para una experiencia de desarrollo profesional y 100% automatizada, el entorno utiliza un **Sovereign Local Daemon** integrado en Vite. Esto permite que el satélite guarde su propia identidad y flujos directamente en tu disco duro sin necesidad de servidores externos.
 
-El flujo universal de inicio y arranque rápido para cualquier desarrollador/clon fue simplificado en un solo comando de ignición de entorno. Solo debes pararte en la raíz del protocolo y ejecutar:
-
+### 1. Instrucciones de Arranque
 ```bash
-npm run ignite
+npm install
+npm run dev
 ```
-> Esto instalará `vite` (si no existe) y levantará el servidor en `localhost:3000`. Cualquier edición que realices en el UI "Workflow Ribbon" se guardará inmediatamente en tu carpeta `src/score/workflows/`.
+
+### 2. El Flujo de Configuración (HUD Workflow) 🛰️
+Una vez que el servidor esté corriendo en `localhost:3000`:
+1.  Abre el **Indra Bridge HUD** (el panel flotante en la esquina).
+2.  Configura el `satellite_name` y tu `core_id`.
+3.  **Botón "Guardar en Daemon (Auto)" [RECOMENDADO]**: Al pulsarlo, el servidor Vite (gracias al middleware inyectado en `vite.config.js`) interceptará la petición y escribirá directamente el archivo `_INDRA_PROTOCOL_/indra_satellite.meta.json`. 
+4.  **Sincronización**: Ejecuta `npm run sync` en tu terminal para compilar la metadata con los esquemas del Core y generar el contrato final (`indra_contract.json`).
+
+> [!TIP]
+> Si el guardado automático falla (ej. permisos de OS), usa el botón de **Descarga Manual** y coloca el archivo en la ruta indicada. El sistema detectará el cambio al instante.
+
+---
+
+## 🏗️ Rutas de Ignición y Sincronización
+- **`npm run dev`**: Levanta la UI y el Daemon de persistencia local.
+- **`npm run sync`**: Ejecuta `sync_core.js`. Lee tu metadata local, consulta al Core y compila el ADN del satélite.
+- **`npm run build`**: Genera el bundle de producción optimizado.
 
 ---
 

@@ -40,6 +40,33 @@ const indraDevServerPlugin = () => {
           res.end();
         }
       });
+      // Middleware para guardar Metadata Satelital
+      server.middlewares.use('/api/indra/metadata', (req, res, next) => {
+        if (req.method === 'POST') {
+          let body = '';
+          req.on('data', chunk => body += chunk.toString());
+          req.on('end', () => {
+             try {
+                const data = JSON.parse(body);
+                const targetPath = path.resolve(__dirname, `_INDRA_PROTOCOL_/indra_satellite.meta.json`);
+                const dir = path.dirname(targetPath);
+                if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+                
+                fs.writeFileSync(targetPath, JSON.stringify(data, null, 4));
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ status: 'ok' }));
+             } catch (err) {
+                res.statusCode = 500;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ status: 'error', message: err.message }));
+             }
+          });
+        } else {
+             next();
+        }
+      });
+
     }
   };
 };

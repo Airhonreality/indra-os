@@ -1,6 +1,7 @@
 import { executeDirective } from '../../services/directive_executor';
 import { toastEmitter } from '../../services/toastEmitter';
 import { GoogleAuthService } from '../../services/google/GoogleAuthService';
+import { DataProjector } from '../../services/DataProjector';
 
 export const createDomainSlice = (set, get) => ({
     // Catálogos e Items
@@ -31,8 +32,11 @@ export const createDomainSlice = (set, get) => ({
             const result = await executeDirective({
                 provider: 'system',
                 protocol: 'SYSTEM_MANIFEST'
-            }, finalUrl, sessionSecret);
-            set({ services: result.items || [] });
+            }, finalUrl, sessionSecret, get().shareTicket);
+            
+            // Proyección de Servicios (Capacidad de Silo)
+            const projected = (result.items || []).map(item => DataProjector.projectService(item));
+            set({ services: projected });
         } catch (err) {
             console.error('[domain_slice] Failed to hydrate manifest:', err);
         }
@@ -48,8 +52,11 @@ export const createDomainSlice = (set, get) => ({
                 provider: 'system',
                 protocol: 'SYSTEM_PINS_READ',
                 workspace_id: activeWorkspaceId
-            }, coreUrl, sessionSecret);
-            set({ pins: result.items || [] });
+            }, coreUrl, sessionSecret, get().shareTicket);
+            
+            // AXIOMA DE PROYECCIÓN ÚNICA (ADR-043): Proyectamos al entrar al slice
+            const projected = (result.items || []).map(item => DataProjector.projectArtifact(item)).filter(Boolean);
+            set({ pins: projected });
         } catch (err) {
             console.error('[domain_slice] loadPins failed:', err);
         } finally {
@@ -65,7 +72,7 @@ export const createDomainSlice = (set, get) => ({
                 provider: atom.provider || 'system',
                 protocol: 'ATOM_READ',
                 context_id: atom.id
-            }, coreUrl, sessionSecret);
+            }, coreUrl, sessionSecret, get().shareTicket);
 
             const fullAtom = result.items?.[0];
             if (fullAtom) {
@@ -91,15 +98,15 @@ export const createDomainSlice = (set, get) => ({
                 protocol: 'ATOM_UPDATE',
                 context_id: id,
                 data: updates
-            }, coreUrl, sessionSecret);
-            const updatedAtom = result.items?.[0] || { ...updates };
+            }, coreUrl, sessionSecret, get().shareTicket);
+            const projectedAtom = DataProjector.projectArtifact(result.items?.[0] || { ...updates });
 
             if (activeArtifact && activeArtifact.id === id) {
-                set({ activeArtifact: { ...activeArtifact, ...updatedAtom } });
+                set({ activeArtifact: { ...activeArtifact, ...projectedAtom } });
             }
             const updatedPins = pins.map(p => 
                 (p.id === id && (p.provider || 'system') === (provider || 'system')) 
-                    ? { ...p, ...updatedAtom } 
+                    ? { ...p, ...projectedAtom } 
                     : p
             );
             set({ pins: updatedPins });
@@ -196,9 +203,9 @@ export const createDomainSlice = (set, get) => ({
                 provider: 'system',
                 protocol: 'ATOM_CREATE',
                 data: dataToCreate
-            }, coreUrl, sessionSecret);
+            }, coreUrl, sessionSecret, get().shareTicket);
 
-            const newAtom = result.items?.[0];
+            const newAtom = DataProjector.projectArtifact(result.items?.[0]);
             
             // Limpiar estado optimista
             set(state => {
@@ -236,7 +243,7 @@ export const createDomainSlice = (set, get) => ({
                 protocol: 'SYSTEM_PIN',
                 workspace_id: activeWorkspaceId,
                 data: { atom }
-            }, coreUrl, sessionSecret);
+            }, coreUrl, sessionSecret, get().shareTicket);
             get().loadPins();
         } catch (err) {
             console.error('[domain_slice] pinAtom failed:', err);
@@ -257,7 +264,7 @@ export const createDomainSlice = (set, get) => ({
                     protocol: 'SYSTEM_UNPIN',
                     workspace_id: activeWorkspaceId,
                     data: { atom_id: atomId, provider: cleanProvider }
-                }, coreUrl, sessionSecret);
+                }, coreUrl, sessionSecret, get().shareTicket);
             } catch (unpinErr) {
                 console.warn('[domain_slice] SYSTEM_UNPIN pre-delete falló:', unpinErr.message);
             }
@@ -266,7 +273,7 @@ export const createDomainSlice = (set, get) => ({
                     provider: cleanProvider,
                     protocol: 'ATOM_DELETE',
                     context_id: atomId
-                }, coreUrl, sessionSecret);
+                }, coreUrl, sessionSecret, get().shareTicket);
             } catch (deleteErr) {
                 const wasGhost = deleteErr.message.includes('No encontrado') || 
                                  deleteErr.message.includes('NOT_FOUND') ||
@@ -293,7 +300,7 @@ export const createDomainSlice = (set, get) => ({
                 protocol: 'SYSTEM_UNPIN',
                 workspace_id: activeWorkspaceId,
                 data: { atom_id: atomId, provider: cleanProvider }
-            }, coreUrl, sessionSecret);
+            }, coreUrl, sessionSecret, get().shareTicket);
             get().loadPins();
         } catch (err) {
             set({ pins: previousPins });
@@ -312,8 +319,8 @@ export const createDomainSlice = (set, get) => ({
                     handle: { label: label },
                     payload: {}
                 }
-            }, coreUrl, sessionSecret);
-            const newWorkspace = result.items?.[0];
+            }, coreUrl, sessionSecret, get().shareTicket);
+            const newWorkspace = DataProjector.projectWorkspace(result.items?.[0]);
             if (newWorkspace) {
                 set(state => ({ workspaces: [...state.workspaces, newWorkspace] }));
                 toastEmitter.success('Workspace Materializado');
@@ -339,7 +346,7 @@ export const createDomainSlice = (set, get) => ({
                 protocol: 'ATOM_UPDATE',
                 context_id: workspaceId,
                 data: { handle: { label: newLabel } }
-            }, coreUrl, sessionSecret);
+            }, coreUrl, sessionSecret, get().shareTicket);
         } catch (err) {
             set({ workspaces });
             toastEmitter.error('No se pudo guardar el nuevo nombre');
@@ -359,13 +366,15 @@ export const createDomainSlice = (set, get) => ({
                 provider: 'system',
                 protocol: 'ATOM_DELETE',
                 context_id: workspaceId
-            }, coreUrl, sessionSecret);
+            }, coreUrl, sessionSecret, get().shareTicket);
             const result = await executeDirective({
                 provider: 'system',
                 protocol: 'ATOM_READ',
                 context_id: 'workspaces'
-            }, coreUrl, sessionSecret);
-            set({ workspaces: result.items || [] });
+            }, coreUrl, sessionSecret, get().shareTicket);
+            
+            const projected = (result.items || []).map(w => DataProjector.projectWorkspace(w));
+            set({ workspaces: projected });
         } catch (err) {
             set({ workspaces: previousWorkspaces });
             toastEmitter.error(`Error al eliminar workspace: ${err.message}`);
@@ -403,8 +412,18 @@ export const createDomainSlice = (set, get) => ({
                 provider: 'system',
                 protocol: 'ATOM_READ',
                 context_id: 'workspaces'
-            }, coreUrl, sessionSecret);
-            set({ workspaces: result.items, loadingKeys: { ...get().loadingKeys, workspaces: false } });
+            }, coreUrl, sessionSecret, get().shareTicket);
+            
+            // RESET DE INERCIA (ADR-043): Si el sistema acaba de renacer, limpiamos localCache
+            if (result.metadata?.message === 'INDRA_REBORN') {
+                console.log('[domain_slice] Detectado RENACIMIENTO del Core. Purgando inercia local...');
+                set({ pins: [], workspaces: [], activeArtifact: null });
+                localStorage.removeItem('indra-active-workspace-id');
+                toastEmitter.info('Sistema Renacido. Iniciando Tabula Rasa.');
+            }
+
+            const projected = (result.items || []).map(w => DataProjector.projectWorkspace(w));
+            set({ workspaces: projected, loadingKeys: { ...get().loadingKeys, workspaces: false } });
             get().hydrateManifest();
             const { activeWorkspaceId } = get();
             if (activeWorkspaceId) get().loadPins();

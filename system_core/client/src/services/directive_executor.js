@@ -9,9 +9,10 @@
  * @param {Object} uqo - Universal Query Object { provider, protocol, data, query, ... }
  * @param {string} coreUrl - URL base del core GAS
  * @param {string} sessionSecret - Credencial de acceso (Satellite Key o Session Ticket)
- * @returns {Promise<{ items: Array, metadata: Object }>} The Return Law.
+ * @param {string} [shareTicket] - Ticket de acceso compartido opcional (Inyectado desde estado)
+ * @returns {Promise<{ items: Array, metadata: Object }>} El Retorno Canónico.
  */
-export async function executeDirective(uqo, coreUrl, sessionSecret) {
+export async function executeDirective(uqo, coreUrl, sessionSecret, shareTicket = null) {
     if (!coreUrl) throw new Error('CORE_URL_MISSING');
 
     // AXIOMA DE DETERMINISMO RADICAL (ADR-008):
@@ -19,7 +20,7 @@ export async function executeDirective(uqo, coreUrl, sessionSecret) {
     const payload = {
         ...uqo,
         password: sessionSecret,
-        share_ticket: localStorage.getItem('indra-share-ticket') || null
+        share_ticket: shareTicket || null
     };
 
     const resolvedProtocol = uqo.protocol || uqo.method || 'UNKNOWN';

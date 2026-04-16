@@ -50,9 +50,29 @@ function doPost(e) {
     if (!isBootstrapped()) return _handleBootstrap_(payload);
 
     // ADR-041: Validación dinámica vía Keychain Engine (Ledger) y Tickets (ADR-019)
-    const satelliteContext = _keychain_validate(payload.satellite_token);
+    const activeUserEmail = Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail();
+    const coreOwnerEmail = readCoreOwnerEmail();
+    const isOwnerSession = activeUserEmail === coreOwnerEmail;
+
+    let satelliteContext = _keychain_validate(payload.satellite_token);
+    
+    // AXIOMA DE SOBERANÍA: El dueño SIEMPRE tiene acceso MASTER por derecho de sangre (Bypass de Llavero)
+    // ADR-043: Ignición por Sangre. Si el email coincide, generamos contexto MASTER de alto privilegio.
+    if (isOwnerSession) {
+        console.log(`[gateway] Reconocimiento de Sangre (Soberanía Directa): ${activeUserEmail}`);
+        satelliteContext = {
+            name: "Propietario del Core (Sovereign)",
+            status: "ACTIVE",
+            class: "MASTER",
+            scopes: ["ALL"],
+            sovereignty: "BLOOD_RIGHT"
+        };
+    }
+
     const validTicket = payload.share_ticket ? _share_validateTicket(payload.share_ticket, payload.context_id || payload.data?.artifact_id) : null;
-    const isAuthenticated = verifyPassword(payload.password) || !!satelliteContext || !!validTicket;
+    
+    // Si es una sesión de dueño autenticada por Google, el password es opcional.
+    const isAuthenticated = isOwnerSession || verifyPassword(payload.password) || !!satelliteContext || !!validTicket;
 
     if (!isAuthenticated) {
         console.warn(`[gateway] Acceso denegado: Protocolo ${payload.protocol} rechazado.`);
@@ -157,6 +177,7 @@ function _handleSystemProtocol_(payload) {
   if (protocol === 'SYSTEM_CONFIG_WRITE') return handleConfigWrite_(payload);
   if (protocol === 'SYSTEM_CONFIG_DELETE') return handleConfigDelete_(payload);
   if (protocol === 'SYSTEM_SHARE_CREATE') return _share_createTicket(payload);
+  if (protocol === 'SYSTEM_REBUILD_LEDGER') return { items: [ledger_rebuild_from_drive()], metadata: { status: 'OK' } };
   if (protocol === 'SYSTEM_QUEUE_READ') return { items: pulse_ledger_getPending(), metadata: { status: 'OK' } };
   if (protocol === 'PULSE_WAKEUP') { pulse_service_process_next(); return { metadata: { status: 'OK' } }; }
   if (protocol === 'SYSTEM_KEYCHAIN_GENERATE') return _keychain_generate(payload);
@@ -226,9 +247,61 @@ function _sanitizeTrace_(uqo) {
 }
 
 function _handleBootstrap_(payload) {
+  const activeUserEmail = Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail();
+  const coreOwnerEmail = readCoreOwnerEmail();
+  const isOwner = activeUserEmail === coreOwnerEmail;
+
+  // AXIOMA DE SOBERANÍA: Si el dueño se conecta y el sistema está "desnudo" (sin Ledger),
+  // iniciamos el Renacimiento (Renaissance) automáticamente.
+  if (isOwner && !readMasterLedgerId()) {
+    console.log('[gateway] Iniciando RENACIMIENTO para el dueño...');
+    try {
+      _system_renaissance_();
+      return _buildResponse_(200, { 
+        metadata: { status: 'OK', message: 'INDRA_REBORN', detail: 'Sistema reinicializado bajo el modelo Master Ledger.' } 
+      });
+    } catch (e) {
+      console.error('[gateway] Fallo crítico en el Renacimiento:', e.message);
+      return _buildResponse_(500, { metadata: { status: 'ERROR', error: e.message } });
+    }
+  }
+
   if (payload.password && payload.protocol === 'SYSTEM_CONFIG_WRITE') {
     bootstrapPassword(payload.password);
     return _buildResponse_(200, { metadata: { status: 'OK', message: 'Nucleo Despierto' } });
   }
   return _buildResponse_(200, { metadata: { status: 'BOOTSTRAP' } });
+}
+
+/**
+ * PROTOCOLO DE RENACIMIENTO (ADR-043 Fase 5)
+ * Reconstruye la infraestructura mínima vital cuando el sistema está en blanco.
+ * @private
+ */
+function _system_renaissance_() {
+  console.log('[renaissance] Inicializando Master Ledger...');
+  const ledgerId = ledger_initialize_new(); // → provider_system_ledger.gs
+  
+  console.log('[renaissance] Creando Espacio de Trabajo Raíz...');
+  // Crear el workspace por defecto (Axioma de Territorio)
+  const genesisResponse = _system_createAtom('WORKSPACE', 'Materia Primordial (Root)', {
+    provider: 'system',
+    data: { 
+      description: 'Este es el primer espacio de trabajo del nuevo Indra OS basado en Master Ledger.' 
+    }
+  });
+
+  if (genesisResponse.metadata.status === 'ERROR') {
+    throw new Error('No se pudo crear el workspace primordial: ' + genesisResponse.metadata.error);
+  }
+
+  const rootWs = genesisResponse.items[0];
+  console.log('[renaissance] Workspace primordial creado:', rootWs.id);
+
+  // Marcar el sistema como bootstrapped si no lo estaba (Tabula Rasa)
+  if (readConfig('SYS_IS_BOOTSTRAPPED') !== 'true') {
+     storeConfig('SYS_IS_BOOTSTRAPPED', 'true');
+  }
+
+  logInfo('🚀 EL RENACIMIENTO HA COMPLETADO LA CRISTALIZACIÓN DEL NÚCLEO.');
 }

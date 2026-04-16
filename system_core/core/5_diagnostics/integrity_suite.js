@@ -19,6 +19,7 @@ function runCoreIntegrityCheck() {
     registry: _checkRegistry_(),
     routing:  _checkRouting_(),
     config:   _checkConfig_(),
+    ledger:   _checkLedgerIntegrity_(),
     silos:    _checkSiloIntegrity_()
   };
 
@@ -107,6 +108,41 @@ function _checkConfig_() {
     return true;
   } catch (e) {
     console.error("❌ Error de acceso a PropertiesService: " + e.message);
+    return false;
+  }
+}
+
+/**
+ * Valida que no haya desincronía entre el Master Ledger y los archivos físicos de Drive.
+ * AXIOMA 1: FALLO RUIDOSO. Reporta inconsistencias críticas.
+ */
+function _checkLedgerIntegrity_() {
+  console.log("\n[Ledger] Validando Sinceridad de Índice...");
+  try {
+    const sheet = _ledger_get_sheet_();
+    const ledgerData = sheet.getDataRange().getValues();
+    const ledgerCount = ledgerData.length - 1; // Excluir cabecera
+    
+    // Conteo rápido en Drive de la carpeta workspaces como muestra
+    const homeRoot = _system_ensureHomeRoot();
+    const wsFolder = homeRoot.getFoldersByName('workspaces').next();
+    const driveFiles = wsFolder.getFiles();
+    let fileCount = 0;
+    while(driveFiles.hasNext()) { driveFiles.next(); fileCount++; }
+    
+    console.log(`- Átomos en Ledger: ${ledgerCount}`);
+    console.log(`- Archivos en Drive (workspaces): ${fileCount}`);
+    
+    // Nota: Esta es una validación parcial. Una validación total requeriría iterar todo Drive.
+    // Pero si el Ledger está vacío y hay archivos, es un fallo crítico.
+    if (ledgerCount === 0 && fileCount > 0) {
+      console.error("❌ ERROR CRÍTICO: El Ledger está vacío pero existen archivos en Drive.");
+      return false;
+    }
+    
+    return true;
+  } catch (e) {
+    console.error("❌ Fallo crítico al validar Ledger: " + e.message);
     return false;
   }
 }

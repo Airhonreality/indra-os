@@ -19,9 +19,8 @@
 //   - NO puede crear ni verificar el Home Root. Eso lo hace `provider_system.gs`.
 //
 // CONVENCIONES DE CLAVES EN PropertiesService:
-//   SYS_ROOT_FOLDER_ID          → ID de la carpeta .core_system en Drive
-//   SYS_ACCESS_PASSWORD_HASH    → Hash SHA-256 del password de acceso
-//   SYS_IS_BOOTSTRAPPED         → 'true' cuando el password ya fue definido
+//   SYS_CORE_OWNER_UID          → Email del propietario del Core (Blood Right)
+//   SYS_MASTER_LEDGER_ID        → ID de la Google Sheet Maestra de Registro (Index)
 //   ACCOUNT_{provider}_{id}_KEY → API Key de una cuenta específica de un provider
 //   ACCOUNT_{provider}_{id}_META→ Metadata JSON de la cuenta (label, created_at)
 // =============================================================================
@@ -144,13 +143,16 @@ function deleteConfig(key) {
  */
 function isBootstrapped() {
   const isCerebroBootstrapped = _getStore_().getProperty('SYS_IS_BOOTSTRAPPED') === 'true';
+  const hasLedger = !!_getStore_().getProperty('SYS_MASTER_LEDGER_ID');
   
-  // AXIOMA: Si el cerebro no está inicializado, el "cuerpo" (Drive) NO debería existir aún.
-  // Pero durante el proceso de instalación automática (Indra v4.0), admitimos que el territorio 
-  // haya sido creado por el orquestador segundos antes del handshake.
-  // El control real de soberanía ocurre al verificar la clave final.
+  // AXIOMA 1: FALLO RUIDOSO. Si el sistema dice estar bootstrapped pero no hay Ledger,
+  // algo está terriblemente mal. No intentamos arreglarlo silenciosamente.
+  if (isCerebroBootstrapped && !hasLedger) {
+    console.error('[CRITICAL] El sistema está marcado como ACTIVO pero falta el MASTER_LEDGER_ID.');
+    // En el futuro podríamos lanzar una excepción aquí para bloquear ejecuciones inciertas.
+  }
   
-  return isCerebroBootstrapped;
+  return isCerebroBootstrapped && hasLedger;
 }
 
 /**
@@ -411,6 +413,22 @@ function storeRootFolderId(folderId) {
  */
 function readRootFolderId() {
   return _getStore_().getProperty('SYS_ROOT_FOLDER_ID') || null;
+}
+
+/**
+ * Guarda el ID de la Google Sheet que actúa como Master Ledger.
+ * @param {string} ledgerId 
+ */
+function storeMasterLedgerId(ledgerId) {
+  return storeConfig('SYS_MASTER_LEDGER_ID', ledgerId);
+}
+
+/**
+ * Lee el ID del Master Ledger.
+ * @returns {string|null}
+ */
+function readMasterLedgerId() {
+  return _getStore_().getProperty('SYS_MASTER_LEDGER_ID') || null;
 }
 
 // ─── UTILIDADES CRIPTOGRÁFICAS ────────────────────────────────────────────────

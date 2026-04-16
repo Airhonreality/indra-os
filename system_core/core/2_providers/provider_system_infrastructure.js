@@ -465,36 +465,55 @@ function _system_handleExists(uqo) {
 
 function _system_listAtomsByClass(atomClass, providerId, uqo) {
     try {
-        const folderName = _system_getFolderForClass(atomClass);
-        const folder = _system_getOrCreateSubfolder_(folderName, uqo);
-        const files = folder.getFiles();
-        const items = [];
-
-        while (files.hasNext()) {
-            const file = files.next();
-            if (file.getMimeType() !== 'application/json') continue;
-            try {
-                const content = JSON.parse(file.getBlob().getDataAsString());
-                if (content.class !== atomClass) continue;
-                items.push(_system_toAtom(content, file.getId(), providerId));
-            } catch (parseError) {
-                logWarn(`[infrastructure] Archivo JSON inválido ignorado: ${file.getName()}`);
-            }
-        }
-        return { items, metadata: { status: 'OK' } };
+        // AXIOMA 1: FALLO RUIDOSO. Si el sistema está bootstrapped y no hay Ledger,
+        // lanzamos un error en lugar de usar Drive legacy.
+        const items = ledger_list_by_class(atomClass);
+        
+        // Transformar a Átomos de Sistema (Contrato Universal ADR-001)
+        // Nota: ledger_list_by_class ya devuelve objetos semi-formados, 
+        // pero pasamos por _system_toAtom para asegurar protocolos dinámicos.
+        const atoms = items.map(item => _system_toAtom(item, item.id, providerId));
+        
+        return { items: atoms, metadata: { status: 'OK', total: atoms.length, source: 'LEDGER' } };
     } catch (err) {
-        logError(`[infrastructure] Error al listar clase ${atomClass}.`, err);
-        return { items: [], metadata: { status: 'ERROR', error: err.message } };
+        logError(`[infrastructure] Error al listar clase ${atomClass} vía Ledger.`, err);
+        // Error ruidoso: Informamos del fallo de infraestructura Ledger
+        return { items: [], metadata: { status: 'ERROR', error: `LEDGER_FAILURE: ${err.message}` } };
     }
 }
 
 function _system_readAtom(atomId, providerId) {
     try {
         const file = _system_findAtomFile(atomId);
-        const content = JSON.parse(file.getBlob().getDataAsString());
-        return { items: [_system_toAtom(content, file.getId(), providerId)], metadata: { status: 'OK' } };
+        const contentStr = file.getBlob().getDataAsString();
+        const atomDoc = JSON.parse(contentStr);
+
+        // CHEQUEO JIT (JUST-IN-TIME) DE RESILIENCIA (ADR-043):
+        // Comparamos si el archivo físico en Drive es más reciente que lo que dice el Ledger.
+        try {
+            const driveLastUpdated = file.getLastUpdated();
+            const ledgerMeta = ledger_get_by_drive_id(atomId);
+            
+            if (ledgerMeta) {
+                const ledgerDate = new Date(ledgerMeta.updated_at);
+                // Margen de 2 segundos para evitar falsos positivos
+                if (driveLastUpdated.getTime() > (ledgerDate.getTime() + 2000)) {
+                    logInfo(`[resilience] JIT Sync detectado para ${atomId}. Drive es más reciente. Actualizando Ledger...`);
+                    ledger_sync_atom(atomDoc, atomId);
+                }
+            } else if (atomId !== 'workspaces') {
+                // Sinceridad Total: Si el Ledger no lo conoce pero el archivo existe, lo indexamos JIT.
+                logWarn(`[resilience] Puntero huérfano detectado JIT: ${atomId}. Re-indexando...`);
+                ledger_sync_atom(atomDoc, atomId);
+            }
+        } catch (syncErr) {
+            logWarn(`[resilience] Falló el chequeo JIT para ${atomId}: ${syncErr.message}`);
+        }
+
+        return { items: [_system_toAtom(atomDoc, atomId, providerId)], metadata: { status: 'OK' } };
     } catch (err) {
-        return { items: [], metadata: { status: 'ERROR', error: err.message, code: err.code || 'NOT_FOUND' } };
+        logError(`[infrastructure] ATOM_READ_FAILED: ${atomId}`, err);
+        return { items: [], metadata: { status: 'ERROR', error: err.message, code: 'NOT_FOUND' } };
     }
 }
 
@@ -507,7 +526,10 @@ function _system_createAtom(atomClass, label, uqo) {
 
         const folderName = _system_getFolderForClass(atomClass);
         const now = new Date().toISOString();
-        const subfolder = _system_getOrCreateSubfolder_(folderName, uqo);
+        
+        // AXIOMA CELULAR (ADR-043): El átomo se gesta en la "cuna" de su Workspace/Contexto.
+        const contextId = uqo.workspace_id || uqo.context_id;
+        const subfolder = _system_getOrCreateSubfolder_(folderName, uqo, contextId);
         const alias = _system_slugify_(label);
         const fileName = `${alias}_${Date.now()}.json`;
 
@@ -534,8 +556,17 @@ function _system_createAtom(atomClass, label, uqo) {
         const driveId = file.getId();
         atomDoc.id = driveId;
         
-        // Persistir con el ID ya inyectado
+        // Persistir con el ID ya inyectado (Shadow Backup)
         file.setContent(JSON.stringify(atomDoc, null, 2));
+
+        // AXIOMA: Sincronización obligatoria con el Ledger (Transaccional)
+        try {
+            ledger_sync_atom(atomDoc, driveId);
+        } catch (ledgerErr) {
+            logError(`[infrastructure] FALLO CRÍTICO EN LEDGER. Realizando Rollback físico de: ${driveId}`, ledgerErr);
+            file.setTrashed(true); // Purga inmediata del "Átomo Huérfano"
+            throw ledgerErr;
+        }
 
         return { items: [_system_toAtom(atomDoc, driveId, providerId)], metadata: { status: 'OK' } };
     } catch (err) {
@@ -559,7 +590,11 @@ function _system_deleteAtom(atomId) {
         // resuelve en el momento del acceso (Homeostasis bajo demanda).
         const file = _system_findAtomFile(atomId);
         file.setTrashed(true);
-        logInfo(`[infra] Átomo eliminado de Drive: ${atomId}`);
+        
+        // Eliminar del Ledger (Fallo Ruidoso si no se encuentra en Drive ya se encargó findAtomFile)
+        ledger_remove_atom(atomId);
+        
+        logInfo(`[infra] Átomo eliminado de Drive y Ledger: ${atomId}`);
 
         return { items: [], metadata: { status: 'OK' } };
     } catch (err) {
@@ -640,6 +675,9 @@ function _system_updateAtom(atomId, updates, providerId) {
 
         file.setContent(JSON.stringify(updated, null, 2));
         
+        // AXIOMA: Sincronización de actualización en Ledger
+        ledger_sync_atom(updated, file.getId());
+        
         return { items: [_system_toAtom(updated, file.getId(), providerId)], metadata: { status: 'OK' } };
 
     } catch (err) {
@@ -653,16 +691,27 @@ function _system_updateAtom(atomId, updates, providerId) {
 function _system_ensureHomeRoot() {
     const cachedId = readRootFolderId();
     if (cachedId) {
-        try { return DriveApp.getFolderById(cachedId); } catch (e) { }
+        try { 
+            const folder = DriveApp.getFolderById(cachedId);
+            // Si la carpeta está en la papelera, el puntero es inválido (Puntero Fantasma)
+            if (folder && !folder.isTrashed()) return folder;
+            logWarn(`[infrastructure] Carpeta raíz en papelera o inválida. Reseteando puntero: ${cachedId}`);
+        } catch (e) { 
+            logWarn(`[infrastructure] Error al recuperar carpeta raíz vinculada: ${e.message}`);
+        }
     }
+    
+    // Búsqueda profunda en la raíz de Drive
     const existingFolders = DriveApp.getRootFolder().getFoldersByName(HOME_ROOT_FOLDER_NAME_);
-    if (existingFolders.hasNext()) {
+    while (existingFolders.hasNext()) {
         const folder = existingFolders.next();
         if (!folder.isTrashed()) {
             storeRootFolderId(folder.getId());
             return folder;
         }
     }
+    
+    // GÉNESIS SI NADA EXISTE
     const newFolder = DriveApp.createFolder(HOME_ROOT_FOLDER_NAME_);
     storeRootFolderId(newFolder.getId());
     return newFolder;
@@ -676,28 +725,45 @@ function _system_getFolderForClass(atomClass) {
     return WORKSPACES_FOLDER_NAME_;
 }
 
-function _system_getOrCreateSubfolder_(folderName, contextUqo) {
+function _system_getOrCreateSubfolder_(folderName, contextUqo, workspaceId) {
     const homeRoot = _system_ensureHomeRoot();
-    let folder;
-    const subFolders = homeRoot.getFoldersByName(folderName);
-    folder = subFolders.hasNext() ? subFolders.next() : homeRoot.createFolder(folderName);
+    let parentFolder = homeRoot;
 
-    // AXIOMA DE AISLAMIENTO SANDBOX:
-    // Si la petición viene en modo SANDBOX, desviamos la cristalización a una carpeta de basura.
+    // ── LÓGICA DE ARQUITECTURA CELULAR (INDRA v4.2) ──
+    // Si hay un workspace_id, la carpeta del tipo (schemas, workflows) se crea DENTRO del workspace.
+    if (workspaceId && workspaceId !== 'system' && workspaceId !== 'workspaces') {
+        const wsRoot = _system_ensureWorkspaceCell_(workspaceId);
+        if (wsRoot) parentFolder = wsRoot;
+    }
+
+    let folder;
+    const subFolders = parentFolder.getFoldersByName(folderName);
+    folder = subFolders.hasNext() ? subFolders.next() : parentFolder.createFolder(folderName);
+
+    // AXIOMA DE AISLAMIENTO SANDBOX (Mantenemos compatibilidad)
     const isSandbox = (contextUqo && (contextUqo.environment === 'SANDBOX' || contextUqo.mode === 'SANDBOX'));
-    
     if (isSandbox) {
         const sandboxName = '.sandbox_trash';
         const sandboxFolders = folder.getFoldersByName(sandboxName);
-        if (sandboxFolders.hasNext()) {
-            folder = sandboxFolders.next();
-        } else {
-            folder = folder.createFolder(sandboxName);
-            logWarn(`[infrastructure] Creada zona de juegos Sandbox: ${folderName}/${sandboxName}`);
-        }
+        folder = sandboxFolders.hasNext() ? sandboxFolders.next() : folder.createFolder(sandboxName);
     }
 
     return folder;
+}
+
+/**
+ * Asegura la existencia de la carpeta 'Célula' para un workspace.
+ * Ubicación: .core_system/workspaces/{id}/
+ * @private
+ */
+function _system_ensureWorkspaceCell_(workspaceId) {
+    const homeRoot = _system_ensureHomeRoot();
+    const wsContainer = homeRoot.getFoldersByName(WORKSPACES_FOLDER_NAME_).hasNext() 
+        ? homeRoot.getFoldersByName(WORKSPACES_FOLDER_NAME_).next() 
+        : homeRoot.createFolder(WORKSPACES_FOLDER_NAME_);
+        
+    const cellFolders = wsContainer.getFoldersByName(workspaceId);
+    return cellFolders.hasNext() ? cellFolders.next() : wsContainer.createFolder(workspaceId);
 }
 
 function _system_findAtomFile(contextId) {

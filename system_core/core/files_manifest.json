@@ -23,6 +23,7 @@
   { "path": "2_providers/provider_system.js", "name": "provider_system" },
   { "path": "2_providers/provider_system_diagnostics.js", "name": "provider_system_diagnostics" },
   { "path": "2_providers/provider_system_infrastructure.js", "name": "provider_system_infrastructure" },
+  { "path": "2_providers/provider_system_ledger.gs", "name": "provider_system_ledger" },
   { "path": "2_providers/provider_system_logic.js", "name": "provider_system_logic" },
   { "path": "2_providers/provider_system_workspace.js", "name": "provider_system_workspace" },
   { "path": "3_services/monitoring_service.js", "name": "monitoring_service" },

@@ -49,6 +49,21 @@ const TEMPLATE = `
     .badge { font-size: 8px; padding: 2px 8px; border-radius: 20px; font-weight: 700; text-transform: uppercase; border: 1px solid transparent; }
     .badge-core { background: #fff; color: #4b5563; border-color: var(--border); }
     .badge-auth { background: #dcfce7; color: #166534; }
+    
+    .btn-ignite {
+        background: var(--accent);
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: filter 0.2s;
+        text-transform: uppercase;
+    }
+    .btn-ignite:hover { filter: brightness(1.1); }
+    .btn-ignite:disabled { background: #9ca3af; cursor: not-allowed; }
 
     .hud-body { 
         display: grid; 
@@ -89,6 +104,7 @@ const TEMPLATE = `
                  <span class="badge badge-auth" id="auth-status">SINCERIDAD_ESTABLECIDA</span>
             </div>
         </div>
+        <button class="btn-ignite" id="btn-ignite-trigger">Conectar al Core</button>
     </header>
 
     <div class="hud-body">
@@ -130,12 +146,29 @@ class IndraBridgeHUD extends HTMLElement {
     set bridge(instance) {
         this._bridge = instance;
         this._bridge.onStateChange = () => this.updateUI();
-        
+
         // Inyectar Bridge al Llavero
         const keychain = this.shadowRoot.getElementById('keychain-ctrl');
         if (keychain) keychain.bridge = instance;
 
         this.updateUI();
+    }
+
+    async handleIgnition() {
+        if (!this._bridge) return;
+        const btn = this.shadowRoot.getElementById('btn-ignite-trigger');
+        try {
+            btn.disabled = true;
+            btn.innerText = "Resonando...";
+            await this._bridge.ignite();
+            btn.innerText = "Pacto Firmado";
+            btn.style.background = "#34A853";
+        } catch (e) {
+            console.error("[HUD] Fallo en ignición:", e);
+            btn.disabled = false;
+            btn.innerText = "Reintentar Ignición";
+            btn.style.background = "#EA4335";
+        }
     }
 
     updateUI() {
@@ -149,10 +182,10 @@ class IndraBridgeHUD extends HTMLElement {
             if (s.class === 'CONFIG_SCHEMA' || s.class === 'SYSTEM_SCHEMA') return false;
 
             // Filtro de Seguridad por ID (Aduana)
-            const isSystemId = s.id?.startsWith('INDRA_') || 
-                               s.handle?.alias?.startsWith('config_') ||
-                               s.id === 'notion' || 
-                               s.id === 'intelligence';
+            const isSystemId = s.id?.startsWith('INDRA_') ||
+                s.handle?.alias?.startsWith('config_') ||
+                s.id === 'notion' ||
+                s.id === 'intelligence';
 
             return !isSystemId;
         });
@@ -178,6 +211,8 @@ class IndraBridgeHUD extends HTMLElement {
 
     render() {
         this.shadowRoot.innerHTML = TEMPLATE;
+        const btn = this.shadowRoot.getElementById('btn-ignite-trigger');
+        if (btn) btn.onclick = () => this.handleIgnition();
     }
 }
 

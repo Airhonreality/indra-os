@@ -1,6 +1,7 @@
 {
   "synced_at": "2026-04-14T16:49:27.539Z",
   "core_id": "sovereign.core@indra.protocol",
+  "satellite_name": "Veta de Oro",
   "core_version": "0.4.0",
   "capabilities": {
     "protocols": [

@@ -223,6 +223,17 @@ class IndraBridge {
                     });
                     this.capabilities = crystalResponse.metadata || {};
                     this.resonanceWarnings = crystalResponse.metadata?.integrity_warnings || [];
+                    
+                    // PROTOCOLO DE CIUDADANÍA: Asignar Workspace Generado Automáticamente
+                    if (crystalResponse.metadata?.generated_workspace_id && !this.activeWorkspaceId) {
+                        this.activeWorkspaceId = crystalResponse.metadata.generated_workspace_id;
+                        // Actualizamos el storage soberano para amarrar este satélite a su nuevo hogar
+                        const savedSync = JSON.parse(localStorage.getItem('INDRA_SATELLITE_LINK') || '{}');
+                        savedSync.workspaceId = this.activeWorkspaceId;
+                        localStorage.setItem('INDRA_SATELLITE_LINK', JSON.stringify(savedSync));
+                        console.log(`[IndraBridge] 🏛️ Ciudadanía confirmada. Workspace anclado: ${this.activeWorkspaceId}`);
+                    }
+                    
                     window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'CRYSTALLIZED' } }));
                 } else {
                     console.log("[IndraBridge] Resonancia perfecta. No se requiere cristalización.");

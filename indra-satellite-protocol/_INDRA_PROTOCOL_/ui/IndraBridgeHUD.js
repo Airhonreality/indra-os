@@ -50,6 +50,7 @@ const TEMPLATE = `
     .badge { font-size: 8px; padding: 2px 8px; border-radius: 20px; font-weight: 700; text-transform: uppercase; border: 1px solid transparent; }
     .badge-core { background: #fff; color: #4b5563; border-color: var(--border); }
     .badge-auth { background: #dcfce7; color: #166534; }
+    .badge-citizen { background: #f3e8ff; color: #6b21a8; border-color: #d8b4fe; font-family: monospace; }
     
     .btn-ignite {
         background: var(--accent);
@@ -129,6 +130,8 @@ const TEMPLATE = `
             <div class="status-group" style="margin-top:2px;">
                  <span class="badge badge-core" id="core-status">VERSION 2.5</span>
                  <span class="badge badge-auth" id="auth-status">SINCERIDAD_ESTABLECIDA</span>
+                 <span class="badge badge-citizen" id="citizen-status" style="display:none;">CIUDADANO: ...</span>
+                 <button class="badge" id="btn-sync-now" style="background:#8b5cf6; color:white; cursor:pointer; border:none; display:none;">🔄 SINCRONIZAR ADN</button>
             </div>
         </div>
         <button class="btn-ignite" id="btn-ignite-trigger">Conectar al Core</button>
@@ -272,39 +275,66 @@ class IndraBridgeHUD extends HTMLElement {
             authStatus.style.color = "#B06000";
         }
         
-        // 5. Poblar el panel de Configuración (Metadata)
-        if (contract) {
-            const inputName = this.shadowRoot.getElementById('config-sat-name');
-            const inputCore = this.shadowRoot.getElementById('config-core-id');
-            if (inputName && !inputName.value) inputName.value = contract.satellite_name || '';
-            if (inputCore && !inputCore.value) inputCore.value = contract.core_id || '';
+        // 6. Ciudadanía (Workspace Anclado)
+        const citizenStatus = this.shadowRoot.getElementById('citizen-status');
+        const syncBtn = this.shadowRoot.getElementById('btn-sync-now');
+        if (this._bridge.activeWorkspaceId) {
+            if (citizenStatus) {
+                citizenStatus.innerText = `CIUDADADANO: ${this._bridge.activeWorkspaceId.substring(0,6)}...`;
+                citizenStatus.style.display = 'inline-block';
+                citizenStatus.title = `Anclado al Workspace: ${this._bridge.activeWorkspaceId}`;
+            }
+            if (syncBtn) syncBtn.style.display = 'inline-block';
         }
     }
 
     async handleForgeDaemon() {
-        if (!this._bridge || !this._bridge.contract) return;
+        if (!this._bridge) return;
         const btn = this.shadowRoot.getElementById('btn-forge-daemon');
         btn.innerText = "FORJANDO...";
         
-        const payload = this._buildMetaPayload();
-        
         try {
-            const response = await fetch('/api/indra/metadata', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (response.ok) {
+            // Actualizamos el nombre en memoria antes de persistir
+            this._bridge.contract.satellite_name = this.shadowRoot.getElementById('config-sat-name').value;
+            
+            const result = await this._bridge.persistMetadata();
+            if (result.status === 'ok') {
                 btn.innerText = "SINCERADO EN DAEMON";
                 setTimeout(() => btn.innerText = "⚡ Guardar en Daemon (Auto)", 3000);
             } else {
-                this._triggerManualDownload(payload);
+                this._triggerManualDownload(this._buildMetaPayload());
                 btn.innerText = "⚡ Guardar en Daemon (Auto)";
             }
         } catch (e) {
             console.warn("[HUD] Daemon local no detectado. Forzando descarga manual.");
-            this._triggerManualDownload(payload);
+            this._triggerManualDownload(this._buildMetaPayload());
             btn.innerText = "⚡ Guardar en Daemon (Auto)";
+        }
+    }
+
+    async handleLocalSync() {
+        const btn = this.shadowRoot.getElementById('btn-sync-now');
+        const originalText = btn.innerText;
+        btn.innerText = "⌛ SINCRONIZANDO...";
+        btn.disabled = true;
+
+        try {
+            const response = await fetch('/api/indra/sync', { method: 'POST' });
+            const result = await response.json();
+            if (result.status === 'ok') {
+                btn.innerText = "✅ ADN ACTUALIZADO";
+                // Forzar recarga del contrato en el bridge para reflejar cambios
+                await this._bridge.loadContract();
+            } else {
+                alert(`Error en sincronización: ${result.message}`);
+            }
+        } catch (e) {
+            alert("Error: El Daemon local no respondió a la sincronización.");
+        } finally {
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }, 2000);
         }
     }
 
@@ -317,7 +347,8 @@ class IndraBridgeHUD extends HTMLElement {
         const inputName = this.shadowRoot.getElementById('config-sat-name').value;
         return {
             satellite_name: inputName,
-            core_id: this._bridge.contract?.core_id || 'sovereign.core@indra.protocol'
+            core_id: this._bridge.contract?.core_id || 'sovereign.core@indra.protocol',
+            workspace_id: this._bridge.activeWorkspaceId
         };
     }
 
@@ -343,6 +374,9 @@ class IndraBridgeHUD extends HTMLElement {
 
         const btnForgeManual = this.shadowRoot.getElementById('btn-forge-manual');
         if (btnForgeManual) btnForgeManual.onclick = () => this.handleForgeManual();
+
+        const btnSync = this.shadowRoot.getElementById('btn-sync-now');
+        if (btnSync) btnSync.onclick = () => this.handleLocalSync();
     }
 }
 

@@ -244,6 +244,9 @@ class IndraBridge {
                         savedSync.workspaceId = this.activeWorkspaceId;
                         localStorage.setItem('INDRA_SATELLITE_LINK', JSON.stringify(savedSync));
                         console.log(`[IndraBridge] 🏛️ Ciudadanía confirmada. Workspace anclado: ${this.activeWorkspaceId}`);
+                        
+                        // AUTO-PERSISTENCIA EN DAEMON (Zero-Touch Sovereignty)
+                        this.persistMetadata().catch(e => console.warn("[IndraBridge] Auto-persist failed. Normal in non-dev env."));
                     }
                     
                     window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'CRYSTALLIZED' } }));
@@ -270,6 +273,23 @@ class IndraBridge {
             core: this.capabilities, 
             contract: this.contract 
         };
+    }
+
+    /**
+     * @dharma Persiste la metadata actual en el Daemon Local si está disponible.
+     */
+    async persistMetadata() {
+        const payload = {
+            satellite_name: this.contract.satellite_name,
+            core_id: this.contract.core_id,
+            workspace_id: this.activeWorkspaceId
+        };
+        const response = await fetch('/api/indra/metadata', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        return await response.json();
     }
 
     /**

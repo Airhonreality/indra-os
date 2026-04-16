@@ -65,6 +65,23 @@ const indraDevServerPlugin = () => {
         } else {
              next();
         }
+      // Middleware para disparar SINCRONIZACIÓN (Local Compiler)
+      server.middlewares.use('/api/indra/sync', (req, res, next) => {
+        if (req.method === 'POST') {
+            const { exec } = req.protocol === 'https' ? require('child_process') : require('child_process'); // Node standard
+            exec('node sync_core.js', (error, stdout, stderr) => {
+                if (error) {
+                    res.statusCode = 500;
+                    res.end(JSON.stringify({ status: 'error', message: error.message }));
+                    return;
+                }
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ status: 'ok', output: stdout }));
+            });
+        } else {
+            next();
+        }
       });
 
     }

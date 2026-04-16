@@ -59,6 +59,25 @@ function doPost(e) {
         return _buildResponse_(401, { metadata: { status: 'UNAUTHORIZED', error: 'Se requiere sesión, token de satélite o ticket válido.' } });
     }
 
+    // AXIOMA DE RESTRICCIÓN RÍGIDA: Validar scopes para satélites no-MASTER
+    if (satelliteContext && satelliteContext.class !== 'MASTER') {
+        const requestedId = payload.context_id || (payload.data && payload.data.context_id);
+        const hasScope = satelliteContext.scopes && satelliteContext.scopes.includes(requestedId);
+        
+        // Excepción: Los protocolos de sistema no-contextuales (como audit o manifest) se permiten
+        const isSystemDiscovery = ['SYSTEM_MANIFEST', 'SYSTEM_CONFIG_SCHEMA'].includes(payload.protocol);
+
+        if (!hasScope && !isSystemDiscovery) {
+            console.warn(`[gateway] VIOLACIÓN DE ÁMBITO: Token ${payload.satellite_token} intentó acceder a ${requestedId}`);
+            return _buildResponse_(403, { 
+                metadata: { 
+                    status: 'FORBIDDEN', 
+                    error: `ACCESO_DENEGADO: Este satélite solo tiene acceso a: ${satelliteContext.scope_label || satelliteContext.scopes.join(',')}` 
+                } 
+            });
+        }
+    }
+
     // AXIOMA DE JURISDICCIÓN: Inyectamos identidad efectiva (ADR-041)
     payload.environment = payload.environment || 'PRODUCTION'; 
     if (satelliteContext) {

@@ -35,16 +35,20 @@ function _keychain_generate(uqo) {
     const name = data.name || "Nuevo Satélite";
     const scopes = data.scopes || ["ALL"];
     
-    // El token es determinista pero incluye entropía aleatoria
     const newToken = 'indra_' + _system_slugify_(name) + '_' + Math.random().toString(36).substring(2, 11);
     const ledger = _keychain_getLedger_();
     
+    // Si viene un context_id en data, lo convertimos en un Scope restrictivo
+    const isMaster = !data.scope_id;
+    const finalScopes = data.scope_id ? [data.scope_id] : ["ALL"];
+
     ledger[newToken] = {
         name: name,
         status: "ACTIVE",
-        class: "MASTER", // Los tokens de satélite heredan soberanía total por defecto
+        class: isMaster ? "MASTER" : "SCOPED", 
         created_at: new Date().toISOString(),
-        scopes: scopes
+        scopes: finalScopes,
+        scope_label: data.scope_label || "Acceso Universal"
     };
     
     _keychain_saveLedger_(ledger);

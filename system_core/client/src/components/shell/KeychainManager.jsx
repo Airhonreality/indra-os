@@ -11,37 +11,55 @@ export const KeychainManager = () => {
     const { execute } = useProtocol();
     const t = useLexicon();
     const [keys, setKeys] = useState([]);
+    const [workspaces, setWorkspaces] = useState([]);
     const [loading, setLoading] = useState(false);
     const [newName, setNewName] = useState('');
+    const [selectedScope, setSelectedScope] = useState('ALL');
 
-    // 1. CARGA: Auditar el llavero actual
-    const loadKeychain = async () => {
+    // 1. CARGA: Auditar el llavero actual y los workspaces
+    const loadData = async () => {
         setLoading(true);
         try {
-            const res = await execute({
-                protocol: 'SYSTEM_KEYCHAIN_AUDIT'
+            // Cargar llaves
+            const keyRes = await execute({ protocol: 'SYSTEM_KEYCHAIN_AUDIT' });
+            if (keyRes.items) setKeys(keyRes.items);
+
+            // Cargar Workspaces (Para los scopes)
+            const wsRes = await execute({ 
+                provider: 'drive',
+                protocol: 'ATOM_READ', 
+                data: { class: 'WORKSPACE' } 
             });
-            if (res.items) setKeys(res.items);
+            if (wsRes.items) setWorkspaces(wsRes.items);
         } catch (e) {
-            console.error("❌ Fallo al auditar keychain:", e);
+            console.error("❌ Fallo al cargar datos de soberanía:", e);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => { loadKeychain(); }, []);
+    useEffect(() => { loadData(); }, []);
 
     // 2. ACCIÓN: Generar nueva llave
     const handleGenerate = async () => {
         if (!newName) return;
         setLoading(true);
         try {
+            const scopeAttr = selectedScope === 'ALL' ? {} : {
+                scope_id: selectedScope,
+                scope_label: workspaces.find(w => w.id === selectedScope)?.handle?.label || "Workspace Específico"
+            };
+
             await execute({
                 protocol: 'SYSTEM_KEYCHAIN_GENERATE',
-                data: { name: newName }
+                data: { 
+                    name: newName,
+                    ...scopeAttr
+                }
             });
             setNewName('');
-            await loadKeychain();
+            setSelectedScope('ALL');
+            await loadData();
         } catch (e) {
             alert("Error al generar llave: " + e.message);
         } finally {
@@ -71,21 +89,36 @@ export const KeychainManager = () => {
             <h3 style={{ marginBottom: '20px', fontSize: '14px', letterSpacing: '0.1em' }}>LEYENDA_DE_SOBERANÍA // KEYCHAIN</h3>
 
             {/* FORMULARIO DE CREACIÓN */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '30px' }}>
-                <input 
-                    type="text" 
-                    placeholder="Nombre del Satélite (ej: Seed_Hibrido_01)" 
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    style={{ flex: 1, padding: '10px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '4px' }}
-                />
-                <button 
-                    onClick={handleGenerate}
-                    disabled={loading}
-                    style={{ padding: '10px 20px', background: '#34A853', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                    {loading ? 'GENERANDO...' : 'GENERAR LLAVE'}
-                </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '30px' }}>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <input 
+                        type="text" 
+                        placeholder="Nombre del Satélite (ej: Seed_Hibrido_01)" 
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        style={{ flex: 1, padding: '10px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '4px' }}
+                    />
+                    <button 
+                        onClick={handleGenerate}
+                        disabled={loading}
+                        style={{ padding: '10px 20px', background: '#34A853', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                        {loading ? 'GENERANDO...' : 'GENERAR LLAVE'}
+                    </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <label style={{ fontSize: '10px', opacity: 0.5 }}>ÁMBITO DE ACCESO:</label>
+                    <select 
+                        value={selectedScope}
+                        onChange={(e) => setSelectedScope(e.target.value)}
+                        style={{ flex: 1, padding: '8px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', color: 'white', borderRadius: '4px', fontSize: '11px' }}
+                    >
+                        <option value="ALL">ACCESO UNIVERSAL (MASTER)</option>
+                        {workspaces.map(ws => (
+                            <option key={ws.id} value={ws.id}>LIMITADO A: {ws.handle?.label || ws.id}</option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             {/* LISTA DE LLAVES */}
@@ -99,13 +132,16 @@ export const KeychainManager = () => {
                         padding: '15px', 
                         background: 'rgba(255,255,255,0.03)', 
                         border: '1px solid rgba(255,255,255,0.05)',
+                        borderLeft: `3px solid ${key.class === 'MASTER' ? '#4285F4' : '#FBBC04'}`,
                         marginBottom: '10px',
                         borderRadius: '6px'
                     }}>
                         <div>
                             <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{key.name}</div>
                             <div style={{ fontSize: '10px', fontFamily: 'monospace', color: '#4285F4', marginTop: '4px' }}>{key.id}</div>
-                            <div style={{ fontSize: '9px', opacity: 0.4, marginTop: '4px' }}>ESTADO: {key.status} // CLASE: {key.class}</div>
+                            <div style={{ fontSize: '9px', opacity: 0.7, marginTop: '6px', color: key.class === 'MASTER' ? '#fff' : '#FBBC04' }}>
+                                AMBITO: {key.scope_label || key.scopes?.join(', ')} // {key.class}
+                            </div>
                         </div>
                         {key.status === 'ACTIVE' && (
                             <button 

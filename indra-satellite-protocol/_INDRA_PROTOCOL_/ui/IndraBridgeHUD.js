@@ -110,8 +110,13 @@ const TEMPLATE = `
     /* Config Panel */
     .config-panel { background: #fdfdfd; padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: center; }
     .input-group { display: flex; flex-direction: column; gap: 4px; }
-    .input-group label { font-size: 8px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.1em; }
-    .input-group input { padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 11px; background: transparent; }
+    .btn-unlock { background: none; border: none; cursor: pointer; font-size: 10px; opacity: 0.5; padding: 0; transition: 0.2s; }
+    .btn-unlock:hover { opacity: 1; transform: scale(1.1); }
+    .btn-unlock.unlocked { opacity: 1; color: var(--accent); }
+
+    .input-group label { font-size: 8px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.1em; display: flex; justify-content: space-between; align-items: center; }
+    .input-group input { padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 11px; background: transparent; transition: 0.3s; }
+    .input-group input:disabled { background: #f9fafb; color: #9ca3af; border-style: dashed; }
 </style>
 
 <div class="hud-container">
@@ -130,12 +135,15 @@ const TEMPLATE = `
 
     <div class="config-panel" id="config-panel">
         <div class="input-group" style="flex:1">
-            <label>Jurisdicción (Nombre del Satélite)</label>
+            <label>
+                <span>Jurisdicción (Satélite)</span>
+                <button class="btn-unlock" id="btn-unlock-config" title="Desbloquear configuración">🔒</button>
+            </label>
             <input type="text" id="config-sat-name" placeholder="Ej: Veta de Oro">
         </div>
         <div class="input-group" style="flex:2">
             <label>Nexo de Resonancia (Core URL)</label>
-            <input type="text" id="config-core-id" style="width:100%" disabled>
+            <input type="text" id="config-core-id" style="width:100%">
         </div>
     </div>
 
@@ -184,6 +192,7 @@ class IndraBridgeHUD extends HTMLElement {
         this._bridge.onStateChange = () => this.updateUI();
         this.shadowRoot.getElementById('keychain-ctrl').bridge = instance;
         this.shadowRoot.getElementById('workspace-ctrl').bridge = instance;
+        this._configLocked = !!(this._bridge.contract?.satellite_name);
         this.updateUI();
     }
 
@@ -202,13 +211,26 @@ class IndraBridgeHUD extends HTMLElement {
         const actionBtn = this.shadowRoot.getElementById('btn-master-action');
         const satNameInput = this.shadowRoot.getElementById('config-sat-name');
         const coreUrlInput = this.shadowRoot.getElementById('config-core-id');
+        const unlockBtn = this.shadowRoot.getElementById('btn-unlock-config');
 
         // Sincronizar inputs básicos (evitando sobrescribir si el usuario tiene el foco)
         const activeEl = this.shadowRoot.activeElement;
-        if (satNameInput && activeEl !== satNameInput) {
-            satNameInput.value = this._bridge.contract.satellite_name || '';
+        
+        if (satNameInput) {
+            satNameInput.disabled = this._configLocked;
+            if (activeEl !== satNameInput) {
+                satNameInput.value = this._bridge.contract.satellite_name || '';
+            }
         }
-        if (coreUrlInput) coreUrlInput.value = this._bridge.coreUrl || '';
+        if (coreUrlInput) {
+            coreUrlInput.disabled = this._configLocked;
+            coreUrlInput.value = this._bridge.coreUrl || '';
+        }
+
+        if (unlockBtn) {
+            unlockBtn.innerHTML = this._configLocked ? '🔒' : '🔓';
+            unlockBtn.classList.toggle('unlocked', !this._configLocked);
+        }
 
         // --- MÁQUINA DE ESTADOS LINEAL ---
         switch (this._resonanceMode) {
@@ -308,6 +330,34 @@ class IndraBridgeHUD extends HTMLElement {
 
     render() {
         this.shadowRoot.innerHTML = TEMPLATE;
+        
+        // Listener para Desbloqueo de Intención
+        const unlockBtn = this.shadowRoot.getElementById('btn-unlock-config');
+        if (unlockBtn) {
+            unlockBtn.onclick = () => {
+                this._configLocked = !this._configLocked;
+                this.updateUI();
+            };
+        }
+
+        // Listeners para cambios de identidad
+        const satNameInput = this.shadowRoot.getElementById('config-sat-name');
+        if (satNameInput) {
+            satNameInput.onchange = () => {
+                if (this._bridge && this._bridge.contract) {
+                    this._bridge.contract.satellite_name = satNameInput.value;
+                }
+            };
+        }
+
+        const coreUrlInput = this.shadowRoot.getElementById('config-core-id');
+        if (coreUrlInput) {
+            coreUrlInput.onchange = () => {
+                if (this._bridge) {
+                    this._bridge.coreUrl = coreUrlInput.value;
+                }
+            };
+        }
     }
 }
 

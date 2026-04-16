@@ -82,8 +82,8 @@ async installCore(accessToken, userEmail, onProgress) {
       notify('Firmando Pacto de Ignición... Vinculando tu identidad con tu nuevo núcleo.', 95);
       const satelliteKey = crypto.randomUUID();
       
-      // Obtener versión maestra de GitHub
-      const versionInfo = await fetch(CORE_VERSION_URL).then(r => r.json()).catch(() => ({ version: '0.4.16' }));
+      // Obtener versión maestra de GitHub (Cache-Busting)
+      const versionInfo = await fetch(CORE_VERSION_URL + `?t=${Date.now()}`).then(r => r.json()).catch(() => ({ version: '0.4.16' }));
 
       // Handshake inicial con el Core desplegado
       await this._igniteCore(coreUrl, satelliteKey, userEmail);
@@ -259,12 +259,12 @@ async installCore(accessToken, userEmail, onProgress) {
   },
 
   async _injectCode(token, scriptId) {
-    // Descargar manifiesto dinámico de archivos
-    const manifestResp = await fetch(FILES_MANIFEST_URL);
+    // Descargar manifiesto dinámico de archivos (Cache-Busting activo)
+    const manifestResp = await fetch(FILES_MANIFEST_URL + `?t=${Date.now()}`);
     const filesManifest = await manifestResp.json();
 
     const files = await Promise.all(filesManifest.map(async (file) => {
-      const resp = await fetch(REPO_URL_BASE + file.path);
+      const resp = await fetch(REPO_URL_BASE + file.path + `?t=${Date.now()}`);
       let source = await resp.text();
 
       // --- 🛡️ PARCHE DE SOBERANÍA (v4.18) ---

@@ -8,9 +8,15 @@ import { Spinner } from '../utilities/primitives/Spinner';
  * Responsabilidad: Responder a peticiones de resonancia de satélites externos.
  */
 export const ResonanceResponder = () => {
-    const { coreUrl, sessionSecret } = useProtocol();
+    const { coreUrl, sessionSecret, bootstrap } = useProtocol();
     const t = useLexicon();
 
+    // 1. CHISPA VITAL: Despertar la base de datos para buscar el token
+    useEffect(() => {
+        bootstrap();
+    }, [bootstrap]);
+
+    // 2. TÚNEL: Escuchar y responder
     useEffect(() => {
         const hash = window.location.hash;
         if (!hash.startsWith('#/resonate')) return;

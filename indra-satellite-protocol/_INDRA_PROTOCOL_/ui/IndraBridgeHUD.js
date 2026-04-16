@@ -203,8 +203,11 @@ class IndraBridgeHUD extends HTMLElement {
         const satNameInput = this.shadowRoot.getElementById('config-sat-name');
         const coreUrlInput = this.shadowRoot.getElementById('config-core-id');
 
-        // Sincronizar inputs básicos
-        if (satNameInput && !satNameInput.value) satNameInput.value = this._bridge.contract.satellite_name || '';
+        // Sincronizar inputs básicos (evitando sobrescribir si el usuario tiene el foco)
+        const activeEl = this.shadowRoot.activeElement;
+        if (satNameInput && activeEl !== satNameInput) {
+            satNameInput.value = this._bridge.contract.satellite_name || '';
+        }
         if (coreUrlInput) coreUrlInput.value = this._bridge.coreUrl || '';
 
         // --- MÁQUINA DE ESTADOS LINEAL ---

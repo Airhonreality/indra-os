@@ -62,6 +62,9 @@ export class TransportLayer {
         const { coreUrl, satelliteToken, environment, activeWorkspaceId, shareTicket } = this.bridge;
         if (!coreUrl) throw new Error("CORE_NOT_INITIALIZED");
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s deadline
+
         const envelope = { 
             satellite_token: satelliteToken, 
             environment,
@@ -70,22 +73,33 @@ export class TransportLayer {
         };
         if (shareTicket) envelope.share_ticket = shareTicket;
 
-        const response = await fetch(coreUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify(envelope)
-        });
+        try {
+            const response = await fetch(coreUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                signal: controller.signal,
+                body: JSON.stringify(envelope)
+            });
 
-        const rawText = await response.text();
-        const result = JSON.parse(rawText);
+            clearTimeout(timeoutId);
 
-        if (result.metadata?.status === 'ERROR') {
-             // El mapa de errores lo maneja el Bridge principal o lo capturamos aquí
-             const error = new Error(result.metadata.error);
-             error.code = result.metadata.error;
+            const rawText = await response.text();
+            const result = JSON.parse(rawText);
+
+            if (result.metadata?.status === 'ERROR') {
+                const error = new Error(result.metadata.error);
+                error.code = result.metadata.error;
+                throw error;
+            }
+            return result;
+        } catch (error) {
+             if (error.name === 'AbortError') {
+                 const err = new Error("GATEWAY_TIMEOUT");
+                 err.code = "GATEWAY_TIMEOUT";
+                 throw err;
+             }
              throw error;
         }
-        return result;
     }
 
     _invokeUI(uqo) {

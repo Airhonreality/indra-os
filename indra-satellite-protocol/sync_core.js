@@ -75,11 +75,24 @@ async function sync() {
             })
         });
         const schemaData = await schemaRes.json();
+        
+        // 3.5. Leer Metadata Soberana Local (Si existe)
+        let localMeta = {};
+        const metaPath = path.join(path.dirname(CONFIG.outputFile), 'indra_satellite.meta.json');
+        if (fs.existsSync(metaPath)) {
+            try {
+                localMeta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+                console.log(`👤 Identidad Sólida detectada: ${localMeta.satellite_name}`);
+            } catch(e) {
+                console.warn("⚠️ Advertencia: No se pudo leer indra_satellite.meta.json.");
+            }
+        }
 
         // 4. Consolidación Final (Axioma de la Realidad Única)
         const contract = {
             synced_at: new Date().toISOString(),
-            core_id: manifestData.metadata?.core_id || 'unknown',
+            core_id: localMeta.core_id || manifestData.metadata?.core_id || 'unknown',
+            satellite_name: localMeta.satellite_name || 'Nuevo Satélite',
             core_version: manifestData.metadata?.core_version || 'unknown',
             capabilities: {
                 protocols: [...new Set((manifestData.items || []).flatMap(i => i.protocols || []))],

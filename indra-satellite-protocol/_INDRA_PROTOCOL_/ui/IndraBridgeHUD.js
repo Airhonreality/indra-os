@@ -110,12 +110,16 @@ const TEMPLATE = `
     .fallback-path { background: #111827; padding: 10px; font-family: monospace; font-size: 11px; border-radius: 4px; color: #34d399; user-select: all; }
     
     /* Config Panel */
-    .config-panel { background: #fdfdfd; padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 16px; align-items: flex-end; }
+    .config-panel { background: #fdfdfd; padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; }
+    .config-row { display: flex; gap: 16px; align-items: flex-end; width: 100%; }
     .input-group { display: flex; flex-direction: column; gap: 4px; flex-grow: 1; }
     .input-group label { font-size: 9px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.1em; }
     .input-group input { padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-family: inherit; }
+    
     .btn-forge { background: #1f2937; color: white; border: none; padding: 7px 16px; border-radius: 4px; font-size: 11px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; transition: 0.2s; }
     .btn-forge:hover { background: #374151; }
+    .btn-secondary { background: transparent; color: #4b5563; border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #f3f4f6; }
 </style>
 
 <div class="hud-container">
@@ -131,15 +135,20 @@ const TEMPLATE = `
     </header>
 
     <div class="config-panel" id="config-panel">
-        <div class="input-group">
-            <label>SATELLITE IDENTIFIER (NAME)</label>
-            <input type="text" id="config-sat-name" placeholder="Ej: Veta de Oro">
+        <div class="config-row">
+            <div class="input-group">
+                <label>SATELLITE IDENTIFIER (NAME)</label>
+                <input type="text" id="config-sat-name" placeholder="Ej: Veta de Oro">
+            </div>
+            <div class="input-group">
+                <label>CORE ID (NUCLEO TARGET)</label>
+                <input type="text" id="config-core-id" placeholder="sovereign.core@indra.protocol" disabled>
+            </div>
         </div>
-        <div class="input-group">
-            <label>CORE ID (NUCLEO TARGET)</label>
-            <input type="text" id="config-core-id" placeholder="sovereign.core@indra.protocol" disabled>
+        <div class="config-row" style="justify-content: flex-end; gap: 8px;">
+            <button class="btn-forge btn-secondary" id="btn-forge-manual">⬇️ Descargar Metadata (Manual)</button>
+            <button class="btn-forge" id="btn-forge-daemon">⚡ Guardar en Daemon (Auto)</button>
         </div>
-        <button class="btn-forge" id="btn-forge-identity">Forjar Identidad</button>
     </div>
 
     <div class="hud-body">
@@ -168,14 +177,17 @@ const TEMPLATE = `
     
     <div class="fallback-modal" id="fallback-modal">
         <div class="fallback-box">
-            <div class="fallback-title">⚠️ Daemon Local Inaccesible</div>
+            <div class="fallback-title">⚠️ Instrucciones de Sincronización Manual</div>
             <p style="font-size: 12px; line-height: 1.5; color: #d1d5db; margin: 0;">
-                El servidor local no está disponible para auto-guardar el contrato. Se ha generado una descarga manual.
-                Por favor, sobrescribe este archivo exactamente en:
+                Has descargado la Metadata Soberana del Satélite puro.
+                Coloca este archivo exactamente en la siguiente ruta relativa:
             </p>
-            <div class="fallback-path">_INDRA_PROTOCOL_/indra_contract.json</div>
+            <div class="fallback-path">_INDRA_PROTOCOL_/indra_satellite.meta.json</div>
+            <p style="font-size: 11px; line-height: 1.5; color: #9ca3af; margin: 0;">
+                Después, abre tu terminal y ejecuta <strong>npm run sync</strong> para que el compilador fusione esta metadata y genere el contrato final.
+            </p>
             <button class="btn-forge" style="margin-top: 8px; align-self: flex-end;" onclick="this.closest('.fallback-modal').classList.remove('active')">
-                ENTENDIDO
+                ENTENDIDO Y COMPILADO
             </button>
         </div>
     </div>
@@ -276,48 +288,56 @@ class IndraBridgeHUD extends HTMLElement {
         }
     }
 
-    async handleForgeIdentity() {
+    async handleForgeDaemon() {
         if (!this._bridge || !this._bridge.contract) return;
-        const inputName = this.shadowRoot.getElementById('config-sat-name').value;
-        const btn = this.shadowRoot.getElementById('btn-forge-identity');
-        
-        // 1. Modificar el contrato en memoria
-        this._bridge.contract.satellite_name = inputName;
-        
-        // 2. Intentar POST al Daemon Local
+        const btn = this.shadowRoot.getElementById('btn-forge-daemon');
         btn.innerText = "FORJANDO...";
-        let serverSuccess = false;
+        
+        const payload = this._buildMetaPayload();
         
         try {
-            const response = await fetch('/api/indra/contract', {
+            const response = await fetch('/api/indra/metadata', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(this._bridge.contract)
+                body: JSON.stringify(payload)
             });
-            if (response.ok) serverSuccess = true;
+            if (response.ok) {
+                btn.innerText = "SINCERADO EN DAEMON";
+                setTimeout(() => btn.innerText = "⚡ Guardar en Daemon (Auto)", 3000);
+            } else {
+                this._triggerManualDownload(payload);
+                btn.innerText = "⚡ Guardar en Daemon (Auto)";
+            }
         } catch (e) {
-            // Falla de red, el daemon no está ejecutándose
-            serverSuccess = false;
+            console.warn("[HUD] Daemon local no detectado. Forzando descarga manual.");
+            this._triggerManualDownload(payload);
+            btn.innerText = "⚡ Guardar en Daemon (Auto)";
         }
+    }
+
+    handleForgeManual() {
+        const payload = this._buildMetaPayload();
+        this._triggerManualDownload(payload);
+    }
+
+    _buildMetaPayload() {
+        const inputName = this.shadowRoot.getElementById('config-sat-name').value;
+        return {
+            satellite_name: inputName,
+            core_id: this._bridge.contract?.core_id || 'sovereign.core@indra.protocol'
+        };
+    }
+
+    _triggerManualDownload(payload) {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "indra_satellite.meta.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
         
-        // 3. Fallback a Opción de Descarga Manual
-        if (!serverSuccess) {
-            console.warn("[HUD] Daemon local no detectado. Activando fallback de descarga.");
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this._bridge.contract, null, 2));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "indra_contract.json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-            
-            this.shadowRoot.getElementById('fallback-modal').classList.add('active');
-        } else {
-            console.info("[HUD] Metadatos actualizados en el servidor local.");
-        }
-        
-        btn.innerText = "IDENTIDAD FORJADA";
-        setTimeout(() => btn.innerText = "FORJAR IDENTIDAD", 3000);
+        this.shadowRoot.getElementById('fallback-modal').classList.add('active');
     }
 
     render() {
@@ -325,8 +345,11 @@ class IndraBridgeHUD extends HTMLElement {
         const btn = this.shadowRoot.getElementById('btn-ignite-trigger');
         if (btn) btn.onclick = () => this.handleIgnition();
         
-        const btnForge = this.shadowRoot.getElementById('btn-forge-identity');
-        if (btnForge) btnForge.onclick = () => this.handleForgeIdentity();
+        const btnForceDaemon = this.shadowRoot.getElementById('btn-forge-daemon');
+        if (btnForceDaemon) btnForceDaemon.onclick = () => this.handleForgeDaemon();
+
+        const btnForgeManual = this.shadowRoot.getElementById('btn-forge-manual');
+        if (btnForgeManual) btnForgeManual.onclick = () => this.handleForgeManual();
     }
 }
 

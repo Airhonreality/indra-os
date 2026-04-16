@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useProtocol } from '../../../context/NeuralSplitter';
-import { useLexicon } from '../../../hooks/useLexicon';
+import { useProtocol } from '../../context/NeuralSplitter';
+import { useLexicon } from '../../hooks/useLexicon';
 
 /**
  * COMPONENTE: KeychainManager

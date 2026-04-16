@@ -75,22 +75,24 @@ class IndraBridge {
                     
                     // --- SONDA DIFERENCIAL (Nexus Probe) ---
                     console.group("🛰️ [Bridge:Handshake] Pulso de Sincronía");
-                    console.log("Raw Response:", statusPulse);
+                    console.log("Integridad Local:", localChecksum);
+                    console.log("Realidad del Core:", statusPulse);
+                    
                     const coreChecksum = statusPulse.metadata?.schema_checksum;
-                    console.log(`Diferencial: [Local: ${localChecksum}] vs [Core: ${coreChecksum || 'UNDEFINED'}]`);
-                    if (coreChecksum === undefined) console.warn("🚨 [ALERTA] Fallo de Identidad Soberana: El Core no devolvió una firma válida.");
-                    console.groupEnd();
+                    const isUnauthorized = statusPulse.status === 'UNAUTHORIZED' || statusPulse.metadata?.status === 'ERROR';
 
-                    this.capabilities = statusPulse.metadata || {};
-
-                    // --- DECISIÓN DE RAMA AXIOMÁTICA ---
-                    if (!this.activeWorkspaceId) {
-                        // RAMA A: Conectado pero sin Ciudadanía (Huérfano)
-                        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'ORPHAN' } }));
+                    if (isUnauthorized) {
+                        console.warn("🚨 [ALERTA] Firma del Core no disponible. Manteniendo estado de espera.");
+                        console.log(`Diferencial: [Local: ${localChecksum}] vs [Core: ESPERANDO PROPAGACIÓN...]`);
+                        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'REJECTED', error: statusPulse.error } }));
                     } else {
-                        // RAMA B: Ciudadano detectado (Residente)
-                        const coreChecksum = statusPulse.metadata?.schema_checksum;
-                        if (localChecksum !== coreChecksum) {
+                        console.log(`Diferencial: [Local: ${localChecksum}] vs [Core: ${coreChecksum || 'GÉNESIS_PENDIENTE'}]`);
+                        this.capabilities = statusPulse.metadata || {};
+
+                        // --- DECISIÓN DE RAMA AXIOMÁTICA ---
+                        if (!this.activeWorkspaceId) {
+                            window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'ORPHAN' } }));
+                        } else if (localChecksum !== coreChecksum) {
                             window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
                                 detail: { mode: 'DIVERGENT', local: localChecksum, core: coreChecksum } 
                             }));
@@ -98,13 +100,14 @@ class IndraBridge {
                             window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
                         }
                     }
+                    console.groupEnd();
 
                 } catch (e) {
                     console.warn("[IndraBridge:Nexus] Error en Handshake. Modo Offline.", e);
                     window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'OFFLINE' } }));
                 }
             } else {
-                // Estado inicial: Sin conexión al Core
+                console.log("[IndraBridge:Nexus] Sin credenciales. Entrando en modo GHOST.");
                 window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'GHOST' } }));
             }
 

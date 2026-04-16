@@ -84,6 +84,7 @@ export class TransportLayer {
             const response = await fetch(coreUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
+                credentials: 'include', // AXIOMA: Permite que el Core vea la sesión de Google del dueño
                 signal: controller.signal,
                 body: JSON.stringify(envelope)
             });

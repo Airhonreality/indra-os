@@ -238,8 +238,20 @@ class IndraBridgeHUD extends HTMLElement {
                 status.className = 'badge';
                 actionBtn.innerText = '🔗 VINCULAR NODO';
                 actionBtn.className = 'btn-master';
+                actionBtn.disabled = false;
                 actionBtn.onclick = () => this.handleIgnition();
                 body.classList.add('locked');
+                break;
+
+            case 'REJECTED':
+                status.innerText = 'ERROR: NODO RECHAZADO';
+                status.className = 'badge badge-divergent';
+                actionBtn.innerText = '🔄 REINTENTAR VÍNCULO';
+                actionBtn.className = 'btn-master divergent';
+                actionBtn.disabled = false; 
+                actionBtn.onclick = () => this.handleIgnition();
+                body.classList.add('locked');
+                console.error("Fallo de Autorización:", this._bridge.lastError);
                 break;
 
             case 'ORPHAN':
@@ -247,6 +259,7 @@ class IndraBridgeHUD extends HTMLElement {
                 status.className = 'badge badge-divergent';
                 actionBtn.innerText = '👑 GÉNESIS DE SATÉLITE';
                 actionBtn.className = 'btn-master divergent';
+                actionBtn.disabled = false; // DESBLOQUEO FORZADO
                 actionBtn.onclick = () => this.handleAnchorCitizenship();
                 body.classList.add('locked');
                 break;

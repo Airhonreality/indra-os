@@ -1077,16 +1077,16 @@ function _system_renameFieldAliasInFields_(fields, fieldId, oldAlias, newAlias) 
 }
 
 function _system_collectFieldAliasImpact_(schemaId, oldAlias, newAlias) {
-    const files = _system_listAllAtomFiles_();
+    const allAtoms = ledger_list_all_records(); // Nueva función proactiva
     let impactedArtifacts = 0;
     let impactedRefs = 0;
 
-    files.forEach(file => {
-        if (!file || file.getId() === schemaId) return;
+    allAtoms.forEach(atom => {
+        if (!atom || atom.id === schemaId) return;
+        if (!['DOCUMENT', 'BRIDGE', 'WORKFLOW'].includes(atom.class)) return;
+        
         try {
-            const doc = JSON.parse(file.getBlob().getDataAsString());
-            if (!['DOCUMENT', 'BRIDGE', 'WORKFLOW'].includes(doc.class)) return;
-            const probe = _system_rewriteFieldAliasReferencesInDoc_(doc, oldAlias, newAlias, true);
+            const probe = _system_rewriteFieldAliasReferencesInDoc_(atom, oldAlias, newAlias, true);
             if (probe.refs > 0) {
                 impactedArtifacts += 1;
                 impactedRefs += probe.refs;

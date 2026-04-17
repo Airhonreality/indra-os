@@ -219,3 +219,53 @@ function ledger_get_by_drive_id(driveId) {
     updated_at: row[6]
   };
 }
+
+/**
+ * Obtiene metadatos de múltiples IDs de un solo golpe (v4.39).
+ * @param {string[]} ids
+ * @returns {Object} Mapa de { id: { label, class, updated_at } }
+ */
+function _ledger_get_batch_metadata_(ids) {
+  const sheet = _ledger_get_sheet_();
+  const data = sheet.getDataRange().getValues();
+  const results = {};
+  
+  if (!ids || ids.length === 0) return results;
+
+  data.forEach(row => {
+    const driveId = row[1];
+    if (ids.indexOf(driveId) !== -1) {
+      results[driveId] = {
+        gid: row[0],
+        id: driveId,
+        class: row[2],
+        alias: row[3],
+        label: row[4],
+        updated_at: row[6]
+      };
+    }
+  });
+
+  return results;
+}
+
+/**
+ * Retorna TODOS los registros del Ledger totalmente hidratados.
+ * AXIOMA: Úselo solo para operaciones de impacto/auditoría masiva.
+ * @returns {Array<Object>}
+ */
+function ledger_list_all_records() {
+  const sheet = _ledger_get_sheet_();
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+
+  return data.slice(1).map(row => ({
+    gid: row[0],
+    id: row[1],
+    class: row[2],
+    handle: { alias: row[3], label: row[4] },
+    owner_id: row[5],
+    updated_at: row[6],
+    payload: row[7] ? JSON.parse(row[7]) : {}
+  }));
+}

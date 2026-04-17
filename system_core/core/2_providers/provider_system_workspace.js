@@ -90,53 +90,32 @@ function _system_handlePinsRead(uqo) {
 
         let needsWorkspaceSync = false;
 
-        // ─── PORTAL DE SINCERIDAD: Homeostasis de Identidad ─────────
+        // ─── PORTAL DE SINCERIDAD (v4.39 - Modo Ledger Fast) ─────────
+        const pinIds = pins.map(p => p.id);
+        const ledgerSnapshot = _ledger_get_batch_metadata_(pinIds);
+
         const sincerePins = pins.map(pin => {
-            try {
-                // Sincronización Proactiva: Le preguntamos a Drive por la identidad física
-                // El ID de Drive es inmutable, el nombre NO.
-                const atomFile = DriveApp.getFileById(pin.id);
-                
-                if (atomFile.isTrashed()) return { ...pin, _orphan: true };
-
-                // El nombre del archivo en Drive es el "Handle Externo".
-                // Las extensiones .json se limpian.
-                const physicalLabel = atomFile.getName().replace(/\.json$/i, '').replace(/_/g, ' ');
-
-                // ── AXIOMA DE SINCERIDAD TOTAL ──
-                // Si es un DATA_SCHEMA, entregamos la materia completa (campos)
-                // para evitar fallbacks de hidratación perezosa en el frontend.
-                let enhancedPin = { ...pin };
-                if (pin.class === 'DATA_SCHEMA') {
-                    try {
-                        const content = JSON.parse(atomFile.getBlob().getDataAsString());
-                        enhancedPin.payload = content.payload || {};
-                        if (!Array.isArray(enhancedPin.payload.fields)) {
-                             enhancedPin.payload.fields = [];
-                        }
-                    } catch (e) {
-                        logWarn(`[infrastructure] Error parseando payload de Schema ${pin.id}`, e);
-                        enhancedPin.payload = { fields: [] }; // Fallback de emergencia
-                    }
-                }
-
-                // Si el label del Pin es distinto al físico, hay una asincronía (Entropía)
-                if (pin.handle?.label !== physicalLabel) {
-                    needsWorkspaceSync = true;
-                    return { 
-                        ...enhancedPin, 
-                        handle: { ...pin.handle, label: physicalLabel },
-                        _reconciled: true,
-                        _orphan: false
-                    };
-                }
-
-                return { ...enhancedPin, _orphan: false };
-
-            } catch (e) {
-                // Si el archivo no existe, es un huérfano real
-                return { ...pin, _orphan: true };
+            const lMeta = ledgerSnapshot[pin.id];
+            
+            if (!lMeta) {
+                // Si no está en el Ledger, hacemos un último intento físico antes de marcar como huérfano
+                try {
+                    const f = DriveApp.getFileById(pin.id);
+                    if (f.isTrashed()) return { ...pin, _orphan: true };
+                } catch(e) { return { ...pin, _orphan: true }; }
             }
+
+            // Atomo existe en Ledger (Materia verificada)
+            let enhancedPin = { ...pin };
+            
+            // Reconciliación de Handle (Label)
+            const physicalLabel = lMeta ? lMeta.label : pin.handle?.label;
+            if (pin.handle?.label !== physicalLabel) {
+                needsWorkspaceSync = true;
+                enhancedPin.handle = { ...pin.handle, label: physicalLabel };
+            }
+
+            return { ...enhancedPin, _orphan: false };
         });
 
         // Axioma de Curación: Si detectamos desincronía, re-escribimos el Workspace

@@ -15,8 +15,18 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "0_gateway/protocol_registry.gs",
+    "name": "protocol_registry",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "0_gateway/pulse_router.gs",
     "name": "pulse_router",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "0_gateway/system_state_manager.gs",
+    "name": "system_state_manager",
     "type": "SERVER_JS"
   },
   {
@@ -155,6 +165,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "3_services/installation_service.gs",
+    "name": "installation_service",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "3_services/keychain_service.gs",
     "name": "keychain_service",
     "type": "SERVER_JS"
@@ -257,6 +272,11 @@
   {
     "path": "5_diagnostics/integrity_suite.gs",
     "name": "integrity_suite",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "5_diagnostics/robust_integrity_test.gs",
+    "name": "robust_integrity_test",
     "type": "SERVER_JS"
   },
   {

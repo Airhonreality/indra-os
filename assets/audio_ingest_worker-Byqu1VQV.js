@@ -48,7 +48,9 @@ self.onmessage = async (e) => {
             // Si es mp3/wav, se requeriría un decodificador diferente o bridge al main thread.
             // Axioma de Realismo: La mayoría de audio moderno viene en contenedores mp4/m4a.
             
-            const processAudioFile = () => new Promise(async (resolve, reject) => {
+            const processAudioFile = () => new Promise((resolve, reject) => {
+                (async () => {
+                    try {
                 const mp4boxfile = MP4Box.createFile();
                 let totalSamples = 0;
                 let decodedSamples = 0;
@@ -108,6 +110,10 @@ self.onmessage = async (e) => {
                 }
                 mp4boxfile.flush();
                 allSamplesDispatched = true;
+                    } catch (err) {
+                        reject(err);
+                    }
+                })();
             });
 
             await processAudioFile();

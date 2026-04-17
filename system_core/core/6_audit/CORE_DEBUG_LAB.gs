@@ -88,11 +88,12 @@ function DEV_DEBUG_DeepIntegrationTest() {
       protocol: 'LOGIC_EXECUTE',
       data: {
         bridge_id: 'internal_echo',
-        payload: { message: 'Hola Indra', value: 42 }
+        payload: [{ message: 'Hola Indra', value: 42 }] // Vectorial: Array requerido
       }
     };
     const logicRes = route(logicUqo);
     console.log('   > Respuesta Logic:', JSON.stringify(logicRes, null, 2));
+    if (logicRes.metadata.status === 'ERROR') throw new Error('LÓGICA FALLÓ: ' + logicRes.metadata.error);
     console.log('   ✅ Lógica OK.');
 
     // 2. TEST DE DESCUBRIMIENTO (MCEP)
@@ -103,8 +104,9 @@ function DEV_DEBUG_DeepIntegrationTest() {
       data: { mode: 'RAW_MAP' }
     };
     const mcepRes = route(mcepUqo);
-    console.log('   > Capacidades detectadas:', mcepRes.items.length);
-    if (mcepRes.items.length === 0) throw new Error('EL MANIFIESTO MCEP ESTÁ VACÍO.');
+    const capsFound = Object.keys(mcepRes.metadata.capabilities || {}).length;
+    console.log('   > Motores con capacidades detectados:', capsFound);
+    if (capsFound === 0) throw new Error('EL MANIFIESTO MCEP ESTÁ VACÍO EN METADATA.');
     console.log('   ✅ MCEP OK.');
 
     console.info('--- 🏅 INTEGRACIÓN PROFUNDA COMPLETADA ---');

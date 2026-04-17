@@ -15,6 +15,9 @@
 export async function executeDirective(uqo, coreUrl, sessionSecret, shareTicket = null) {
     if (!coreUrl) throw new Error('CORE_URL_MISSING');
 
+    // LIMPIEZA SOBERANA: Eliminar parámetros de cuenta que rompen CORS en GAS
+    const cleanCoreUrl = coreUrl.split('?')[0];
+
     // AXIOMA DE DETERMINISMO RADICAL (ADR-008):
     // No se permiten alias de compatibilidad. El UQO debe ser sincero.
     const payload = {
@@ -47,9 +50,9 @@ export async function executeDirective(uqo, coreUrl, sessionSecret, shareTicket 
 
     const t0 = Date.now();
     try {
-        console.log(`%c [wire] Conectando con Core: ${coreUrl} `, 'color: #999; font-style: italic;');
+        console.log(`%c [wire] Conectando con Core (SANITIZED): ${cleanCoreUrl} `, 'color: #999; font-style: italic;');
         
-        const response = await fetch(coreUrl, {
+        const response = await fetch(cleanCoreUrl, {
             method: 'POST',
             mode: 'cors',
             headers: {
@@ -59,7 +62,7 @@ export async function executeDirective(uqo, coreUrl, sessionSecret, shareTicket 
         }).catch(err => {
             // Sonda de diagnóstico JIT para errores de red
             console.error(`%c [CRITICAL_NETWORK_ERROR] Fallo de conexión física con el Core. `, 'background: red; color: white;');
-            console.error(`  > URL de destino: ${coreUrl}`);
+            console.error(`  > URL de destino (LIMPIA): ${cleanCoreUrl}`);
             console.error(`  > Mensaje original: ${err.message}`);
             console.warn(`  > DIAGNÓSTICO: Si usas múltiples cuentas de Google, logueate solo con la propietaria del Core.`);
             throw err;

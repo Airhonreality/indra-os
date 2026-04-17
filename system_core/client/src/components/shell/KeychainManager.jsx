@@ -140,7 +140,7 @@ export const KeychainManager = () => {
                             <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{key.name}</div>
                             <div style={{ fontSize: '10px', fontFamily: 'monospace', color: '#4285F4', marginTop: '4px' }}>{key.id}</div>
                             <div style={{ fontSize: '9px', opacity: 0.7, marginTop: '6px', color: key.class === 'MASTER' ? '#fff' : '#FBBC04' }}>
-                                AMBITO: {key.scope_label || key.scopes?.join(', ')} // {key.class}
+                                AMBITO: {key.scope_label || key.scopes?.join(', ')} {" // "} {key.class}
                             </div>
                         </div>
                         {key.status === 'ACTIVE' && (

@@ -74,7 +74,7 @@ export function PotencyCard({ atom }) {
                         {projection.title}
                     </span>
                     <span style={{ fontSize: '8px', opacity: 0.3, fontFamily: 'var(--font-mono)' }}>
-                        {projection.class} // DNA_ID: {atom.id.substring(0, 8)}
+                        {projection.class} {" // "} DNA_ID: {atom.id.substring(0, 8)}
                     </span>
                 </div>
 

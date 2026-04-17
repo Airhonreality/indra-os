@@ -359,49 +359,51 @@ export class VideoEngine {
      * Motor de Exportación Determínistica (Fase V)
      */
     async exportVideo() {
-        return new Promise(async (resolve, reject) => {
-            if (!this.project) return reject("No hay proyecto cargado");
+        return new Promise((resolve, reject) => {
+            (async () => {
+                if (!this.project) return reject("No hay proyecto cargado");
 
-            console.log("[VideoEngine] Lanzando motor de exportación...");
-            this.exportWorker = new Worker(new URL('./export_worker.js', import.meta.url), { type: 'module' });
+                console.log("[VideoEngine] Lanzando motor de exportación...");
+                this.exportWorker = new Worker(new URL('./export_worker.js', import.meta.url), { type: 'module' });
 
-            this.exportWorker.onmessage = (e) => {
-                const { type, blob, progress, error } = e.data;
-                if (type === 'EXPORT_COMPLETE') {
-                    console.log("[VideoEngine] Exportación finalizada exitosamente.");
-                    this.exportWorker.terminate();
-                    resolve(blob);
-                } else if (type === 'PROGRESS') {
-                    console.log(`[VideoEngine] Progreso de Exportación: ${(progress * 100).toFixed(1)}%`);
-                } else if (type === 'ERROR') {
-                    reject(error);
-                    this.exportWorker.terminate();
-                }
-            };
-
-            try {
-                // Recolectar handles de archivos (AXIOMA DE PREPARACIÓN)
-                const vaultInfoPromises = Array.from(this.initializedVaultIds).map(async vid => {
-                    const handle = await this.opfsManager.getFileHandle(vid);
-                    return {
-                        vaultId: vid,
-                        fileHandle: handle,
-                        identityMap: this._identities?.get(vid)
-                    };
-                });
-
-                const vaultInfo = await Promise.all(vaultInfoPromises);
-
-                this.exportWorker.postMessage({
-                    type: 'START_EXPORT',
-                    data: {
-                        project: this.project,
-                        vaultInfo: vaultInfo
+                this.exportWorker.onmessage = (e) => {
+                    const { type, blob, progress, error } = e.data;
+                    if (type === 'EXPORT_COMPLETE') {
+                        console.log("[VideoEngine] Exportación finalizada exitosamente.");
+                        this.exportWorker.terminate();
+                        resolve(blob);
+                    } else if (type === 'PROGRESS') {
+                        console.log(`[VideoEngine] Progreso de Exportación: ${(progress * 100).toFixed(1)}%`);
+                    } else if (type === 'ERROR') {
+                        reject(error);
+                        this.exportWorker.terminate();
                     }
-                });
-            } catch (err) {
-                reject(err);
-            }
+                };
+
+                try {
+                    // Recolectar handles de archivos (AXIOMA DE PREPARACIÓN)
+                    const vaultInfoPromises = Array.from(this.initializedVaultIds).map(async vid => {
+                        const handle = await this.opfsManager.getFileHandle(vid);
+                        return {
+                            vaultId: vid,
+                            fileHandle: handle,
+                            identityMap: this._identities?.get(vid)
+                        };
+                    });
+
+                    const vaultInfo = await Promise.all(vaultInfoPromises);
+
+                    this.exportWorker.postMessage({
+                        type: 'START_EXPORT',
+                        data: {
+                            project: this.project,
+                            vaultInfo: vaultInfo
+                        }
+                    });
+                } catch (err) {
+                    reject(err);
+                }
+            })();
         });
     }
 

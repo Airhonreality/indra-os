@@ -15,7 +15,7 @@ export const EngineHood = ({ atom, isSaving, onSave, onExport, project }) => {
                 <div className="engine-hood__capsule">
                     <IndraIcon name="VIDEO_PROJECT" size="12px" color="var(--indra-dynamic-accent)" />
                     <span className="font-mono" style={{ fontSize: '9px', opacity: 0.5, marginLeft: 'var(--space-1)' }}>
-                        {t('ui_project_id')} // {atom?.id?.slice(-8)}
+                        {`${t('ui_project_id')} // ${atom?.id?.slice(-8)}`}
                     </span>
                 </div>
             }

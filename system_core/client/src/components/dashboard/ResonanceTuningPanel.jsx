@@ -269,7 +269,7 @@ export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
                             Configurar Conexión de Datos
                         </h2>
                         <span className="util-label" style={{ opacity: 0.8 }}>
-                            {provider.toUpperCase()} // <span style={{ opacity: 0.7 }}>{artifact.handle?.label || artifact.id}</span>
+                            {provider.toUpperCase()} {" // "} <span style={{ opacity: 0.7 }}>{artifact.handle?.label || artifact.id}</span>
                         </span>
                     </div>
                     <button onClick={onCancel} className="btn btn--mini btn--ghost">

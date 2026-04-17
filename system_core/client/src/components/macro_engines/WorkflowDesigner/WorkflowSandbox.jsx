@@ -61,7 +61,7 @@ export function WorkflowSandbox({
                         <div className="fill overflow-auto scrollbar-hidden" style={{ background: 'var(--indra-terminal-bg)', padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--indra-panel-border)' }}>
                             <textarea 
                                 value={JSON.stringify(mockInput, null, 2)} 
-                                onChange={(e) => { try { setMockInput(JSON.parse(e.target.value)); } catch(err) {} }}
+                                onChange={(e) => { try { setMockInput(JSON.parse(e.target.value)); } catch(err) { /* ignore */ } }}
                                 className="util-input--sm fill font-mono" 
                                 style={{ background: 'transparent', border: 'none', color: 'var(--indra-terminal-text)', fontSize: '9px', width: '100%', height: '100%', outline: 'none', resize: 'none' }}
                             />

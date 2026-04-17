@@ -17,6 +17,7 @@ import { FieldMapper } from './FieldMapper';
 import { useShell } from '../../../context/ShellContext';
 import { SchemaActionService } from '../../../services/SchemaActionService';
 import { useAppState } from '../../../state/app_state';
+import { IndraFractalTree } from '../../utilities/IndraFractalTree';
 
 export function PortManager({ title, ids, schemas, configs = {}, mappings = {}, mappingOptions = [], onAdd, onRemove, onUpdateMapping, onUpdateConfig, type = 'SOURCE' }) {
     return (
@@ -207,7 +208,7 @@ function PortCard({ id, schema, mapping, mappingOptions = [], config, onRemove, 
                         )
                     ) : (
                         <div style={{ padding: 'var(--space-4)', opacity: 0.2, fontSize: '8px', fontFamily: 'var(--font-mono)' }}>
-                            // NO SE ENCONTRARON CAMPOS EN ESTA FUENTE
+                            {"// NO SE ENCONTRARON CAMPOS EN ESTA FUENTE"}
                         </div>
                     )}
                 </div>

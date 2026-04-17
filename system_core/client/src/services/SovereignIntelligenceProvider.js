@@ -98,7 +98,7 @@ export class SovereignIntelligenceProvider {
      * Setea las credenciales de forma dinámica y las persiste.
      */
     setCredentials(provider, key, baseUrl = null) {
-        if (this.providers.hasOwnProperty(provider)) {
+        if (Object.prototype.hasOwnProperty.call(this.providers, provider)) {
             this.providers[provider] = key;
             localStorage.setItem(`indra-ai-${provider}`, key);
             

@@ -51,7 +51,7 @@ export function IntelligencePortal({ onUpdate }) {
         <div className="intelligence-portal-stack stack--tight">
             <header className="shelf--loose" style={{ marginBottom: 'var(--space-2)' }}>
                 <span className="text-label" style={{ fontSize: '10px', opacity: 0.5 }}>
-                    {t('ui_keys_config')} // SOBERANÍA_LOCAL
+                    {t('ui_keys_config')} {" // SOBERANÍA_LOCAL"}
                 </span>
             </header>
 

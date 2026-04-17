@@ -120,7 +120,7 @@ export const UIDashboardMockup = () => (
                     
                     <div style={{ height: '180px', border: '1px dashed rgba(0,0,0,0.1)', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
                          <div style={{ fontSize: '9px', fontWeight: 300, opacity: 0.6, letterSpacing: '0.1em' }}>WORKFLOW AUTOMATION</div>
-                         <div style={{ fontSize: '7px', opacity: 0.3, letterSpacing: '0.4em', textAlign: 'center' }}>// AUTOMATIZACIÓN DE PROCESO <br/> LISTO_PARA_EJECUCIÓN</div>
+                         <div style={{ fontSize: '7px', opacity: 0.3, letterSpacing: '0.4em', textAlign: 'center' }}>{" // AUTOMATIZACIÓN DE PROCESO "} <br/> LISTO_PARA_EJECUCIÓN</div>
                     </div>
                 </div>
             </div>

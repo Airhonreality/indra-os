@@ -122,7 +122,7 @@ export function AxiomAgent({ isOpen, onClose }) {
                 {messages.filter(m => m.role !== 'system_thinking').map((msg, i) => (
                     <div key={i} className={`agent-msg agent-msg--${msg.role}`}>
                         <div className="agent-msg-meta">
-                            {msg.role === 'assistant' ? t('ui_role_ai') : (msg.role === 'user' ? t('ui_role_operator') : t('ui_role_system'))} //
+                            {msg.role === 'assistant' ? t('ui_role_ai') : (msg.role === 'user' ? t('ui_role_operator') : t('ui_role_system'))} {" //"}
                         </div>
                         <div className="agent-msg-body">
                             {msg.content}

@@ -8,6 +8,10 @@ import { prepareCanonicalRename, commitCanonicalRename } from '../../../services
 import { useCalendarHydration } from './hooks/useCalendarHydration';
 import { TimelineGrid } from './components/TimelineGrid';
 import { EventAtomUI } from './components/EventAtomUI';
+import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
+import { IndraIcon } from '../../utilities/IndraIcons';
+import { RenameDryRunModal } from '../../utilities/primitives/RenameDryRunModal';
+import { Spinner } from '../../utilities/primitives/Spinner';
 
 import './CalendarEngine.css';
 
@@ -223,7 +227,7 @@ export function CalendarEngine({ atom, bridge }) {
                             {selectedEvent ? (
                                 <div className="animate-fade-in stack gap-5">
                                     <div>
-                                        <div className="font-mono text-3xs opacity-40 uppercase mb-3">// ATOM_PROJECTION</div>
+                                        <div className="font-mono text-3xs opacity-40 uppercase mb-3">{/* ATOM_PROJECTION */}</div>
                                         <EventAtomUI event={selectedEvent} />
                                     </div>
 
@@ -241,7 +245,7 @@ export function CalendarEngine({ atom, bridge }) {
                                     </div>
 
                                     <div className="p-3 bg-void border-all opacity-80 rounded">
-                                        <div className="font-mono text-3xs opacity-40 mb-2">// METADATA_SHAFT</div>
+                                        <div className="font-mono text-3xs opacity-40 mb-2">{/* METADATA_SHAFT */}</div>
                                         <div className="stack gap-1">
                                             <div className="spread"><span className="font-mono text-3xs opacity-40">ID:</span> <span className="font-mono text-3xs truncate select-text">{selectedEvent.id}</span></div>
                                             <div className="spread"><span className="font-mono text-3xs opacity-40">SILO:</span> <span className="font-mono text-3xs font-bold">{selectedEvent.payload?.fields?.source_identity?.silo}</span></div>
@@ -313,7 +317,7 @@ export function CalendarEngine({ atom, bridge }) {
                                     </div>
 
                                     <div className="stack gap-3 border-top pt-4">
-                                    <span className="font-mono text-3xs opacity-40 uppercase">// INFRASTRUCTURE_SECURITY</span>
+                                    <span className="font-mono text-3xs opacity-40 uppercase">{/* INFRASTRUCTURE_SECURITY */}</span>
                                     <NexusServiceSlot 
                                         providerId="calendar_universal" 
                                         label={account ? `SINCERADO: ${account.handle?.label}` : "CONEXIÓN_NATIVA_INDRA"}

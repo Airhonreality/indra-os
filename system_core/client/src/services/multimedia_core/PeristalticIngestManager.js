@@ -206,7 +206,7 @@ class PeristalticIngestManager {
         this.isRunning = true;
         this._notify();
 
-        while (true) {
+        while (this.isRunning) {
             const pending = this.queue.filter(q => q.status === 'STAGED' || q.status === 'ERROR_AUTO_RETRY');
             if (pending.length === 0) break;
 

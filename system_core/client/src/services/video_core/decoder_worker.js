@@ -98,7 +98,7 @@ self.onmessage = async (e) => {
     const { type, data } = e.data;
 
     switch (type) {
-        case 'INIT':
+        case 'INIT': {
             if (data.fileHandle && data.vaultId) {
                 try {
                     await setupResource(data.vaultId, data.fileHandle, data.identityMap);
@@ -108,13 +108,14 @@ self.onmessage = async (e) => {
             }
             initDecoders();
             break;
+        }
 
-        case 'DECODE_FRAME':
+        case 'DECODE_FRAME': {
             if (!videoDecoder) initDecoders();
             const { timeMs, vaultId, decodeAudio } = data;
             
             const res = resources.get(vaultId);
-            if (!res || !res.isConfigured || !res.identityMap) return;
+            if (!res || !res.isConfigured || !res.identityMap) break;
 
             const map = res.identityMap;
             
@@ -149,8 +150,8 @@ self.onmessage = async (e) => {
 
             // 1. AXIOMA DE INFORMACIÓN: No reprocesar el mismo frame físico si ya está decodificado.
             // Para mantener fluidez de UI cuando requestAnimationFrame se dispara sin que el tiempo haya avanzado lo suficiente al siguiente frame.
-            if (sampleIndex === res.lastDecodedIndex && decoder.state === 'configured') {
-                return; 
+            if (sampleIndex === res.lastDecodedIndex && videoDecoder.state === 'configured') {
+                break; 
             }
 
             // 2. Determinar si es reproducción continua o un salto (Seek)
@@ -228,8 +229,9 @@ self.onmessage = async (e) => {
                 console.warn("[DecoderWorker] Video Decode Warning:", err.message);
             }
             break;
+        }
 
-        case 'TERMINATE':
+        case 'TERMINATE': {
             for (const r of resources.values()) {
                 r.syncAccessHandle.close();
             }
@@ -244,6 +246,7 @@ self.onmessage = async (e) => {
             }
             self.close();
             break;
+        }
     }
 };
 

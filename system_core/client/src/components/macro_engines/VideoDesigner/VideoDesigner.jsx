@@ -492,7 +492,7 @@ export function VideoDesigner({ atom, bridge }) {
                     project={project} 
                     onSave={handleManualSave} 
                     onExport={handleExport}
-                    isSaving={isSaving}
+                    isSaving={isSaving || isExporting}
                     atom={atom}
                 />
             </div>

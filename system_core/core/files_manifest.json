@@ -19,11 +19,7 @@
     "name": "pulse_router",
     "type": "SERVER_JS"
   },
-  {
-    "path": "0_utils/error_handler.gs",
-    "name": "error_handler",
-    "type": "SERVER_JS"
-  },
+
   {
     "path": "0_utils/indra_utils.gs",
     "name": "indra_utils",

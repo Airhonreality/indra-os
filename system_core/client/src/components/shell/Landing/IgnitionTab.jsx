@@ -98,7 +98,7 @@ export const IgnitionTab = () => {
                                 <IndraIcon name="FILE" size="14px" />
                                 <span style={{ color: '#58a6ff', fontWeight: 600, fontSize: '13px' }}>indra-satellite-protocol / README.md</span>
                             </div>
-                            <a href="https://github.com/Airhonreality/indra-satellite-protocol" target="_blank" className="btn btn--primary btn--mini" style={{ background: '#238636', border: 'none', borderRadius: '6px', color: 'white', padding: '4px 12px', fontSize: '11px', fontWeight: 600, textDecoration: 'none' }}>
+                            <a href="https://github.com/Airhonreality/indra-satellite-protocol" target="_blank" rel="noreferrer noopener" className="btn btn--primary btn--mini" style={{ background: '#238636', border: 'none', borderRadius: '6px', color: 'white', padding: '4px 12px', fontSize: '11px', fontWeight: 600, textDecoration: 'none' }}>
                                  VIEW SOURCE
                             </a>
                         </div>

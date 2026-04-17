@@ -142,7 +142,7 @@ export const EmergencyIngest = () => {
         try { 
             // Solicitar permisos de notificación para alertar al completar si el SO lo permite
             if ('Notification' in window && Notification.permission !== 'granted') {
-                try { await Notification.requestPermission(); } catch(e){}
+                try { await Notification.requestPermission(); } catch(e){ /* ignore */ }
             }
             if (videoSentinelRef.current) {
                 videoSentinelRef.current.play().catch(() => console.warn("Sentinel bloqueado por el navegador."));
@@ -150,7 +150,7 @@ export const EmergencyIngest = () => {
             if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
         } catch(e){ console.warn("Blindaje parcial."); }
         await ingestManager.processQueue(uploader);
-        try { if (wakeLockRef.current) await wakeLockRef.current.release(); if (videoSentinelRef.current) videoSentinelRef.current.pause(); } catch(e){}
+        try { if (wakeLockRef.current) await wakeLockRef.current.release(); if (videoSentinelRef.current) videoSentinelRef.current.pause(); } catch(e){ /* ignore */ }
     };
 
     const handleRetryAll = async () => {

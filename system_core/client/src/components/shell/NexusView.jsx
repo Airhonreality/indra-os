@@ -176,7 +176,7 @@ export function NexusView() {
                 {/* COLUMNA B: WORKSPACE SELECTION */}
                 <main className="stack" style={{ gap: 'var(--space-6)' }}>
                     <div className="shelf--loose">
-                        <span className="util-label">// {t('ui_explorer')}</span>
+                        <span className="util-label">{" // "} {t('ui_explorer')}</span>
                         <label className="text-label" style={{ letterSpacing: '0.2em' }}>{t('ui_hud_active_workspaces')}</label>
                         <div className="hud-line fill opacity-30"></div>
                     </div>
@@ -194,7 +194,7 @@ export function NexusView() {
                                 <div className="ws-card__deco-br"></div>
 
                                 <div className="spread opacity-40">
-                                    <span className="text-hint font-mono" style={{ fontSize: '8px' }}>{t('hud_ws_identity')} // {ws.subtitle}</span>
+                                    <span className="text-hint font-mono" style={{ fontSize: '8px' }}>{t('hud_ws_identity')} {" // "} {ws.subtitle}</span>
                                     <span className="text-hint font-mono" style={{ fontSize: '8px' }}>{new Date(ws.updatedAt).toLocaleDateString()}</span>
                                 </div>
 

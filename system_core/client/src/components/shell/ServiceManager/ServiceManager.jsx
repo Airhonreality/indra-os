@@ -91,7 +91,7 @@ export function ServiceManager({ onClose, filter: propFilter }) {
                     {/* COLUMNA B: SERVICE GRID */}
                     <main className="fill stack" style={{ minHeight: 0, gap: 'var(--space-6)' }}>
                         <div className="shelf--loose">
-                             <span className="util-label">// EXPLORADOR</span>
+                             <span className="util-label">{"// EXPLORADOR"}</span>
                             <label className="text-label" style={{ letterSpacing: '0.2em' }}>CONECTORES DISPONIBLES</label>
                             <div className="hud-line fill" style={{ opacity: 0.1 }}></div>
                         </div>
@@ -134,7 +134,7 @@ export function ServiceManager({ onClose, filter: propFilter }) {
                                             <span style={{ color: svc.isReady ? 'var(--color-success)' : 'var(--color-warm)' }}>
                                                 {svc.isReady ? 'STATUS_CONNECTED' : 'STATUS_WAITING_SECRET'}
                                             </span>
-                                            <span>//</span>
+                                            <span>{"//"}</span>
                                             <span>{svc.id}</span>
                                         </div>
                                     </div>

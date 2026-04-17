@@ -103,7 +103,7 @@ export function ResultGalleryCard({ atom, onHoverStart, onHoverEnd }) {
                 </div>
                 
                 <div className="shelf--tight" style={{ opacity: 0.4, fontSize: '8px', fontFamily: 'var(--font-mono)' }}>
-                    <span>// {timestamp}</span>
+                    <span>{"//"} {timestamp}</span>
                     <span style={{ opacity: 0.5 }}>•</span>
                     <span style={{ textTransform: 'uppercase' }}>{projection.theme.label || projection.class}</span>
                 </div>

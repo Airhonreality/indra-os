@@ -35,7 +35,7 @@ export function EventAtomUI({ event, onClick }) {
                 <div className="shelf--tight p-x-1" style={{ background: 'var(--indra-dynamic-border)', borderRadius: '2px' }}>
                     <IndraIcon name={source.silo === 'google' ? 'GOOGLE' : 'CALENDAR'} size="10px" style={{ color: 'var(--indra-dynamic-accent)' }} />
                     <span className="font-mono" style={{ fontSize: '8px', color: 'var(--indra-dynamic-accent)', fontWeight: 'bold' }}>
-                        {source.silo?.toUpperCase() || 'NATIVE'} // {source.account || 'INDRA_ACCOUNT'}
+                        {source.silo?.toUpperCase() || 'NATIVE'} {" // "} {source.account || 'INDRA_ACCOUNT'}
                     </span>
                 </div>
                 <div className="font-mono opacity-20" style={{ fontSize: '8px' }}>ATOM_ID: {event.id?.split('|')[1]?.substring(0, 6)}...</div>

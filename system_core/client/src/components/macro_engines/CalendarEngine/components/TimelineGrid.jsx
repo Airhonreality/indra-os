@@ -78,7 +78,7 @@ export function TimelineGrid({ currentDate, viewMode, events = [], onEventClick 
                     <div key={day} className="flex-1 timeline-header-cell border-right relative">
                         <div className="font-mono" style={{ fontSize: '10px', fontWeight: 900 }}>{day}</div>
                         <div className="font-mono opacity-30 mt-1" style={{ fontSize: '8px' }}>
-                            // 0{idx + 1}
+                            {"// "} 0{idx + 1}
                         </div>
                     </div>
                 ))}

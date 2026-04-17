@@ -3,11 +3,9 @@
  * Ejecuta esta función manualmente desde el editor de Apps Script si la URL del Core cambia.
  */
 function DEV_UpdateCoreUrlInDrive() {
-  // AXIOMA DE AUTODETECCIÓN: ScriptApp intenta detectar su propia URL de servicio.
-  let currentUrl = ScriptApp.getService().getUrl();
-  
-  // Si el servicio devuelve la URL de /dev, intentamos construir la de /exec si es posible,
-  // pero lo más seguro es usar la que Google nos da.
+  // AXIOMA DE SOBERANÍA: Forzamos la URL oficial solicitada por el usuario
+  const officialUrl = 'https://script.google.com/macros/s/AKfycbwHtq6XTBvCzOpM1eM_3-kTe1vlkIbwIpFT0Acd6kpNM91PpxWz9yq0tCmLFsoVvA-Fnw/exec';
+  const currentUrl = officialUrl; 
   
   const manifestFileName = 'INDRA_MANIFEST.json';
   const folderName = '.core_system';

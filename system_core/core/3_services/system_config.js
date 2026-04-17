@@ -439,3 +439,28 @@ function _sha256_(input) {
     return hex.length === 1 ? '0' + hex : hex;
   }).join('');
 }
+// ─── INTEGRACIÓN CON MOUNT MANAGER (v4.70) ────────────────────────────────────
+
+/**
+ * Recupera el ID del Ledger Maestro (Volumen ROOT).
+ * @returns {string|null}
+ */
+function readMasterLedgerId() {
+  return MountManager.getMount('ROOT');
+}
+
+/**
+ * Registra el ID del Ledger Maestro en el sistema de monturas.
+ * @param {string} ledgerId 
+ */
+function storeMasterLedgerId(ledgerId) {
+  return MountManager.registerMount('ROOT', ledgerId);
+}
+
+/**
+ * Recupera el ID del Ledger Social.
+ * @returns {string|null}
+ */
+function readSocialLedgerId() {
+  return MountManager.getMount('SOCIAL');
+}

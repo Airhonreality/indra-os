@@ -233,6 +233,32 @@ Una vez validado:
 
 ---
 
+## 🏛️ Soberanía Corporativa: El Oráculo de Identidad (v4.75)
+
+Para crear aplicaciones donde tus empleados entren con Google sin saber que Indra existe (Modelo ERP), usa el protocolo de **Identidad Delegada**:
+
+### Protocolo: `SYSTEM_IDENTITY_VERIFY`
+**Uso:** Verificar email de Google y obtener roles/permisos.
+
+**Payload del satélite:**
+```json
+{
+  "protocol": "SYSTEM_IDENTITY_VERIFY",
+  "token": "TU_SATELLITE_KEY",
+  "data": { "email": "usuario@empresa.com" }
+}
+```
+
+**Respuesta de Indra:**
+```json
+{
+  "metadata": { "status": "OK", "claims": ["ADMIN", "JEFE_OBRA"] },
+  "items": [{ "id": "atom_id...", "class": "IDENTITY", ... }]
+}
+```
+
+---
+
 ## 🔄 Flujo Completo Final
 
 ```

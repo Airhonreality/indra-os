@@ -529,6 +529,7 @@ function _system_createAtom(atomClass, label, uqo) {
         
         // AXIOMA CELULAR (ADR-043): El átomo se gesta en la "cuna" de su Workspace/Contexto.
         const contextId = uqo.workspace_id || uqo.context_id;
+        logInfo(`[infrastructure] Buscando ubicación para átomo de clase ${atomClass} en contexto: ${contextId || 'GLOBAL'}`);
         const subfolder = _system_getOrCreateSubfolder_(folderName, uqo, contextId);
         const alias = _system_slugify_(label);
         const fileName = `${alias}_${Date.now()}.json`;
@@ -552,8 +553,10 @@ function _system_createAtom(atomClass, label, uqo) {
             raw: extraData.raw || {},
         };
 
+        logDebug(`[infrastructure] Creando archivo: ${fileName} en folder: ${subfolder.getName()} [${subfolder.getId()}]`);
         const file = subfolder.createFile(fileName, JSON.stringify(atomDoc, null, 2));
         const driveId = file.getId();
+        logInfo(`[infrastructure] Átomo creado físicamente en Drive. ID: ${driveId}`);
         atomDoc.id = driveId;
         
         // Persistir con el ID ya inyectado (Shadow Backup)

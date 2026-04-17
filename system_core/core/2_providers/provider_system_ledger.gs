@@ -24,13 +24,13 @@ const HEALTH_COLUMNS = ['provider_id', 'status', 'fail_count', 'last_latency_ms'
 function _ledger_get_sheet_(allowMissing = false) {
   const ledgerId = readMasterLedgerId();
   if (!ledgerId) {
-    if (allowMissing) return null; // Tolerancia durante el Bootstrap/Génesis
+    if (allowMissing) return null;
     
-    // AXIOMA DE RESILIENCIA: Si el Ledger falta y lo necesitamos para escribir, lo creamos JIT.
-    logWarn('[ledger] MASTER_LEDGER_ID_MISSING. Iniciando creación de emergencia (JIT Genesis)...');
+    logWarn('[ledger] CRÍTICO: No hay MASTER_LEDGER_ID configurado en el sistema.');
     return _ledger_get_sheet_(true) || SpreadsheetApp.openById(ledger_initialize_new()).getSheetByName(LEDGER_SHEET_NAME);
   }
 
+  logDebug(`[ledger] Intentando abrir Ledger ID: ${ledgerId}`);
   try {
     const ss = SpreadsheetApp.openById(ledgerId);
     let sheet = ss.getSheetByName(LEDGER_SHEET_NAME);
@@ -69,9 +69,10 @@ function ledger_sync_atom(atom, driveId) {
     const index = data.findIndex(row => row[1] === driveId);
 
     if (index === -1) {
+      logInfo(`[ledger] Insertando nuevo átomo en Ledger. Clase: ${atom.class}, ID: ${driveId}`);
       sheet.appendRow(rowData);
     } else {
-      // Actualización atómica de la fila (Rango desde col 1, 1 fila, N columnas)
+      logInfo(`[ledger] Actualizando átomo existente en fila ${index + 1}. ID: ${driveId}`);
       sheet.getRange(index + 1, 1, 1, rowData.length).setValues([rowData]);
     }
   } finally {

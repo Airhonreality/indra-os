@@ -76,7 +76,6 @@ function _trigger_deleteByWorkflowId(workflowId) {
           ScriptApp.deleteTrigger(trigger);
           logInfo(`[trigger_service] Trigger eliminado físicamente: ${trigger.getUniqueId()}`);
         }
-      }
     });
 
     // Limpieza lógica en el Ledger

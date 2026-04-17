@@ -4,7 +4,7 @@
 // RESPONSABILIDAD: El único doPost del sistema. Soberanía de la entrada.
 // =============================================================================
 
-const CORE_VERSION = "4.50.0-OMNI-SOVEREIGN"; // FASE: Renacimiento Completado.
+const CORE_VERSION = "4.75.0-NEXUS-OMNI-K"; // FASE: Interconectividad Multinodal y Nexo Social.
 
 const GATEWAY_SYSTEM_PROTOCOLS = Object.freeze([
   'SYSTEM_MANIFEST',
@@ -90,9 +90,15 @@ function doPost(e) {
     payload.is_public_access = !!context.is_public;
     if (context.mode === 'MIRROR') payload.resonance_mode = 'MIRROR';
 
-    let result = (GATEWAY_SYSTEM_PROTOCOLS.includes(payload.protocol) || payload.protocol.startsWith('EMERGENCY_')) 
-      ? SystemOrchestrator.dispatch(payload) 
-      : route(payload);
+    let result;
+    try {
+      result = (GATEWAY_SYSTEM_PROTOCOLS.includes(payload.protocol) || payload.protocol.startsWith('EMERGENCY_')) 
+        ? SystemOrchestrator.dispatch(payload) 
+        : route(payload);
+    } catch (routeError) {
+      console.error('[gateway] Error fatal en el despacho del protocolo:', routeError);
+      return _buildResponse_(500, { metadata: { status: 'ERROR', error: routeError.message } });
+    }
 
     result.metadata = result.metadata || {};
     result.metadata.status = result.metadata.status || 'OK';

@@ -241,7 +241,16 @@ function _handleBatchExecute_(payload) {
 }
 
 function _buildResponse_(code, body, headers = {}) {
-  return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(ContentService.MimeType.JSON);
+  const activeEmail = Session.getEffectiveUser().getEmail() || Session.getActiveUser().getEmail();
+  const response = {
+    ...body,
+    metadata: {
+      ...(body.metadata || {}),
+      core_id: activeEmail || 'anonymous@indra',
+      core_version: CORE_VERSION
+    }
+  };
+  return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
 }
 
 function _sanitizeTrace_(uqo) {

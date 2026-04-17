@@ -5,12 +5,12 @@
     "type": "SERVER_JS"
   },
   {
-    "path": "0_gateway/api_gateway.js",
+    "path": "0_gateway/api_gateway.gs",
     "name": "api_gateway",
     "type": "SERVER_JS"
   },
   {
-    "path": "0_gateway/core_diagnostics.js",
+    "path": "0_gateway/core_diagnostics.gs",
     "name": "core_diagnostics",
     "type": "SERVER_JS"
   },
@@ -25,117 +25,117 @@
     "type": "SERVER_JS"
   },
   {
-    "path": "0_utils/indra_utils.js",
+    "path": "0_utils/indra_utils.gs",
     "name": "indra_utils",
     "type": "SERVER_JS"
   },
   {
-    "path": "0_utils/indra_watchdog.js",
+    "path": "0_utils/indra_watchdog.gs",
     "name": "indra_watchdog",
     "type": "SERVER_JS"
   },
   {
-    "path": "1_logic/document_engine.js",
+    "path": "1_logic/document_engine.gs",
     "name": "document_engine",
     "type": "SERVER_JS"
   },
   {
-    "path": "1_logic/indra_parser.js",
+    "path": "1_logic/indra_parser.gs",
     "name": "indra_parser",
     "type": "SERVER_JS"
   },
   {
-    "path": "1_logic/induction_orchestrator.js",
+    "path": "1_logic/induction_orchestrator.gs",
     "name": "induction_orchestrator",
     "type": "SERVER_JS"
   },
   {
-    "path": "1_logic/logic_engine.js",
+    "path": "1_logic/logic_engine.gs",
     "name": "logic_engine",
     "type": "SERVER_JS"
   },
   {
-    "path": "1_logic/logic_wrappers.js",
+    "path": "1_logic/logic_wrappers.gs",
     "name": "logic_wrappers",
     "type": "SERVER_JS"
   },
   {
-    "path": "1_logic/protocol_router.js",
+    "path": "1_logic/protocol_router.gs",
     "name": "protocol_router",
     "type": "SERVER_JS"
   },
   {
-    "path": "1_logic/provider_registry.js",
+    "path": "1_logic/provider_registry.gs",
     "name": "provider_registry",
     "type": "SERVER_JS"
   },
   {
-    "path": "1_logic/system_orchestrator.js",
+    "path": "1_logic/system_orchestrator.gs",
     "name": "system_orchestrator",
     "type": "SERVER_JS"
   },
   {
-    "path": "1_logic/workflow_executor.js",
+    "path": "1_logic/workflow_executor.gs",
     "name": "workflow_executor",
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/adapter_google_calendar.js",
+    "path": "2_providers/adapter_google_calendar.gs",
     "name": "adapter_google_calendar",
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/adapter_tabular_calendar.js",
+    "path": "2_providers/adapter_tabular_calendar.gs",
     "name": "adapter_tabular_calendar",
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/mount_manager.js",
+    "path": "2_providers/mount_manager.gs",
     "name": "mount_manager",
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/provider_calendar_universal.js",
+    "path": "2_providers/provider_calendar_universal.gs",
     "name": "provider_calendar_universal",
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/provider_drive.js",
+    "path": "2_providers/provider_drive.gs",
     "name": "provider_drive",
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/provider_intelligence.js",
+    "path": "2_providers/provider_intelligence.gs",
     "name": "provider_intelligence",
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/provider_notion.js",
+    "path": "2_providers/provider_notion.gs",
     "name": "provider_notion",
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/provider_pipeline.js",
+    "path": "2_providers/provider_pipeline.gs",
     "name": "provider_pipeline",
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/provider_system.js",
+    "path": "2_providers/provider_system.gs",
     "name": "provider_system",
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/provider_system_diagnostics.js",
+    "path": "2_providers/provider_system_diagnostics.gs",
     "name": "provider_system_diagnostics",
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/provider_system_identity.js",
+    "path": "2_providers/provider_system_identity.gs",
     "name": "provider_system_identity",
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/provider_system_infrastructure.js",
+    "path": "2_providers/provider_system_infrastructure.gs",
     "name": "provider_system_infrastructure",
     "type": "SERVER_JS"
   },
@@ -145,42 +145,42 @@
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/provider_system_logic.js",
+    "path": "2_providers/provider_system_logic.gs",
     "name": "provider_system_logic",
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/provider_system_workspace.js",
+    "path": "2_providers/provider_system_workspace.gs",
     "name": "provider_system_workspace",
     "type": "SERVER_JS"
   },
   {
-    "path": "3_services/auth_service.js",
+    "path": "3_services/auth_service.gs",
     "name": "auth_service",
     "type": "SERVER_JS"
   },
   {
-    "path": "3_services/keychain_service.js",
+    "path": "3_services/keychain_service.gs",
     "name": "keychain_service",
     "type": "SERVER_JS"
   },
   {
-    "path": "3_services/monitoring_service.js",
+    "path": "3_services/monitoring_service.gs",
     "name": "monitoring_service",
     "type": "SERVER_JS"
   },
   {
-    "path": "3_services/nexus_service.js",
+    "path": "3_services/nexus_service.gs",
     "name": "nexus_service",
     "type": "SERVER_JS"
   },
   {
-    "path": "3_services/peristaltic_service.js",
+    "path": "3_services/peristaltic_service.gs",
     "name": "peristaltic_service",
     "type": "SERVER_JS"
   },
   {
-    "path": "3_services/pulse_service.js",
+    "path": "3_services/pulse_service.gs",
     "name": "pulse_service",
     "type": "SERVER_JS"
   },
@@ -190,77 +190,77 @@
     "type": "SERVER_JS"
   },
   {
-    "path": "3_services/resource_broker.js",
+    "path": "3_services/resource_broker.gs",
     "name": "resource_broker",
     "type": "SERVER_JS"
   },
   {
-    "path": "3_services/system_config.js",
+    "path": "3_services/system_config.gs",
     "name": "system_config",
     "type": "SERVER_JS"
   },
   {
-    "path": "3_services/trigger_hub.js",
+    "path": "3_services/trigger_hub.gs",
     "name": "trigger_hub",
     "type": "SERVER_JS"
   },
   {
-    "path": "3_services/trigger_service.js",
+    "path": "3_services/trigger_service.gs",
     "name": "trigger_service",
     "type": "SERVER_JS"
   },
   {
-    "path": "4_support/blueprint_manager.js",
+    "path": "4_support/blueprint_manager.gs",
     "name": "blueprint_manager",
     "type": "SERVER_JS"
   },
   {
-    "path": "4_support/connection_diagnostic.js",
+    "path": "4_support/connection_diagnostic.gs",
     "name": "connection_diagnostic",
     "type": "SERVER_JS"
   },
   {
-    "path": "4_support/error_handler.js",
+    "path": "4_support/error_handler.gs",
     "name": "error_handler",
     "type": "SERVER_JS"
   },
   {
-    "path": "4_support/pulse_ledger.js",
+    "path": "4_support/pulse_ledger.gs",
     "name": "pulse_ledger",
     "type": "SERVER_JS"
   },
   {
-    "path": "4_support/share_manager.js",
+    "path": "4_support/share_manager.gs",
     "name": "share_manager",
     "type": "SERVER_JS"
   },
   {
-    "path": "4_support/system_physical_anchor.js",
+    "path": "4_support/system_physical_anchor.gs",
     "name": "system_physical_anchor",
     "type": "SERVER_JS"
   },
   {
-    "path": "4_support/trigger_registry.js",
+    "path": "4_support/trigger_registry.gs",
     "name": "trigger_registry",
     "type": "SERVER_JS"
   },
   {
-    "path": "5_diagnostics/auth_trigger.js",
+    "path": "5_diagnostics/auth_trigger.gs",
     "name": "auth_trigger",
     "type": "SERVER_JS"
   },
   {
-    "path": "5_diagnostics/diagnostic_hub.js",
+    "path": "5_diagnostics/diagnostic_hub.gs",
     "name": "diagnostic_hub",
     "type": "SERVER_JS"
   },
   {
-    "path": "5_diagnostics/integrity_check.js",
+    "path": "5_diagnostics/integrity_check.gs",
     "name": "integrity_check",
     "type": "SERVER_JS"
   },
   {
-    "path": "5_diagnostics/integrity_suite.js",
+    "path": "5_diagnostics/integrity_suite.gs",
     "name": "integrity_suite",
     "type": "SERVER_JS"
   },
@@ -270,7 +270,7 @@
     "type": "SERVER_JS"
   },
   {
-    "path": "6_audit/resonance_audit.js",
+    "path": "6_audit/resonance_audit.gs",
     "name": "resonance_audit",
     "type": "SERVER_JS"
   },

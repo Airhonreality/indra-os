@@ -267,6 +267,11 @@ async installCore(accessToken, userEmail, onProgress) {
     const files = await Promise.all(filesManifest.map(async (file, idx) => {
       console.log(`📡 [${idx + 1}/${filesManifest.length}] Descargando Átomo: ${file.path}`);
       const resp = await fetch(REPO_URL_BASE + file.path + `?t=${Date.now()}`);
+      
+      if (!resp.ok) {
+        throw new Error(`Error al descargar átomo [${file.path}]: HTTP ${resp.status} ${resp.statusText}`);
+      }
+
       let source = await resp.text();
 
       // --- 🛡️ PARCHE DE SOBERANÍA (v4.18) ---
@@ -477,7 +482,8 @@ Keep it safe. Keep it micelar.
     const msg = err.message || '';
     return msg.toLowerCase().includes('not enabled') || 
            msg.toLowerCase().includes('api_disabled') ||
-           msg.toLowerCase().includes('forbidden');
+           msg.toLowerCase().includes('forbidden') ||
+           msg.toLowerCase().includes('manifest file named appsscript'); // Captura error de inyección por manifest ausente
   },
 
   /**

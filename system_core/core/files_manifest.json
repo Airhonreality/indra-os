@@ -30,6 +30,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "0_utils/indra_watchdog.js",
+    "name": "indra_watchdog",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "1_logic/document_engine.js",
     "name": "document_engine",
     "type": "SERVER_JS"
@@ -42,6 +47,11 @@
   {
     "path": "1_logic/induction_orchestrator.js",
     "name": "induction_orchestrator",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "1_logic/system_orchestrator.js",
+    "name": "system_orchestrator",
     "type": "SERVER_JS"
   },
   {
@@ -125,6 +135,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "2_providers/mount_manager.js",
+    "name": "mount_manager",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "2_providers/provider_system_logic.js",
     "name": "provider_system_logic",
     "type": "SERVER_JS"
@@ -137,6 +152,11 @@
   {
     "path": "3_services/keychain_service.js",
     "name": "keychain_service",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "3_services/auth_service.js",
+    "name": "auth_service",
     "type": "SERVER_JS"
   },
   {

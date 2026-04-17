@@ -141,6 +141,8 @@ function ledger_remove_atom(driveId) {
  */
 function ledger_initialize_new() {
   const ss = SpreadsheetApp.create('INDRA_MASTER_LEDGER');
+  const ledgerId = ss.getId();
+  MountManager.mount('ROOT', ledgerId);
   
   // 1. Átomos
   const atomSheet = ss.getSheets()[0];
@@ -168,8 +170,6 @@ function ledger_initialize_new() {
   healthSheet.appendRow(HEALTH_COLUMNS);
   healthSheet.setFrozenRows(1);
   
-  const ledgerId = ss.getId();
-  storeMasterLedgerId(ledgerId);
   return ledgerId;
 }
 
@@ -300,7 +300,7 @@ function ledger_list_all_records() {
  * @returns {Object} Mapa de tokens { [token]: entry }
  */
 function ledger_keychain_read_all() {
-  const ssId = readMasterLedgerId();
+  const ssId = MountManager.getMount('ROOT');
   if (!ssId) return {};
   
   const ss = SpreadsheetApp.openById(ssId);
@@ -329,10 +329,9 @@ function ledger_keychain_read_all() {
  * Sincroniza una entrada individual en el Llavero del Ledger.
  */
 function ledger_keychain_sync(token, entry) {
-  const ssId = readMasterLedgerId();
-  if (!ssId) ledger_initialize_new();
+  const ssId = MountManager.getMount('ROOT') || ledger_initialize_new();
   
-  const ss = SpreadsheetApp.openById(readMasterLedgerId());
+  const ss = SpreadsheetApp.openById(MountManager.getMount('ROOT'));
   let sheet = ss.getSheetByName(KEYCHAIN_SHEET_NAME) || ss.insertSheet(KEYCHAIN_SHEET_NAME);
   
   const lock = LockService.getScriptLock();
@@ -368,7 +367,7 @@ function ledger_keychain_sync(token, entry) {
  * @returns {string|null} El ID de Drive o null si no está mapeado.
  */
 function ledger_infra_get(key) {
-  const ssId = readMasterLedgerId();
+  const ssId = MountManager.getMount('ROOT');
   if (!ssId) return null;
   const ss = SpreadsheetApp.openById(ssId);
   const sheet = ss.getSheetByName(INFRA_SHEET_NAME);
@@ -383,8 +382,8 @@ function ledger_infra_get(key) {
  * Registra o actualiza el mapeo de una carpeta de infraestructura (v4.40).
  */
 function ledger_infra_sync(key, driveId, label) {
-  const ssId = readMasterLedgerId() || ledger_initialize_new();
-  const ss = SpreadsheetApp.openById(readMasterLedgerId());
+  const ssId = MountManager.getMount('ROOT') || ledger_initialize_new();
+  const ss = SpreadsheetApp.openById(MountManager.getMount('ROOT'));
   const sheet = ss.getSheetByName(INFRA_SHEET_NAME) || ss.insertSheet(INFRA_SHEET_NAME);
   
   const lock = LockService.getScriptLock();
@@ -404,7 +403,7 @@ function ledger_infra_sync(key, driveId, label) {
  * Registra o actualiza un proceso (Trigger/Tarea) en el Ledger (v4.42).
  */
 function ledger_process_sync(triggerId, workflowId, status, error = '') {
-  const ssId = readMasterLedgerId();
+  const ssId = MountManager.getMount('ROOT');
   if (!ssId) return;
   const ss = SpreadsheetApp.openById(ssId);
   const sheet = ss.getSheetByName(PROCESS_SHEET_NAME) || ss.insertSheet(PROCESS_SHEET_NAME);
@@ -463,7 +462,7 @@ function ledger_process_delete_by_workflow(workflowId) {
  * Reporta la salud y latencia de un proveedor al Ledger (v4.55).
  */
 function ledger_health_report(providerId, latencyMs, error = null) {
-  const ssId = readMasterLedgerId();
+  const ssId = MountManager.getMount('ROOT');
   if (!ssId) return;
   const ss = SpreadsheetApp.openById(ssId);
   const sheet = ss.getSheetByName(HEALTH_SHEET_NAME) || ss.insertSheet(HEALTH_SHEET_NAME);
@@ -496,7 +495,7 @@ function ledger_health_report(providerId, latencyMs, error = null) {
  * Obtiene el estado de salud de un proveedor.
  */
 function ledger_health_get(providerId) {
-  const ssId = readMasterLedgerId();
+  const ssId = MountManager.getMount('ROOT');
   if (!ssId) return { status: 'UNKNOWN' };
   const ss = SpreadsheetApp.openById(ssId);
   const sheet = ss.getSheetByName(HEALTH_SHEET_NAME);

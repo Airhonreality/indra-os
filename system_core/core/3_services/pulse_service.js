@@ -156,7 +156,7 @@ function pulse_service_maintenance_trigger() {
  */
 function pulse_service_integrity_heartbeat() {
   logInfo('[pulse_service] Iniciando Patrulla de Integridad...');
-  const ledgerId = readMasterLedgerId();
+  const ledgerId = MountManager.getMount('ROOT');
   if (!ledgerId) return;
 
   try {

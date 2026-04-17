@@ -67,11 +67,50 @@ function DEV_DEBUG_AtomicIgnitionTest() {
 
     console.log('   ✅ Átomo Creado OK.');
     console.info('--- 🏅 PRUEBA DE IGNICIÓN COMPLETADA CON ÉXITO ---');
-    console.log('Indra está sana y soberana en su núcleo.');
 
   } catch (e) {
     console.error('--- ❌ FALLO CRÍTICO EN LA PRUEBA ---');
     console.error('Mensaje: ' + e.message);
     console.error('Stack: ' + e.stack);
+  }
+}
+
+/**
+ * FASE II: Test de Lógica y Descubrimiento Profundo.
+ */
+function DEV_DEBUG_DeepIntegrationTest() {
+  console.info('--- ⚡ INICIANDO PRUEBA DE INTEGRACIÓN PROFUNDA (v4.87) ---');
+  
+  try {
+    // 1. TEST DE LÓGICA (LOGIC_EXECUTE)
+    console.log('1. [TEST] Probando Motor de Lógica (LogicBridge)...');
+    const logicUqo = {
+      protocol: 'LOGIC_EXECUTE',
+      data: {
+        bridge_id: 'internal_echo',
+        payload: { message: 'Hola Indra', value: 42 }
+      }
+    };
+    const logicRes = route(logicUqo);
+    console.log('   > Respuesta Logic:', JSON.stringify(logicRes, null, 2));
+    console.log('   ✅ Lógica OK.');
+
+    // 2. TEST DE DESCUBRIMIENTO (MCEP)
+    console.log('2. [TEST] Probando Sensado Profundo (GETMCEPMANIFEST)...');
+    const mcepUqo = {
+      protocol: 'GETMCEPMANIFEST',
+      provider: 'system',
+      data: { mode: 'RAW_MAP' }
+    };
+    const mcepRes = route(mcepUqo);
+    console.log('   > Capacidades detectadas:', mcepRes.items.length);
+    if (mcepRes.items.length === 0) throw new Error('EL MANIFIESTO MCEP ESTÁ VACÍO.');
+    console.log('   ✅ MCEP OK.');
+
+    console.info('--- 🏅 INTEGRACIÓN PROFUNDA COMPLETADA ---');
+
+  } catch (e) {
+    console.error('--- ❌ FALLO EN FASE II ---');
+    console.error('Causa: ' + e.message);
   }
 }

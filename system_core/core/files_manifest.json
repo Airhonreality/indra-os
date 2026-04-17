@@ -50,11 +50,6 @@
     "type": "SERVER_JS"
   },
   {
-    "path": "1_logic/system_orchestrator.js",
-    "name": "system_orchestrator",
-    "type": "SERVER_JS"
-  },
-  {
     "path": "1_logic/logic_engine.js",
     "name": "logic_engine",
     "type": "SERVER_JS"
@@ -72,6 +67,11 @@
   {
     "path": "1_logic/provider_registry.js",
     "name": "provider_registry",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "1_logic/system_orchestrator.js",
+    "name": "system_orchestrator",
     "type": "SERVER_JS"
   },
   {

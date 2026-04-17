@@ -47,6 +47,8 @@ export async function executeDirective(uqo, coreUrl, sessionSecret, shareTicket 
 
     const t0 = Date.now();
     try {
+        console.log(`%c [wire] Conectando con Core: ${coreUrl} `, 'color: #999; font-style: italic;');
+        
         const response = await fetch(coreUrl, {
             method: 'POST',
             mode: 'cors',
@@ -54,6 +56,13 @@ export async function executeDirective(uqo, coreUrl, sessionSecret, shareTicket 
                 'Content-Type': 'text/plain;charset=utf-8',
             },
             body: JSON.stringify(payload)
+        }).catch(err => {
+            // Sonda de diagnóstico JIT para errores de red
+            console.error(`%c [CRITICAL_NETWORK_ERROR] Fallo de conexión física con el Core. `, 'background: red; color: white;');
+            console.error(`  > URL de destino: ${coreUrl}`);
+            console.error(`  > Mensaje original: ${err.message}`);
+            console.warn(`  > DIAGNÓSTICO: Si usas múltiples cuentas de Google, logueate solo con la propietaria del Core.`);
+            throw err;
         });
 
         const responseText = await response.text();

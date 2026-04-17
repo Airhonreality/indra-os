@@ -43,6 +43,7 @@ export const DriveDiscoveryService = {
         }
 
         console.log('[DriveDiscovery] Manifiesto recuperado e hidratado con éxito.');
+        console.log(`%c [discovery] ADN detectado. Core URL: ${manifest.core_url} `, 'color: #3498db; font-style: italic;');
         return { ok: true, manifest };
 
     } catch (err) {

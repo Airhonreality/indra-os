@@ -22,26 +22,25 @@ const NexusService = (function() {
     // 1. Crear identidad local para el apretón de manos
     const handoverId = Utilities.getUuid();
     
-    const bridgeAtom = {
-      id: `bridge_${handoverId}`,
-      handle: { ns: 'indra.system.bridge', alias: alias, label: `Conexión con ${alias}` },
-      class: 'BRIDGE',
-      payload: {
-        remote_url: remoteCoreUrl,
-        status: 'PENDING_OUTGOING',
-        handover_id: handoverId,
-        created_at: new Date().toISOString()
+    // AXIOMA: Usar el Router para asegurar persistencia en el Mount ROOT
+    const response = route({
+      provider: 'system',
+      protocol: 'ATOM_CREATE',
+      data: {
+        class: 'BRIDGE',
+        handle: { ns: 'indra.system.bridge', alias: alias, label: `Conexión con ${alias}` },
+        payload: {
+          remote_url: remoteCoreUrl,
+          status: 'PENDING_OUTGOING',
+          handover_id: handoverId,
+          created_at: new Date().toISOString()
+        }
       }
-    };
+    });
 
-    // 2. Persistir en el Ledger (Mount ROOT)
-    _system_createAtom('BRIDGE', `Bridge to ${alias}`, bridgeAtom);
-
-    // 3. Enviar señal de pulso al remoto (PULSE_B2B)
-    // El remoto recibirá la petición y decidirá si acepta.
     return {
       metadata: { status: 'OK', message: 'Handshake iniciado. Esperando respuesta del nodo remoto.' },
-      items: [bridgeAtom]
+      items: response.items || []
     };
   }
 
@@ -56,22 +55,23 @@ const NexusService = (function() {
     if (!remoteData.remote_url || !remoteData.handover_id) {
        throw new Error('nexus_service: Datos de handshake incompletos.');
     }
-
-    const bridgeAtom = {
-      id: `bridge_${Utilities.getUuid()}`,
-      handle: { ns: 'indra.system.bridge', alias: remoteData.alias || 'remote_node', label: `Nodo Remoto Autorizado` },
-      class: 'BRIDGE',
-      payload: {
-        remote_url: remoteData.remote_url,
-        status: 'ACTIVE',
-        handover_id: remoteData.handover_id,
-        connected_at: new Date().toISOString()
+ 
+    const response = route({
+      provider: 'system',
+      protocol: 'ATOM_CREATE',
+      data: {
+        class: 'BRIDGE',
+        handle: { ns: 'indra.system.bridge', alias: remoteData.alias || 'remote_node', label: `Nodo Remoto Autorizado` },
+        payload: {
+          remote_url: remoteData.remote_url,
+          status: 'ACTIVE',
+          handover_id: remoteData.handover_id,
+          connected_at: new Date().toISOString()
+        }
       }
-    };
-
-    _system_createAtom('BRIDGE', `Bridge Accepted`, bridgeAtom);
+    });
     
-    return { metadata: { status: 'OK', message: 'Handshake aceptado. Nodo vinculado.' } };
+    return { metadata: { status: 'OK', message: 'Handshake aceptado. Nodo vinculado.', bridge_id: response.items?.[0]?.id } };
   }
 
   /**
@@ -80,11 +80,12 @@ const NexusService = (function() {
    * @param {Object} uqo - El UQO a ejecutar remotamente.
    */
   function remoteExecute(bridgeAlias, uqo) {
-    // 1. Resolver el puente en el Ledger
-    const bridges = _ledger_get_batch_metadata_(['BRIDGE']);
-    const bridge = bridges.find(b => b.alias === bridgeAlias && b.status === 'ACTIVE');
+    // CORRECCIÓN: Usar list_by_class para encontrar el puente por alias
+    const activeBridges = ledger_list_by_class('BRIDGE');
+    const bridge = activeBridges.find(b => b.handle?.alias === bridgeAlias);
     
-    if (!bridge) throw new Error(`nexus_service: No existe un puente activo para "${bridgeAlias}".`);
+    if (!bridge) throw new Error(`nexus_service: No existe un puente configurado para "${bridgeAlias}".`);
+    if (bridge.payload?.status !== 'ACTIVE') throw new Error(`nexus_service: El puente "${bridgeAlias}" no está activo.`);
 
     // 2. Firmar y enviar al remoto (Implementación futura con Fetch)
     logInfo(`[nexus] Redirigiendo UQO a nodo remoto: ${bridge.payload.remote_url}`);

@@ -26,14 +26,19 @@ function scanDirectory(dir, baseDir = '') {
             }
         } else {
             const ext = path.extname(file);
-            if (VALID_EXTENSIONS.includes(ext) && !IGNORE_FILES.includes(file)) {
+            const isAppScriptJson = (file === 'appsscript.json');
+            
+            // Solo permitimos .js, .gs y estrictamente appsscript.json (ningún otro .json)
+            const isValidExt = VALID_EXTENSIONS.includes(ext);
+            const isAllowedJson = (ext !== '.json' || isAppScriptJson);
+
+            if (isValidExt && isAllowedJson && !IGNORE_FILES.includes(file)) {
                 // Generamos la entrada del manifiesto
                 const name = path.basename(file, ext);
                 results.push({
                     path: relativePath,
                     name: name,
-                    // Si es appsscript.json le damos trato especial (aunque está ignorado arriba, por si acaso)
-                    type: file === 'appsscript.json' ? 'JSON' : 'SERVER_JS'
+                    type: isAppScriptJson ? 'JSON' : 'SERVER_JS'
                 });
             }
         }

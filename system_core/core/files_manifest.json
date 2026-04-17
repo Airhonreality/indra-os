@@ -285,21 +285,6 @@
     "type": "JSON"
   },
   {
-    "path": "seeds/demo_document.json",
-    "name": "demo_document",
-    "type": "SERVER_JS"
-  },
-  {
-    "path": "seeds/demo_schema.json",
-    "name": "demo_schema",
-    "type": "SERVER_JS"
-  },
-  {
-    "path": "seeds/demo_workflow.json",
-    "name": "demo_workflow",
-    "type": "SERVER_JS"
-  },
-  {
     "path": "seed_loader.gs",
     "name": "seed_loader",
     "type": "SERVER_JS"

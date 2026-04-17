@@ -86,23 +86,29 @@ const SystemOrchestrator = (function() {
    * PROTOCOLO DE RENACIMIENTO (ADR-043 Fase 5)
    */
   function triggerRenaissance() {
-    console.log('[renaissance] Inicializando Master Ledger...');
+    logInfo('🧬 [renaissance] INICIANDO SECUENCIA DE GÉNESIS...');
+    logInfo('[renaissance] Forjando Master Ledger...');
     const ledgerId = ledger_initialize_new(); 
+    if (!ledgerId) throw new Error('Fallo Crítico: El Ledger no pudo ser cristalizado.');
+    logInfo(`[renaissance] Registro en MountManager: ROOT -> ${ledgerId}`);
     
-    console.log('[renaissance] Creando Espacio de Trabajo Raíz...');
+    logInfo('[renaissance] Creando Espacio de Trabajo Raiz...');
     const genesisResponse = _system_createAtom('WORKSPACE', 'Materia Primordial (Root)', {
       provider: 'system',
       data: { description: 'Primer espacio de trabajo del nuevo Indra OS OMNI-K.' }
     });
+    
+    logInfo(`[renaissance] Estado del Genesis: ${genesisResponse.metadata.status}`);
 
     if (genesisResponse.metadata.status === 'ERROR') {
+      logError('[renaissance] FALLO FATAL EN GENESIS:', genesisResponse.metadata.error);
       throw new Error('Fallo en Genesis: ' + genesisResponse.metadata.error);
     }
 
     if (readConfig('SYS_IS_BOOTSTRAPPED') !== 'true') {
        storeConfig('SYS_IS_BOOTSTRAPPED', 'true');
     }
-    logInfo('🚀 EL RENACIMIENTO HA COMPLETADO LA CRISTALIZACIÓN DEL NÚCLEO.');
+    logInfo('🚀 [renaissance] EL RENACIMIENTO HA COMPLETADO LA CRISTALIZACIÓN DEL NÚCLEO.');
   }
 
   return {

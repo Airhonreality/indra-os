@@ -141,8 +141,28 @@ function ledger_remove_atom(driveId) {
  * @returns {string} El ID de la nueva Google Sheet.
  */
 function ledger_initialize_new() {
+  logInfo('[ledger_init] ⚡ INICIANDO GÉNESIS DEL MASTER LEDGER...');
+  
+  // 0. Asegurar Soberanía Territorial (ADR-043)
+  const homeRoot = _system_ensureHomeRoot ? _system_ensureHomeRoot() : null;
+  const rootFolderId = readRootFolderId();
+  
+  logInfo(`[ledger_init] Anclaje detectado: ${rootFolderId || 'N/A'}`);
+  
+  // 1. Crear el cuerpo físico
   const ss = SpreadsheetApp.create('INDRA_MASTER_LEDGER');
   const ledgerId = ss.getId();
+  const file = DriveApp.getFileById(ledgerId);
+  
+  // 2. Traslado de Soberanía
+  if (homeRoot) {
+    logInfo(`[ledger_init] Moviendo Ledger a la Tierra Prometida (.core_system)...`);
+    file.moveTo(homeRoot);
+  } else {
+    logWarn('[ledger_init] ADVERTENCIA: No se pudo localizar .core_system. El Ledger quedará huérfano en la raíz.');
+  }
+
+  logInfo(`[ledger_init] Ledger cristalizado exitosamente. ID: ${ledgerId}`);
   MountManager.mount('ROOT', ledgerId);
   
   // 1. Átomos

@@ -405,6 +405,8 @@ function listProviderAccounts(providerId) {
  * @returns {boolean}
  */
 function storeRootFolderId(folderId) {
+  if (!folderId) return false;
+  MountManager.mount('DRIVE_ROOT', folderId);
   return storeConfig('SYS_ROOT_FOLDER_ID', folderId);
 }
 

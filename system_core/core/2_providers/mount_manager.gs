@@ -51,6 +51,7 @@ const MountManager = (function() {
   return {
     getMount: getMount,
     registerMount: registerMount,
+    mount: registerMount, // ALIAS DE COMPATIBILIDAD (ADR-043)
     unmount: unmount
   };
 

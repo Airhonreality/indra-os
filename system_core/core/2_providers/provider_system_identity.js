@@ -9,8 +9,11 @@
 const IdentityProvider = (function() {
 
   /**
-   * Registra un nuevo perfil de usuario en el sistema.
-   * @param {Object} uqo - UQO con los datos del perfil.
+   * CREA UN PERFIL SOBERANO (Axioma de Identidad Micelar).
+   * El usuario se define como un conjunto de metadata protegida por una membrana lógica.
+   * 
+   * @axiom SHARDING: Los perfiles se guardan en el volumen 'SOCIAL' para no contaminar el ROOT.
+   * @param {Object} uqo - Payload con handle.alias y public_key.
    */
   function createProfile(uqo) {
     const data = uqo.data;
@@ -54,9 +57,41 @@ const IdentityProvider = (function() {
     };
   }
 
+  /**
+   * VERIFICACIÓN CORPORATIVA (Axioma de Identidad Delegada).
+   * Permite que un satélite externo (ERP) valide a un empleado vía email.
+   * 
+   * @axiom PROXY_AUTH: El empleado no sabe que Indra existe; el ERP actúa como delegado.
+   * @param {string} email - Email de Google del empleado.
+   * @returns {Object} Átomo de identidad con roles y permisos corporativos.
+   */
+  function verifyCorporateIdentity(email) {
+    if (!email) throw new Error('identity_provider: Se requiere email para verificación.');
+
+    // Buscar en el volumen CORPORATE (Fallback a SOCIAL si no existe el mount)
+    const ssId = MountManager.getMount('CORPORATE') || MountManager.getMount('SOCIAL') || MountManager.getMount('ROOT');
+    
+    // Aquí implementamos una búsqueda rápida por payload.email
+    const atoms = _ledger_get_batch_metadata_(['IDENTITY']);
+    const employee = atoms.find(a => a.payload && a.payload.email === email);
+
+    if (!employee) {
+      return { 
+        metadata: { status: 'NOT_AUTHORIZED', error: 'Empleado no registrado en el directorio corporativo.' },
+        items: []
+      };
+    }
+
+    return {
+      items: [employee],
+      metadata: { status: 'OK', claims: employee.payload.roles || ['GUEST'] }
+    };
+  }
+
   return {
     createProfile: createProfile,
-    getProfile: getProfile
+    getProfile: getProfile,
+    verifyCorporateIdentity: verifyCorporateIdentity
   };
 
 })();

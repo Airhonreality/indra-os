@@ -9,10 +9,12 @@
 const NexusService = (function() {
 
   /**
-   * Inicia una solicitud de conexión con otro Core de Indra.
-   * Genera un átomo de clase 'BRIDGE' que queda pendiente de aceptación.
-   * @param {string} remoteCoreUrl - URL del endpoint del otro Indra Core.
-   * @param {string} alias - Nombre amigable para el nodo remoto.
+   * INICIA UN HANDSHAKE (Axioma de Reconocimiento entre Pares).
+   * Genera un puente de confianza asimétrico. El nodo iniciador queda en estado PENDING_OUTGOING.
+   * 
+   * @axiom SOBERANÍA: Un nodo solo se conecta si el dueño firma la intención.
+   * @param {string} remoteCoreUrl - Endpoint SOAP/REST del Indra remoto.
+   * @param {string} alias - Alias local para mapeo espacial (Mounting).
    */
   function initiateHandshake(remoteCoreUrl, alias) {
     logInfo(`[nexus] Iniciando Handshake con nodo remoto: ${alias} (${remoteCoreUrl})`);
@@ -44,8 +46,10 @@ const NexusService = (function() {
   }
 
   /**
-   * Procesa una petición de conexión entrante de otro Core.
-   * @param {Object} uqo - El UQO de tipo SYSTEM_HANDSHAKE_REQUEST.
+   * ACEPTA UN HANDSHAKE (Axioma de Consonancia).
+   * Eleva un puente pendiente a estado ACTIVE. Crea una relación de reciprocidad.
+   * 
+   * @param {Object} uqo - El UQO con el handover_id original.
    */
   function acceptHandshake(uqo) {
     const remoteData = uqo.data;

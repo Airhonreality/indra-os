@@ -3,12 +3,22 @@
  * Ejecuta esta función manualmente desde el editor de Apps Script si la URL del Core cambia.
  */
 function DEV_UpdateCoreUrlInDrive() {
-  const currentUrl = ScriptApp.getService().getUrl();
+  // AXIOMA DE AUTODETECCIÓN: ScriptApp intenta detectar su propia URL de servicio.
+  let currentUrl = ScriptApp.getService().getUrl();
+  
+  // Si el servicio devuelve la URL de /dev, intentamos construir la de /exec si es posible,
+  // pero lo más seguro es usar la que Google nos da.
+  
   const manifestFileName = 'INDRA_MANIFEST.json';
   const folderName = '.core_system';
   
-  console.log('--- INICIANDO ACTUALIZACIÓN DE ADN ---');
-  console.log('URL de este Core detectada: ' + currentUrl);
+  console.log('--- 🛰️ INDRA ADN SYNC ---');
+  console.log('URL Detectada por el motor: ' + currentUrl);
+  
+  if (currentUrl.indexOf('/dev') !== -1) {
+    console.warn('CUIDADO: Estás ejecutando esto desde el modo desarrollo (/dev).');
+    console.warn('Asegúrate de que esta es la URL que quieres que Indra use en el navegador.');
+  }
   
   const folders = DriveApp.getRootFolder().getFoldersByName(folderName);
   if (!folders.hasNext()) {

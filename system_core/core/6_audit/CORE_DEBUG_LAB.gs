@@ -118,6 +118,23 @@ function DEV_DEBUG_DeepIntegrationTest() {
 }
 
 /**
+ * [FASE IV] RECONSTRUCCIÓN SOBERANA
+ * Si el Ledger está vacío (Array 0), este comando escanea Drive y repuebla la Sheet.
+ */
+function DEV_DEBUG_RebuildLedger() {
+  console.log("--- ☢️ INICIANDO RECONSTRUCCIÓN SOBERANA ---");
+  try {
+    const result = ledger_rebuild_from_drive();
+    console.log("--- ✅ ÉXITO ---");
+    console.log("Átomos recuperados:", result.total_rebuilt);
+    console.log("Ahora refresca el navegador y el Array 0 debería haber desaparecido.");
+  } catch (e) {
+    console.error("--- ❌ FALLO EN RECONSTRUCCIÓN ---");
+    console.error(e.message);
+  }
+}
+
+/**
  * FASE III: Simulador de Gateway (doPost).
  * Prueba el flujo exacto por el que pasa el navegador.
  */

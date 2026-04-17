@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'system_core/client/**'
+      - 'system_core/core/**'
       - '.github/workflows/deploy-ui.yml'
 
 permissions:
@@ -29,6 +30,15 @@ jobs:
           node-version: '18'
           cache: 'npm'
           cache-dependency-path: 'system_core/client/package-lock.json'
+
+      - name: 🏗️ Run Indra Loom (Auto-Manifest)
+        run: node scripts/generate_manifest.js
+
+      - name: 🔄 Commit Manifest changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "🤖 [Indra Loom] Sincronización automática de Manifiesto"
+          file_pattern: 'system_core/core/files_manifest.json'
       
       - name: 📦 Install dependencies
         working-directory: system_core/client

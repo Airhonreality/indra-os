@@ -1,53 +1,252 @@
 [
-  { "path": "0_AUTHORIZE_MANUALLY.gs", "name": "0_AUTHORIZE_MANUALLY" },
-  { "path": "appsscript.json", "name": "appsscript", "type": "JSON" },
-  { "path": "0_gateway/api_gateway.js", "name": "api_gateway" },
-  { "path": "0_gateway/core_diagnostics.js", "name": "core_diagnostics" },
-  { "path": "0_gateway/pulse_router.gs", "name": "pulse_router" },
-  { "path": "0_utils/indra_utils.js", "name": "indra_utils" },
-  { "path": "0_utils/error_handler.gs", "name": "error_handler" },
-  { "path": "1_logic/document_engine.js", "name": "document_engine" },
-  { "path": "1_logic/indra_parser.js", "name": "indra_parser" },
-  { "path": "1_logic/induction_orchestrator.js", "name": "induction_orchestrator" },
-  { "path": "1_logic/logic_engine.js", "name": "logic_engine" },
-  { "path": "1_logic/logic_wrappers.js", "name": "logic_wrappers" },
-  { "path": "1_logic/protocol_router.js", "name": "protocol_router" },
-  { "path": "1_logic/provider_registry.js", "name": "provider_registry" },
-  { "path": "1_logic/workflow_executor.js", "name": "workflow_executor" },
-  { "path": "2_providers/adapter_google_calendar.js", "name": "adapter_google_calendar" },
-  { "path": "2_providers/adapter_tabular_calendar.js", "name": "adapter_tabular_calendar" },
-  { "path": "2_providers/provider_calendar_universal.js", "name": "provider_calendar_universal" },
-  { "path": "2_providers/provider_drive.js", "name": "provider_drive" },
-  { "path": "2_providers/provider_intelligence.js", "name": "provider_intelligence" },
-  { "path": "2_providers/provider_notion.js", "name": "provider_notion" },
-  { "path": "2_providers/provider_pipeline.js", "name": "provider_pipeline" },
-  { "path": "2_providers/provider_system.js", "name": "provider_system" },
-  { "path": "2_providers/provider_system_diagnostics.js", "name": "provider_system_diagnostics" },
-  { "path": "2_providers/provider_system_infrastructure.js", "name": "provider_system_infrastructure" },
-  { "path": "2_providers/provider_system_ledger.gs", "name": "provider_system_ledger" },
-  { "path": "2_providers/provider_system_logic.js", "name": "provider_system_logic" },
-  { "path": "2_providers/provider_system_workspace.js", "name": "provider_system_workspace" },
-  { "path": "3_services/keychain_service.js", "name": "keychain_service" },
-  { "path": "3_services/monitoring_service.js", "name": "monitoring_service" },
-  { "path": "3_services/peristaltic_service.js", "name": "peristaltic_service" },
-  { "path": "3_services/pulse_service.js", "name": "pulse_service" },
-  { "path": "3_services/resonance_service.gs", "name": "resonance_service" },
-  { "path": "3_services/resource_broker.js", "name": "resource_broker" },
-  { "path": "3_services/system_config.js", "name": "system_config" },
-  { "path": "3_services/trigger_hub.js", "name": "trigger_hub" },
-  { "path": "3_services/trigger_service.js", "name": "trigger_service" },
-  { "path": "seed_loader.gs", "name": "seed_loader" },
-  { "path": "4_support/blueprint_manager.js", "name": "blueprint_manager" },
-  { "path": "4_support/connection_diagnostic.js", "name": "connection_diagnostic" },
-  { "path": "4_support/error_handler.js", "name": "error_handler_support" },
-  { "path": "4_support/pulse_ledger.js", "name": "pulse_ledger" },
-  { "path": "4_support/share_manager.js", "name": "share_manager" },
-  { "path": "4_support/system_physical_anchor.js", "name": "system_physical_anchor" },
-  { "path": "4_support/trigger_registry.js", "name": "trigger_registry" },
-  { "path": "5_diagnostics/auth_trigger.js", "name": "auth_trigger" },
-  { "path": "5_diagnostics/diagnostic_hub.js", "name": "diagnostic_hub" },
-  { "path": "5_diagnostics/integrity_check.js", "name": "integrity_check" },
-  { "path": "5_diagnostics/integrity_suite.js", "name": "integrity_suite" },
-  { "path": "6_audit/Reseteo_dev.gs", "name": "Reseteo_dev" },
-  { "path": "6_audit/resonance_audit.js", "name": "resonance_audit" }
+  {
+    "path": "0_AUTHORIZE_MANUALLY.gs",
+    "name": "0_AUTHORIZE_MANUALLY",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "0_gateway/api_gateway.js",
+    "name": "api_gateway",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "0_gateway/core_diagnostics.js",
+    "name": "core_diagnostics",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "0_gateway/pulse_router.gs",
+    "name": "pulse_router",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "0_utils/error_handler.gs",
+    "name": "error_handler",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "0_utils/indra_utils.js",
+    "name": "indra_utils",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "1_logic/document_engine.js",
+    "name": "document_engine",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "1_logic/indra_parser.js",
+    "name": "indra_parser",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "1_logic/induction_orchestrator.js",
+    "name": "induction_orchestrator",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "1_logic/logic_engine.js",
+    "name": "logic_engine",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "1_logic/logic_wrappers.js",
+    "name": "logic_wrappers",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "1_logic/protocol_router.js",
+    "name": "protocol_router",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "1_logic/provider_registry.js",
+    "name": "provider_registry",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "1_logic/workflow_executor.js",
+    "name": "workflow_executor",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/adapter_google_calendar.js",
+    "name": "adapter_google_calendar",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/adapter_tabular_calendar.js",
+    "name": "adapter_tabular_calendar",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/provider_calendar_universal.js",
+    "name": "provider_calendar_universal",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/provider_drive.js",
+    "name": "provider_drive",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/provider_intelligence.js",
+    "name": "provider_intelligence",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/provider_notion.js",
+    "name": "provider_notion",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/provider_pipeline.js",
+    "name": "provider_pipeline",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/provider_system.js",
+    "name": "provider_system",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/provider_system_diagnostics.js",
+    "name": "provider_system_diagnostics",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/provider_system_infrastructure.js",
+    "name": "provider_system_infrastructure",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/provider_system_ledger.gs",
+    "name": "provider_system_ledger",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/provider_system_logic.js",
+    "name": "provider_system_logic",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/provider_system_workspace.js",
+    "name": "provider_system_workspace",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "3_services/keychain_service.js",
+    "name": "keychain_service",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "3_services/monitoring_service.js",
+    "name": "monitoring_service",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "3_services/peristaltic_service.js",
+    "name": "peristaltic_service",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "3_services/pulse_service.js",
+    "name": "pulse_service",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "3_services/resonance_service.gs",
+    "name": "resonance_service",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "3_services/resource_broker.js",
+    "name": "resource_broker",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "3_services/system_config.js",
+    "name": "system_config",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "3_services/trigger_hub.js",
+    "name": "trigger_hub",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "3_services/trigger_service.js",
+    "name": "trigger_service",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "4_support/blueprint_manager.js",
+    "name": "blueprint_manager",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "4_support/connection_diagnostic.js",
+    "name": "connection_diagnostic",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "4_support/error_handler.js",
+    "name": "error_handler",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "4_support/pulse_ledger.js",
+    "name": "pulse_ledger",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "4_support/share_manager.js",
+    "name": "share_manager",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "4_support/system_physical_anchor.js",
+    "name": "system_physical_anchor",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "4_support/trigger_registry.js",
+    "name": "trigger_registry",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "5_diagnostics/auth_trigger.js",
+    "name": "auth_trigger",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "5_diagnostics/diagnostic_hub.js",
+    "name": "diagnostic_hub",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "5_diagnostics/integrity_check.js",
+    "name": "integrity_check",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "5_diagnostics/integrity_suite.js",
+    "name": "integrity_suite",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "6_audit/Reseteo_dev.gs",
+    "name": "Reseteo_dev",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "6_audit/resonance_audit.js",
+    "name": "resonance_audit",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "seed_loader.gs",
+    "name": "seed_loader",
+    "type": "SERVER_JS"
+  }
 ]

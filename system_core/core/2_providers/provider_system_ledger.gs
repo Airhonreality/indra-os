@@ -6,7 +6,7 @@
 // =============================================================================
 
 const LEDGER_SHEET_NAME = 'ATOMS';
-const MASTER_MASTER_LEDGER_COLUMNS = ['gid', 'drive_id', 'class', 'alias', 'label', 'owner_id', 'updated_at', 'payload_json'];
+const MASTER_LEDGER_COLUMNS = ['gid', 'drive_id', 'class', 'alias', 'label', 'owner_id', 'updated_at', 'payload_json'];
 
 /**
  * Obtiene la Sheet del Ledger. Lanza error fatal si no existe o no es accesible.

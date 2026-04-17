@@ -4,7 +4,7 @@
 // RESPONSABILIDAD: El único doPost del sistema. Soberanía de la entrada.
 // =============================================================================
 
-const CORE_VERSION = "0.4.0"; // Versión Micelar Actual
+const CORE_VERSION = "0.4.26-ALPHA"; // Versión Micelar con Sondas de Identidad
 
 const GATEWAY_SYSTEM_PROTOCOLS = Object.freeze([
   'SYSTEM_MANIFEST',
@@ -33,7 +33,13 @@ function doGet(e) {
     if (action === 'getShareTicket' && e.parameter.id) {
        return _buildResponse_(200, _share_getTicket(e.parameter.id));
     }
-    return _buildResponse_(200, { metadata: { status: isBootstrapped() ? 'OK' : 'BOOTSTRAP', timestamp: new Date().toISOString() } });
+    return _buildResponse_(200, { 
+    metadata: { 
+      status: isBootstrapped() ? 'OK' : 'BOOTSTRAP', 
+      core_id: readCoreOwnerEmail(),
+      timestamp: new Date().toISOString() 
+    } 
+  });
   } catch (err) {
     return _buildResponse_(500, { metadata: { status: 'ERROR', error: err.message } });
   }

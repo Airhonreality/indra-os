@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProtocol } from '../../context/ProtocolContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import { useShell } from '../../context/ShellContext';
@@ -46,7 +46,7 @@ export function NexusView() {
 
     const t = useLexicon(lang);
 
-    React.useEffect(() => {
+    useEffect(() => {
         hydrateManifest();
     }, [hydrateManifest]);
 

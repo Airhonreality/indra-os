@@ -270,13 +270,13 @@
     "type": "SERVER_JS"
   },
   {
-    "path": "6_audit/resonance_audit.gs",
-    "name": "resonance_audit",
+    "path": "6_audit/UpdateManifest_Dev.gs",
+    "name": "UpdateManifest_Dev",
     "type": "SERVER_JS"
   },
   {
-    "path": "6_audit/UpdateManifest_Dev.gs",
-    "name": "UpdateManifest_Dev",
+    "path": "6_audit/resonance_audit.gs",
+    "name": "resonance_audit",
     "type": "SERVER_JS"
   },
   {

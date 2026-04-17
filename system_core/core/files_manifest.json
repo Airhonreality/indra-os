@@ -50,6 +50,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "1_logic/system_orchestrator.js",
+    "name": "system_orchestrator",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "1_logic/logic_engine.js",
     "name": "logic_engine",
     "type": "SERVER_JS"
@@ -67,11 +72,6 @@
   {
     "path": "1_logic/provider_registry.js",
     "name": "provider_registry",
-    "type": "SERVER_JS"
-  },
-  {
-    "path": "1_logic/system_orchestrator.js",
-    "name": "system_orchestrator",
     "type": "SERVER_JS"
   },
   {
@@ -130,6 +130,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "2_providers/provider_system_identity.js",
+    "name": "provider_system_identity",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "2_providers/provider_system_infrastructure.js",
     "name": "provider_system_infrastructure",
     "type": "SERVER_JS"
@@ -162,6 +167,11 @@
   {
     "path": "3_services/monitoring_service.js",
     "name": "monitoring_service",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "3_services/nexus_service.js",
+    "name": "nexus_service",
     "type": "SERVER_JS"
   },
   {

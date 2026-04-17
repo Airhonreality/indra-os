@@ -28,6 +28,13 @@ const SystemOrchestrator = (function() {
     if (protocol === 'SYSTEM_KEYCHAIN_REVOKE') return _keychain_revoke(payload);
     if (protocol === 'SYSTEM_KEYCHAIN_AUDIT') return _keychain_audit(payload);
     if (protocol === 'SYSTEM_BATCH_EXECUTE') return _handleBatchExecute_(payload);
+    
+    // --- NEXUS & SOCIAL (v4.70) ---
+    if (protocol === 'SYSTEM_NEXUS_HANDSHAKE_INIT') return NexusService.initiateHandshake(payload.data.remote_url, payload.data.alias);
+    if (protocol === 'SYSTEM_NEXUS_HANDSHAKE_ACCEPT') return NexusService.acceptHandshake(uqo);
+    if (protocol === 'SYSTEM_IDENTITY_CREATE') return IdentityProvider.createProfile(payload);
+    if (protocol === 'SYSTEM_IDENTITY_READ') return IdentityProvider.getProfile(payload.data.id || payload.data.alias);
+
     if (protocol === 'SYSTEM_INSTALL_HANDSHAKE') return { metadata: { status: 'OK' } };
     if (protocol === 'SYSTEM_RESONANCE_CRYSTALLIZE') return resonance_service_crystallize(payload);
     

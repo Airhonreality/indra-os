@@ -5,7 +5,7 @@
  *    /$$$$$$ / /$$   /$$ /$$$$$$$  /$$$$$$$   /$$$$$$         /$$$$$$   /$$$$$$ 
  *   |_  $$_/|/| $$$ | $$| $$__  $$| $$__  $$ /$$__  $$       /$$__  $$ /$$__  $$
  *     | $$    | $$$$| $$| $$  \ $$| $$  \ $$| $$  \ $$      | $$  \__/| $$  \__/
- *     | $$    | $$ $$ $$| $$  | $$| $$$$$$$/| $$$$$$$$      |  $$$$$$ |  $$$$$$ 
+ *     | $$    | $$ $$ $$| $$  | $$$$$$$/| $$$$$$$$      |  $$$$$$ |  $$$$$$ 
  *     | $$    | $$  $$$$| $$  | $$| $$__  $$| $$__  $$       \____  $$ \____  $$
  *     | $$    | $$\  $$$| $$  | $$| $$  \ $$| $$  | $$       /$$  \ $$ /$$  \ $$
  *    /$$$$$$ /| $$ \  $$| $$$$$$$/| $$  | $$| $$  | $$      |  $$$$$$/|  $$$$$$/
@@ -29,28 +29,34 @@ function INDRA_MANUAL_GENESIS() {
   console.log("☄️ Iniciando proceso de alta prioridad...");
   
   try {
-    // Forzar activación de servicios
-    DriveApp.getRootFolder();
+    // 1. RECONOCIMIENTO DE SOBERANÍA (Anclaje Inmediato)
+    const email = Session.getEffectiveUser().getEmail();
+    PropertiesService.getScriptProperties().setProperty('SYS_CORE_OWNER_UID', email);
+    console.log("✅ Soberanía de Sangre reconocida para: " + email);
+
+    // 2. ACTIVACIÓN FÍSICA (Trigger de Permisos Google)
+    console.log("🛰️ Sincronizando territorio en Drive...");
+    DriveApp.getRootFolder(); // Fuerza el diálogo de permisos
     
-    // Ejecutar el Renacimiento
-    const response = _system_renaissance_();
+    // 3. EJECUCIÓN DEL RENACIMIENTO
+    console.log("🧬 Iniciando secuencia de Génesis (Renaissance)...");
+    SystemOrchestrator.triggerRenaissance();
     
-    console.log("✨ RESULTADO DE IGNICIÓN ✨");
+    console.log("\n✨ RESULTADO DE IGNICIÓN ✨");
     console.log("===========================");
     console.log("✅ INDRA HA DESPERTADO EXITOSAMENTE.");
-    console.log("La materia ya está sincronizada con tu voluntad.");
+    console.log("El Master Ledger ha sido cristalizado y el dueño ha sido coronado.");
     console.log("");
-    console.log("🚀 PASO FINAL: Vuelve a tu Nexo (la pestaña anterior) y dale a 'Recargar'.");
+    console.log("🚀 PASO FINAL: Vuelve a tu Nexo (Frontend) y recarga la página.");
     console.log("===========================");
 
   } catch (e) {
-    // Si llegamos aquí pero el error es de permisos, es porque el usuario debe clickar de nuevo
+    console.error("❌ ERROR CRÍTICO EN IGNICIÓN: " + e.message);
     if (e.message.indexOf('not authorized') !== -1 || e.message.indexOf('permission') !== -1) {
       console.error("⚠️ PERMISOS PENDIENTES: Debes aceptar los permisos en el cuadro emergente para que Indra pueda nacer.");
     } else {
-      // En caso de éxito silencioso o errores menores de red, reportamos éxito si llegamos al final
-      console.log("✅ IGNICIÓN COMPLETADA.");
-      console.log("Si ves este mensaje, Indra ya tiene acceso a su territorio.");
+      console.error("Stack Trace:\n" + e.stack);
     }
+    throw e; // Lanzar el error para que GAS lo marque en rojo
   }
 }

@@ -50,11 +50,6 @@
     "type": "SERVER_JS"
   },
   {
-    "path": "1_logic/system_orchestrator.js",
-    "name": "system_orchestrator",
-    "type": "SERVER_JS"
-  },
-  {
     "path": "1_logic/logic_engine.js",
     "name": "logic_engine",
     "type": "SERVER_JS"
@@ -75,6 +70,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "1_logic/system_orchestrator.js",
+    "name": "system_orchestrator",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "1_logic/workflow_executor.js",
     "name": "workflow_executor",
     "type": "SERVER_JS"
@@ -87,6 +87,11 @@
   {
     "path": "2_providers/adapter_tabular_calendar.js",
     "name": "adapter_tabular_calendar",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/mount_manager.js",
+    "name": "mount_manager",
     "type": "SERVER_JS"
   },
   {
@@ -135,11 +140,6 @@
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/mount_manager.js",
-    "name": "mount_manager",
-    "type": "SERVER_JS"
-  },
-  {
     "path": "2_providers/provider_system_logic.js",
     "name": "provider_system_logic",
     "type": "SERVER_JS"
@@ -150,13 +150,13 @@
     "type": "SERVER_JS"
   },
   {
-    "path": "3_services/keychain_service.js",
-    "name": "keychain_service",
+    "path": "3_services/auth_service.js",
+    "name": "auth_service",
     "type": "SERVER_JS"
   },
   {
-    "path": "3_services/auth_service.js",
-    "name": "auth_service",
+    "path": "3_services/keychain_service.js",
+    "name": "keychain_service",
     "type": "SERVER_JS"
   },
   {

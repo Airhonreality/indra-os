@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { MIE_PRESETS } from '../../../../services/multimedia_core/mie_config';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 

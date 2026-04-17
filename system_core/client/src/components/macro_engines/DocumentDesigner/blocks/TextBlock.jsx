@@ -1,4 +1,3 @@
-import React from 'react';
 /**
  * =============================================================================
  * ARTEFACTO: DocumentDesigner/blocks/TextBlock.jsx
@@ -7,6 +6,7 @@ import React from 'react';
  * =============================================================================
  */
 
+import React from 'react';
 import { useAxiomStyles } from '../hooks/useAxiomStyles';
 import { assertBlockContract } from '../contracts/assertBlockContract';
 

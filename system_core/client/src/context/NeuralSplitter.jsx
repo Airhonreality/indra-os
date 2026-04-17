@@ -1,3 +1,4 @@
+import React from 'react';
 import { ProtocolProvider, useProtocol } from './ProtocolContext';
 import { WorkspaceProvider, useWorkspace } from './WorkspaceContext';
 import { ShellProvider, useShell } from './ShellContext';

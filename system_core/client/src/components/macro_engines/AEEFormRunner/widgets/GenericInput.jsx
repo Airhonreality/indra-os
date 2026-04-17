@@ -1,3 +1,4 @@
+import React from 'react';
 
 /**
  * GenericInput: Maneja tipos básicos (Text, Number, Long Text).

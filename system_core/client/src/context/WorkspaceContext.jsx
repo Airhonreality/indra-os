@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import React, { createContext, useContext } from 'react';
 import { useAppState } from '../state/app_state';
 
 const WorkspaceContext = createContext();

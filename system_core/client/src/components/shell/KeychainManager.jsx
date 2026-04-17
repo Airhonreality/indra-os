@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProtocol } from '../../context/NeuralSplitter';
 import { useLexicon } from '../../services/lexicon';
 

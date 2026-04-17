@@ -1,3 +1,4 @@
+import React from 'react';
 import { CoreRadialDiagram } from './CoreRadialDiagram';
 import { UIDashboardMockup } from './UIDashboardMockup';
 import { SovereignInfraDiagram } from './SovereignInfraDiagram';

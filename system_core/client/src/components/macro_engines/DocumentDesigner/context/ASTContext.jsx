@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import React, { createContext, useContext } from 'react';
 import { useDocumentAST } from '../hooks/useDocumentAST';
 
 const ASTContext = createContext();

@@ -5,6 +5,7 @@
  * =============================================================================
  */
 
+import React from 'react';
 
 const RADIUS_OPTIONS = [
     { label: 'None', value: '0px' },

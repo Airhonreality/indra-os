@@ -5,6 +5,7 @@
  * =============================================================================
  */
 
+import React from 'react';
 import FrameBlock from '../blocks/FrameBlock';
 import TextBlock from '../blocks/TextBlock';
 import ImageBlock from '../blocks/ImageBlock';

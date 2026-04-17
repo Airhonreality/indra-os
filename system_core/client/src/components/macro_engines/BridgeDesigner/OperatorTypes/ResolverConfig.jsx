@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MappingSelect } from '../MappingSelect';
 import ArtifactSelector from '../../../utilities/ArtifactSelector';
 import { IndraIcon } from '../../../utilities/IndraIcons';

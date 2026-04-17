@@ -14,6 +14,7 @@
  *   size        — 'sm' | 'md' | 'lg': escala del componente. Default: 'md'
  * =============================================================================
  */
+import React from 'react';
 import { IndraIcon } from '../IndraIcons';
 
 export function EmptyState({ icon = 'ATOM', title, description = null, action = null, size = 'md' }) {

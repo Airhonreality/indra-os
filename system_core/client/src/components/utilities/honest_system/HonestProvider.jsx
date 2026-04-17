@@ -6,6 +6,7 @@
  * =============================================================================
  */
 
+import React from 'react';
 import { AxiomRegistry } from '../../../services/AxiomRegistry';
 
 export const HonestContext = React.createContext(null);

@@ -10,7 +10,7 @@
  * =============================================================================
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { executeDirective } from '../../../services/directive_executor';
 import { useAppState } from '../../../state/app_state';

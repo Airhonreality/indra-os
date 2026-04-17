@@ -6,7 +6,7 @@
  * =============================================================================
  */
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useWorkflow } from './context/WorkflowContext';
 import { IndraIcon } from '../../utilities/IndraIcons';
 

@@ -5,6 +5,7 @@
  * =============================================================================
  */
 
+import React from 'react';
 
 const SIZE_OPTIONS = [
     { label: '2XS', value: 'var(--text-2xs)' },

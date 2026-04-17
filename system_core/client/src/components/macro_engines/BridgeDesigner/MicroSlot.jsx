@@ -9,6 +9,7 @@
  * =============================================================================
  */
 
+import React from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 
 export function MicroSlot({ value, label, onActivate, isActive, placeholder = "SELECT_SLOT" }) {

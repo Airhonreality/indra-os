@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import { useGuestCore } from '../hooks/useGuestCore';
 import { MIEDropzone } from '../widgets/MIEDropzone';

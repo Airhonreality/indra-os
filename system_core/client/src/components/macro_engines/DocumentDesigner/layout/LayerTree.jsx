@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import { IndraActionTrigger } from '../../../utilities/IndraActionTrigger';
 import { DragHandle } from '../../../utilities/primitives/DragHandle';

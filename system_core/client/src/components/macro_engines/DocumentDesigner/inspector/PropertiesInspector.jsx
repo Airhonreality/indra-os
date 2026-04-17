@@ -9,7 +9,7 @@
  * =============================================================================
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAST } from '../context/ASTContext';
 import { useSelection } from '../context/SelectionContext';
 import { blockManifests } from './inspectorManifests';

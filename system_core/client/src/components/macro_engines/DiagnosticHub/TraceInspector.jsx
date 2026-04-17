@@ -10,7 +10,7 @@
  * =============================================================================
  */
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import * as CopyUtils from './CopyUtils';
 

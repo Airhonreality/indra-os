@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MIEDropzone } from '../widgets/MIEDropzone';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import JSZip from 'jszip';

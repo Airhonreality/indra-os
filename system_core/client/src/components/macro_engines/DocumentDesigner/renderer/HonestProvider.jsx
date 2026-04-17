@@ -1,4 +1,3 @@
-import React from 'react';
 /**
  * =============================================================================
  * ARTEFACTO: DocumentDesigner/renderer/HonestProvider.jsx
@@ -7,6 +6,7 @@ import React from 'react';
  * =============================================================================
  */
 
+import React from 'react';
 import { AxiomRegistry } from '../../../../services/AxiomRegistry';
 
 export const HonestContext = React.createContext(null);

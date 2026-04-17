@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ingestManager } from '../../../../services/multimedia_core/PeristalticIngestManager';
 import { useIngestBridge } from '../../../../services/multimedia_core/useIngestBridge';
 import { IndraIcon } from '../../../utilities/IndraIcons';

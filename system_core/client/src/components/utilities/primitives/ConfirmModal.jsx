@@ -18,7 +18,7 @@
  *   danger      — boolean: si true, botón confirm en rojo. Default: false
  * =============================================================================
  */
-import { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 
 export function ConfirmModal({
     isOpen,

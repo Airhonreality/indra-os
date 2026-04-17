@@ -5,6 +5,7 @@
  * =============================================================================
  */
 
+import React from 'react';
 
 const PRESETS = [
     { label: 'Void', value: 'var(--color-bg-void)' },

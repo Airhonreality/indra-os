@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { IndraIcon } from './IndraIcons';
 import { IndraActionTrigger } from './IndraActionTrigger';
 import { useShell } from '../../context/ShellContext';

@@ -1,4 +1,3 @@
-import React from 'react';
 /**
  * =============================================================================
  * ARTEFACTO: AEE_Dashboard.jsx
@@ -10,6 +9,7 @@ import React from 'react';
  * =============================================================================
  */
 
+import React from 'react';
 import { useAEESession } from './useAEESession';
 import { FormRunner } from './FormRunner';
 import { ResultPanel } from './ResultPanel';

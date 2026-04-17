@@ -12,6 +12,7 @@
  *   label   — string | null: texto opcional debajo del spinner
  * =============================================================================
  */
+import React from 'react';
 import { FractalLogo } from '../../shell/Landing/FractalLogo';
 
 export function Spinner({ size = '24px', color = 'var(--color-accent)', label = null, variant = 'pixel' }) {

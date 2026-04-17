@@ -15,7 +15,7 @@
  *   readOnly    — boolean: bloquea la edición
  * =============================================================================
  */
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 export function EditableLabel({ value, onCommit, placeholder = 'UNTITLED', style = {}, className = '', readOnly = false }) {
     const [isEditing, setIsEditing] = useState(false);

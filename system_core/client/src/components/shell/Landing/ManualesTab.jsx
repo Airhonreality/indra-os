@@ -1,3 +1,4 @@
+import React from 'react';
 
 export const ManualesTab = () => (
     <div style={{maxWidth: '1000px', width: '90%', margin: '0 auto', padding: '160px 0'}}>

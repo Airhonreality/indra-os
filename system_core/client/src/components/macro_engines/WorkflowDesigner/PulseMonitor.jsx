@@ -12,7 +12,7 @@
  * No eliminar archivo aún (preservado para rollback).
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { useLexicon } from '../../../services/lexicon';
 import { executeDirective } from '../../../services/directive_executor';

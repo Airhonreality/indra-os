@@ -1,3 +1,4 @@
+import React from 'react';
 import { MappingSelect } from '../MappingSelect';
 
 export function TextConfig({ config, onUpdate, options = [] }) {

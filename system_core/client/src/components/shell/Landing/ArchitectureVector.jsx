@@ -1,3 +1,4 @@
+import React from 'react';
 
 /**
  * ArchitectureVector — Streamlined Minimalist Edition

@@ -8,6 +8,7 @@
  * =============================================================================
  */
 
+import React from 'react';
 import { IndraIcon } from './IndraIcons';
 import { DataProjector } from '../../services/DataProjector';
 import { IndraFractalTree } from './IndraFractalTree';

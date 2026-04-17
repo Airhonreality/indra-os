@@ -5,6 +5,7 @@
  * =============================================================================
  */
 
+import React from 'react';
 
 export function AlignmentControl({ items, justify, onChange }) {
     // Mapeo simple de una cuadrícula 3x3 a combinaciones Flexbox

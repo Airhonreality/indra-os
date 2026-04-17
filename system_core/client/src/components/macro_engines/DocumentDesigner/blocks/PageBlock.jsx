@@ -6,6 +6,7 @@
  * =============================================================================
  */
 
+import React from 'react';
 import { useAxiomStyles } from '../hooks/useAxiomStyles';
 import { assertBlockContract } from '../contracts/assertBlockContract';
 

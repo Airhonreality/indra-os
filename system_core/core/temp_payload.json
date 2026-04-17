@@ -1,0 +1,14 @@
+{
+  "protocol": "ATOM_CREATE",
+  "provider": "system",
+  "data": {
+    "class": "WORKSPACE",
+    "handle": {
+      "alias": "curl_direct_test",
+      "label": "CURL_DIRECT_WORK"
+    },
+    "payload": {
+      "description": "Prueba directa desde el terminal de Indra."
+    }
+  }
+}

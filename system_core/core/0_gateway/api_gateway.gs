@@ -4,7 +4,7 @@
 // RESPONSABILIDAD: El único doPost del sistema. Soberanía de la entrada.
 // =============================================================================
 
-const CORE_VERSION = "v4.84-NEXUS-OMNI-K"; // FASE: Interconectividad Multinodal y Nexo Social.
+const CORE_VERSION = "v4.90-NEXUS-OMNI-K"; // FASE: Interconectividad Multinodal y Nexo Social.
 
 const GATEWAY_SYSTEM_PROTOCOLS = Object.freeze([
   'SYSTEM_MANIFEST',
@@ -93,13 +93,19 @@ function doPost(e) {
 
     let result;
     try {
-      console.log('[GATEWAY_INPUT] Protocolo:', payload.protocol, '| Owner:', payload.effective_owner, '| Master:', payload.is_master_access);
+      console.log(`[GATEWAY_INPUT] Indra Core ${CORE_VERSION} | Protocolo: ${payload.protocol} | Owner: ${payload.effective_owner}`);
       
       result = (GATEWAY_SYSTEM_PROTOCOLS.includes(payload.protocol) || payload.protocol.startsWith('EMERGENCY_')) 
         ? SystemOrchestrator.dispatch(payload) 
         : route(payload);
         
-      console.log('[GATEWAY_OUTPUT] Status:', result?.metadata?.status || 'UNKNOWN');
+      // AXIOMA DE TRAZABILIDAD (v4.90): Inyectamos versión en cada respuesta
+      result.metadata = result.metadata || {};
+      result.metadata.status = result.metadata.status || 'OK';
+      result.metadata.core_version = CORE_VERSION;
+      result.metadata.server_timestamp = new Date().toISOString();
+
+      console.log(`[GATEWAY_OUTPUT] ${payload.protocol} -> ${result.metadata.status}`);
     } catch (routeError) {
       console.error('[gateway] Error fatal en el despacho del protocolo:', routeError);
       return _buildResponse_(500, { metadata: { status: 'ERROR', error: routeError.message } });

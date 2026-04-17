@@ -56,8 +56,8 @@ function DEV_DEBUG_AtomicIgnitionTest() {
 
     console.log('   > Petición Enviada (Payload):', JSON.stringify(mockUqo, null, 2));
     
-    // Ejecutamos directamente el orquestador de sistema
-    const response = SystemOrchestrator.dispatch(mockUqo);
+    // AXIOMA DE INTEGRACIÓN: Usamos el enrutador real (protocol_router.gs)
+    const response = route(mockUqo);
     
     console.log('   > Respuesta Recibida (Atomic Payload):', JSON.stringify(response, null, 2));
 

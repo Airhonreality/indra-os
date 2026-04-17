@@ -272,7 +272,13 @@ function getProviderConf(providerId) {
   // Extraer el baseId por si viene con cuenta (ej: notion:HG -> notion)
   const baseId = providerId.split(':')[0];
   const funcName = `${SILO_MANIFEST_PREFIX}${baseId.toUpperCase()}`;
-  const manifestFunc = globalThis[funcName];
+  
+  // AXIOMA DE RESOLUCIÓN RESILIENTE (v4.86)
+  let manifestFunc = globalThis[funcName];
+  if (!manifestFunc && typeof this[funcName] === 'function') manifestFunc = this[funcName];
+  if (!manifestFunc && typeof eval === 'function') {
+    try { manifestFunc = eval(funcName); } catch(e) {}
+  }
 
   if (typeof manifestFunc !== 'function') {
     logWarn(`[provider_registry] Silo no encontrado o no manifestado: "${baseId}" (buscado: ${funcName})`);

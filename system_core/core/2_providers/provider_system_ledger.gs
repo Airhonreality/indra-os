@@ -25,29 +25,49 @@ function _ledger_get_sheet_(allowMissing = false) {
   const ledgerId = readMasterLedgerId();
   if (!ledgerId) {
     if (allowMissing) return null;
-    
-    logWarn('[ledger] CRÍTICO: No hay MASTER_LEDGER_ID configurado en el sistema.');
-    return _ledger_get_sheet_(true) || SpreadsheetApp.openById(ledger_initialize_new()).getSheetByName(LEDGER_SHEET_NAME);
+    logWarn('[ledger] CRÍTICO: No hay MASTER_LEDGER_ID.');
+    return SpreadsheetApp.openById(ledger_initialize_new()).getSheetByName(LEDGER_SHEET_NAME);
   }
 
-  logDebug(`[ledger] Intentando abrir Ledger ID: ${ledgerId}`);
   try {
     const ss = SpreadsheetApp.openById(ledgerId);
     let sheet = ss.getSheetByName(LEDGER_SHEET_NAME);
     if (!sheet && allowMissing) {
-      // Si estamos reconstruyendo, nos aseguramos de que la pestaña exista
       sheet = ss.insertSheet(LEDGER_SHEET_NAME);
       sheet.appendRow(MASTER_LEDGER_COLUMNS);
       sheet.setFrozenRows(1);
     }
-    if (!sheet) {
-      throw new Error(`RED_ALERT: La pestaña "${LEDGER_SHEET_NAME}" no existe en el Ledger.`);
-    }
     return sheet;
   } catch (e) {
     if (allowMissing) return null;
-    throw new Error(`CRITICAL_INFRASTRUCTURE_FAILURE: El Ledger es inaccesible. ${e.message}`);
+    throw new Error(`CRITICAL_INFRA_FAILURE: ${e.message}`);
   }
+}
+
+/**
+ * Interceptor Relacional Yoneda (v5.1)
+ * Descubre y monta el Ledger local de una célula basándose en el UQO.
+ */
+function _ledger_get_target_sheet_(uqo) {
+  const wsId = uqo?.workspace_id || uqo?.context_id;
+  
+  // AXIOMA: Si no hay contexto o es el sistema, usamos el ROOT
+  if (!wsId || wsId === 'system' || wsId === 'workspaces') return _ledger_get_sheet_();
+  
+  // 1. Verificar si ya está montado en memoria efímera
+  const cached = MountManager.getMount(wsId);
+  if (cached) return SpreadsheetApp.openById(cached).getSheetByName(LEDGER_SHEET_NAME);
+  
+  // 2. Handshake Relacional: buscar en INFRASTRUCTURE del ROOT
+  // Nota: Esto es el "Descubrimiento de Célula"
+  const cellLedgerId = ledger_infra_get(`cell_ledger_${wsId}`);
+  if (cellLedgerId) {
+    MountManager.mountTransient(wsId, cellLedgerId);
+    return SpreadsheetApp.openById(cellLedgerId).getSheetByName(LEDGER_SHEET_NAME);
+  }
+  
+  // Fallback al ROOT si la célula no tiene núcleo propio (Legado)
+  return _ledger_get_sheet_();
 }
 
 /**
@@ -55,12 +75,12 @@ function _ledger_get_sheet_(allowMissing = false) {
  * @param {Object} atom - El objeto átomo según ADR-001.
  * @param {string} driveId - El ID físico en Google Drive.
  */
-function ledger_sync_atom(atom, driveId) {
-  const sheet = _ledger_get_sheet_();
+function ledger_sync_atom(atom, driveId, contextUqo) {
+  const sheet = _ledger_get_target_sheet_(contextUqo);
   const lock = LockService.getScriptLock();
   
   try {
-    if (!lock.tryLock(5000)) throw new Error('LEDGER_LOCK_TIMEOUT: No se pudo sincronizar el átomo.');
+    if (!lock.tryLock(5000)) throw new Error('LEDGER_LOCK_TIMEOUT');
 
     const rowData = _ledger_build_row_(atom, driveId);
     const data = sheet.getDataRange().getValues();
@@ -69,10 +89,10 @@ function ledger_sync_atom(atom, driveId) {
     const index = data.findIndex(row => row[1] === driveId);
 
     if (index === -1) {
-      logInfo(`[ledger] Insertando nuevo átomo en Ledger. Clase: ${atom.class}, ID: ${driveId}`);
+      logInfo(`[ledger] Insertando en Ledger. Clase: ${atom.class}`);
       sheet.appendRow(rowData);
     } else {
-      logInfo(`[ledger] Actualizando átomo existente en fila ${index + 1}. ID: ${driveId}`);
+      logInfo(`[ledger] Actualizando en Ledger. ID: ${driveId}`);
       sheet.getRange(index + 1, 1, 1, rowData.length).setValues([rowData]);
     }
   } finally {
@@ -111,16 +131,16 @@ function _ledger_build_row_(atom, driveId) {
  * @param {string} atomClass 
  * @returns {Array<Object>}
  */
-function ledger_list_by_class(atomClass) {
-  const sheet = _ledger_get_sheet_();
+function ledger_list_by_class(atomClass, contextUqo) {
+  const sheet = _ledger_get_target_sheet_(contextUqo);
   const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return []; // Solo cabeceras
+  if (data.length <= 1) return [];
 
   return data
     .filter(row => row[2] === atomClass)
     .map(row => ({
       gid: row[0],
-      id: row[1], // drive_id
+      id: row[1],
       class: row[2],
       handle: { alias: row[3], label: row[4] },
       owner_id: row[5],
@@ -202,6 +222,52 @@ function ledger_initialize_new() {
   healthSheet.setFrozenRows(1);
   
   return ledgerId;
+}
+
+/**
+ * Inicializa un Ledger Local para una célula (Workspace).
+ * Axioma v5.1: Portabilidad y Aislamiento Micelar.
+ * @param {string} folderId - ID de la carpeta del Workspace.
+ * @param {string} label - Nombre del Workspace.
+ * @returns {string} El ID de la nueva Spreadsheet local.
+ */
+function ledger_initialize_cell(folderId, label) {
+  logInfo(`[ledger_cell] Forjando Núcleo Local para: ${label}...`);
+  
+  const folder = DriveApp.getFolderById(folderId);
+  const ss = SpreadsheetApp.create(`LEDGER_${label.toUpperCase().replace(/\s+/g, '_')}`);
+  const sheetId = ss.getId();
+  
+  // 1. Mover a la membrana de la célula
+  DriveApp.getFileById(sheetId).moveTo(folder);
+  
+  // 2. Inicializar pestañas mínimas (ATOMS e INFRA)
+  const atomSheet = ss.getSheets()[0];
+  atomSheet.setName(LEDGER_SHEET_NAME);
+  atomSheet.appendRow(MASTER_LEDGER_COLUMNS);
+  atomSheet.setFrozenRows(1);
+
+  const infraSheet = ss.insertSheet(INFRA_SHEET_NAME);
+  infraSheet.appendRow(INFRA_COLUMNS);
+  infraSheet.setFrozenRows(1);
+  
+  // 3. Crear Manifiesto Celular (Axioma de Identidad relacional v5.1)
+  const cellManifest = {
+    id: folderId,
+    class: 'WORKSPACE',
+    handle: { alias: label.toLowerCase().replace(/\s+/g, '_'), label: label },
+    membrane: {
+      version: 'v5.1-CELL',
+      core_parent: readRootFolderId(),
+      ledger_id: sheetId
+    },
+    capabilities: ['ATOM_READ', 'ATOM_WRITE', 'PINS_READ'],
+    relations: [] // Espacio para Trazabilidad Yoneda
+  };
+  folder.createFile('manifest.json', JSON.stringify(cellManifest, null, 2));
+
+  logInfo(`[ledger_cell] Núcleo y Manifiesto cristalizados: ${sheetId}`);
+  return sheetId;
 }
 
 /**

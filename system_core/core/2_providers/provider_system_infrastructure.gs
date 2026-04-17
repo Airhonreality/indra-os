@@ -467,7 +467,7 @@ function _system_listAtomsByClass(atomClass, providerId, uqo) {
     try {
         // AXIOMA 1: FALLO RUIDOSO. Si el sistema está bootstrapped y no hay Ledger,
         // lanzamos un error en lugar de usar Drive legacy.
-        const items = ledger_list_by_class(atomClass);
+        const items = ledger_list_by_class(atomClass, uqo);
         
         // Transformar a Átomos de Sistema (Contrato Universal ADR-001)
         // Nota: ledger_list_by_class ya devuelve objetos semi-formados, 
@@ -558,16 +558,27 @@ function _system_createAtom(atomClass, label, uqo) {
         const driveId = file.getId();
         logInfo(`[infrastructure] Átomo creado físicamente en Drive. ID: ${driveId}`);
         atomDoc.id = driveId;
+
+        // AXIOMA v5.1: DIFERENCIACIÓN CELULAR (Génesis de Célula)
+        // Si el átomo es un WORKSPACE, forjamos su propio núcleo local (Ledger).
+        if (atomClass === WORKSPACE_CLASS_) {
+            const cellLedgerId = ledger_initialize_cell(subfolder.getId(), label);
+            atomDoc.payload.cell_folder_id = subfolder.getId();
+            atomDoc.payload.cell_ledger_id = cellLedgerId;
+            
+            // Handshake Relacional: Registrar en el mapa de infraestructura del ROOT
+            ledger_infra_sync(`cell_ledger_${driveId}`, cellLedgerId, `Núcleo de ${label}`);
+        }
         
         // Persistir con el ID ya inyectado (Shadow Backup)
         file.setContent(JSON.stringify(atomDoc, null, 2));
 
         // AXIOMA: Sincronización obligatoria con el Ledger (Transaccional)
         try {
-            ledger_sync_atom(atomDoc, driveId);
+            ledger_sync_atom(atomDoc, driveId, uqo);
         } catch (ledgerErr) {
-            logError(`[infrastructure] FALLO CRÍTICO EN LEDGER. Realizando Rollback físico de: ${driveId}`, ledgerErr);
-            file.setTrashed(true); // Purga inmediata del "Átomo Huérfano"
+            logError(`[infrastructure] FALLO EN LEDGER. Realizando Rollback físico de: ${driveId}`, ledgerErr);
+            file.setTrashed(true); 
             throw ledgerErr;
         }
 

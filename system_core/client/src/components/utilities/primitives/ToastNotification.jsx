@@ -18,7 +18,7 @@
  * PROPS de ToastNotification: message, type, duration, onDismiss
  * =============================================================================
  */
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { toastEmitter } from '../../../services/toastEmitter';
 
 // ── CONTEXT ──

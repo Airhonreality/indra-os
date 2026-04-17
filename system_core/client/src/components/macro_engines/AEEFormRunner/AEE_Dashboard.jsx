@@ -9,7 +9,6 @@
  * =============================================================================
  */
 
-import React from 'react';
 import { useAEESession } from './useAEESession';
 import { FormRunner } from './FormRunner';
 import { ResultPanel } from './ResultPanel';

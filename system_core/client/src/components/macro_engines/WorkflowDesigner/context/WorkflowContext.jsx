@@ -5,7 +5,7 @@
  * =============================================================================
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { executeDirective } from '../../../../services/directive_executor';
 import { useAppState } from '../../../../state/app_state';
 import { useWorkflowHydration } from '../useWorkflowHydration';

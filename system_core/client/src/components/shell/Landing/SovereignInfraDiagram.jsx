@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * SovereignInfraDiagram — Axiomatic Mental Model

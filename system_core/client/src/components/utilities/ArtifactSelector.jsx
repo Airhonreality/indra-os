@@ -9,7 +9,7 @@
  * =============================================================================
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAppState } from '../../state/app_state.js';
 import { useLexicon } from '../../services/lexicon.js';
 import { executeDirective } from '../../services/directive_executor.js';

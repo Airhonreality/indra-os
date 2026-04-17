@@ -12,7 +12,6 @@
  *   style       — object: estilos adicionales
  * =============================================================================
  */
-import React from 'react';
 import { IndraIcon } from '../IndraIcons';
 
 export function DragHandle({ onMouseDown, size = '12px', style = {} }) {

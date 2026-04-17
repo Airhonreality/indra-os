@@ -1,4 +1,3 @@
-import React from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { MarkdownProjector } from '../../utilities/MarkdownProjector';
 

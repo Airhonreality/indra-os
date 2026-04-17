@@ -4,7 +4,7 @@
  * Permite gestionar llaves de IA in-situ.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { IndraIcon } from './IndraIcons';
 import { sovereignIntelligence } from '../../services/SovereignIntelligenceProvider';
 import { useLexicon } from '../../services/lexicon';

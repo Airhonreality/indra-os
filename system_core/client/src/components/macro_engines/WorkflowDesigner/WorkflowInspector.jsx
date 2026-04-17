@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useWorkflow } from './context/WorkflowContext';
 import { SlotSelector } from '../../utilities/SlotSelector';
 import ArtifactSelector from '../../utilities/ArtifactSelector';

@@ -1,4 +1,3 @@
-import React from 'react';
 
 export function IndraLoadingBar({ width = '140px', height = '4px' }) {
     return (

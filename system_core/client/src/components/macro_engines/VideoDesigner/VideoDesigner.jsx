@@ -1,4 +1,3 @@
-import React from 'react';
 import { useVideoEngine } from './hooks/useVideoEngine';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
 import { IndraIcon } from '../../utilities/IndraIcons';

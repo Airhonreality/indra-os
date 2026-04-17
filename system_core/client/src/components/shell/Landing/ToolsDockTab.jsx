@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { useAppState } from '../../../state/app_state';
 

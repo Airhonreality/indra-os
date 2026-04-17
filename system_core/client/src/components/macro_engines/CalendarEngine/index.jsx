@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useWorkspace } from '../../../context/WorkspaceContext';
 import { NexusServiceSlot } from '../../utilities/NexusServiceSlot';
 import { IndraFractalTree } from '../../utilities/IndraFractalTree';

@@ -15,7 +15,6 @@
  * =============================================================================
  */
 
-import React from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { useAppState } from '../../../state/app_state';
 import { executeDirective } from '../../../services/directive_executor';

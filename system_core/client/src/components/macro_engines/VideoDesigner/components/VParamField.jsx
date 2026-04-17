@@ -1,4 +1,3 @@
-import React from 'react';
 import { useVideoParams } from '../hooks/useVideoParams';
 
 /**

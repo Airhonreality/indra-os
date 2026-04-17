@@ -1,4 +1,3 @@
-import React from 'react';
 import { CinemaStream } from './CinemaStream';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import { useVideoEngine } from '../hooks/useVideoEngine';

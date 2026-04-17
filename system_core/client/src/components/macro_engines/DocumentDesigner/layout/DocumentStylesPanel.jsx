@@ -6,7 +6,6 @@
  * =============================================================================
  */
 
-import React from 'react';
 import { useAST } from '../context/ASTContext';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import { EntityInspectorSection } from '../inspector/EntityInspectorSection';

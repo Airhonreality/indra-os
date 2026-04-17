@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * StatusLed: Pequeño indicador LED para estados binarios (Activo/Inactivo).

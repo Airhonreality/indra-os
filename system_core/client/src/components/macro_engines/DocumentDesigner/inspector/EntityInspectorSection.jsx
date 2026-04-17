@@ -12,7 +12,7 @@
  * =============================================================================
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 
 // ── Persistencia de estado de acordeones (ADR_018 §A4) ──────────────────────

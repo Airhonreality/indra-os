@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { MIEDropzone } from '../widgets/MIEDropzone';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import { useAppState } from '../../../../state/app_state';

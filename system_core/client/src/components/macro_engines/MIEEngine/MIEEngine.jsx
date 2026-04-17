@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppState } from '../../../state/app_state';
 import { MIENavbar } from './layout/MIENavbar';
 import { MIESidebar } from './layout/MIESidebar';

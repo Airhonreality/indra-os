@@ -11,7 +11,7 @@
  * =============================================================================
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import { IndraLoadingBar } from './IndraLoadingBar';
 import { useAppState } from '../../../../state/app_state';

@@ -27,7 +27,6 @@
  *   />
  * =============================================================================
  */
-import React from 'react';
 import { IndraMicroHeader } from './IndraMicroHeader';
 
 const INPUT_BASE = {

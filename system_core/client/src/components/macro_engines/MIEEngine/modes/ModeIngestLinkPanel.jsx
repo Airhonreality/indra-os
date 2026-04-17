@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import { useAppState } from '../../../../state/app_state';
 import { QRCodeSVG } from 'qrcode.react';

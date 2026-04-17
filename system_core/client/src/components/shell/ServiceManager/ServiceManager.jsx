@@ -5,7 +5,7 @@
  * =============================================================================
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useVault } from './useVault';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { useLexicon } from '../../../services/lexicon';

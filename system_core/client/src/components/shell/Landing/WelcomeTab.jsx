@@ -1,4 +1,3 @@
-import React from 'react';
 import { FractalLogo } from './FractalLogo';
 
 const INDRA_TITLE_LETTERS = ['I', 'N', 'D', 'R', 'A'];

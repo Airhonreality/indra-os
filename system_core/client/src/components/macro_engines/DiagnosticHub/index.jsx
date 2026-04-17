@@ -8,7 +8,6 @@
  * =============================================================================
  */
 
-import React from 'react';
 import { PulseRoster } from './PulseRoster';
 import { UQOEditor } from './UQOEditor';
 import { TraceInspector } from './TraceInspector';

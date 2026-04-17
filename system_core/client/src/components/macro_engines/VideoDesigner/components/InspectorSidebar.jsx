@@ -1,4 +1,3 @@
-import React from 'react';
 import { IndraEngineHood } from '../../../utilities/IndraEngineHood';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import { IndraActionTrigger } from '../../../utilities/IndraActionTrigger';

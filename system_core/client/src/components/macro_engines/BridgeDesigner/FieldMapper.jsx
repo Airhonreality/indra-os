@@ -1,4 +1,3 @@
-import React from 'react';
 import { MappingSelect } from './MappingSelect';
 
 export function FieldMapper({ targetId, config = {}, schema, mapping = {}, mappingOptions = [], onUpdateConfig, onUpdateMapping }) {

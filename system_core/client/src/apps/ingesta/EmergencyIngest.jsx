@@ -2,7 +2,7 @@
  * EmergencyIngest.jsx — v4.70
  * UI MINIMALISTA BLANCA: Sin marcas, lenguaje directo y HUD discreto.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { IndraIcon } from '../../components/utilities/IndraIcons';
 import { ingestManager } from '../../services/multimedia_core/PeristalticIngestManager';
 import { IngestBridge } from '../../services/IngestBridge';

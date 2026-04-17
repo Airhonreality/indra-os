@@ -9,7 +9,6 @@
  * =============================================================================
  */
 
-import React from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import { IndraFractalTree } from '../../../utilities/IndraFractalTree';
 import { useWorkflow } from '../context/WorkflowContext';

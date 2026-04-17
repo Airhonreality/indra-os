@@ -5,7 +5,6 @@
  * =============================================================================
  */
 
-import React from 'react';
 import { MappingSelect } from '../MappingSelect';
 
 export function FilterConfig({ config, onUpdate, options = [] }) {

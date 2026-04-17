@@ -14,7 +14,6 @@
  *   variant — 'default' | 'outline' | 'dot': variante visual. Default: 'default'
  * =============================================================================
  */
-import React from 'react';
 import { IndraIcon } from '../IndraIcons';
 
 const SIZE_MAP = {

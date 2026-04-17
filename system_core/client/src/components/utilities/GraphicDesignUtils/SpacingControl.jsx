@@ -5,7 +5,6 @@
  * =============================================================================
  */
 
-import React from 'react';
 
 const SPACING_OPTIONS = [
     { label: 'None', value: 'var(--space-0)' },

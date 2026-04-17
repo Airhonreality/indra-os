@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 
 export const MIEDropzone = ({ onFiles, isProcessing, globalProgress }) => {

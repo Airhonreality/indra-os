@@ -9,7 +9,6 @@
  * =============================================================================
  */
 
-import React from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 
 export function MappingSelect({ value, options = [], onChange, placeholder = "SELECCIONAR FUENTE..." }) {

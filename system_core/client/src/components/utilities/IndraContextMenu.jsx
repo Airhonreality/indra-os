@@ -8,7 +8,7 @@
  * =============================================================================
  */
 
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { IndraIcon } from './IndraIcons';
 
 export function IndraContextMenu({ menu, onClose }) {

@@ -9,7 +9,7 @@
  * =============================================================================
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { IndraIcon } from './IndraIcons';
 import { IndraFractalTree } from './IndraFractalTree';
 import { useAppState } from '../../state/app_state';

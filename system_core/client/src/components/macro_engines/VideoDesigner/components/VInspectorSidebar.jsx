@@ -1,4 +1,3 @@
-import React from 'react';
 import { VParamField } from './VParamField';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 

@@ -9,7 +9,7 @@
  * =============================================================================
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useBridgeHydration } from './useBridgeHydration';
 import { PortManager } from './PortManager';
 import { OperatorCard } from './OperatorCard';

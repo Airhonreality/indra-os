@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { DataProjector } from '../../../services/DataProjector';
 import { useLexicon } from '../../../services/lexicon';

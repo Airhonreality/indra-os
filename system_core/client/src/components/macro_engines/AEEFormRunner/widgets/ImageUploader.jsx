@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import { executeDirective } from '../../../../services/directive_executor';
 import { useIndraResource } from '../../../../hooks/useIndraResource';

@@ -3,7 +3,6 @@
  * PORTAL GLOBAL DE INTELIGENCIA SOBERANA
  */
 
-import React from 'react';
 import { useAppState } from '../../state/app_state';
 import { IntelligencePortal } from '../utilities/IntelligencePortal';
 import { IndraIcon } from '../utilities/IndraIcons';

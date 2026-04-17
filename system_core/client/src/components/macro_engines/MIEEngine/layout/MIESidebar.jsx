@@ -1,4 +1,3 @@
-import React from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import { MIEConfigPanel } from '../widgets/MIEConfigPanel';
 import { MIEDestinationPanel } from '../widgets/MIEDestinationPanel';

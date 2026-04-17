@@ -13,7 +13,7 @@
  * =============================================================================
  */
 
-import React, { useState, useRef, useEffect, Fragment } from 'react';
+import { useState, useRef, useEffect, Fragment } from 'react';
 import { IndraIcon } from './IndraIcons';
 
 export function IndraActionTrigger({

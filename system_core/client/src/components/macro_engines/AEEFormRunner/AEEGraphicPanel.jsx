@@ -1,4 +1,3 @@
-import React from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 
 // Subcomponente simplificado de EntityInspectorSection para no depender del DocumentDesigner

@@ -9,7 +9,6 @@
  * =============================================================================
  */
 
-import React from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { IndraActionTrigger } from '../../utilities/IndraActionTrigger';
 import { EditableLabel } from '../../utilities/primitives';

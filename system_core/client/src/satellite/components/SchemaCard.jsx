@@ -6,7 +6,7 @@
  * =============================================================================
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { SCHEMA_STATUS } from '../hooks/useForgeSync';
 
 const STATUS_CONFIG = {

@@ -7,7 +7,7 @@
  * =============================================================================
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAxiomStyles } from '../hooks/useAxiomStyles';
 import { assertBlockContract } from '../contracts/assertBlockContract';
 import { IndraLoadingBar } from '../layout/IndraLoadingBar';

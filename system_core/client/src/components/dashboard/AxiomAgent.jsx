@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { IndraIcon } from '../utilities/IndraIcons';
 import { sovereignIntelligence } from '../../services/SovereignIntelligenceProvider';
 import { discoveryEngine } from '../../services/MCEP_DiscoveryEngine';

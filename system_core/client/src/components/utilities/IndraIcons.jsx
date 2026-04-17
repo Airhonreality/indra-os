@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import { Fragment } from 'react';
 
 /**
  * IndraIcon — Componente de icono universal.

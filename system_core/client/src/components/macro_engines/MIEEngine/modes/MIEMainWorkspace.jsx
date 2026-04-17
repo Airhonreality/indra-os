@@ -1,4 +1,3 @@
-import React from 'react';
 import { MIEDropzone } from '../widgets/MIEDropzone';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 

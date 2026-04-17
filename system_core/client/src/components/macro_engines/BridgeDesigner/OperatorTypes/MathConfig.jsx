@@ -6,7 +6,6 @@
  * =============================================================================
  */
 
-import React from 'react';
 import { MappingSelect } from '../MappingSelect';
 
 // REGISTRO DE AXIOMAS MATEMÁTICOS (Agnosticismo de Aridad)

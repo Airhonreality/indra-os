@@ -5,7 +5,6 @@
  * =============================================================================
  */
 
-import React from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 
 import { DataProjector } from '../../../../services/DataProjector';

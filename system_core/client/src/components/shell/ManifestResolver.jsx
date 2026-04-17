@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useProtocol } from '../../context/ProtocolContext';
 import { useShell } from '../../context/ShellContext';
 import { useAppState } from '../../state/app_state';

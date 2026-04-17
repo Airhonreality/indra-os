@@ -51,20 +51,29 @@ function _scanProviders() {
   const scope = globalThis || this;
 
   const keysToTry = Array.from(new Set([
-    ...Object.keys(scope).filter(k => k.startsWith(SILO_MANIFEST_PREFIX)),
-    ...knownPrefixes
+    ...knownPrefixes, // PRIORIDAD 0: Inyección explícita para superar falta de enumeración en V8
+    ...Object.keys(scope).filter(k => k.startsWith(SILO_MANIFEST_PREFIX))
   ]));
 
   logInfo(`[provider_registry] Iniciando escaneo. Llaves potenciales: ${keysToTry.length}`);
 
   keysToTry.forEach(key => {
-    if (typeof scope[key] !== 'function') {
-      logInfo(`[provider_registry] Saltando "${key}": No es una función en este scope.`);
+    // AXIOMA DE PERSALENCIA: Intentamos resolver la función incluso si no es enumerable
+    let fn = scope[key];
+    
+    // Cascada de resolución para GAS V8
+    if (!fn && typeof this[key] === 'function') fn = this[key];
+    if (!fn && typeof eval === 'function') {
+       try { fn = eval(key); } catch(e) {}
+    }
+
+    if (typeof fn !== 'function') {
+      logInfo(`[provider_registry] Saltando "${key}": No se pudo resolver como función.`);
       return;
     }
 
     try {
-      const conf = scope[key]();
+      const conf = fn();
       // AXIOMA ESTRUCTURAL: Todo proveedor debe usar el mapa enriquecido "capabilities" (Estándar Moderno).
       // Ya no se aceptan contratos antiguos ('implements' / 'protocols' planos).
       if (!conf || typeof conf !== 'object' || !conf.id || !conf.capabilities) {

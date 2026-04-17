@@ -2,22 +2,21 @@
  * 🛰️ PROTOCOLO DE IGNICIÓN MANUAL - INDRA OS
  * ==========================================
  * 
- *    /$$$$$$ / /$$   /$$ /$$$$$$$  /$$$$$$$   /$$$$$$         /$$$$$$   /$$$$$$ 
- *   |_  $$_/|/| $$$ | $$| $$__  $$| $$__  $$ /$$__  $$       /$$__  $$ /$$__  $$
- *     | $$    | $$$$| $$| $$  \ $$| $$  \ $$| $$  \ $$      | $$  \__/| $$  \__/
- *     | $$    | $$ $$ $$| $$  | $$| $$$$$$$/| $$$$$$$$      |  $$$$$$ |  $$$$$$ 
- *     | $$    | $$  $$$$| $$  | $$| $$__  $$| $$__  $$       \____  $$ \____  $$
- *     | $$    | $$\  $$$| $$  | $$| $$  \ $$| $$  | $$       /$$  \ $$ /$$  \ $$
- *    /$$$$$$ /| $$ \  $$| $$$$$$$/| $$  | $$| $$  | $$      |  $$$$$$/|  $$$$$$/
- *   |______/|/|__/  \__/|_______/ |__/  |__/|__/  |__/       \______/  \______/ 
- *                                                                             ☀️
+ *    /$$$$$$$$ /$$$$$$$$ /$$$$$$$$  /$$$$$$  /$$   /$$ /$$$$$$$$ /$$$$$$  /$$$$$$$ 
+ *   | $$_____/|_____ $$ | $$_____/ /$$__  $$| $$  | $$|__  $$__//$$__  $$| $$__  $$
+ *   | $$          /$$/  | $$      | $$  \__/| $$  | $$   | $$  | $$  \ $$| $$  \ $$
+ *   | $$$$$      /$$/   | $$$$$   | $$      | $$  | $$   | $$  | $$$$$$$$| $$$$$$$/
+ *   | $$__/     /$$/    | $$__/   | $$      | $$  | $$   | $$  | $$__  $$| $$__  $$
+ *   | $$       /$$/     | $$      | $$    $$| $$  | $$   | $$  | $$  | $$| $$  \ $$
+ *   | $$$$$$$$ /$$$$$$$$| $$$$$$$$|  $$$$$$/|  $$$$$$/   | $$  | $$  | $$| $$  | $$
+ *   |________/|________/|________/ \______/  \______/    |__/  |__/  |__/|__/  |__/
+ * 
  *   <<<< PASO CRÍTICO: HAZ CLIC EN EL BOTÓN [ ▶️ Ejecutar ] EN LA BARRA DE ARRIBA >>>>
- *   ( Protocolo de Despertar Manual - Soberanía Fractal )
  * 
- *ESTE ES EL NUCLEO DE TU INDRA OS*
- * Es en este proyecto GAS donde se aloja el codigo que orquesta los procesos de Indra gracias a la infraestructura de macros de Google Apps Script.   
+ * Si estás aquí es porque Google bloqueó el acceso automático (CORS/403) desde el Nexo.
+ * Esto sucede usualmente cuando tienes múltiples sesiones de Google abiertas.
  * 
- * COMO TU ERES EL DUEÑO DE TUS DATOS Y DE ESTE SISTEMA DEBES DESPERTAR A INDRA MANUALMENTE:
+ * PARA DESPERTAR A INDRA MANUALMENTE:
  * 1. Mira hacia arriba ↑. Selecciona la función 'INDRA_MANUAL_GENESIS' en el selector.
  * 2. Haz clic en el botón GRANDE [▶️ Ejecutar].
  * 3. Aparecerá un cuadro de "Revisar permisos". ACÉPTALOS TODOS.

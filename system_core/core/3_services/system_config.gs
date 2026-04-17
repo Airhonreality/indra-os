@@ -138,22 +138,11 @@ function deleteConfig(key) {
 // ─── API PÚBLICA: ESTADO DE BOOTSTRAP ─────────────────────────────────────────
 
 /**
- * Indica si el servidor ya ha sido inicializado con un password de acceso.
- * (ADR-019) Versión Blindada: Detecta conflictos de territorio en Drive.
+ * Valida si el sistema está operativo (Nivel de consciencia >= ACTIVE).
  * @returns {boolean}
  */
 function isBootstrapped() {
-  const store = _getStore_();
-  const rootMountId = store.getProperty('SYS_MOUNT_ROOT_ID');
-  const isCerebroActive = store.getProperty('SYS_IS_BOOTSTRAPPED') === 'true';
-  
-  // AXIOMA DE SOBERANÍA (v4.61): Sin Mount ROOT no hay consciencia.
-  if (!rootMountId && isCerebroActive) {
-     console.error('[CRITICAL] El sistema está marcado como ACTIVO pero falta el MOUNT_ROOT.');
-     return false;
-  }
-
-  return isCerebroActive && !!rootMountId;
+  return SystemStateManager.getState() >= SYSTEM_STATE.ACTIVE;
 }
 
 /**

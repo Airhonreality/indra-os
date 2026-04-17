@@ -190,35 +190,56 @@ export function CoreConnectionView() {
                                     </button>
                                 </div>
                             ) : systemError === 'AUTORIZACION_PENDIENTE' ? (
-                                <div className="glass-light stack" style={{ padding: 'var(--space-6)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-accent)' }}>
-                                    <IndraIcon name="SECURITY" size="40px" style={{ color: 'var(--color-accent)', margin: '0 auto' }} />
-                                    <h3 style={{ fontSize: '16px', color: 'var(--color-text-primary)', marginTop: '10px' }}>FIRMA DEL PACTO REQUERIDA</h3>
-                                    <p className="text-hint" style={{ fontSize: '12px', margin: '15px 0', lineHeight: '1.5' }}>
-                                        Google solicita tu permiso directo para que el motor pueda <br />
-                                        interactuar con tus archivos. 
-                                    </p>
-                                    
-                                    <div className="stack" style={{ gap: '10px' }}>
-                                        <a 
-                                            href={pendingEditorUrl || useAppState.getState().pendingCoreUrl} 
-                                            target="_blank" 
-                                            rel="noreferrer"
-                                             className="btn btn--accent ripple"
-                                             style={{ textDecoration: 'none', padding: '12px', fontWeight: 'bold' }}
-                                         >
-                                            1. ABRIR EDITOR Y EJECUTAR "INDRA_MANUAL_GENESIS"
-                                        </a>
-                                        <button 
-                                            className="btn btn--ghost"
-                                            onClick={() => useAppState.getState().discoverFromDrive(useAppState.getState().googleUser.accessToken)}
-                                            style={{ fontSize: '11px' }}
-                                        >
-                                            2. YA HE AUTORIZADO (CONTINUAR)
-                                        </button>
+                                <div className="stack" style={{ gap: 'var(--space-6)', padding: 'var(--space-2)' }}>
+                                    <div className="glass-light stack" style={{ padding: 'var(--space-6)', borderRadius: 'var(--radius-lg)', border: '2px solid var(--color-accent)', background: 'rgba(0, 255, 157, 0.03)' }}>
+                                        <div className="shelf" style={{ justifyContent: 'center', gap: 'var(--space-4)' }}>
+                                            <IndraIcon name="SECURITY" size="40px" style={{ color: 'var(--color-accent)' }} />
+                                            <div style={{ padding: '8px 16px', background: '#3c4043', borderRadius: '4px', border: '1px solid #5f6368', display: 'flex', flexDirection: 'column', gap: '2px', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', minWidth: '120px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <div style={{ width: '0', height: '0', borderTop: '6px solid transparent', borderBottom: '6px solid transparent', borderLeft: '11px solid #8ab4f8' }}></div>
+                                                    <span style={{ color: '#e8eaed', fontSize: '11px', fontWeight: '900', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>INDRA OS ☀️</span>
+                                                </div>
+                                                <span style={{ color: '#8ab4f8', fontSize: '7px', opacity: 0.8, letterSpacing: '0.05em' }}>SOBERANÍA EN CURSO...</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <h3 style={{ fontSize: '18px', color: 'var(--color-text-primary)', marginTop: '20px', letterSpacing: '0.1em' }}>FIRMA DEL PACTO REQUERIDA</h3>
+                                        
+                                        <div style={{ textAlign: 'left', marginTop: '15px' }}>
+                                            <p className="text-hint" style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--color-text-primary)' }}>
+                                                Google ha bloqueado la ignición automática por seguridad. <br />
+                                                <b>Debes despertar a Indra manualmente:</b>
+                                            </p>
+                                            
+                                            <ul style={{ paddingLeft: '20px', fontSize: '12px', color: 'var(--color-text-secondary)', lineHeight: '1.8', marginTop: '10px' }}>
+                                                <li>Haz clic en el botón azul de abajo para abrir el motor.</li>
+                                                <li>En la barra superior, busca y pulsa el botón <b>▶️ Ejecutar</b>.</li>
+                                                <li>Acepta todos los permisos que solicite la ventana emergente.</li>
+                                                <li>Cuando veas <b>"INDRA HA DESPERTADO"</b> en los logs, vuelve aquí.</li>
+                                            </ul>
+                                        </div>
+                                        
+                                        <div className="stack" style={{ gap: '15px', marginTop: '20px' }}>
+                                            <a 
+                                                href={pendingEditorUrl || useAppState.getState().pendingCoreUrl} 
+                                                target="_blank" 
+                                                rel="noreferrer"
+                                                 className="btn btn--accent ripple"
+                                                 style={{ textDecoration: 'none', padding: '16px', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 10px 20px rgba(0,255,157,0.2)' }}
+                                             >
+                                                1. ABRIR MOTOR Y EJECUTAR GÉNESIS
+                                            </a>
+                                            <button 
+                                                className="btn btn--ghost"
+                                                onClick={() => useAppState.getState().discoverFromDrive(useAppState.getState().googleUser.accessToken)}
+                                                style={{ fontSize: '12px', opacity: 0.8 }}
+                                            >
+                                                2. YA TERMINÉ (REANUDAR CONEXIÓN)
+                                            </button>
+                                        </div>
                                     </div>
-                                    <p className="text-hint" style={{ fontSize: '9px', marginTop: '15px', opacity: 0.6 }}>
-                                        * Selecciona la función en el menú superior y pulsa "Ejecutar". <br />
-                                        Cuando veas "Indra ha despertado" en los logs, vuelve aquí.
+                                    <p className="text-hint" style={{ fontSize: '10px', opacity: 0.5 }}>
+                                        * Este paso solo es necesario una vez por identidad para establecer la soberanía.
                                     </p>
                                 </div>
                             ) : (

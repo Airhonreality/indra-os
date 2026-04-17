@@ -37,10 +37,19 @@ const Watchdog = (function() {
     return Math.max(0, EXECUTION_LIMIT_MS - (Date.now() - startTime));
   }
 
+  /**
+   * Obtiene el tiempo transcurrido desde el inicio.
+   */
+  function getElapsedMs() {
+    if (!startTime) return 0;
+    return Date.now() - startTime;
+  }
+
   return {
     start: start,
     isFatigued: isFatigued,
-    getRemainingTime: getRemainingTime
+    getRemainingTime: getRemainingTime,
+    getElapsedMs: getElapsedMs
   };
 
 })();

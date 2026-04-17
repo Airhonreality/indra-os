@@ -1,189 +1,128 @@
-// =============================================================================
-// ARTEFACTO: 0_gateway/api_gateway.gs
-// CAPA: 0 — Gateway Layer (Membrana externa)
-// RESPONSABILIDAD: El único doPost del sistema. Soberanía de la entrada.
-// =============================================================================
+/**
+ * =============================================================================
+ * ARTEFACTO: 0_gateway/api_gateway.gs
+ * CAPA: 0 — Gateway Layer (Protocol Firewall)
+ * RESPONSABILIDAD: El único doPost del sistema. Soberanía de la entrada.
+ * AXIOMA: El gateway no ejecuta lógica; valida el vector y despacha.
+ * =============================================================================
+ */
 
-const CORE_VERSION = "v6.0-MICELAR"; // FASE: Malla Relacional Micelar y Trazabilidad Yoneda.
-
-const GATEWAY_SYSTEM_PROTOCOLS = Object.freeze([
-  'SYSTEM_MANIFEST',
-  'SYSTEM_CONFIG_SCHEMA',
-  'SYSTEM_CONFIG_WRITE',
-  'SYSTEM_CONFIG_DELETE',
-  'SYSTEM_INSTALL_HANDSHAKE',
-  'SYSTEM_SHARE_CREATE',
-  'SYSTEM_QUEUE_READ',
-  'SYSTEM_TRIGGER_HUB_GENERATE',
-  'PULSE_WAKEUP',
-  'EMERGENCY_INGEST_INIT',
-  'EMERGENCY_INGEST_CHUNK',
-  'EMERGENCY_INGEST_FINALIZE',
-  'SYSTEM_RESONANCE_CRYSTALLIZE',
-  'SYSTEM_WORKSPACE_DEEP_PURGE',
-  'SYSTEM_KEYCHAIN_GENERATE',
-  'SYSTEM_KEYCHAIN_REVOKE',
-  'SYSTEM_KEYCHAIN_AUDIT',
-  'SYSTEM_BATCH_EXECUTE'
-]);
+const CORE_VERSION = "v7.0-MEMBRANE-ACTIVE";
 
 function doGet(e) {
-  try {
-    const action = e && e.parameter && e.parameter.action;
-    if (action === 'getShareTicket' && e.parameter.id) {
-       return _buildResponse_(200, _share_getTicket(e.parameter.id));
-    }
-    return _buildResponse_(200, { 
+  const currentState = SystemStateManager.getState();
+  return _buildStandardResponse_(200, { 
     metadata: { 
-      status: isBootstrapped() ? 'OK' : 'BOOTSTRAP', 
-      core_id: readCoreOwnerEmail(),
-      timestamp: new Date().toISOString() 
+      status: SystemStateManager.getLabel(currentState), 
+      timestamp: new Date().toISOString(),
+      core_version: CORE_VERSION
     } 
   });
-  } catch (err) {
-    return _buildResponse_(500, { metadata: { status: 'ERROR', error: err.message } });
-  }
 }
 
+/**
+ * Receptor universal de mensajes UQO.
+ */
 function doPost(e) {
   Watchdog.start();
+  
   try {
-    console.log('[Indra Gateway] << Entrada Detectada >>');
-    const pulseResponse = pulse_router_intercept(e);
+    // 1. ANALÍTICA DEL VECTOR
+    const payload = JSON.parse(e.postData.contents);
+    const pulseResponse = pulse_router_intercept(e); // Bloqueo preventivo de pulso
     if (pulseResponse) return pulseResponse;
 
-    let payload = JSON.parse(e.postData.contents);
-    console.log('[Indra Gateway] Request:', payload.protocol);
+    // 2. CONTEXTO DE CONSCIENCIA
+    const systemState = SystemStateManager.getState();
+    const contract = ProtocolRegistry.resolve(payload.protocol);
 
-    if (!isBootstrapped()) return _handleBootstrap_(payload);
-
-    // ADR-050: Delegación de Autoridad al AuthService (Micro-Kernel)
-    const context = AuthService.authorize(payload);
-
-    if (!context) {
-        console.warn(`[gateway] Acceso denegado: Protocolo ${payload.protocol} rechazado.`);
-        return _buildResponse_(401, { metadata: { status: 'UNAUTHORIZED', error: 'Se requiere sesión, token de satélite o ticket válido.' } });
+    // 3. VALIDACIÓN DE CONTRATO (Fallo ruidoso si no existe)
+    if (!contract) {
+      return _buildStandardResponse_(404, { 
+        items: [], 
+        metadata: { status: 'PROTOCOL_UNREGISTERED', error: `El protocolo '${payload.protocol}' es un vector desconocido.` } 
+      });
     }
 
-    // AXIOMA DE JURISDICCIÓN: Inyectamos identidad efectiva
-    payload.environment = payload.environment || 'PRODUCTION'; 
-    payload.effective_owner = context.owner_id;
-    payload.is_master_access = context.is_master;
-    payload.is_public_access = !!context.is_public;
-    if (context.mode === 'MIRROR') payload.resonance_mode = 'MIRROR';
-
-    let result;
-    try {
-      console.log(`[GATEWAY_INPUT] Indra Core ${CORE_VERSION} | Protocolo: ${payload.protocol} | Owner: ${payload.effective_owner}`);
-      
-      result = (GATEWAY_SYSTEM_PROTOCOLS.includes(payload.protocol) || payload.protocol.startsWith('EMERGENCY_')) 
-        ? SystemOrchestrator.dispatch(payload) 
-        : route(payload);
-        
-      // AXIOMA DE TRAZABILIDAD (v4.90): Inyectamos versión en cada respuesta
-      result.metadata = result.metadata || {};
-      result.metadata.status = result.metadata.status || 'OK';
-      result.metadata.core_version = CORE_VERSION;
-      result.metadata.server_timestamp = new Date().toISOString();
-
-      console.log(`[GATEWAY_OUTPUT] ${payload.protocol} -> ${result.metadata.status}`);
-    } catch (routeError) {
-      console.error('[gateway] Error fatal en el despacho del protocolo:', routeError);
-      return _buildResponse_(500, { metadata: { status: 'ERROR', error: routeError.message } });
+    // 4. VALIDACIÓN DE ESTADO MÍNIMO
+    if (systemState < contract.min_state) {
+      return _buildStandardResponse_(203, { 
+        items: [], 
+        metadata: { 
+          status: SystemStateManager.getLabel(systemState),
+          required_state: contract.min_state,
+          core_version: CORE_VERSION,
+          detail: 'El núcleo carece del nivel de consciencia requerido para este protocolo.'
+        } 
+      });
     }
 
-    result.metadata = result.metadata || {};
-    result.metadata.status = result.metadata.status || 'OK';
-    result.metadata.core_version = CORE_VERSION;
-    
-    try {
-      result.metadata.core_id = readCoreOwnerEmail(); 
-    } catch (e) {
-      result.metadata.core_id = 'unknown';
+    // 5. AUTENTICACIÓN Y AUTORIZACIÓN (ADR-052: Identity Check)
+    const identityContext = AuthService.authorize(payload, contract);
+    if (!identityContext) {
+      return _buildStandardResponse_(401, { 
+        items: [], 
+        metadata: { status: 'UNAUTHORIZED', error: 'Identidad no válida o privilegios insuficientes.' } 
+      });
     }
 
-    try {
-      result.metadata.logs = (typeof flushLogs === 'function') ? flushLogs() : [];
-    } catch (e) {
-      result.metadata.logs = [];
-    }
+    // 6. INYECCIÓN DE METADATOS DE SEGURIDAD
+    payload.effective_owner  = identityContext.owner_id;
+    payload.is_master_access = identityContext.is_master;
+    payload.identificator    = identityContext.identity_type;
 
-    return _buildResponse_(200, result, {
-      'X-Indra-Trace': JSON.stringify(_sanitizeTrace_(payload))
-    });
+    // 7. DESPACHO AL ORGÁNULO CORRECTO
+    const result = _dispatch_(payload, contract);
+
+    // 8. ENVELOPE CANÓNICO DE RESPUESTA
+    const finalResponse = {
+      ...result,
+      items: result.items || [],
+      metadata: {
+        ...(result.metadata || {}),
+        status: (result.metadata && result.metadata.status) || 'OK',
+        core_id: readCoreOwnerEmail(),
+        core_version: CORE_VERSION,
+        system_state: SystemStateManager.getLabel(systemState),
+        latency_ms: Watchdog.getElapsedMs()
+      }
+    };
+
+    return _buildStandardResponse_(200, finalResponse);
 
   } catch (fatalError) {
-    const errorCode = fatalError.code || 'SYSTEM_FAILURE';
-    const errorAtom = {
-        id: `err_${Date.now()}`,
-        handle: {
-          ns: `com.indra.error.gateway`,
-          alias: 'fatal_error',
-          label: 'Fallo Catastrófico del Core'
-        },
-        class: 'ERROR_REPORT',
-        protocols: ['ATOM_READ'],
-        payload: {
-          message: fatalError.message || 'Error desconocido',
-          severity: 'CRITICAL',
-          code: errorCode,
-          stack: fatalError.stack || '',
-          remediation: 'Revisa la sintaxis del UQO o los logs de ejecución de Apps Script.'
-        }
-    };
-    return _buildResponse_(500, { 
-      items: [errorAtom], 
-      metadata: { status: 'ERROR', error: fatalError.message, axiom_violated: errorCode } 
+    console.error('[GATEWAY] Error Fatal:', fatalError.stack);
+    return _buildStandardResponse_(500, { 
+      items: [], 
+      metadata: { status: 'CRITICAL_SYSTEM_FAILURE', error: fatalError.message } 
     });
   }
 }
 
-
-function _buildResponse_(code, body, headers = {}) {
-  const activeEmail = Session.getEffectiveUser().getEmail() || Session.getActiveUser().getEmail();
-  const response = {
-    ...body,
-    metadata: {
-      ...(body.metadata || {}),
-      core_id: activeEmail || 'anonymous@indra',
-      core_version: CORE_VERSION
-    }
-  };
-  return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
-}
-
-function _sanitizeTrace_(uqo) {
-  const t = { ...uqo };
-  delete t.password;
-  delete t.api_key;
-  delete t.satellite_token; // ADR-041: Privacidad de llave maestra
-  return t;
-}
-
-function _handleBootstrap_(payload) {
-  const activeUserEmail = Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail();
-  const coreOwnerEmail = readCoreOwnerEmail();
-  const isOwner = activeUserEmail === coreOwnerEmail;
-
-  // AXIOMA DE SOBERANÍA: Si el dueño se conecta y el sistema está "desnudo" (sin Ledger),
-  // iniciamos el Renacimiento (Renaissance) automáticamente.
-  if (isOwner && !readMasterLedgerId()) {
-    console.log('[gateway] Iniciando RENACIMIENTO para el dueño...');
-    try {
-      SystemOrchestrator.triggerRenaissance();
-      return _buildResponse_(200, { 
-        metadata: { status: 'OK', message: 'INDRA_REBORN', detail: 'Sistema reinicializado bajo el modelo Master Ledger.' } 
-      });
-    } catch (e) {
-      console.error('[gateway] Fallo crítico en el Renacimiento:', e.message);
-      return _buildResponse_(500, { metadata: { status: 'ERROR', error: e.message } });
-    }
+/**
+ * Motor de despacho basado en el contrato de protocolo.
+ * @private
+ */
+function _dispatch_(uqo, contract) {
+  switch (contract.dispatcher) {
+    case DISPATCHERS.SYSTEM:  
+      return SystemOrchestrator.dispatch(uqo);
+    case DISPATCHERS.INSTALL: 
+      return InstallationService.handle(uqo);
+    case DISPATCHERS.LOGIC:   
+      return route(uqo);
+    case DISPATCHERS.PULSE:   
+      pulse_service_process_next(); 
+      return { metadata: { status: 'OK' } };
+    default: 
+      throw new Error(`Dispatcher '${contract.dispatcher}' no registrado en la matriz.`);
   }
-
-  if (payload.password && payload.protocol === 'SYSTEM_CONFIG_WRITE') {
-    bootstrapPassword(payload.password);
-    return _buildResponse_(200, { metadata: { status: 'OK', message: 'Nucleo Despierto' } });
-  }
-  return _buildResponse_(200, { metadata: { status: 'BOOTSTRAP' } });
 }
 
+/**
+ * Constructor estandarizado de la salida HTTP.
+ */
+function _buildStandardResponse_(code, body) {
+  return ContentService.createTextOutput(JSON.stringify(body))
+    .setMimeType(ContentService.MimeType.JSON);
+}

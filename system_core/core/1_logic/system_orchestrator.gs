@@ -9,6 +9,32 @@
 const SystemOrchestrator = (function() {
 
   /**
+   * Tabla de despacho de lógica de sistema.
+   * @private
+   */
+  const _SYSTEM_HANDLERS_ = Object.freeze({
+    'SYSTEM_MANIFEST':              () => buildManifest(),
+    'SYSTEM_CONFIG_SCHEMA':         () => buildConfigSchema(),
+    'SYSTEM_CONFIG_WRITE':          (p) => handleConfigWrite_(p),
+    'SYSTEM_CONFIG_DELETE':         (p) => handleConfigDelete_(p),
+    'SYSTEM_SHARE_CREATE':          (p) => _share_createTicket(p),
+    'SYSTEM_REBUILD_LEDGER':        () => ({ items: [ledger_rebuild_from_drive()], metadata: { status: 'OK' } }),
+    'SYSTEM_QUEUE_READ':            () => ({ items: pulse_ledger_getPending(), metadata: { status: 'OK' } }),
+    'SYSTEM_KEYCHAIN_GENERATE':     (p) => _keychain_generate(p),
+    'SYSTEM_KEYCHAIN_REVOKE':       (p) => _keychain_revoke(p),
+    'SYSTEM_KEYCHAIN_AUDIT':        (p) => _keychain_audit(p),
+    'SYSTEM_BATCH_EXECUTE':         (p) => _handleBatchExecute_(p),
+    'SYSTEM_NEXUS_HANDSHAKE_INIT':  (p) => NexusService.initiateHandshake(p.data.remote_url, p.data.alias),
+    'SYSTEM_NEXUS_HANDSHAKE_ACCEPT':(p) => NexusService.acceptHandshake(p),
+    'SYSTEM_IDENTITY_CREATE':       (p) => IdentityProvider.createProfile(p),
+    'SYSTEM_IDENTITY_READ':         (p) => IdentityProvider.getProfile(p.data.id || p.data.alias),
+    'SYSTEM_IDENTITY_VERIFY':       (p) => IdentityProvider.verifyCorporateIdentity(p.data.email),
+    'SYSTEM_INSTALL_HANDSHAKE':     () => ({ metadata: { status: 'OK' } }),
+    'SYSTEM_RESONANCE_CRYSTALLIZE': (p) => resonance_service_crystallize(p),
+    'SYSTEM_TRIGGER_HUB_GENERATE':  (p) => trigger_hub_generate_all(p)
+  });
+
+  /**
    * Despacha protocolos con prefijo SYSTEM_* o EMERGENCY_*
    * @param {Object} payload - El UQO de entrada.
    * @returns {Object} Respuesta del sistema.
@@ -16,33 +42,19 @@ const SystemOrchestrator = (function() {
   function dispatch(payload) {
     const protocol = payload.protocol;
 
-    if (protocol === 'SYSTEM_MANIFEST') return buildManifest();
-    if (protocol === 'SYSTEM_CONFIG_SCHEMA') return buildConfigSchema();
-    if (protocol === 'SYSTEM_CONFIG_WRITE') return handleConfigWrite_(payload);
-    if (protocol === 'SYSTEM_CONFIG_DELETE') return handleConfigDelete_(payload);
-    if (protocol === 'SYSTEM_SHARE_CREATE') return _share_createTicket(payload);
-    if (protocol === 'SYSTEM_REBUILD_LEDGER') return { items: [ledger_rebuild_from_drive()], metadata: { status: 'OK' } };
-    if (protocol === 'SYSTEM_QUEUE_READ') return { items: pulse_ledger_getPending(), metadata: { status: 'OK' } };
-    if (protocol === 'PULSE_WAKEUP') { pulse_service_process_next(); return { metadata: { status: 'OK' } }; }
-    if (protocol === 'SYSTEM_KEYCHAIN_GENERATE') return _keychain_generate(payload);
-    if (protocol === 'SYSTEM_KEYCHAIN_REVOKE') return _keychain_revoke(payload);
-    if (protocol === 'SYSTEM_KEYCHAIN_AUDIT') return _keychain_audit(payload);
-    if (protocol === 'SYSTEM_BATCH_EXECUTE') return _handleBatchExecute_(payload);
-    
-    // --- NEXUS & SOCIAL (v4.70) ---
-    if (protocol === 'SYSTEM_NEXUS_HANDSHAKE_INIT') return NexusService.initiateHandshake(payload.data.remote_url, payload.data.alias);
-    if (protocol === 'SYSTEM_NEXUS_HANDSHAKE_ACCEPT') return NexusService.acceptHandshake(uqo);
-    if (protocol === 'SYSTEM_IDENTITY_CREATE') return IdentityProvider.createProfile(payload);
-    if (protocol === 'SYSTEM_IDENTITY_READ') return IdentityProvider.getProfile(payload.data.id || payload.data.alias);
-    if (protocol === 'SYSTEM_IDENTITY_VERIFY') return IdentityProvider.verifyCorporateIdentity(payload.data.email);
+    // 1. Manejo de Ingesta Emergente (Especial)
+    if (protocol.startsWith('EMERGENCY_INGEST')) {
+      return _handlePeristalticIngest_(payload);
+    }
 
-    if (protocol === 'SYSTEM_INSTALL_HANDSHAKE') return { metadata: { status: 'OK' } };
-    if (protocol === 'SYSTEM_RESONANCE_CRYSTALLIZE') return resonance_service_crystallize(payload);
+    // 2. Despacho por tabla
+    const handler = _SYSTEM_HANDLERS_[protocol];
+    if (handler) {
+      console.log(`[orchestrator] Ejecutando handler para: ${protocol}`);
+      return handler(payload);
+    }
     
-    // Handlers Peristálticos
-    if (protocol.startsWith('EMERGENCY_INGEST')) return _handlePeristalticIngest_(payload);
-    
-    return { metadata: { status: 'ERROR', error: 'Protocolo de sistema no implementado o no encontrado.' } };
+    throw new Error(`[orchestrator] El protocolo '${protocol}' no tiene un handler registrado en el sistema de lógica.`);
   }
 
   /**

@@ -87,6 +87,17 @@ function _scanProviders() {
     }
   });
 
+  // FALLBACK ABSOLUTO (Indra v4.83): Si el sistema no aparece, lo inyectamos por fuerza bruta
+  if (!configs.find(c => c.id === 'system')) {
+    logWarn('[provider_registry] ALARMA: El sistema no se auto-detectó. Aplicando registro forzado JIT.');
+    try {
+      const systemConf = typeof CONF_SYSTEM === 'function' ? CONF_SYSTEM() : null;
+      if (systemConf) configs.push(systemConf);
+    } catch(e) {
+      logError('[provider_registry] ERROR CRÍTICO: Ni siquiera el registro forzado funcionó.', e);
+    }
+  }
+
   return configs;
 }
 

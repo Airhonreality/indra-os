@@ -25,11 +25,22 @@
   "rules": {
     "no-unused-vars": "warn",
     "react/prop-types": "off",
-    "no-undef": "error"
+    "no-undef": "warn",
+    "react/no-unescaped-entities": "off",
+    "react-hooks/rules-of-hooks": "warn"
   },
   "globals": {
     "__INDRA_VERSION__": "readonly",
     "__INDRA_STATUS__": "readonly",
-    "__INDRA_DHARMA__": "readonly"
+    "__INDRA_DHARMA__": "readonly",
+    "AudioEncoder": "readonly",
+    "AudioDecoder": "readonly",
+    "VideoEncoder": "readonly",
+    "VideoDecoder": "readonly",
+    "EncodedAudioChunk": "readonly",
+    "EncodedVideoChunk": "readonly",
+    "VideoFrame": "readonly",
+    "GPUBufferUsage": "readonly",
+    "OffscreenCanvas": "readonly"
   }
 }

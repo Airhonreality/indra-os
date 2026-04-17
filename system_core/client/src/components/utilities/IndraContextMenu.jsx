@@ -12,12 +12,10 @@ import React, { useEffect, useRef } from 'react';
 import { IndraIcon } from './IndraIcons';
 
 export function IndraContextMenu({ menu, onClose }) {
-    if (!menu) return null;
-
-    const { x, y, options } = menu;
     const menuRef = useRef(null);
 
     useEffect(() => {
+        if (!menu) return;
         const handleClickOutside = (e) => {
             if (menuRef.current && !menuRef.current.contains(e.target)) {
                 onClose();
@@ -25,7 +23,11 @@ export function IndraContextMenu({ menu, onClose }) {
         };
         window.addEventListener('mousedown', handleClickOutside);
         return () => window.removeEventListener('mousedown', handleClickOutside);
-    }, [onClose]);
+    }, [menu, onClose]);
+
+    if (!menu) return null;
+
+    const { x, y, options } = menu;
 
     // Ajuste de posición si sale de la pantalla
     const adjustedX = Math.min(x, window.innerWidth - 200);

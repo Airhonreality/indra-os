@@ -30,7 +30,7 @@ export function IndraMacroHeader({
     const [renameError, setRenameError] = useState('');
     const isSaving = useAppState(s => !!s.pendingSyncs[atom?.id]);
     const pins = useAppState(s => s.pins || []);
-    const { setIsStyleEngineOpen, theme, setTheme } = useShell();
+    const { setIsStyleEngineOpen, isStyleEngineOpen, theme, setTheme } = useShell();
     const [isPulsing, setIsPulsing] = useState(false);
 
     const handleThemeToggle = () => {
@@ -272,13 +272,13 @@ export function IndraMacroHeader({
                     </button>
                     
                     <button 
-                        className={`btn btn--mini ${useShell().isStyleEngineOpen ? 'btn--active-glass' : ''}`}
+                        className={`btn btn--mini ${isStyleEngineOpen ? 'btn--active-glass' : ''}`}
                         style={{ 
                             width: '32px', height: '32px', padding: '0',
-                            color: useShell().isStyleEngineOpen ? 'var(--color-accent)' : 'inherit',
-                            filter: useShell().isStyleEngineOpen ? 'drop-shadow(0 0 8px var(--color-accent))' : 'none'
+                            color: isStyleEngineOpen ? 'var(--color-accent)' : 'inherit',
+                            filter: isStyleEngineOpen ? 'drop-shadow(0 0 8px var(--color-accent))' : 'none'
                         }}
-                        onClick={() => setIsStyleEngineOpen(!useShell().isStyleEngineOpen)}
+                        onClick={() => setIsStyleEngineOpen(!isStyleEngineOpen)}
                         title={t('ui_style_engine')}
                     >
                         <IndraIcon name="LAYERS" size="14px" />

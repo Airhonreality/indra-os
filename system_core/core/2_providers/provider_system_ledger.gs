@@ -8,9 +8,11 @@
 const LEDGER_SHEET_NAME = 'ATOMS';
 const KEYCHAIN_SHEET_NAME = 'KEYCHAIN';
 const INFRA_SHEET_NAME = 'INFRASTRUCTURE';
+const PROCESS_SHEET_NAME = 'PROCESSES';
 const MASTER_LEDGER_COLUMNS = ['gid', 'drive_id', 'class', 'alias', 'label', 'owner_id', 'updated_at', 'payload_json'];
 const KEYCHAIN_COLUMNS = ['token', 'name', 'status', 'class', 'parent_id', 'can_delegate', 'created_at', 'scopes_json'];
 const INFRA_COLUMNS = ['key', 'drive_id', 'label', 'updated_at'];
+const PROCESS_COLUMNS = ['trigger_id', 'workflow_id', 'status', 'last_pulse', 'error_log', 'config_json'];
 
 /**
  * Obtiene la Sheet del Ledger. Lanza error fatal si no existe o no es accesible.
@@ -149,10 +151,15 @@ function ledger_initialize_new() {
   keySheet.appendRow(KEYCHAIN_COLUMNS);
   keySheet.setFrozenRows(1);
 
-  // 3. Infraestructura (Mapeo de carpetas)
+  // 3. Infraestructura
   const infraSheet = ss.insertSheet(INFRA_SHEET_NAME);
   infraSheet.appendRow(INFRA_COLUMNS);
   infraSheet.setFrozenRows(1);
+
+  // 4. Procesos (Task Manager)
+  const procSheet = ss.insertSheet(PROCESS_SHEET_NAME);
+  procSheet.appendRow(PROCESS_COLUMNS);
+  procSheet.setFrozenRows(1);
   
   const ledgerId = ss.getId();
   storeMasterLedgerId(ledgerId);
@@ -383,5 +390,64 @@ function ledger_infra_sync(key, driveId, label) {
     else sheet.getRange(index + 1, 1, 1, rowData.length).setValues([rowData]);
   } finally {
     lock.releaseLock();
+  }
+}
+
+/**
+ * Registra o actualiza un proceso (Trigger/Tarea) en el Ledger (v4.42).
+ */
+function ledger_process_sync(triggerId, workflowId, status, error = '') {
+  const ssId = readMasterLedgerId();
+  if (!ssId) return;
+  const ss = SpreadsheetApp.openById(ssId);
+  const sheet = ss.getSheetByName(PROCESS_SHEET_NAME) || ss.insertSheet(PROCESS_SHEET_NAME);
+  
+  const lock = LockService.getScriptLock();
+  try {
+    if (!lock.tryLock(5000)) return;
+    const data = sheet.getDataRange().getValues();
+    const rowData = [triggerId, workflowId, status, new Date().toISOString(), error, '{}'];
+    const index = data.findIndex(row => row[0] === triggerId);
+    if (index === -1) sheet.appendRow(rowData);
+    else sheet.getRange(index + 1, 1, 1, rowData.length).setValues([rowData]);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Busca un proceso por su ID de Trigger.
+ */
+function ledger_process_get(triggerId) {
+  const ssId = readMasterLedgerId();
+  if (!ssId) return null;
+  const ss = SpreadsheetApp.openById(ssId);
+  const sheet = ss.getSheetByName(PROCESS_SHEET_NAME);
+  if (!sheet) return null;
+
+  const data = sheet.getDataRange().getValues();
+  const index = data.findIndex(row => row[0] === triggerId);
+  return index === -1 ? null : { 
+    trigger_id: data[index][0], 
+    workflow_id: data[index][1], 
+    status: data[index][2] 
+  };
+}
+
+/**
+ * Elimina un proceso del Ledger por ID de Workflow.
+ */
+function ledger_process_delete_by_workflow(workflowId) {
+  const ssId = readMasterLedgerId();
+  if (!ssId) return;
+  const ss = SpreadsheetApp.openById(ssId);
+  const sheet = ss.getSheetByName(PROCESS_SHEET_NAME);
+  if (!sheet) return;
+
+  const data = sheet.getDataRange().getValues();
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (data[i][1] === workflowId) {
+      sheet.deleteRow(i + 1);
+    }
   }
 }

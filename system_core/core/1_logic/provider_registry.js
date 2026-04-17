@@ -109,6 +109,7 @@ function _isProviderConfigured(conf) {
  * @returns {{ items: Array<Object>, metadata: Object }}
  */
 function buildManifest() {
+  // AXIOMA DE CRISTALIZACIÓN: En versiones futuras aquí consultaremos el Ledger KERNEL.
   const allConfigs = _scanProviders();
   const manifestItems = [];
 
@@ -224,7 +225,6 @@ function buildConfigSchema() {
         label: `Configuración de ${conf.handle?.label || conf.id}`,
         icon: conf.handle?.icon || 'SERVICE'
       },
-      name: conf.name,
       class: 'CONFIG_SCHEMA',
       provider: 'system',
       protocols: ['SYSTEM_CONFIG_WRITE'],

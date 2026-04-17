@@ -54,9 +54,9 @@ function _trigger_installTimeTrigger(workflowId, interval) {
         .create();
     }
     
-    // Almacenar el vínculo triggerId <-> workflowId en PropertiesService para limpieza futura
-    storeConfig(`TRIGGER_MAP_${trigger.getUniqueId()}`, workflowId);
-    logInfo(`[trigger_service] Trigger ${trigger.getUniqueId()} instalado para workflow ${workflowId} cada ${interval} min.`);
+    // Sincronización Sincera con el Ledger de Procesos (v4.42)
+    ledger_process_sync(trigger.getUniqueId(), workflowId, 'ACTIVE');
+    logInfo(`[trigger_service] Proceso ${trigger.getUniqueId()} registrado para workflow ${workflowId}.`);
   } catch (err) {
     logError(`[trigger_service] Error al instalar trigger para ${workflowId}`, err);
   }
@@ -70,15 +70,17 @@ function _trigger_deleteByWorkflowId(workflowId) {
   try {
     const triggers = ScriptApp.getProjectTriggers();
     triggers.forEach(trigger => {
-      if (trigger.getHandlerFunction() === TRIGGER_FUNCTION_NAME) {
-        const mappedId = readConfig(`TRIGGER_MAP_${trigger.getUniqueId()}`);
-        if (mappedId === workflowId) {
+        // Consultar el Ledger de Procesos (v4.42)
+        const proc = ledger_process_get(trigger.getUniqueId());
+        if (proc && proc.workflow_id === workflowId) {
           ScriptApp.deleteTrigger(trigger);
-          deleteConfig(`TRIGGER_MAP_${trigger.getUniqueId()}`);
-          logInfo(`[trigger_service] Trigger eliminado para workflow: ${workflowId}`);
+          logInfo(`[trigger_service] Trigger eliminado físicamente: ${trigger.getUniqueId()}`);
         }
       }
     });
+
+    // Limpieza lógica en el Ledger
+    ledger_process_delete_by_workflow(workflowId);
   } catch (err) {
     logWarn(`[trigger_service] No se pudieron limpiar triggers (posible falta de permisos): ${err.message}`);
   }

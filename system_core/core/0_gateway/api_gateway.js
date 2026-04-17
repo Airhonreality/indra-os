@@ -4,7 +4,7 @@
 // RESPONSABILIDAD: El único doPost del sistema. Soberanía de la entrada.
 // =============================================================================
 
-const CORE_VERSION = "0.4.26-ALPHA"; // Versión Micelar con Sondas de Identidad
+const CORE_VERSION = "4.50.0-OMNI-SOVEREIGN"; // FASE: Renacimiento Completado.
 
 const GATEWAY_SYSTEM_PROTOCOLS = Object.freeze([
   'SYSTEM_MANIFEST',

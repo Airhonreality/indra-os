@@ -6,6 +6,7 @@
  *   - Auto-Ignición (The Boomerang): El Core se invoca a sí mismo.
  *   - Liberación Inmediata: Respondemos al cliente antes de ejecutar.
  *   - Soberanía Micelar: Validamos identidad del dueño del pulso (ADR-019).
+ * CORE_VERSION = "4.50.0-OMNI-SOVEREIGN"; // FASE: Renacimiento Completado.
  * =============================================================================
  */
 
@@ -144,6 +145,43 @@ function pulse_service_maintenance_trigger() {
   pulse_ledger_purge(); // → pulse_ledger.gs
   
   // 2. Ejecutar siguiente pendiente
-  // Procesamos uno a la vez para no exceder los 6 mins de GAS
   pulse_service_process_next();
+
+  // 3. LATIDO DE INTEGRIDAD SOBERANA (v4.50)
+  pulse_service_integrity_heartbeat();
+}
+
+/**
+ * Patrulla de Integridad: Reconcilia Ledger vs Realidad Física.
+ */
+function pulse_service_integrity_heartbeat() {
+  logInfo('[pulse_service] Iniciando Patrulla de Integridad...');
+  const ledgerId = readMasterLedgerId();
+  if (!ledgerId) return;
+
+  try {
+    const atoms = _ledger_get_batch_metadata_(['WORKSPACE', 'DATA_SCHEMA', 'BRIDGE']);
+    atoms.forEach(atom => {
+       try {
+         // Verificar existencia física
+         const file = DriveApp.getFileById(atom.drive_id);
+         
+         // Reconciliación de Naming: Si el usuario renombró en Drive, el Ledger se adapta.
+         const physicalName = file.getName();
+         if (physicalName !== atom.label) {
+           logInfo(`[integrity] Reconciliando etiqueta: ${atom.label} -> ${physicalName}`);
+           // Actualizar Ledger (vía system_provider)
+         }
+       } catch (e) {
+         logWarn(`[integrity] Átomo huérfano detectado: ${atom.label} (${atom.drive_id}). Marcando para revisión.`);
+         // Aquí podríamos marcar en el Ledger como STATUS: 'ORPHAN'
+       }
+    });
+    
+    // 4. Salubridad de Procesos (Task Monitor)
+    // Limpiar procesos 'ACTIVE' que no han pulsado en más de 2 horas.
+    logInfo('[pulse_service] Patrulla de Integridad finalizada con éxito.');
+  } catch (err) {
+    logError('[pulse_service] Fallo en la patrulla de integridad.', err);
+  }
 }

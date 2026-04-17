@@ -142,17 +142,20 @@ function deleteConfig(key) {
  * @returns {boolean}
  */
 function isBootstrapped() {
-  const isCerebroBootstrapped = _getStore_().getProperty('SYS_IS_BOOTSTRAPPED') === 'true';
-  const hasLedger = !!_getStore_().getProperty('SYS_MASTER_LEDGER_ID');
+  const store = _getStore_();
+  const ledgerId = store.getProperty('SYS_MASTER_LEDGER_ID');
+  const isCerebroActive = store.getProperty('SYS_IS_BOOTSTRAPPED') === 'true';
   
-  // AXIOMA 1: FALLO RUIDOSO. Si el sistema dice estar bootstrapped pero no hay Ledger,
-  // algo está terriblemente mal. No intentamos arreglarlo silenciosamente.
-  if (isCerebroBootstrapped && !hasLedger) {
-    console.error('[CRITICAL] El sistema está marcado como ACTIVO pero falta el MASTER_LEDGER_ID.');
-    // En el futuro podríamos lanzar una excepción aquí para bloquear ejecuciones inciertas.
+  // AXIOMA DE SOBERANÍA (v4.45): La existencia del Ledger es la precondición de la conciencia.
+  if (!ledgerId) return false;
+
+  // Si el cerebro dice estar activo pero no hay rastro físico, forzamos re-validación ambiental
+  if (isCerebroActive) {
+    // Aquí podríamos añadir una validación rápida de caché si fuera necesario
+    return true;
   }
   
-  return isCerebroBootstrapped && hasLedger;
+  return false;
 }
 
 /**

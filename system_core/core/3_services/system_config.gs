@@ -245,12 +245,20 @@ function _finishBootstrap_(hash, userEmail) {
       store.setProperty('SYS_CORE_OWNER_UID', userEmail);
     }
 
-    // ── CRISTALIZACIÓN FÍSICA (Indra v4.1) ──────────────────────────────────
+    // ── CRISTALIZACIÓN FÍSICA (Indra v6.1-MICELAR) ───────────────────────────
     // El motor 'se traga' a sí mismo hacia su carpeta de sistema (.core_system)
+    // y cristaliza su Master Ledger (Tabla de Relaciones, Átomos y Llavero).
     try {
       _system_anchorEngineToHome();
+      
+      // AXIOMA DE SOLIDEZ: Forzar creación del Ledger si no existe para evitar "Arrays 0"
+      if (!readConfig('SYS_MASTER_LEDGER_ID')) {
+        const ledgerId = ledger_initialize_new();
+        storeConfig('SYS_MASTER_LEDGER_ID', ledgerId);
+        logInfo(`[system_config] Génesis Relacional completado. Ledger: ${ledgerId}`);
+      }
     } catch (e) {
-      logWarn('[system_config] Error en anclaje físico (omitiendo): ' + e.message);
+      logWarn('[system_config] Error en anclaje o cristalización física: ' + e.message);
     }
     
     store.setProperty('SYS_IS_BOOTSTRAPPED', 'true');

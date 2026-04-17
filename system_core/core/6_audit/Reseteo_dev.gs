@@ -30,8 +30,8 @@ function SYSTEM_GENESIS_RESET() {
       'OPENAI_API_KEY',
       'ANTHROPIC_API_KEY',
       'GOOGLE_API_KEY',
-      'NOTION_TOKEN',
-      'BOOTSTRAP_COMPLETED'
+      'NOTION_TOKEN'
+      // No incluimos SYS_IS_BOOTSTRAPPED para permitir re-bootstrap
     ];
 
     let purgeCount = 0;

@@ -85,6 +85,34 @@ function _system_handleUpdate(uqo) {
 }
 
 /**
+ * RELATION_SYNC: Registra un vínculo semántico entre dos átomos.
+ * @private
+ */
+function _system_handleRelationSync(uqo) {
+    const data = uqo.data || {};
+    if (!data.source_gid || !data.target_gid || !data.type) {
+        throw createError('INVALID_INPUT', 'RELATION_SYNC requiere source_gid, target_gid y type.');
+    }
+
+    ledger_sync_relation(
+        data.source_gid,
+        data.target_gid,
+        data.type,
+        data.strength || 1.0,
+        uqo
+    );
+
+    return { 
+        items: [], 
+        metadata: { 
+            status: 'OK', 
+            message: 'RELATION_RESONATED',
+            uid: `${data.source_gid}_${data.target_gid}_${data.type}`
+        } 
+    };
+}
+
+/**
  * ATOM_ALIAS_RENAME: Renombrado canónico de handle.alias con propagación a pins.
  */
 function _system_handleAliasRename(uqo) {

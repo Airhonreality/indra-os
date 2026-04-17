@@ -160,38 +160,40 @@ export const createDomainSlice = (set, get) => ({
         });
     },
 
-    /**
-     * Crea un átomo en el core, lo ancla y lo abre.
-     * Soporta inyección de metadatos opcionales (ADR-XXX).
-     */
-    createArtifact: async (atomClass, label, initialPayload = {}, meta = null) => {
-        const { coreUrl, sessionSecret, pinAtom, openArtifact } = get();
-        
-        // ── AXIOMA DE RETROALIMENTACIÓN INMEDIATA (Optimismo UI) ──
-        const tempId = `temp_${Date.now()}`;
-        const provisionalAtom = {
-            id: tempId,
-            class: atomClass,
-            handle: { label: label || 'NUEVO_ARTEFACTO' },
-            status: 'PROVISIONING',
-            _meta: meta, // Inyectamos si viene de un clon
-            updated_at: new Date().toISOString(),
-            _provisional: true // Marca interna
-        };
-
-        set(state => ({
-            pendingCreations: [...state.pendingCreations, provisionalAtom],
-            pendingSyncs: { ...state.pendingSyncs, [tempId]: true }
-        }));
-
-        try {
-            // ADR-008: Provisión de cuna para tipos estructurados
-            const dataToCreate = {
-                class: atomClass,
-                handle: { label: label },
-                payload: initialPayload,
-                _meta: meta // El core guardará el bloque íntegro
-            };
+     /**
+      * Crea un átomo en el core, lo ancla y lo abre.
+      * Soporta inyección de metadatos opcionales y RELACIONES iniciales (v6.1).
+      */
+     createArtifact: async (atomClass, label, initialPayload = {}, meta = null, relations = []) => {
+         const { coreUrl, sessionSecret, pinAtom, openArtifact } = get();
+         
+         // ── AXIOMA DE RETROALIMENTACIÓN INMEDIATA (Optimismo UI) ──
+         const tempId = `temp_${Date.now()}`;
+         const provisionalAtom = {
+             id: tempId,
+             class: atomClass,
+             handle: { label: label || 'NUEVO_ARTEFACTO' },
+             status: 'PROVISIONING',
+             relations: relations, // Optmismo relacional
+             _meta: meta, // Inyectamos si viene de un clon
+             updated_at: new Date().toISOString(),
+             _provisional: true // Marca interna
+         };
+ 
+         set(state => ({
+             pendingCreations: [...state.pendingCreations, provisionalAtom],
+             pendingSyncs: { ...state.pendingSyncs, [tempId]: true }
+         }));
+ 
+         try {
+             // ADR-008: Provisión de cuna para tipos estructurados
+             const dataToCreate = {
+                 class: atomClass,
+                 handle: { label: label },
+                 payload: initialPayload,
+                 relations: relations, // Enviamos relaciones al Core v6.0
+                 _meta: meta // El core guardará el bloque íntegro
+             };
 
             if (Object.keys(initialPayload).length === 0) {
                 if (atomClass === 'DATA_SCHEMA') dataToCreate.payload.fields = [];
@@ -423,14 +425,37 @@ export const createDomainSlice = (set, get) => ({
             }
 
             const projected = (result.items || []).map(w => DataProjector.projectWorkspace(w));
-            set({ workspaces: projected, loadingKeys: { ...get().loadingKeys, workspaces: false } });
-            get().hydrateManifest();
-            const { activeWorkspaceId } = get();
-            if (activeWorkspaceId) get().loadPins();
-            get().refreshInductionTicket();
-        } catch (err) {
-            console.error('[domain_slice] Bootstrap failed:', err);
-            get().disconnect();
-        }
-    }
-});
+             set({ workspaces: projected, loadingKeys: { ...get().loadingKeys, workspaces: false } });
+             get().hydrateManifest();
+             const { activeWorkspaceId } = get();
+             if (activeWorkspaceId) get().loadPins();
+             get().refreshInductionTicket();
+         } catch (err) {
+             console.error('[domain_slice] Bootstrap failed:', err);
+             get().disconnect();
+         }
+     },
+ 
+     /**
+      * AXIOMA v6.1: Establece un vínculo relacional entre dos átomos.
+      */
+     establishRelation: async (sourceGid, targetGid, type, strength = 1.0) => {
+         const { coreUrl, sessionSecret, activeArtifact, pins } = get();
+         try {
+             await executeDirective({
+                 provider: 'system',
+                 protocol: 'RELATION_SYNC',
+                 data: { source_gid: sourceGid, target_gid: targetGid, type, strength }
+             }, coreUrl, sessionSecret, get().shareTicket);
+ 
+             // Refresco reactivo: si el átomo origen es el activo, lo recargamos
+             if (activeArtifact && activeArtifact.id === sourceGid) {
+                 get().openArtifact(activeArtifact);
+             }
+             toastEmitter.success('Vínculo Sincronizado');
+         } catch (err) {
+             console.error('[domain_slice] establishRelation failed:', err);
+             toastEmitter.error(`Error al crear vínculo: ${err.message}`);
+         }
+     }
+ });

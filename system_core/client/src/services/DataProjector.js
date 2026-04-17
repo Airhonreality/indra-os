@@ -124,8 +124,8 @@ export class DataProjector {
             // Proyeccion Temporal
             timestamp: atom.updated_at || atom.created_at || Date.now(),
 
-            // Proyeccion de Densidad (Carga Cognitiva)
-            density: this._calculateDensity(atom),
+            // Proyectar Malla Relacional (v6.1)
+            relations: atom.relations || [],
 
             // Referencia al atomo original (por si acaso)
             raw: atom
@@ -165,6 +165,7 @@ export class DataProjector {
             subtitle: `ID: ${ws.id?.substring(0, 8)}`,
             pinCount: ws.pins?.length || 0,
             updatedAt: ws.updated_at || ws.created_at || Date.now(),
+            relations: ws.relations || [], // Soporte relacional para workspaces
             raw: ws
         };
     }

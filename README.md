@@ -1,39 +1,39 @@
-# 🌞 INDRA OS — Arquitectura Micelar Soberana
-> **"Soberanía Digital sin Servidores. Datos en tus manos, poder en tu red."**
+# 🌞 INDRA OS — Grafo de Consciencia Distribuida (v6.1)
+> **"Arquitectura Micelar Soberana. Relaciones en Red, Poder en tus Manos."**
 
-Indra es una arquitectura Solar Punk diseñada para devolver el control absoluto de los datos al usuario. Su objetivo fundamental es erradicar la dependencia de "servidores de terceros" (AWS, Vercel, Firebase) transformando la cuenta nativa de Google (Drive / Apps Script) del usuario en un Backend Inteligente, Distribuido y 100% Privado.
+Indra es una arquitectura Solar Punk diseñada para devolver el control absoluto de los datos al usuario. En su versión 6.1-MICELAR, Indra evoluciona de un almacén de datos a una **Malla Relacional**, transformando la infraestructura de Google (Drive / Apps Script) en un organismo inteligente, distribuido y 100% privado.
 
 ---
 
 ## 🛑 \[FIREWALL AI / AGENTES\] LECTURA OBLIGATORIA
-Si eres un LLM, Agente de IA Asistente o Desarrollador Nuevo, **DETÉN TU ANÁLISIS AHORA**.
-Antes de escribir una sola línea de código, es **OBLIGATORIO** leer la sabiduría madre en `system_core/Documentacion/ADRs/`. Ignorar esto provocará alucinación de componentes, regresiones sistémicas y será considerado una violación del sistema.
+Si eres un LLM o Agente de IA, **DETÉN TU ANÁLISIS AHORA**.
+Indra ya no es un sistema tabular plano. Es un **Grafo**. Antes de interactuar, es **OBLIGATORIO** asimilar los Axiomas Relacionales en `system_core/Documentacion/ADRs/` y en el protocolo satélite.
 
-**Trinidad Arquitectónica (Leer en orden de prelación):**
-1. 🏛️ `ADR_001_DATA_CONTRACTS.md`: Trata sobre cómo la información se vuelve "Átomos" en Google Drive. Si mutas estructuras de datos sin respetar esto, corromperás el sistema del usuario.
-2. 🔑 `ADR_041_SATELLITE_KEYCHAINS_INFRASTRUCTURE.md`: La ley sobre Identidades, Tokens Maestros y Jurisdicción. Indra NO usa JWTs tradicionales, usa Resonancia de Sesión nativa.
-3. 📐 `ADR_002_UI_MANIFEST.md`: El Nexo (interfaz) funciona mediante un motor de proyecciones, no mediante hardcoding en React.
+**Trinidad Arquitectónica Relacional:**
+1. 🏛️ `ADR_051_GRAPH_RELATIONAL_MESH.md`: La ley del Grafo. Cómo los átomos se vinculan mediante flechas inmutables.
+2. 🔑 `ADR_050_JIT_MICELAR_ARCHITECTURE.md`: El modelo de acceso Just-In-Time a células soberanas.
+3. 📐 `ADR_001_DATA_CONTRACTS.md`: La gramática de los átomos actualizada a la v4.0.
 
 ---
 
-## 🗺️ Mapa Topológico y Reglas Generales
+## 🗺️ Mapa Topológico de la Malla
 
-El ecosistema Indra está estrictamente aislado en tres capas de jurisdicción. **NUNCA** debes acoplar dependencias de una capa hacia otra directamente. Todo se comunica por Protocolos (`postMessage` o `Fetch` al Gateway).
+El ecosistema Indra se organiza en una red de resonancia, eliminando la jerarquía rígida en favor de la soberanía micelar.
 
-### 1. EL CEREBRO (Core / Backend en GAS)
-*   **Ruta Física:** `system_core/core/`
-*   **Naturaleza:** Es el servidor escrito en Google Apps Script.
-*   **Objetivo:** Alberga el `api_gateway.js`, los manejadores de base de datos (`provider_system_infrastructure.gs`), la lógica del Llavero y la capacidad de hablar con servicios externos. Todo el código aquí es JavaScript que transpila a `.gs` mediante Clasp.
-*   **Regla:** Aquí no existe DOM, ni React, ni `window`. Es territorio asíncrono y de backend puro.
+### 1. EL NÚCLEO (Core / Nucleus)
+*   **Identidad:** Orquestador de protocolos y Gateway de seguridad.
+*   **Función:** No almacena datos del usuario; gestiona la "frecuencia" de la red y el Handshake JIT.
+*   **Regla:** Es el garante de la inmutabilidad relacional.
 
-### 2. EL NEXO (Shell / Frontend)
-*   **Ruta Física:** `system_core/client/`
-*   **Naturaleza:** Aplicación React (Indra OS).
-*   **Objetivo:** Es la "Cáscara" o sistema operativo de usuario. Posee un "Muro de Berlín": La zona **Pre-Auth** (`LandingView.jsx`) y la zona **Post-Auth** (`NexusView.jsx`).
-*   **Regla:** Prohibido insertar lógica de administración profunda en la Landing. El Nexo solo "proyecta" lo que el Core le envía.
+### 2. LA CÉLULA (Workspace / Cell)
+*   **Identidad:** Unidades de persistencia soberanas (Ledgers).
+*   **Función:** Cada célula es un micro-universo de datos y relaciones (Flechas).
+*   **Regla:** Solo son accesibles mediante resonancia JIT autorizada.
 
-### 3. LA EXTREMIDAD (El Satélite)
-*   **Ruta Física:** `system_core/client/public/indra-satellite-protocol/` (**SUBMÓDULO GIT**)
+### 3. EL SATÉLITE (Membrana Inteligente)
+*   **Identidad:** Protocolo ISP v3.0.
+*   **Función:** Interfaz de usuario o agente externo que habita la malla.
+*   **Regla:** Debe ser "Relacionalmente Consciente". No solo lee datos, navega el grafo.
 *   **Naturaleza:** Protocolo estándar Vanilla JS (ISP v2.5).
 *   **Objetivo:** Módulo inyectable que permite a aplicaciones de terceros consumir el Core mediante `IndraBridge.js` bajo el paradigma de *Resonancia de Identidad*.
 

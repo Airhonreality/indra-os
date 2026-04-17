@@ -62,10 +62,24 @@ export function NexusView() {
             <IndraMacroHeader 
                 atom={nexusAtom}
                 rightSlot={
-                    <button className="btn btn--ghost btn--mini" onClick={() => hydrateManifest()}>
-                        <IndraIcon name="SYNC" size="12px" />
-                        <span style={{ marginLeft: '6px', fontSize: '9px' }}>{t('action_refresh')}</span>
-                    </button>
+                    <div className="shelf--tight">
+                        <button className="btn btn--ghost btn--mini" onClick={() => hydrateManifest()}>
+                            <IndraIcon name="SYNC" size="12px" />
+                            <span style={{ marginLeft: '6px', fontSize: '9px' }}>{t('action_refresh')}</span>
+                        </button>
+                        <button 
+                            className="btn btn--ghost btn--mini" 
+                            style={{ color: 'var(--color-warm)', border: '1px solid rgba(255, 100, 100, 0.2)' }}
+                            onClick={() => {
+                                if (window.confirm('¿Deseas cerrar la sesión activa y desconectar el satélite?')) {
+                                    useAppState.getState().disconnect();
+                                }
+                            }}
+                        >
+                            <span style={{ marginRight: '6px' }}>🚪</span>
+                            <span style={{ fontSize: '9px' }}>{t('action_logout') || 'CERRAR_SESIÓN'}</span>
+                        </button>
+                    </div>
                 }
             />
 
@@ -94,13 +108,12 @@ export function NexusView() {
                                 className="btn btn--ghost btn--mini btn--full" 
                                 style={{ marginTop: 'var(--space-3)', fontSize: '9px' }}
                                 onClick={() => {
-                                    // Desconectamos para volver al selector (Nivel 0)
-                                    // pero sin borrar el registro. Solo limpia la sesión actual.
-                                    useAppState.getState().disconnect();
+                                    // Cambiamos de núcleo sin cerrar sesión total si hay varios
+                                    useAppState.getState().resetConnectionState();
                                 }}
                             >
                                 <IndraIcon name="LINK" size="10px" />
-                                CAMBIAR_NÚCLEO
+                                CONMUTAR_NÚCLEO
                             </button>
                             <button 
                                 className="btn btn--ghost btn--mini btn--full" 

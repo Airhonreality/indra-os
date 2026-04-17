@@ -51,7 +51,8 @@ function CONF_SYSTEM() {
       SYSTEM_SCHEMA_IGNITE: { sync: 'BLOCKING', purge: 'ALL', handler: 'handleSystem' },
       SYSTEM_CORE_DISCOVERY: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleSystem' },
       SERVICE_PAIR: { sync: 'BLOCKING', purge: 'ALL', handler: 'handleSystem' },
-      SERVICE_UNPAIR: { sync: 'BLOCKING', purge: 'ALL', handler: 'handleSystem' }
+      SERVICE_UNPAIR: { sync: 'BLOCKING', purge: 'ALL', handler: 'handleSystem' },
+      RELATION_SYNC: { sync: 'BLOCKING', purge: 'ALL', handler: 'handleSystem' }
     },
 
     protocol_meta: {
@@ -185,6 +186,7 @@ function handleSystem(uqo) {
   if (protocol === 'ALIAS_COLLISION_SCAN') return _system_handleAliasCollisionScan(uqo);
   if (protocol === 'SERVICE_PAIR') return _system_handleServicePair(uqo);
   if (protocol === 'SERVICE_UNPAIR') return _system_handleServiceUnpair(uqo);
+  if (protocol === 'RELATION_SYNC') return _system_handleRelationSync(uqo);
 
   // ─── HANDLER DE WORKSPACE (provider_system_workspace.gs)
   if (protocol === 'SYSTEM_PIN') return _system_handlePin(uqo);

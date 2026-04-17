@@ -91,16 +91,30 @@ function _scanProviders() {
     }
   });
 
-  // FALLBACK ABSOLUTO (Indra v4.83): Si el sistema no aparece, lo inyectamos por fuerza bruta
-  if (!configs.find(c => c.id === 'system')) {
-    logWarn('[provider_registry] ALARMA: El sistema no se auto-detectó. Aplicando registro forzado JIT.');
-    try {
-      const systemConf = typeof CONF_SYSTEM === 'function' ? CONF_SYSTEM() : null;
-      if (systemConf) configs.push(systemConf);
-    } catch(e) {
-      logError('[provider_registry] ERROR CRÍTICO: Ni siquiera el registro forzado funcionó.', e);
+  // FALLBACK ABSOLUTO (v4.91): Si el sistema no aparece, lo inyectamos por fuerza bruta.
+  // Es Vital para superar la opacidad de Google en modo WebApp.
+  const coreIds = ['system', 'drive', 'notion', 'intelligence', 'calendar_universal', 'pipeline'];
+  
+  coreIds.forEach(id => {
+    if (!configs.find(c => c.id === id)) {
+      const funcName = `CONF_${id.toUpperCase()}`;
+      try {
+        // AXIOMA DE RESOLUCIÓN RESILIENTE (Turn 47)
+        let fn = scope[funcName];
+        if (!fn && typeof this[funcName] === 'function') fn = this[funcName];
+        if (!fn && typeof eval === 'function') {
+          try { fn = eval(funcName); } catch(e) {}
+        }
+        
+        if (typeof fn === 'function') {
+          logInfo(`[provider_registry] Registro forzado JIT exitoso para: ${id}`);
+          configs.push(fn());
+        }
+      } catch(e) {
+        logError(`[provider_registry] No se pudo inyectar el motor ${id}: ${e.message}`);
+      }
     }
-  }
+  });
 
   return configs;
 }

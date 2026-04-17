@@ -4,7 +4,7 @@
 // RESPONSABILIDAD: El único doPost del sistema. Soberanía de la entrada.
 // =============================================================================
 
-const CORE_VERSION = "v4.90-NEXUS-OMNI-K"; // FASE: Interconectividad Multinodal y Nexo Social.
+const CORE_VERSION = "v4.91-NEXUS-OMNI-K"; // FASE: Interconectividad Multinodal y Nexo Social.
 
 const GATEWAY_SYSTEM_PROTOCOLS = Object.freeze([
   'SYSTEM_MANIFEST',

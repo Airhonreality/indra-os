@@ -730,10 +730,20 @@ function _system_getOrCreateSubfolder_(folderName, contextUqo, workspaceId) {
     let parentFolder = homeRoot;
 
     // ── LÓGICA DE ARQUITECTURA CELULAR (INDRA v4.2) ──
-    // Si hay un workspace_id, la carpeta del tipo (schemas, workflows) se crea DENTRO del workspace.
     if (workspaceId && workspaceId !== 'system' && workspaceId !== 'workspaces') {
         const wsRoot = _system_ensureWorkspaceCell_(workspaceId);
         if (wsRoot) parentFolder = wsRoot;
+    }
+
+    // 📦 RECOLECCIÓN VÍA BRÚJULA (Solo para carpetas globales o de primer nivel de workspace)
+    const infraKey = `${workspaceId || 'root'}_${folderName.toLowerCase()}`;
+    const cachedId = ledger_infra_get(infraKey);
+    if (cachedId) {
+        try {
+            return DriveApp.getFolderById(cachedId);
+        } catch (e) {
+            logWarn(`[infrastructure] Infra ${infraKey} perdida. Re-esculpiendo...`);
+        }
     }
 
     let folder;
@@ -747,6 +757,9 @@ function _system_getOrCreateSubfolder_(folderName, contextUqo, workspaceId) {
         const sandboxFolders = folder.getFoldersByName(sandboxName);
         folder = sandboxFolders.hasNext() ? sandboxFolders.next() : folder.createFolder(sandboxName);
     }
+
+    // Guardar en la brújula para la próxima vez
+    ledger_infra_sync(infraKey, folder.getId(), folderName);
 
     return folder;
 }
@@ -795,8 +808,8 @@ function _system_toAtom(doc, fileId, providerId) {
     // ── GESTIÓN DE IDENTIDAD SINCERA (DEFENSA ANTE LEGADO) ──
     const safeHandle = {
         ns: doc.handle?.ns || `com.indra.system.${(doc.class || 'unknown').toLowerCase()}`,
-        alias: doc.handle?.alias || _system_slugify_(doc.handle?.label || doc.name || 'unnamed'),
-        label: doc.handle?.label || doc.name || 'ARTEFACTO_SIN_NOMBRE'
+        alias: doc.handle?.alias || _system_slugify_(doc.handle?.label || 'unnamed'),
+        label: doc.handle?.label || 'ARTEFACTO_SIN_NOMBRE'
     };
 
     // ADR-008: Blindaje de Salida (Aduana Interna del Provider)

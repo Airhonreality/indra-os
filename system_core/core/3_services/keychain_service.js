@@ -128,19 +128,40 @@ function _keychain_audit() {
 // ─── MOTOR INTERNO (PERSISTENCIA) ───────────────────────────────────────────
 
 function _keychain_getLedger_() {
-    const raw = PropertiesService.getScriptProperties().getProperty(KEYCHAIN_STORAGE_KEY_);
-    if (!raw) return _keychain_bootstrap_();
+    // 1. Intentar leer desde el Ledger (Nuevo Estándar)
+    const ledger = ledger_keychain_read_all();
+    
+    // 2. Si el Ledger tiene datos, es la Verdad Central
+    if (Object.keys(ledger).length > 0) return ledger;
 
-    try {
-        return JSON.parse(raw);
-    } catch (e) {
-        logError("[keychain] LEDGER CORRUPTO. Recuperación de emergencia.", e);
-        return _keychain_bootstrap_();
+    // ─── PROCESO DE MIGRACIÓN LEGACY (v4.40 Renaissance) ───
+    const rawLegacy = PropertiesService.getScriptProperties().getProperty(KEYCHAIN_STORAGE_KEY_);
+    if (rawLegacy) {
+        logWarn("[keychain] Detectado Llavero Legacy. Iniciando migración al Master Ledger...");
+        try {
+            const legacyData = JSON.parse(rawLegacy);
+            Object.keys(legacyData).forEach(token => {
+                ledger_keychain_sync(token, legacyData[token]);
+            });
+            // Una vez migrado, purgamos el legacy para liberar los 9KB
+            PropertiesService.getScriptProperties().deleteProperty(KEYCHAIN_STORAGE_KEY_);
+            logSuccess("[keychain] Migración completada. Espacio de PropertiesService liberado.");
+            return legacyData;
+        } catch (e) {
+            logError("[keychain] Fallo en migración legacy.", e);
+        }
     }
+
+    // 3. Si no hay nada, bootstrap inicial
+    return _keychain_bootstrap_();
 }
 
 function _keychain_saveLedger_(ledger) {
-    PropertiesService.getScriptProperties().setProperty(KEYCHAIN_STORAGE_KEY_, JSON.stringify(ledger));
+    // Ya no guardamos todo el objeto en una sola propiedad (Adiós límite de 9KB)
+    // Sincronizamos entrada por entrada (Peristaltismo)
+    Object.keys(ledger).forEach(token => {
+        ledger_keychain_sync(token, ledger[token]);
+    });
 }
 
 /**

@@ -157,7 +157,6 @@ function _system_propagateNameChange(atomId, newName, providerId) {
                 (content.pins || []).forEach(pin => {
                     if (pin.id === atomId && (pin.provider === providerId || pin.provider.startsWith(providerId + ':'))) {
                         if (pin.handle) pin.handle.label = newName;
-                        pin.name = newName; // Legacy
                         changed = true;
                     }
                 });

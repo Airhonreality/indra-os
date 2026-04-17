@@ -6,7 +6,11 @@
 // =============================================================================
 
 const LEDGER_SHEET_NAME = 'ATOMS';
+const KEYCHAIN_SHEET_NAME = 'KEYCHAIN';
+const INFRA_SHEET_NAME = 'INFRASTRUCTURE';
 const MASTER_LEDGER_COLUMNS = ['gid', 'drive_id', 'class', 'alias', 'label', 'owner_id', 'updated_at', 'payload_json'];
+const KEYCHAIN_COLUMNS = ['token', 'name', 'status', 'class', 'parent_id', 'can_delegate', 'created_at', 'scopes_json'];
+const INFRA_COLUMNS = ['key', 'drive_id', 'label', 'updated_at'];
 
 /**
  * Obtiene la Sheet del Ledger. Lanza error fatal si no existe o no es accesible.
@@ -133,17 +137,25 @@ function ledger_remove_atom(driveId) {
  */
 function ledger_initialize_new() {
   const ss = SpreadsheetApp.create('INDRA_MASTER_LEDGER');
-  const sheet = ss.getSheets()[0];
-  sheet.setName(LEDGER_SHEET_NAME);
   
-  // Congelar cabeceras para higiene visual
-  sheet.appendRow(MASTER_LEDGER_COLUMNS);
-  sheet.setFrozenRows(1);
+  // 1. Átomos
+  const atomSheet = ss.getSheets()[0];
+  atomSheet.setName(LEDGER_SHEET_NAME);
+  atomSheet.appendRow(MASTER_LEDGER_COLUMNS);
+  atomSheet.setFrozenRows(1);
+
+  // 2. Llavero
+  const keySheet = ss.insertSheet(KEYCHAIN_SHEET_NAME);
+  keySheet.appendRow(KEYCHAIN_COLUMNS);
+  keySheet.setFrozenRows(1);
+
+  // 3. Infraestructura (Mapeo de carpetas)
+  const infraSheet = ss.insertSheet(INFRA_SHEET_NAME);
+  infraSheet.appendRow(INFRA_COLUMNS);
+  infraSheet.setFrozenRows(1);
   
   const ledgerId = ss.getId();
   storeMasterLedgerId(ledgerId);
-  
-  console.log('[ledger] Nuevo Master Ledger creado:', ledgerId);
   return ledgerId;
 }
 
@@ -268,4 +280,108 @@ function ledger_list_all_records() {
     updated_at: row[6],
     payload: row[7] ? JSON.parse(row[7]) : {}
   }));
+}
+/**
+ * Lee todo el llavero desde el Ledger.
+ * @returns {Object} Mapa de tokens { [token]: entry }
+ */
+function ledger_keychain_read_all() {
+  const ssId = readMasterLedgerId();
+  if (!ssId) return {};
+  
+  const ss = SpreadsheetApp.openById(ssId);
+  let sheet = ss.getSheetByName(KEYCHAIN_SHEET_NAME);
+  if (!sheet) return {};
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return {};
+
+  const ledger = {};
+  data.slice(1).forEach(row => {
+    ledger[row[0]] = {
+      name: row[1],
+      status: row[2],
+      class: row[3],
+      parent_id: row[4],
+      can_delegate: row[5] === true || row[5] === 'TRUE',
+      created_at: row[6],
+      scopes: row[7] ? JSON.parse(row[7]) : []
+    };
+  });
+  return ledger;
+}
+
+/**
+ * Sincroniza una entrada individual en el Llavero del Ledger.
+ */
+function ledger_keychain_sync(token, entry) {
+  const ssId = readMasterLedgerId();
+  if (!ssId) ledger_initialize_new();
+  
+  const ss = SpreadsheetApp.openById(readMasterLedgerId());
+  let sheet = ss.getSheetByName(KEYCHAIN_SHEET_NAME) || ss.insertSheet(KEYCHAIN_SHEET_NAME);
+  
+  const lock = LockService.getScriptLock();
+  try {
+    if (!lock.tryLock(10000)) throw new Error('KEYCHAIN_LOCK_TIMEOUT');
+
+    const data = sheet.getDataRange().getValues();
+    const rowData = [
+      token,
+      entry.name,
+      entry.status,
+      entry.class,
+      entry.parent_id || '',
+      entry.can_delegate,
+      entry.created_at || new Date().toISOString(),
+      JSON.stringify(entry.scopes || [])
+    ];
+
+    const index = data.findIndex(row => row[0] === token);
+    if (index === -1) {
+      sheet.appendRow(rowData);
+    } else {
+      sheet.getRange(index + 1, 1, 1, rowData.length).setValues([rowData]);
+    }
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Obtiene el ID de Drive de un componente de infraestructura (v4.40).
+ * @param {string} key - La clave del componente (ej: 'workspaces', 'schemas').
+ * @returns {string|null} El ID de Drive o null si no está mapeado.
+ */
+function ledger_infra_get(key) {
+  const ssId = readMasterLedgerId();
+  if (!ssId) return null;
+  const ss = SpreadsheetApp.openById(ssId);
+  const sheet = ss.getSheetByName(INFRA_SHEET_NAME);
+  if (!sheet) return null;
+
+  const data = sheet.getDataRange().getValues();
+  const index = data.findIndex(row => row[0] === key);
+  return index === -1 ? null : data[index][1];
+}
+
+/**
+ * Registra o actualiza el mapeo de una carpeta de infraestructura (v4.40).
+ */
+function ledger_infra_sync(key, driveId, label) {
+  const ssId = readMasterLedgerId() || ledger_initialize_new();
+  const ss = SpreadsheetApp.openById(readMasterLedgerId());
+  const sheet = ss.getSheetByName(INFRA_SHEET_NAME) || ss.insertSheet(INFRA_SHEET_NAME);
+  
+  const lock = LockService.getScriptLock();
+  try {
+    if (!lock.tryLock(5000)) return;
+    const data = sheet.getDataRange().getValues();
+    const rowData = [key, driveId, label || key, new Date().toISOString()];
+    const index = data.findIndex(row => row[0] === key);
+    if (index === -1) sheet.appendRow(rowData);
+    else sheet.getRange(index + 1, 1, 1, rowData.length).setValues([rowData]);
+  } finally {
+    lock.releaseLock();
+  }
 }

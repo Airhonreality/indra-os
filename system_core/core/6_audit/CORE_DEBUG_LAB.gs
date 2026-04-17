@@ -116,3 +116,50 @@ function DEV_DEBUG_DeepIntegrationTest() {
     console.error('Causa: ' + e.message);
   }
 }
+
+/**
+ * FASE III: Simulador de Gateway (doPost).
+ * Prueba el flujo exacto por el que pasa el navegador.
+ */
+function DEV_DEBUG_SimulateGateway() {
+  console.info('--- 🏢 INICIANDO SIMULADOR DE GATEWAY (v4.89) ---');
+  
+  const mockPayload = {
+    protocol: 'ATOM_CREATE',
+    provider: 'system',
+    password: 'MASTER_DEBUG_KEY', // Simular un password si es necesario
+    data: {
+      class: 'WORKSPACE',
+      handle: {
+        alias: 'gateway_test_' + Date.now(),
+        label: 'Workspace desde Simulador'
+      },
+      payload: { origin: 'Gateway Simulator' }
+    }
+  };
+
+  const mockEvent = {
+    postData: {
+      contents: JSON.stringify(mockPayload)
+    }
+  };
+
+  try {
+    console.log('   > Llamando a doPost con Payload Simulado...');
+    const httpResponse = doPost(mockEvent); // Ejecutamos el punto de entrada oficial
+    
+    // El retorno de doPost es un TextOutput, extraemos el contenido
+    const content = httpResponse.getContent();
+    console.log('   > Respuesta del Servidor (JSON):', content);
+    
+    const res = JSON.parse(content);
+    if (res.metadata.status === 'OK') {
+      console.log('   ✅ GATEWAY OK: El flujo browser -> core es funcional.');
+    } else {
+      console.error('   ❌ GATEWAY FALLO: ' + res.metadata.error);
+    }
+
+  } catch (e) {
+    console.error('   ❌ ERROR CRÍTICO EN SIMULADOR: ' + e.message);
+  }
+}

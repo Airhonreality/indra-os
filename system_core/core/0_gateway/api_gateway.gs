@@ -93,9 +93,13 @@ function doPost(e) {
 
     let result;
     try {
+      console.log('[GATEWAY_INPUT] Protocolo:', payload.protocol, '| Owner:', payload.effective_owner, '| Master:', payload.is_master_access);
+      
       result = (GATEWAY_SYSTEM_PROTOCOLS.includes(payload.protocol) || payload.protocol.startsWith('EMERGENCY_')) 
         ? SystemOrchestrator.dispatch(payload) 
         : route(payload);
+        
+      console.log('[GATEWAY_OUTPUT] Status:', result?.metadata?.status || 'UNKNOWN');
     } catch (routeError) {
       console.error('[gateway] Error fatal en el despacho del protocolo:', routeError);
       return _buildResponse_(500, { metadata: { status: 'ERROR', error: routeError.message } });

@@ -407,9 +407,12 @@ function route(uqo) {
     };
   }
 
-  // --- Validar retorno: The Return Law y contrato de átomo ---
+  // --- Validar retorno: El Contrato y la Membrana de Soberanía (v5.0) ---
   _validateReturnLaw_(result, providerId, protocol);
   _validateAtomContract_(result.items, providerId, protocol);
+
+  // AXIOMA v5.0: Aplicar Filtrado de Soberanía Celular
+  result.items = _filterItemsBySovereignty_(result.items, uqo);
 
   // ADR-008: VALIDACIÓN RADICAL DE SCHEMAS EN STREAMS
   if (protocol === 'TABULAR_STREAM') {

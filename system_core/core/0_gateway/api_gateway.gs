@@ -65,25 +65,6 @@ function doPost(e) {
         return _buildResponse_(401, { metadata: { status: 'UNAUTHORIZED', error: 'Se requiere sesión, token de satélite o ticket válido.' } });
     }
 
-    // AXIOMA DE RESTRICCIÓN RÍGIDA: Validar scopes para identidades no-MASTER
-    if (!context.is_master) {
-        const requestedId = payload.context_id || (payload.data && payload.data.context_id);
-        const hasScope = context.scopes && context.scopes.includes(requestedId);
-        
-        // Excepción: Los protocolos de sistema no-contextuales (como audit o manifest) se permiten
-        const isSystemDiscovery = ['SYSTEM_MANIFEST', 'SYSTEM_CONFIG_SCHEMA'].includes(payload.protocol);
-
-        if (!hasScope && !isSystemDiscovery) {
-            console.warn(`[gateway] VIOLACIÓN DE ÁMBITO: Identidad ${context.label} intentó acceder a ${requestedId}`);
-            return _buildResponse_(403, { 
-                metadata: { 
-                    status: 'FORBIDDEN', 
-                    error: `ACCESO_DENEGADO: Esta identidad solo tiene acceso a: ${context.scopes.join(',')}` 
-                } 
-            });
-        }
-    }
-
     // AXIOMA DE JURISDICCIÓN: Inyectamos identidad efectiva
     payload.environment = payload.environment || 'PRODUCTION'; 
     payload.effective_owner = context.owner_id;

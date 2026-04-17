@@ -35,23 +35,25 @@ function DEV_DEBUG_AtomicIgnitionTest() {
     console.log('   ✅ Ledger OK.');
 
     // 4. TEST DE CREACIÓN DE ÁTOMO (WORKSPACE)
-    console.log('4. [TEST] Intentando creación de Átomo de Workspace Debug...');
+    console.log('4. [TEST] Creando Workspace de Prueba (con Handshake de Registro)...');
+    const userEmail = Session.getActiveUser().getEmail();
     const mockUqo = {
       protocol: 'ATOM_CREATE',
       provider: 'system',
+      effective_owner: userEmail,
+      is_master_access: true,
       data: {
         class: 'WORKSPACE',
         handle: {
           alias: 'debug_workspace_' + Date.now(),
-          label: 'Espacio de Trabajo de Diagnóstico'
+          label: 'Materia Primordial (v5.0)'
         },
+        acl: { admins: [userEmail], readers: [], writers: [] },
         payload: {
-          description: 'Este es un átomo creado durante una prueba de ignición directa en GAS.',
+          description: 'Este es un átomo creado con el nuevo protocolo de Soberanía Micelar.',
           test_mode: true
         }
-      },
-      effective_owner: Session.getActiveUser().getEmail(),
-      is_master_access: true
+      }
     };
 
     console.log('   > Petición Enviada (Payload):', JSON.stringify(mockUqo, null, 2));

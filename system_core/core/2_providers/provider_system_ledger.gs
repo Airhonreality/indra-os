@@ -10,7 +10,7 @@ const KEYCHAIN_SHEET_NAME = 'KEYCHAIN';
 const INFRA_SHEET_NAME = 'INFRASTRUCTURE';
 const PROCESS_SHEET_NAME = 'PROCESSES';
 const HEALTH_SHEET_NAME = 'HEALTH';
-const MASTER_LEDGER_COLUMNS = ['gid', 'drive_id', 'class', 'alias', 'label', 'owner_id', 'updated_at', 'payload_json'];
+const MASTER_LEDGER_COLUMNS = ['gid', 'drive_id', 'class', 'alias', 'label', 'owner_id', 'updated_at', 'payload_json', 'acl_json'];
 const KEYCHAIN_COLUMNS = ['token', 'name', 'status', 'class', 'parent_id', 'can_delegate', 'created_at', 'scopes_json'];
 const INFRA_COLUMNS = ['key', 'drive_id', 'label', 'updated_at'];
 const PROCESS_COLUMNS = ['trigger_id', 'workflow_id', 'status', 'last_pulse', 'error_log', 'config_json'];
@@ -85,15 +85,24 @@ function ledger_sync_atom(atom, driveId) {
  * @private
  */
 function _ledger_build_row_(atom, driveId) {
+  const owner = atom.owner_id || readCoreOwnerEmail();
+  // AXIOMA v5.0: El creador es siempre el Administrador de su universo.
+  const acl = atom.acl || { 
+    admins: [owner], 
+    readers: [], 
+    writers: [] 
+  };
+
   return [
     atom.gid || `GID-${driveId.substring(0,8)}`,
     driveId,
     atom.class || 'UNKNOWN',
     atom.handle?.alias || '',
     atom.handle?.label || '',
-    atom.owner_id || readCoreOwnerEmail(),
+    owner,
     atom.updated_at || new Date().toISOString(),
-    JSON.stringify(atom.payload || {})
+    JSON.stringify(atom.payload || {}),
+    JSON.stringify(acl)
   ];
 }
 
@@ -116,7 +125,8 @@ function ledger_list_by_class(atomClass) {
       handle: { alias: row[3], label: row[4] },
       owner_id: row[5],
       updated_at: row[6],
-      payload: row[7] ? JSON.parse(row[7]) : {}
+      payload: row[7] ? JSON.parse(row[7]) : {},
+      acl: row[8] ? JSON.parse(row[8]) : null
     }));
 }
 

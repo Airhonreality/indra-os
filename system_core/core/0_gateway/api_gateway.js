@@ -48,6 +48,7 @@ function doGet(e) {
 function doPost(e) {
   Watchdog.start();
   try {
+    console.log('[Indra Gateway] << Entrada Detectada >>');
     const pulseResponse = pulse_router_intercept(e);
     if (pulseResponse) return pulseResponse;
 

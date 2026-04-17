@@ -1,10 +1,5 @@
 [
   {
-    "path": "appsscript.json",
-    "name": "appsscript",
-    "type": "JSON"
-  },
-  {
     "path": "0_AUTHORIZE_MANUALLY.gs",
     "name": "0_AUTHORIZE_MANUALLY",
     "type": "SERVER_JS"

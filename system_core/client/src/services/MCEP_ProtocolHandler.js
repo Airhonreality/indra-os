@@ -72,7 +72,6 @@ export class MCEP_ProtocolHandler {
         } catch (e) {
             // Fallback para formatos relajados que a veces tiran los LLMs
             try {
-                // eslint-disable-next-line no-eval
                 const fn = new Function(`return ${str}`);
                 return fn();
             } catch (error) {

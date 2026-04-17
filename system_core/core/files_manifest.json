@@ -19,7 +19,6 @@
     "name": "pulse_router",
     "type": "SERVER_JS"
   },
-
   {
     "path": "0_utils/indra_utils.gs",
     "name": "indra_utils",

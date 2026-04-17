@@ -27,6 +27,7 @@
   { "path": "2_providers/provider_system_ledger.gs", "name": "provider_system_ledger" },
   { "path": "2_providers/provider_system_logic.js", "name": "provider_system_logic" },
   { "path": "2_providers/provider_system_workspace.js", "name": "provider_system_workspace" },
+  { "path": "3_services/keychain_service.js", "name": "keychain_service" },
   { "path": "3_services/monitoring_service.js", "name": "monitoring_service" },
   { "path": "3_services/pulse_service.js", "name": "pulse_service" },
   { "path": "3_services/resonance_service.gs", "name": "resonance_service" },

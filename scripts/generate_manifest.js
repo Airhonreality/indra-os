@@ -5,9 +5,10 @@ const CORE_PATH = path.join(__dirname, '../system_core/core');
 const MANIFEST_PATH = path.join(CORE_PATH, 'files_manifest.json');
 
 // Extensiones que Indra reconoce como código de servidor
-const VALID_EXTENSIONS = ['.js', '.gs'];
+const VALID_EXTENSIONS = ['.js', '.gs', '.json'];
 // Archivos que deben ser ignorados por seguridad o redundancia
-const IGNORE_FILES = ['files_manifest.json', 'manifest.json', 'version.json', 'appsscript.json'];
+// Archivos que deben ser ignorados por seguridad o redundancia
+const IGNORE_FILES = ['files_manifest.json', 'manifest.json', 'version.json', '.clasp.json', 'temp_payload.json'];
 
 function scanDirectory(dir, baseDir = '') {
     let results = [];

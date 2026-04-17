@@ -1,6 +1,6 @@
 import React from 'react';
-console.log('%c🔴 INDRA OS v4.33-NUCLEUS ACTIVE', 'color: #ff3e00; font-weight: bold; font-size: 14px;');
-console.log('%cPunto de Control: PERFIL SOBERANO | Integridad: 100% (CRISTALIZADO)', 'color: #00e5ff; font-size: 10px;');
+console.log('%c🔴 INDRA OS v4.35-AXIOM ACTIVE', 'color: #ff3e00; font-weight: bold; font-size: 14px;');
+console.log('%cTrazabilidad: TOTAL | Puente: GITHUB RAW (CACHE-BUSTED)', 'color: #00e5ff; font-size: 10px;');
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { NeuralSplitter } from './context/NeuralSplitter';

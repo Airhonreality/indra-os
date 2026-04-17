@@ -262,8 +262,10 @@ async installCore(accessToken, userEmail, onProgress) {
     // Descargar manifiesto dinámico de archivos (Cache-Busting activo)
     const manifestResp = await fetch(FILES_MANIFEST_URL + `?t=${Date.now()}`);
     const filesManifest = await manifestResp.json();
+    console.log(`📦 [Orchestrator] MANIFIESTO RECUPERADO: ${filesManifest.length} archivos.`);
 
-    const files = await Promise.all(filesManifest.map(async (file) => {
+    const files = await Promise.all(filesManifest.map(async (file, idx) => {
+      console.log(`📡 [${idx + 1}/${filesManifest.length}] Descargando Átomo: ${file.path}`);
       const resp = await fetch(REPO_URL_BASE + file.path + `?t=${Date.now()}`);
       let source = await resp.text();
 

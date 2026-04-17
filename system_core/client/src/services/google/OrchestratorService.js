@@ -110,7 +110,7 @@ async installCore(accessToken, userEmail, onProgress) {
       // --- 🛡️ VERIFICACIÓN DE SOBERANÍA (v4.19) ---
       // Realizamos el call CORS real. Si falla, lanzamos AUTORIZACION_PENDIENTE.
       // Pero como el manifiesto ya está escrito, al volver el usuario descubrirá su Core.
-      notify('[v4.22-PROBE] Verificando soberanía del motor...', 98);
+      notify('[v4.33-NUCLEUS] Verificando soberanía del motor...', 98);
       await this._verifyCoreReadiness(coreUrl, manifest);
 
       notify('¡Indra ha Despertado!', 100);
@@ -389,11 +389,11 @@ async installCore(accessToken, userEmail, onProgress) {
         clearTimeout(timeoutId);
         return true;
     } catch (err) {
-        console.error('[v4.22-PROBE] Fallo en la verificación de readiness:', err);
-        console.dir(err);
-        // TypeError: Failed to fetch suele significar 403/CORS bloqueado por falta de Auth de Script
-        if (err.requiresManualAuth || err.name === 'AbortError' || err.message.includes('fetch')) {
-            const authErr = new Error('[v4.22-PROBE] Requerida Autorización Manual de Google');
+        console.error('[v4.33-NUCLEUS] Fallo en la verificación de readiness:', err);
+        const errorMsg = err.message || '';
+
+        if (errorMsg.includes('Failed to fetch') || errorMsg.includes('403') || errorMsg.includes('Authorization Required')) {
+            const authErr = new Error('[v4.33-NUCLEUS] Requerida Autorización Manual de Google');
             authErr.requiresManualAuth = true;
             authErr.coreUrl = coreUrl;
             authErr.manifest = manifest;

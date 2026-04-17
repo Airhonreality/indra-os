@@ -58,8 +58,8 @@ export const createIgnitionSlice = (set, get) => ({
         const { googleUser } = get();
         if (!googleUser || !googleUser.accessToken) return;
 
-        set({ isConnecting: true, error: null, installStatus: { step: '🔴 [v4.22-PROBE] INICIANDO_IGNICION...', progress: 5 } });
-        console.log('🔴 [v4.22-PROBE] INICIANDO IGNICIÓN INDRA CORE...');
+        set({ isConnecting: true, error: null, installStatus: { step: '🔴 [v4.33-NUCLEUS] INICIANDO_IGNICION...', progress: 5 } });
+        console.log('🔴 [v4.33-NUCLEUS] INICIANDO IGNICIÓN INDRA CORE...');
         try {
             const result = await OrchestratorService.installCore(
                 googleUser.accessToken, 

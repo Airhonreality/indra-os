@@ -25,7 +25,7 @@
 //   ACCOUNT_{provider}_{id}_META→ Metadata JSON de la cuenta (label, created_at)
 // =============================================================================
 
-const CORE_VERSION = 'v4.77-NEXUS-OMNI-K';
+// Versión gestionada centralmente en api_gateway.js
 const HOME_ROOT_FOLDER_NAME_ = '.core_system';
 
 /**

@@ -17,7 +17,10 @@ function _ledger_get_sheet_(allowMissing = false) {
   const ledgerId = readMasterLedgerId();
   if (!ledgerId) {
     if (allowMissing) return null; // Tolerancia durante el Bootstrap/Génesis
-    throw new Error('RED_ALERT: MASTER_LEDGER_ID_MISSING. El sistema ha perdido su mapa.');
+    
+    // AXIOMA DE RESILIENCIA: Si el Ledger falta y lo necesitamos para escribir, lo creamos JIT.
+    logWarn('[ledger] MASTER_LEDGER_ID_MISSING. Iniciando creación de emergencia (JIT Genesis)...');
+    return _ledger_get_sheet_(true) || SpreadsheetApp.openById(ledger_initialize_new()).getSheetByName(LEDGER_SHEET_NAME);
   }
 
   try {

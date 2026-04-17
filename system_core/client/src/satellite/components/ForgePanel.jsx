@@ -6,7 +6,7 @@
  * =============================================================================
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useCoreAuth } from '../hooks/useCoreAuth';
 import { useForgeSync } from '../hooks/useForgeSync';
 import { SchemaCard } from './SchemaCard';
@@ -20,7 +20,7 @@ export function ForgePanel({ onClose }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const isLoading = authLoading || syncLoading;
-  const error = authError || syncError;
+  // const error = authError || syncError; // No usado segun linter
 
   const localCount = schemas.filter(s => s.status !== 'REMOTE_ONLY').length;
   const liveCount = schemas.filter(s => s.status === 'LIVE').length;

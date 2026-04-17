@@ -1,4 +1,4 @@
-export const createUiSlice = (set, get) => ({
+export const createUiSlice = (set) => ({
     // Persistencia de Vista (Axioma de Continuidad)
     showConnector: localStorage.getItem('indra-show-connector') === 'true',
     docsTab: localStorage.getItem('indra-docs-tab') || 'BIENVENIDA',

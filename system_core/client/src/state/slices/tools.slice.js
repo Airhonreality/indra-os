@@ -6,7 +6,7 @@
  * =============================================================================
  */
 
-export const createToolsSlice = (set, get) => ({
+export const createToolsSlice = (set) => ({
     activeTool: null,           // null | 'MIE' | 'INGEST_GUEST' | 'INGEST_EXPIRED' | 'SILO_GUEST'
     ingestSessionToken: null,   // Payload decodificado del link de ingesta
     

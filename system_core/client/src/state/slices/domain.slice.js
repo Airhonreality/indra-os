@@ -440,7 +440,7 @@ export const createDomainSlice = (set, get) => ({
       * AXIOMA v6.1: Establece un vínculo relacional entre dos átomos.
       */
      establishRelation: async (sourceGid, targetGid, type, strength = 1.0) => {
-         const { coreUrl, sessionSecret, activeArtifact, pins } = get();
+         const { coreUrl, sessionSecret, activeArtifact } = get();
          try {
              await executeDirective({
                  provider: 'system',

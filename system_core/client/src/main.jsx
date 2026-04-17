@@ -3,7 +3,6 @@ console.log(`%cTrazabilidad: ${__INDRA_DHARMA__}`, 'color: #00e5ff; font-size: 1
 import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { NeuralSplitter } from './context/NeuralSplitter';
 import './styles/main.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(

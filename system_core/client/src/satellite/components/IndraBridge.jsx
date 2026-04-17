@@ -6,7 +6,6 @@
  * =============================================================================
  */
 
-import React from 'react';
 import { ForgePanel } from './ForgePanel';
 
 const isDevEnv = typeof window !== 'undefined' && (

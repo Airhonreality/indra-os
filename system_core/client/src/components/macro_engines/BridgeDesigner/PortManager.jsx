@@ -1,3 +1,4 @@
+import React from 'react';
 /**
  * =============================================================================
  * ARTEFACTO: components/macro_engines/BridgeDesigner/PortManager.jsx

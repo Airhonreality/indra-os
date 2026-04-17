@@ -1,3 +1,4 @@
+import React from 'react';
 /**
  * =============================================================================
  * ARTEFACTO: DocumentDesigner/renderer/HonestProvider.jsx

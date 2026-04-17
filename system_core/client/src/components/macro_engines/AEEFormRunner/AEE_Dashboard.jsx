@@ -1,3 +1,4 @@
+import React from 'react';
 /**
  * =============================================================================
  * ARTEFACTO: AEE_Dashboard.jsx

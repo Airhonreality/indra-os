@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { IndraIcon } from './IndraIcons';
 import { IndraActionTrigger } from './IndraActionTrigger';
 import { useShell } from '../../context/ShellContext';
@@ -24,14 +24,14 @@ export function IndraMacroHeader({
 }) {
     const t = useLexicon();
     const { updateAxiomaticIdentity } = useWorkspace();
-    const [pendingRename, setPendingRename] = React.useState(null);
-    const [isCommittingRename, setIsCommittingRename] = React.useState(false);
-    const [isSyncingIdentity, setIsSyncingIdentity] = React.useState(false);
-    const [renameError, setRenameError] = React.useState('');
+    const [pendingRename, setPendingRename] = useState(null);
+    const [isCommittingRename, setIsCommittingRename] = useState(false);
+    const [isSyncingIdentity, setIsSyncingIdentity] = useState(false);
+    const [renameError, setRenameError] = useState('');
     const isSaving = useAppState(s => !!s.pendingSyncs[atom?.id]);
     const pins = useAppState(s => s.pins || []);
     const { setIsStyleEngineOpen, theme, setTheme } = useShell();
-    const [isPulsing, setIsPulsing] = React.useState(false);
+    const [isPulsing, setIsPulsing] = useState(false);
 
     const handleThemeToggle = () => {
         // Cycling between dark, light, indra-vapor
@@ -43,7 +43,7 @@ export function IndraMacroHeader({
         setTheme(nextThemes[theme] || 'dark');
     };
 
-    React.useEffect(() => {
+    useEffect(() => {
         const handler = (e) => {
             if (e.detail.type === 'OUT') {
                 setIsPulsing(true);
@@ -55,7 +55,7 @@ export function IndraMacroHeader({
     }, []);
 
     // AXIOMA: Universe Injection (Inyectar color local al DOM Global)
-    React.useEffect(() => {
+    useEffect(() => {
         const color = atom?.color;
         if (color) {
             document.documentElement.style.setProperty('--indra-dynamic-accent', color);
@@ -75,7 +75,7 @@ export function IndraMacroHeader({
     const atomClass = overrideClass || atom?.class || 'ATOM';
     const normalizedAlias = String(alias || '').trim().toLowerCase();
 
-    const aliasCollision = React.useMemo(() => {
+    const aliasCollision = useMemo(() => {
         if (!normalizedAlias || !atom?.id) return null;
         return pins.find(p => {
             if (!p || p.id === atom.id) return false;
@@ -354,11 +354,11 @@ export function IndraMacroHeader({
 // Subcomponente de Aislamiento de Red
 // Resuelve el Anti-Patrón de DDOS por re-renderizado
 function TitleInput({ initialLabel, onCommit }) {
-    const [localValue, setLocalValue] = React.useState(initialLabel);
+    const [localValue, setLocalValue] = useState(initialLabel);
 
     // Resonancia: Si un proceso de fondo cambia o cura el nombre,
     // debemos absorberlo, pero *solo* si el usuario no tiene la caja seleccionada.
-    React.useEffect(() => {
+    useEffect(() => {
         setLocalValue(initialLabel);
     }, [initialLabel]);
 
@@ -389,15 +389,15 @@ function TitleInput({ initialLabel, onCommit }) {
 }
 
 function IdentityInput({ initialLabel, initialAlias, onCommit, aliasCollision = null }) {
-    const [labelDraft, setLabelDraft] = React.useState(initialLabel || '');
-    const [aliasDraft, setAliasDraft] = React.useState(initialAlias || '');
-    const [isAliasLocked, setIsAliasLocked] = React.useState(true);
+    const [labelDraft, setLabelDraft] = useState(initialLabel || '');
+    const [aliasDraft, setAliasDraft] = useState(initialAlias || '');
+    const [isAliasLocked, setIsAliasLocked] = useState(true);
 
-    React.useEffect(() => {
+    useEffect(() => {
         setLabelDraft(initialLabel || '');
     }, [initialLabel]);
 
-    React.useEffect(() => {
+    useEffect(() => {
         setAliasDraft(initialAlias || '');
         setIsAliasLocked(true); // Resellamos el candado si la identidad de origen cambia
     }, [initialAlias]);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 
 /**
  * IndraIcon — Componente de icono universal.
@@ -31,18 +31,18 @@ export function IndraIcon({ name, size = '1em', color, className = '', style = {
 
 const ICON_MAP = {
     // ── ENTIDADES ──
-    'ATOM': <><circle cx="8" cy="8" r="7" /><circle cx="8" cy="8" r="2" /></>,
-    'WORKSPACE': <><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z" /></>,
-    'SCHEMA': <><path d="M2 4h12M2 8h12M2 12h12M5 2v12M11 2v12" /><rect x="2" y="2" width="12" height="12" rx="1" /></>,
-    'BRIDGE': <><path d="M1 8h14M4 8c0-3 2-6 4-6s4 3 4 6M4 8c0 3 2 6 4 6s4-3 4-6" /><circle cx="4" cy="8" r="1" /><circle cx="12" cy="8" r="1" /></>,
-    'DOCUMENT': <><path d="M4 2h8l3 3v9a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z" /><path d="M11 2v4h4" /><path d="M6 7h4M6 10h6" /></>,
-    'SERVICE': <><circle cx="8" cy="8" r="3" /><circle cx="8" cy="8" r="6" strokeDasharray="2 2" /><path d="M8 2v1M8 13v1M2 8h1M13 8h1" /></>,
-    'FOLDER': <><path d="M1 4a1 1 0 011-1h4l2 2h7a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4z" /><path d="M1 7h14" /></>,
-    'FOLDER_OPEN': <><path d="M1 4a1 1 0 011-1h4l2 2h7a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4z" /><path d="M2 7l1 5h10l1-5" /></>,
-    'VAULT': <><rect x="3" y="5" width="10" height="9" rx="1" /><path d="M4 5V3a2 2 0 014 0v2" /><circle cx="8" cy="10" r="1.5" /></>,
-    'DATABASE': <><ellipse cx="8" cy="4" rx="6" ry="2" /><path d="M2 4v8c0 1.1 2.7 2 6 2s6-.9 6-2V4" /><path d="M2 8c0 1.1 2.7 2 6 2s6-.9 6-2" /></>,
-    'MAIL': <><rect x="2" y="4" width="12" height="9" rx="1" /><path d="M2 4l6 4 6-4" /></>,
-    'ATOM_VIRTUAL': <><circle cx="8" cy="8" r="6" strokeDasharray="1 1" /><circle cx="8" cy="8" r="2" /></>,
+    'ATOM': <Fragment><circle cx="8" cy="8" r="7" /><circle cx="8" cy="8" r="2" /></Fragment>,
+    'WORKSPACE': <Fragment><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z" /></Fragment>,
+    'SCHEMA': <Fragment><path d="M2 4h12M2 8h12M2 12h12M5 2v12M11 2v12" /><rect x="2" y="2" width="12" height="12" rx="1" /></Fragment>,
+    'BRIDGE': <Fragment><path d="M1 8h14M4 8c0-3 2-6 4-6s4 3 4 6M4 8c0 3 2 6 4 6s4-3 4-6" /><circle cx="4" cy="8" r="1" /><circle cx="12" cy="8" r="1" /></Fragment>,
+    'DOCUMENT': <Fragment><path d="M4 2h8l3 3v9a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z" /><path d="M11 2v4h4" /><path d="M6 7h4M6 10h6" /></Fragment>,
+    'SERVICE': <Fragment><circle cx="8" cy="8" r="3" /><circle cx="8" cy="8" r="6" strokeDasharray="2 2" /><path d="M8 2v1M8 13v1M2 8h1M13 8h1" /></Fragment>,
+    'FOLDER': <Fragment><path d="M1 4a1 1 0 011-1h4l2 2h7a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4z" /><path d="M1 7h14" /></Fragment>,
+    'FOLDER_OPEN': <Fragment><path d="M1 4a1 1 0 011-1h4l2 2h7a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4z" /><path d="M2 7l1 5h10l1-5" /></Fragment>,
+    'VAULT': <Fragment><rect x="3" y="5" width="10" height="9" rx="1" /><path d="M4 5V3a2 2 0 014 0v2" /><circle cx="8" cy="10" r="1.5" /></Fragment>,
+    'DATABASE': <Fragment><ellipse cx="8" cy="4" rx="6" ry="2" /><path d="M2 4v8c0 1.1 2.7 2 6 2s6-.9 6-2V4" /><path d="M2 8c0 1.1 2.7 2 6 2s6-.9 6-2" /></Fragment>,
+    'MAIL': <Fragment><rect x="2" y="4" width="12" height="9" rx="1" /><path d="M2 4l6 4 6-4" /></Fragment>,
+    'ATOM_VIRTUAL': <Fragment><circle cx="8" cy="8" r="6" strokeDasharray="1 1" /><circle cx="8" cy="8" r="2" /></Fragment>,
 
     // ── ACCIONES ──
     'PLUS': <path d="M8 3v10M3 8h10" />,

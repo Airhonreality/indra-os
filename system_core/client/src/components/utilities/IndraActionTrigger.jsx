@@ -13,7 +13,7 @@
  * =============================================================================
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { IndraIcon } from './IndraIcons';
 
 export function IndraActionTrigger({
@@ -139,7 +139,7 @@ export function IndraActionTrigger({
                     animation: 'indra-spin 0.6s linear infinite'
                 }} />
             ) : (
-                <>
+                <Fragment>
                     <IndraIcon name={effectiveIcon} size={size} />
                     {label && (
                         <span style={{ 
@@ -152,7 +152,7 @@ export function IndraActionTrigger({
                             {label}
                         </span>
                     )}
-                </>
+                </Fragment>
             )}
 
             <style>{`

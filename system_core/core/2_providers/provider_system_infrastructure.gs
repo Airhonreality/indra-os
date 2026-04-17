@@ -576,6 +576,14 @@ function _system_createAtom(atomClass, label, uqo) {
         // AXIOMA: Sincronización obligatoria con el Ledger (Transaccional)
         try {
             ledger_sync_atom(atomDoc, driveId, uqo);
+
+            // AXIOMA v6.0: Registro de Vínculos Iniciales
+            const initialRelations = uqo.data?.relations || [];
+            if (initialRelations.length > 0) {
+                initialRelations.forEach(rel => {
+                   ledger_sync_relation(atomDoc.gid, rel.target_gid, rel.type, rel.strength, uqo);
+                });
+            }
         } catch (ledgerErr) {
             logError(`[infrastructure] FALLO EN LEDGER. Realizando Rollback físico de: ${driveId}`, ledgerErr);
             file.setTrashed(true); 

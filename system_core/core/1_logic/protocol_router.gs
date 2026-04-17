@@ -411,8 +411,20 @@ function route(uqo) {
   _validateReturnLaw_(result, providerId, protocol);
   _validateAtomContract_(result.items, providerId, protocol);
 
-  // AXIOMA v5.0: Aplicar Filtrado de Soberanía Celular
+  // AXIOMA v6.0: Aplicar Filtrado de Soberanía Celular
   result.items = _filterItemsBySovereignty_(result.items, uqo);
+
+  // AXIOMA v6.0: Tejido Relacional
+  // Por cada ítem, intentar cargar sus flechas (vínculos)
+  result.items.forEach(item => {
+    try {
+      if (item.gid) {
+        item.relations = ledger_list_relations(item.gid, uqo);
+      }
+    } catch (e) {
+      logWarn(`[router] No se pudieron tejer relaciones para ${item.gid}: ${e.message}`);
+    }
+  });
 
   // ADR-008: VALIDACIÓN RADICAL DE SCHEMAS EN STREAMS
   if (protocol === 'TABULAR_STREAM') {

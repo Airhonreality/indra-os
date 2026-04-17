@@ -6,11 +6,14 @@
 // =============================================================================
 
 const LEDGER_SHEET_NAME = 'ATOMS';
+const RELATIONS_SHEET_NAME = 'RELATIONS';
 const KEYCHAIN_SHEET_NAME = 'KEYCHAIN';
 const INFRA_SHEET_NAME = 'INFRASTRUCTURE';
 const PROCESS_SHEET_NAME = 'PROCESSES';
 const HEALTH_SHEET_NAME = 'HEALTH';
+
 const MASTER_LEDGER_COLUMNS = ['gid', 'drive_id', 'class', 'alias', 'label', 'owner_id', 'updated_at', 'payload_json', 'acl_json'];
+const RELATION_COLUMNS = ['uid', 'source_gid', 'target_gid', 'type', 'strength', 'payload_json', 'updated_at'];
 const KEYCHAIN_COLUMNS = ['token', 'name', 'status', 'class', 'parent_id', 'can_delegate', 'created_at', 'scopes_json'];
 const INFRA_COLUMNS = ['key', 'drive_id', 'label', 'updated_at'];
 const PROCESS_COLUMNS = ['trigger_id', 'workflow_id', 'status', 'last_pulse', 'error_log', 'config_json'];
@@ -201,6 +204,11 @@ function ledger_initialize_new() {
   atomSheet.appendRow(MASTER_LEDGER_COLUMNS);
   atomSheet.setFrozenRows(1);
 
+  // 1.5 RELACIONES (Axioma v6.0)
+  const relSheet = ss.insertSheet(RELATIONS_SHEET_NAME);
+  relSheet.appendRow(RELATION_COLUMNS);
+  relSheet.setFrozenRows(1);
+
   // 2. Llavero
   const keySheet = ss.insertSheet(KEYCHAIN_SHEET_NAME);
   keySheet.appendRow(KEYCHAIN_COLUMNS);
@@ -246,6 +254,10 @@ function ledger_initialize_cell(folderId, label) {
   atomSheet.setName(LEDGER_SHEET_NAME);
   atomSheet.appendRow(MASTER_LEDGER_COLUMNS);
   atomSheet.setFrozenRows(1);
+
+  const relSheet = ss.insertSheet(RELATIONS_SHEET_NAME);
+  relSheet.appendRow(RELATION_COLUMNS);
+  relSheet.setFrozenRows(1);
 
   const infraSheet = ss.insertSheet(INFRA_SHEET_NAME);
   infraSheet.appendRow(INFRA_COLUMNS);
@@ -607,4 +619,73 @@ function ledger_health_get(providerId) {
     fail_count: data[index][2],
     last_latency: data[index][3]
   };
+}
+
+// ─── MOTOR DE GRAFOS RELACIONALES (v6.0) ──────────────────────────────────────
+
+/**
+ * Sincroniza un vínculo relacional en el Ledger correspondiente.
+ * @param {string} sourceGid 
+ * @param {string} targetGid 
+ * @param {string} type - Tipo de vínculo (PARENT_OF, REFERENCES, etc).
+ * @param {number} strength - Fuerza del vínculo (0.0 a 1.0).
+ * @param {Object} contextUqo - Contexto para decidir en qué núcleo guardar.
+ */
+function ledger_sync_relation(sourceGid, targetGid, type, strength, contextUqo) {
+  const targetSheet = _ledger_get_target_sheet_(contextUqo);
+  const ss = targetSheet.getParent();
+  const sheet = ss.getSheetByName(RELATIONS_SHEET_NAME) || ss.insertSheet(RELATIONS_SHEET_NAME);
+  
+  const lock = LockService.getScriptLock();
+  try {
+    if (!lock.tryLock(5000)) throw new Error('RELATION_LOCK_TIMEOUT');
+
+    const uid = `${sourceGid}_${targetGid}_${type}`;
+    const rowData = [
+      uid,
+      sourceGid,
+      targetGid,
+      type,
+      strength || 1.0,
+      JSON.stringify({}),
+      new Date().toISOString()
+    ];
+
+    const data = sheet.getDataRange().getValues();
+    const index = data.findIndex(row => row[0] === uid);
+
+    if (index === -1) {
+      sheet.appendRow(rowData);
+    } else {
+      sheet.getRange(index + 1, 1, 1, rowData.length).setValues([rowData]);
+    }
+    logInfo(`[ledger] Vínculo registrado: ${type} (${sourceGid} -> ${targetGid})`);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Lista todas las relaciones que tienen como origen un átomo específico.
+ */
+function ledger_list_relations(sourceGid, contextUqo) {
+  const targetSheet = _ledger_get_target_sheet_(contextUqo);
+  const ss = targetSheet.getParent();
+  const sheet = ss.getSheetByName(RELATIONS_SHEET_NAME);
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+
+  return data
+    .filter(row => row[1] === sourceGid)
+    .map(row => ({
+      uid: row[0],
+      source_gid: row[1],
+      target_gid: row[2],
+      type: row[3],
+      strength: row[4],
+      payload: row[5] ? JSON.parse(row[5]) : {},
+      updated_at: row[6]
+    }));
 }

@@ -76,19 +76,8 @@ const AuthService = (function() {
       };
     }
 
-    // CASO D: Contraseña Maestra (Legacy, pero mantenemos por bootstrap)
-    if (verifyPassword(uqo.password)) {
-       return {
-        identity_type: 'PASSWORD',
-        label: "Acceso vía Password",
-        class: "MASTER",
-        owner_id: coreOwnerEmail,
-        is_master: true,
-        scopes: ["ALL"]
-      };
-    }
-
-    return null; // No autorizado
+    // AXIOMA: Si llegamos aquí sin éxito, la identidad no es confiable.
+    return null;
   }
 
   return {

@@ -15,11 +15,10 @@ const MountManager = (function() {
    */
   function getMount(alias = 'ROOT') {
     const key = `SYS_MOUNT_${alias.toUpperCase()}_ID`;
-    let id = readConfig(key);
+    const id = readConfig(key);
     
-    // Fallback: Si se pide ROOT y no existe MOUNT_ROOT, usar el MASTER_LEDGER_ID histórico
-    if (!id && alias.toUpperCase() === 'ROOT') {
-      id = readMasterLedgerId();
+    if (!id && isBootstrapped()) {
+      throw new Error(`[CRITICAL] MOUNT_POINT_MISSING: No se encontró el volumen de almacenamiento "${alias.toUpperCase()}".`);
     }
 
     return id;
@@ -51,9 +50,25 @@ const MountManager = (function() {
    */
   function listMounts() {
     const mounts = { 'ROOT': getMount('ROOT') };
-    // En el futuro, recuperaremos dinámicamente todas las claves SYS_MOUNT_*
     return mounts;
   }
+
+  /**
+   * Desmonta un volumen.
+   */
+  function isBootstrapped() {
+  const store = _getStore_();
+  const rootMountId = store.getProperty('SYS_MOUNT_ROOT_ID');
+  const isCerebroActive = store.getProperty('SYS_IS_BOOTSTRAPPED') === 'true';
+  
+  // AXIOMA DE SOBERANÍA (v4.61): Sin Mount ROOT no hay consciencia.
+  if (!rootMountId && isCerebroActive) {
+     console.error('[CRITICAL] El sistema está marcado como ACTIVO pero falta el MOUNT_ROOT.');
+     return false;
+  }
+
+  return isCerebroActive && !!rootMountId;
+}
 
   return {
     getMount: getMount,

@@ -90,16 +90,6 @@ function doPost(e) {
     payload.is_public_access = !!context.is_public;
     if (context.mode === 'MIRROR') payload.resonance_mode = 'MIRROR';
 
-    // AXIOMA: Si falta el context_id en una llamada al sistema, inyectar el ROOT por defecto
-    if (!payload.context_id && payload.provider === 'system') {
-      try {
-        payload.context_id = readRootFolderId();
-        console.log('[gateway] Auto-inyectando Root ID:', payload.context_id);
-      } catch (e) {
-        console.error('[gateway] Fallo al leer Root ID:', e.message);
-      }
-    }
-
     let result = (GATEWAY_SYSTEM_PROTOCOLS.includes(payload.protocol) || payload.protocol.startsWith('EMERGENCY_')) 
       ? SystemOrchestrator.dispatch(payload) 
       : route(payload);

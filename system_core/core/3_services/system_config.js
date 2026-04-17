@@ -143,19 +143,16 @@ function deleteConfig(key) {
  */
 function isBootstrapped() {
   const store = _getStore_();
-  const ledgerId = store.getProperty('SYS_MASTER_LEDGER_ID');
+  const rootMountId = store.getProperty('SYS_MOUNT_ROOT_ID');
   const isCerebroActive = store.getProperty('SYS_IS_BOOTSTRAPPED') === 'true';
   
-  // AXIOMA DE SOBERANÍA (v4.45): La existencia del Ledger es la precondición de la conciencia.
-  if (!ledgerId) return false;
-
-  // Si el cerebro dice estar activo pero no hay rastro físico, forzamos re-validación ambiental
-  if (isCerebroActive) {
-    // Aquí podríamos añadir una validación rápida de caché si fuera necesario
-    return true;
+  // AXIOMA DE SOBERANÍA (v4.61): Sin Mount ROOT no hay consciencia.
+  if (!rootMountId && isCerebroActive) {
+     console.error('[CRITICAL] El sistema está marcado como ACTIVO pero falta el MOUNT_ROOT.');
+     return false;
   }
-  
-  return false;
+
+  return isCerebroActive && !!rootMountId;
 }
 
 /**
@@ -418,21 +415,6 @@ function readRootFolderId() {
   return _getStore_().getProperty('SYS_ROOT_FOLDER_ID') || null;
 }
 
-/**
- * Guarda el ID de la Google Sheet que actúa como Master Ledger.
- * @param {string} ledgerId 
- */
-function storeMasterLedgerId(ledgerId) {
-  return storeConfig('SYS_MASTER_LEDGER_ID', ledgerId);
-}
-
-/**
- * Lee el ID del Master Ledger.
- * @returns {string|null}
- */
-function readMasterLedgerId() {
-  return _getStore_().getProperty('SYS_MASTER_LEDGER_ID') || null;
-}
 
 // ─── UTILIDADES CRIPTOGRÁFICAS ────────────────────────────────────────────────
 

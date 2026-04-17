@@ -1,5 +1,5 @@
 import React from 'react';
-console.log('%c🔴 INDRA OS v4.80-NEXUS ACTIVE', 'color: #ff3e00; font-weight: bold; font-size: 14px;');
+console.log('%c🔴 INDRA OS v4.84-NEXUS ACTIVE', 'color: #e74c3c; font-weight: bold; font-size: 1.2rem;');
 console.log('%cTrazabilidad: TOTAL | Puente: GITHUB RAW (CACHE-BUSTED)', 'color: #00e5ff; font-size: 10px;');
 import ReactDOM from 'react-dom/client';
 import App from './App';

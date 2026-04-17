@@ -56,7 +56,11 @@ function _scanProviders() {
   ]));
 
   logInfo(`[provider_registry] Iniciando escaneo. Llaves potenciales: ${keysToTry.length}`);
-
+  
+  // LOG DE AUDITORÍA (v4.84)
+  console.log('[provider_registry] Iniciando escaneo. Prefijos conocidos:', keysToTry.join(', '));
+  console.log('[provider_registry] ¿CONF_SYSTEM es función?:', typeof CONF_SYSTEM === 'function');
+  
   keysToTry.forEach(key => {
     // AXIOMA DE PERSALENCIA: Intentamos resolver la función incluso si no es enumerable
     let fn = scope[key];

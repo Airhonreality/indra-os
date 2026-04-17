@@ -17,7 +17,6 @@ function CONF_SYSTEM() {
     exposure: 'internal', 
     handle: { ns: 'com.indra.system.core', alias: 'system', label: 'Indra System', icon: 'VAULT' },
     class: 'CORE_INTERNAL',
-    version: '1.2 (Fractal)',
     version: '1.3 (Synthesis)',
     capabilities: {
       ATOM_READ: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleSystem' },

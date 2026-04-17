@@ -1,9 +1,5 @@
-const SYSTEM_VERSION = "v4.95-NEXUS";
-const SYSTEM_TAG = "ACTIVE";
-const SYSTEM_DHARMA = "TOTAL | Puente: GITHUB RAW (CACHE-BUSTED)";
-
-console.log(`%c 🔴 INDRA OS ${SYSTEM_VERSION}-${SYSTEM_TAG}`, "color: #ff4d4d; font-weight: bold; font-size: 14px;");
-console.log('%cTrazabilidad: TOTAL | Puente: GITHUB RAW (CACHE-BUSTED)', 'color: #00e5ff; font-size: 10px;');
+console.log(`%c 🔴 INDRA OS ${__INDRA_VERSION__}-${__INDRA_STATUS__}`, "color: #ff4d4d; font-weight: bold; font-size: 14px;");
+console.log(`%cTrazabilidad: ${__INDRA_DHARMA__}`, 'color: #00e5ff; font-size: 10px;');
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';

@@ -44,6 +44,10 @@ jobs:
         working-directory: system_core/client
         run: npm ci
       
+      - name: 🔍 Check Integrity (Lint)
+        working-directory: system_core/client
+        run: npm run lint
+      
       - name: 🔨 Build frontend
         working-directory: system_core/client
         env:

@@ -270,19 +270,24 @@
     "type": "SERVER_JS"
   },
   {
-    "path": "6_audit/resonance_audit.gs",
-    "name": "resonance_audit",
+    "path": "6_audit/UpdateManifest_Dev.gs",
+    "name": "UpdateManifest_Dev",
     "type": "SERVER_JS"
   },
   {
-    "path": "6_audit/UpdateManifest_Dev.gs",
-    "name": "UpdateManifest_Dev",
+    "path": "6_audit/resonance_audit.gs",
+    "name": "resonance_audit",
     "type": "SERVER_JS"
   },
   {
     "path": "appsscript.json",
     "name": "appsscript",
     "type": "JSON"
+  },
+  {
+    "path": "seed_loader.gs",
+    "name": "seed_loader",
+    "type": "SERVER_JS"
   },
   {
     "path": "seeds/demo_document.json",
@@ -297,11 +302,6 @@
   {
     "path": "seeds/demo_workflow.json",
     "name": "demo_workflow",
-    "type": "SERVER_JS"
-  },
-  {
-    "path": "seed_loader.gs",
-    "name": "seed_loader",
     "type": "SERVER_JS"
   }
 ]

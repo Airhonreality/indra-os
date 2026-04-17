@@ -25,6 +25,7 @@
 //   ACCOUNT_{provider}_{id}_META→ Metadata JSON de la cuenta (label, created_at)
 // =============================================================================
 
+const CORE_VERSION = 'v4.77-NEXUS-OMNI-K';
 const HOME_ROOT_FOLDER_NAME_ = '.core_system';
 
 /**
@@ -412,7 +413,17 @@ function storeRootFolderId(folderId) {
  * @returns {string|null}
  */
 function readRootFolderId() {
-  return _getStore_().getProperty('SYS_ROOT_FOLDER_ID') || null;
+  const mountId = MountManager.getMount('DRIVE_ROOT');
+  if (mountId) return mountId;
+
+  // Fallback a propiedades para migración fluida
+  const cachedId = _getStore_().getProperty('SYS_ROOT_FOLDER_ID');
+  if (cachedId) {
+     logInfo(`[config] Migrando ROOT_FOLDER_ID de propiedades a MountManager: ${cachedId}`);
+     MountManager.mount('DRIVE_ROOT', cachedId);
+     return cachedId;
+  }
+  return null;
 }
 
 

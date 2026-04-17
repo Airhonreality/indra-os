@@ -25,6 +25,25 @@ function _system_slugify_(text) {
 }
 
 /**
+ * REALIZA UNA FUSIÓN PROFUNDA DE OBJETOS (ADR-004).
+ * @param {Object} target - El objeto base que recibirá los cambios.
+ * @param {Object} source - El objeto que trae las actualizaciones.
+ * @returns {Object} El objeto target modificado.
+ */
+function _indra_deepMerge_(target, source) {
+  if (!source) return target;
+  Object.keys(source).forEach(key => {
+    if (source[key] instanceof Object && !Array.isArray(source[key])) {
+      if (!target[key]) Object.assign(target, { [key]: {} });
+      _indra_deepMerge_(target[key], source[key]);
+    } else {
+      Object.assign(target, { [key]: source[key] });
+    }
+  });
+  return target;
+}
+
+/**
  * Indica si un ítem es una Señal de Prospección (Probe), no un Átomo.
  * @param {Object} item
  * @returns {boolean}

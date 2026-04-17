@@ -9,10 +9,12 @@ const LEDGER_SHEET_NAME = 'ATOMS';
 const KEYCHAIN_SHEET_NAME = 'KEYCHAIN';
 const INFRA_SHEET_NAME = 'INFRASTRUCTURE';
 const PROCESS_SHEET_NAME = 'PROCESSES';
+const HEALTH_SHEET_NAME = 'HEALTH';
 const MASTER_LEDGER_COLUMNS = ['gid', 'drive_id', 'class', 'alias', 'label', 'owner_id', 'updated_at', 'payload_json'];
 const KEYCHAIN_COLUMNS = ['token', 'name', 'status', 'class', 'parent_id', 'can_delegate', 'created_at', 'scopes_json'];
 const INFRA_COLUMNS = ['key', 'drive_id', 'label', 'updated_at'];
 const PROCESS_COLUMNS = ['trigger_id', 'workflow_id', 'status', 'last_pulse', 'error_log', 'config_json'];
+const HEALTH_COLUMNS = ['provider_id', 'status', 'fail_count', 'last_latency_ms', 'last_error', 'updated_at'];
 
 /**
  * Obtiene la Sheet del Ledger. Lanza error fatal si no existe o no es accesible.
@@ -156,10 +158,15 @@ function ledger_initialize_new() {
   infraSheet.appendRow(INFRA_COLUMNS);
   infraSheet.setFrozenRows(1);
 
-  // 4. Procesos (Task Manager)
+  // 4. Procesos
   const procSheet = ss.insertSheet(PROCESS_SHEET_NAME);
   procSheet.appendRow(PROCESS_COLUMNS);
   procSheet.setFrozenRows(1);
+
+  // 5. Salud y Métricas (Circuit Breaker)
+  const healthSheet = ss.insertSheet(HEALTH_SHEET_NAME);
+  healthSheet.appendRow(HEALTH_COLUMNS);
+  healthSheet.setFrozenRows(1);
   
   const ledgerId = ss.getId();
   storeMasterLedgerId(ledgerId);
@@ -450,4 +457,58 @@ function ledger_process_delete_by_workflow(workflowId) {
       sheet.deleteRow(i + 1);
     }
   }
+}
+
+/**
+ * Reporta la salud y latencia de un proveedor al Ledger (v4.55).
+ */
+function ledger_health_report(providerId, latencyMs, error = null) {
+  const ssId = readMasterLedgerId();
+  if (!ssId) return;
+  const ss = SpreadsheetApp.openById(ssId);
+  const sheet = ss.getSheetByName(HEALTH_SHEET_NAME) || ss.insertSheet(HEALTH_SHEET_NAME);
+  
+  const lock = LockService.getScriptLock();
+  try {
+    if (!lock.tryLock(5000)) return;
+    const data = sheet.getDataRange().getValues();
+    const index = data.findIndex(row => row[0] === providerId);
+    
+    let currentFails = 0;
+    if (index !== -1) {
+      currentFails = Number(data[index][2] || 0);
+    }
+
+    if (error) currentFails++;
+    else currentFails = 0; // Reset si la llamada es exitosa
+
+    const status = currentFails >= 3 ? 'DEGRADED' : 'HEALTHY';
+    const rowData = [providerId, status, currentFails, latencyMs, error || '', new Date().toISOString()];
+
+    if (index === -1) sheet.appendRow(rowData);
+    else sheet.getRange(index + 1, 1, 1, rowData.length).setValues([rowData]);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Obtiene el estado de salud de un proveedor.
+ */
+function ledger_health_get(providerId) {
+  const ssId = readMasterLedgerId();
+  if (!ssId) return { status: 'UNKNOWN' };
+  const ss = SpreadsheetApp.openById(ssId);
+  const sheet = ss.getSheetByName(HEALTH_SHEET_NAME);
+  if (!sheet) return { status: 'UNKNOWN' };
+
+  const data = sheet.getDataRange().getValues();
+  const index = data.findIndex(row => row[0] === providerId);
+  if (index === -1) return { status: 'HEALTHY' };
+
+  return {
+    status: data[index][1],
+    fail_count: data[index][2],
+    last_latency: data[index][3]
+  };
 }

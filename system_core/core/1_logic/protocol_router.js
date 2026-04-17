@@ -341,6 +341,16 @@ function route(uqo) {
     );
   }
 
+  // --- AXIOMA DE SUPERVIVENCIA: Circuit Breaker (v4.55) ---
+  const health = ledger_health_get(providerId);
+  if (health.status === 'DEGRADED') {
+    throw createError(
+      'PROVIDER_DEGRADED',
+      `El provider "${providerId}" está en CUARENTENA por inestabilidad. Reintegro automático en 10 min o tras reset manual.`,
+      { health }
+    );
+  }
+
   logDebug(`[protocol_router] Despachando a handler "${handlerFnName}" para provider "${providerId}"`);
 
   // --- Resolver la función en el scope global de GAS ---
@@ -354,10 +364,19 @@ function route(uqo) {
 
   // --- Invocar el handler con el UQO completo (opaco) ---
   let result;
+  const startTime = Date.now();
   try {
     result = handlerFn(uqo);
+    
+    // Reporte de Salud: ÉXITO (v4.55)
+    ledger_health_report(providerId, Date.now() - startTime);
+
   } catch (handlerError) {
+    const latency = Date.now() - startTime;
     logError(`[protocol_router] Fallo crítico en provider "${providerId}" ejecutando "${protocol}".`, handlerError);
+    
+    // Reporte de Salud: FALLO (v4.55)
+    ledger_health_report(providerId, latency, handlerError.message);
 
     // Axioma de Visibilidad (Error-as-Data):
     // Convertimos la excepción física en un Átomo de Error proyectable.

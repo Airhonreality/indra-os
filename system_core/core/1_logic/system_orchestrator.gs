@@ -30,6 +30,7 @@ const SystemOrchestrator = (function() {
     'SYSTEM_IDENTITY_READ':         (p) => IdentityProvider.getProfile(p.data.id || p.data.alias),
     'SYSTEM_IDENTITY_VERIFY':       (p) => IdentityProvider.verifyCorporateIdentity(p.data.email),
     'SYSTEM_INSTALL_HANDSHAKE':     () => ({ metadata: { status: 'OK' } }),
+    'HEALTH_CHECK':                 () => ({ metadata: { status: 'ONLINE', message: 'Indra is listening.' } }),
     'SYSTEM_RESONANCE_CRYSTALLIZE': (p) => resonance_service_crystallize(p),
     'SYSTEM_TRIGGER_HUB_GENERATE':  (p) => trigger_hub_generate_all(p)
   });

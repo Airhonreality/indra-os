@@ -84,6 +84,9 @@ function doPost(e) {
         core_id: readCoreOwnerEmail(),
         core_version: CORE_VERSION,
         system_state: SystemStateManager.getLabel(systemState),
+        system_state_code: systemState,
+        ledger_id: PropertiesService.getScriptProperties().getProperty('SYS_MOUNT_ROOT_ID') || 'NOT_FOUND',
+        project_id: ScriptApp.getScriptId(),
         latency_ms: Watchdog.getElapsedMs()
       }
     };

@@ -32,6 +32,7 @@ const PROTOCOL_CONTRACTS = Object.freeze({
   // ── INFRAESTRUCTURA BASE (Pasan en cualquier estado) ──
   'SYSTEM_MANIFEST':              { min_state: 0, actors: ACTOR_TYPES.ALL,            dispatcher: DISPATCHERS.SYSTEM  },
   'SYSTEM_INSTALL_HANDSHAKE':     { min_state: 0, actors: ACTOR_TYPES.ALL,            dispatcher: DISPATCHERS.INSTALL },
+  'HEALTH_CHECK':                 { min_state: 0, actors: ACTOR_TYPES.ALL,            dispatcher: DISPATCHERS.SYSTEM  },
 
   // ── ESCALADO DE SOBERANÍA (Requieren dueño anclado) ──
   'SYSTEM_CONFIG_WRITE':          { min_state: 1, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.INSTALL },

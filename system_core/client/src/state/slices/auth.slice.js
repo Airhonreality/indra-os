@@ -159,16 +159,31 @@ export const createAuthSlice = (set, get) => ({
             const userInfo = await GoogleAuthService.getUserInfo(token);
             set({ googleUser: { ...userInfo, accessToken: token } });
 
-            // ⚠️ HARDCODE DE TITANIO - BYPASS DE DRIVE (V7.1) ⚠️
-            const HARDCODED_URL = 'https://script.google.com/macros/s/AKfycby_K-e_18y-_p0rcgd03xnZ7120Opt8IgmUbMjPFceKnloOCCbYRm-T5QLd5SFPVuo/exec';
-            console.warn('[Titanium Protocol] Conectando directamente a:', HARDCODED_URL);
-            
-            await get().setCoreConnection(HARDCODED_URL, userInfo.email);
-            return { success: true };
+            const result = await DriveDiscoveryService.findCoreManifest(token);
+            if (result.ok) {
+                const manifest = result.manifest;
+                try {
+                    const latestRef = await fetch('https://raw.githubusercontent.com/Airhonreality/indra-os/main/system_core/core/version.json').then(r => r.json());
+                    if (latestRef && manifest.core_version !== latestRef.version && manifest.script_id && manifest.deployment_id) {
+                        await OrchestratorService.syncCore(token, manifest);
+                    }
+                } catch (vErr) {
+                    console.warn('[Sync] Fallo al verificar versión, procediendo con versión local.', vErr);
+                }
 
+                const { core_url, satellite_key } = manifest;
+                await get().setCoreConnection(core_url, satellite_key);
+                return { success: true };
+            } else {
+                set({ 
+                    isConnecting: false, 
+                    error: result.reason, 
+                    manifestId: result.manifest_id 
+                });
+                return { success: false, reason: result.reason };
+            }
         } catch (err) {
-            console.error('[auth_slice] Error fatal en Hardcode:', err);
-            set({ isConnecting: false, error: 'HARDCODE_FAILED' });
+            set({ isConnecting: false, error: 'DRIVE_DISCOVERY_FAILED' });
             throw err;
         }
     },

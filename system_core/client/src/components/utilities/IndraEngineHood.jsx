@@ -1,19 +1,16 @@
 import React from 'react';
 import { IndraIcon } from './IndraIcons';
+import { useResonance } from '../../hooks/useResonance';
 
 /**
  * IndraEngineHood
  * 
  * Bar containing module-specific actions, positioned below the IndraMacroHeader.
+ * @dharma Inyecta la capacidad de "Invocabilidad" automáticamente si detecta un nexo externo.
  * 
- * Props:
- *   leftSlot    - ReactNode: Specific tools for the current engine.
- *   centerSlot  - ReactNode: Optional center controls.
- *   rightSlot   - ReactNode: Secondary tools, status tags, etc.
- *   onUndo      - function: (Optional) Undo action.
- *   onRedo      - function: (Optional) Redo action.
- *   canUndo     - boolean: (Optional) If undo is available.
- *   canRedo     - boolean: (Optional) If redo is available.
+ * Props adicionales (v4.0):
+ *   isReady    - boolean: (Opcional) Si el motor ha terminado de procesar datos (Previene envíos incompletos).
+ *   onConfirm  - function: (Opcional) Override para procesar datos antes de emitir el resultado.
  */
 export function IndraEngineHood({
     leftSlot,
@@ -22,11 +19,49 @@ export function IndraEngineHood({
     onUndo,
     onRedo,
     canUndo = false,
-    canRedo = false
+    canRedo = false,
+    isReady = true,   // Por defecto el motor está listo
+    onConfirm         // Override opcional
 }) {
+    const { isInvokeMode, emitResult } = useResonance();
+
+    const handleConfirm = () => {
+        if (!isReady) return; // Silent block o podrías disparar un toast
+        if (onConfirm) {
+            onConfirm();
+        } else {
+            emitResult();
+        }
+    };
+
     return (
         <div className="engine-hood">
             <div className="engine-hood__section">
+                {/* BOTÓN DE RETORNO UNIVERSAL (Solo en modo Portal) */}
+                {isInvokeMode && (
+                    <div className="engine-hood__capsule resonance-hud" style={{ marginRight: 'var(--space-2)' }}>
+                        <button 
+                            className={`btn btn--primary btn--mini ${!isReady ? 'btn--disabled' : 'btn--neon'}`}
+                            onClick={handleConfirm}
+                            disabled={!isReady}
+                            style={{ 
+                                padding: '0 12px',
+                                gap: '8px',
+                                background: isReady 
+                                    ? 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)' 
+                                    : 'var(--color-bg-tertiary)',
+                                border: '1px solid rgba(255,255,255,0.2)',
+                                color: isReady ? 'white' : 'var(--color-text-tertiary)',
+                                cursor: isReady ? 'pointer' : 'not-allowed'
+                            }}
+                            title={isReady ? "Confirmar y volver al aplicación" : "Esperando a que el motor termine de procesar..."}
+                        >
+                            <IndraIcon name="CHECK" size="14px" color={isReady ? "white" : "var(--color-text-tertiary)"} />
+                            <span style={{ fontSize: '10px', fontWeight: 'bold' }}>CONFIRMAR</span>
+                        </button>
+                    </div>
+                )}
+
                 {/* Standard History Controls in the Hood */}
                 {(onUndo || onRedo) && (
                     <div className="engine-hood__capsule shelf--tight" style={{ marginRight: 'var(--space-2)' }}>
@@ -59,7 +94,7 @@ export function IndraEngineHood({
                     </div>
                 )}
                 
-                {onUndo || onRedo ? <div className="engine-hood__divider" style={{height: '20px'}} /> : null}
+                {(onUndo || onRedo || isInvokeMode) ? <div className="engine-hood__divider" style={{height: '20px'}} /> : null}
 
                 {leftSlot}
             </div>

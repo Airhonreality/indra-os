@@ -32,7 +32,8 @@ export function ShellProvider({ children }) {
                 // 1. Guardamos la ruta de retorno
                 setPendingReturns(prev => new Map(prev).set(request_id, {
                     source: event.source,
-                    origin: event.origin
+                    origin: event.origin,
+                    persist: payload.persist !== undefined ? payload.persist : true // Por defecto si persiste en el Core
                 }));
 
                 if (payload.module === 'SERVICE_MANAGER') {
@@ -46,7 +47,8 @@ export function ShellProvider({ children }) {
                     class: payload.module,
                     id: payload.payload?.id || 'temp_invoke',
                     ...payload.payload,
-                    _invoke_id: request_id // Marcamos que es una invocación
+                    _invoke_id: request_id, // Marcamos que es una invocación
+                    _persist_on_core: payload.persist !== undefined ? payload.persist : true
                 });
             }
         };

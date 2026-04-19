@@ -66,13 +66,17 @@ export const ResonanceResponder = () => {
             }
         };
 
-        if (window.opener) {
-            window.opener.postMessage(payload, origin);
+        // PRIORIDAD: window.opener (Modo Popup) > window.parent (Modo Iframe)
+        const target = window.opener || window.parent;
+
+        if (target && target !== window) {
+            target.postMessage(payload, origin);
+            console.log("💎 [IndraResonance] Mensaje de grant enviado a destinatario.");
             setTimeout(() => {
                 window.close();
             }, 1000);
         } else {
-            console.warn("[IndraResonance] No se detectó ventana de origen (window.opener).");
+            console.error("[IndraResonance] ERROR: No se detectó ventana de origen (opener o parent).");
         }
     };
 

@@ -184,8 +184,17 @@ function IndraAppContent() {
     const isDocsOpen = useAppState(s => s.isDocsOpen);
 
     useEffect(() => {
-        bootstrap();
-    }, [bootstrap]);
+        const recoverIntent = () => {
+            const intent = sessionStorage.getItem('INDRA_RESONANCE_INTENT');
+            if (intent && isConnected) {
+                console.log("🧬 [App] Restaurando intención de resonancia capturada:", intent);
+                sessionStorage.removeItem('INDRA_RESONANCE_INTENT');
+                window.location.hash = intent;
+            }
+        };
+
+        bootstrap().then(recoverIntent);
+    }, [bootstrap, isConnected]);
 
     // NIVEL -1: Web de INDRA / Documentación (Incluso estando conectado)
     if (isDocsOpen || !isConnected) {

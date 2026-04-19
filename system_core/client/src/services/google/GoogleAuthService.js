@@ -36,6 +36,13 @@ export const GoogleAuthService = {
   login() {
     const root = window.location.origin + window.location.pathname.replace(/\/$/, "");
     const redirect_uri = root + '/'; // Redirigir a la raíz para que el main.jsx capture el fragmento
+
+    // AXIOMA: Persistencia de Intención
+    // Guardamos la ruta actual (ej: #/resonate?...) para restaurarla tras el handshake de Google
+    if (window.location.hash) {
+      sessionStorage.setItem('INDRA_RESONANCE_INTENT', window.location.hash);
+      console.log("[GoogleAuth] Intención de resonancia guardada:", window.location.hash);
+    }
     
     const oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${CLIENT_ID}&` +

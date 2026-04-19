@@ -1,9 +1,10 @@
 /**
  * =============================================================================
- * INDRA PROTOCOL ROUTER (The Sovereign Gateway v6.5)
+ * INDRA PROTOCOL ROUTER (The Sovereign Gateway v10.0)
  * =============================================================================
  * AXIOMA: Es la única membrana que separa al núcleo de Indra de la materia física.
  * Ningún comando toca un provider sin pasar por esta aduana de contratos.
+ * v10.0: Ahora valida la Intención Cognitiva además de la estructura.
  * =============================================================================
  */
 
@@ -17,7 +18,7 @@ function _validateInputContract_(uqo) {
   }
   if (!uqo.trace_id) {
     uqo.trace_id = 'T_' + Math.random().toString(36).substring(2, 11);
-    logWarn(`[router] UQO entrante sin trace_id. Generando traza de emergencia: ${uqo.trace_id}`);
+    // logWarn(`[router] UQO entrante sin trace_id. Generando traza de emergencia: ${uqo.trace_id}`);
   }
 }
 
@@ -35,14 +36,23 @@ function _validateReturnLaw_(result, providerId, protocol) {
 }
 
 /**
- * Valida que los ítems devueltos cumplan con el contrato de átomo.
+ * Valida que los ítems devueltos cumplan con el contrato de átomo v10.0.
  * @private
  */
 function _validateAtomContract_(items, providerId) {
   if (!Array.isArray(items)) return;
   items.forEach(item => {
-    if (item && (!item.id || !item.class)) {
-      logWarn(`[router] Item de ${providerId} tiene contrato de átomo débil. Falta ID o CLASS.`);
+    if (!item || !item.id || !item.class) {
+       logWarn(`[router] Item de ${providerId} tiene contrato de átomo débil. Falta ID o CLASS.`);
+       return;
+    }
+
+    // AXIOMA v10.0: Los Puentes deben ser Semánticos
+    if (item.class === 'BRIDGE') {
+      const p = item.payload || {};
+      if (!p.ui_purpose || !p.cognitive_class) {
+        logWarn(`[router] BRIDGE detected with weak semantics: ${item.id}. Recomendado: ui_purpose y cognitive_class.`);
+      }
     }
   });
 }

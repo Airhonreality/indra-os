@@ -42,7 +42,7 @@ export default function KeychainManager({ onClose }) {
         <div className="indra-overlay" onClick={onClose}>
             <div 
                 className="glass-chassis indra-layout-bipartite shadow-glow" 
-                style={{ width: '1000px', height: '640px', maxWidth: '95vw', maxHeight: '85vh', overflow: 'hidden', border: '1px solid var(--color-border-strong)' }}
+                style={{ width: '1000px', height: '640px', minHeight: '600px !important', maxWidth: '95vw', maxHeight: '85vh', overflow: 'hidden', border: '1px solid var(--color-border-strong)' }}
                 onClick={e => e.stopPropagation()}
             >
                 {/* ── PANEL DE CRISTALIZACIÓN (IZQUIERDA) ── */}

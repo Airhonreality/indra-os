@@ -49,22 +49,43 @@ const result = await indra.execute({
 
 ---
 
-## PASO 4: LA COSECHA (Lectura de Datos)
+## PASO 4: LA COSECHA (Lectura Relacional)
 
-Ahora que la materia existe, puedes leerla desde cualquier lugar:
+Ahora que la materia existe, puedes leerla. En Indra v6.1, cada ítem llega con su **Contexto Relacional**:
 ```javascript
 const productos = await indra.execute({
     provider: 'drive',
     protocol: 'TABULAR_STREAM',
-    context_id: result.metadata.silo_atom.id // El ID que nos dio la ignición
+    context_id: result.metadata.silo_atom.id
 });
 
-console.log(productos.items); // [{ id: '...', payload: { f1: 'Pan de Bono', f2: 1500 } }]
+// Cada producto incluye un array 'relations' con sus vínculos (Flechas)
+console.log(productos.items[0].relations); 
 ```
 
 ---
 
-## PASO 5: SEGURIDAD CRÍTICA (Producción)
+## PASO 6: EL GRAFO (Tejer la Realidad)
+
+Indra no es una base de datos plana; es un **Grafo**. Puedes vincular cualquier átomo con otro (ej: Vincular un `Producto` con una `Categoría` o un `Proveedor`) usando el protocolo relacional:
+
+```javascript
+await indra.execute({
+    provider: 'system',
+    protocol: 'RELATION_SYNC',
+    data: {
+        source_gid: 'ID_PRODUCTO',
+        target_gid: 'ID_PROVEEDOR',
+        type: 'LINKED_TO',
+        meta: { label: 'Suministrado por' }
+    }
+});
+```
+**¡Felicidades!** Has creado una flecha en la malla. Tu satélite ahora puede navegar la realidad saltando de un átomo a otro a través de sus relaciones.
+
+---
+
+## PASO 7: SEGURIDAD CRÍTICA (Producción)
 
 > [!CAUTION]
 > **NUNCA dejes tu `satellite_token` maestro en el código frontend de una web pública.**

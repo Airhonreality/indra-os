@@ -1,96 +1,83 @@
-# DATA CONTRACTS : LA GRAMÁTICA DE LA MATERIA (v3.0)
+# DATA CONTRACTS : LA GRAMÁTICA DE LA MATERIA (v4.0-MICELAR)
 
-Este documento define la estructura atómica de Indra. Cualquier desviación de este contrato será rechazada por el **Protocol Router** del Core como "Materia Oscura".
-
-> [!CAUTION]
-> **NIVEL DE INFRAESTRUCTURA (NÚCLEO)**: Este archivo define las LEYES DEL SISTEMA INDRA. 
-> **PROHIBIDO TERMINANTEMENTE** inyectar lógica de negocio (ej: Esquemas de Clientes, Ventas, etc.) en este artefacto. 
-> Para definir estructuras de negocio, diríjase a: `src/score/schemas/`. 
-> Si una IA modifica este archivo para propósitos de negocio, está VIOLANDO su contrato de integridad.
-
-> [!IMPORTANT]
-> **SINCERIDAD DOCUMENTAL**: Cualquier actualización en la lógica de contratos (JS) debe verse reflejada inmediatamente en este artefacto. El desfase entre el código y la documentación es la fuente primaria de Entropía en el sistema.
+Este documento define la estructura atómica de Indra v6.1. Cualquier desviación será rechazada por el **Protocol Router** del Core como "Materia Oscura".
 
 ---
 
 ## 1. EL ÁTOMO UNIVERSAL
-Todo dato que viaja por Indra debe ser un objeto con los siguientes campos obligatorios:
+Todo dato que viaja por la malla debe ser un objeto con los siguientes campos obligatorios:
 
 | Campo | Tipo | Descripción |
 | :--- | :--- | :--- |
 | `id` | `String` | ID físico inmutable (ej: Drive ID, Notion ID). |
-| `handle` | `Object` | El "DNI" del átomo (ver sección 2). |
+| `handle` | `Object` | El "DNI" del átomo (Label, Alias, Namespace). |
 | `class` | `String` | La "clase" o tipo de materia (ej: `DATA_SCHEMA`, `WORKSPACE`). |
 | `payload` | `Object` | El contenido o "valor" del átomo. |
+| `relations` | `Array` | **[NEW v4.0]** Array de flechas relacionales (ver sección 5). |
 | `protocols` | `Array` | Lista de acciones que este átomo sabe ejecutar. |
 
-### Excepción: Señales del Sistema (PROBE)
-Los ítems con `class: "PROBE"` (señales de estado, indicadores de existencia) están **exentos** de la validación de identidad. Son respuestas efímeras y no requieren `handle.ns`, `handle.alias` o `handle.label`.
+---
+
+## 2. EL TEJIDO RELACIONAL (FLECHAS)
+Una relación es un ciudadano de primera clase que describe un vínculo entre dos átomos.
+
+### Estructura de una Flecha:
+```json
+{
+  "source_gid": "ID_ORIGEN",
+  "target_gid": "ID_DESTINO",
+  "type": "MEMBER_OF | LINKED_TO | EXECUTES_ON",
+  "meta": { "label": "Nombre del vínculo", "strength": 0.8 },
+  "timestamp": "ISO-8601"
+}
+```
+
+### Protocolo `RELATION_SYNC`:
+Sincroniza un vínculo en el Ledger Relacional del contexto actual.
+*   **Input (UQO)**: Un objeto con el par `source` / `target` y el tipo de relación.
+*   **Efecto**: Inmortaliza la flecha en la tabla `RELATIONS` del sistema.
 
 ---
 
-## 2. EL CONCEPTO DE IDENTITY (HANDLE)
+## 3. IDENTIDAD Y SOBERANÍA (HANDLE)
 El `handle` permite que el sistema sea resiliente al cambio humano.
-
-### Partes del Handle:
-*   **LABEL**: El nombre humano (ej: "Inventario VIP"). Es mutable y estético.
-*   **ALIAS**: El nombre de máquina (ej: `inventario_vip`). Es **CANÓNICO**. Se genera procesando el Label inicial. Nunca debe cambiar una vez que hay flujos vinculados.
-*   **NS (Namespace)**: El dominio de soberanía (ej: `com.indra.pottery`). Evita colisiones entre diferentes satélites.
+*   **LABEL**: Nombre humano (mutable).
+*   **ALIAS**: Nombre de máquina (**CANÓNICO**).
+*   **NS (Namespace)**: Dominio de jurisdicción.
 
 ---
 
-## 3. INVARIANTES DE CLASE (REGLAS DE ORO)
-
-### DATA_SCHEMA & TABULAR
-*   **Payload Obligatorio**: Debe contener una propiedad `fields` que sea un `Array`.
-*   **Axioma**: Un esquema sin campos es un vacío existencial y será rechazado.
-
-### BRIDGE
-*   **Payload Obligatorio**: Debe contener una propiedad `operators` que sea un `Array`.
-*   **Axioma**: Un Bridge sin operadores es una cáscara vacía sin capacidad de procesamiento.
-
-### WORKFLOW
-*   **Payload Obligatorio**: Debe contener una propiedad `stations` que sea un `Array`.
-*   **Axioma**: Cada estación debe tener un `id`, un `type` y una `config`.
+## 4. CONTRATO DE ACCESO JIT (JUST-IN-TIME)
+Indra v6.1 opera bajo el principio de **Privilegio Mínimo**.
+*   **Handshake JIT**: Los satélites solicitan acceso mediante un `context_id`.
+*   **Apertura de Puerto**: El Core abre una montura efímera hacia el Ledger de la célula solicitada si el token tiene los `scopes` necesarios.
 
 ---
 
-## 4. CONTRATO DE MEDIOS (ADR-024)
-Para el protocolo `MEDIA_RESOLVE`, todos los ítems deben tener un objeto `INDRA_MEDIA` en su payload:
-
-| Propiedad | Valor / Tipo |
-| :--- | :--- |
-| `type` | `"INDRA_MEDIA"` |
-| `canonical_url` | `String` (URL de renderizado directo) |
-| `storage` | `"drive"` \| `"notion"` \| `"url"` \| `"opfs"` |
+## 5. INVARIANTES DE CLASE
+*   **DATA_SCHEMA**: Requiere `payload.fields` (Array).
+*   **BRIDGE**: Requiere `payload.operators` (Array).
+*   **WORKFLOW**: Requiere `payload.stations` (Array).
 
 ---
 
-## 5. RESONANCIA RELACIONAL
-Las actualizaciones de contratos son **Transaccionales**:
-1.  **Cambio en JS**: Se modifica el código de validación o el `indra_contract.json`.
-2.  **Cambio en DOC**: Se actualiza este archivo `SYSTEM_CORE_DATA_CONTRACTS.md`.
-3.  **Reflejo en AI**: Antigravity lee el cambio y ajusta su escritura de partituras.
-
-**Falla en cualquiera de los 3 puntos de contrato json rompe la Soberanía del Satélite.**
+## 6. CONTRATO DE MEDIOS (ADR-024)
+Todos los ítems de media deben incluir el objeto `INDRA_MEDIA`:
+*   `type`: "INDRA_MEDIA"
+*   `canonical_url`: URL de renderizado.
+*   `storage`: drive | notion | url | opfs.
 
 ---
 
-## 6. CONTRATO DE IDENTIDAD (KEYCHAIN - ADR-041)
-Define la estructura de las llaves que residen en el `keychain_service.gs`.
+## 7. CONTRATO DE IDENTIDAD (KEYCHAIN - ADR-041)
+Las llaves en el `keychain_service.gs` definen la jurisdicción.
+*   `MASTER`: Acceso total al Núcleo.
+*   `SCOPED`: Acceso restringido a `context_id` específicos.
 
-### Estructura de Llave (Ledger Entry):
-| Campo | Tipo | Valores / Descripción |
-| :--- | :--- | :--- |
-| `name` | `String` | Etiqueta humana del satélite (ej: "Bot_Finanzas"). |
-| `status` | `String` | `ACTIVE` \| `REVOKED`. |
-| `class` | `String` | `MASTER` (Full) \| `SCOPED` (Restringido). |
-| `parent_id` | `String` \| `null` | El token que emitió esta llave (Vínculo de Jerarquía). |
-| `can_delegate` | `Boolean` | Determina si esta llave puede emitir sub-tokens hijos. |
-| `scopes` | `Array` | Lista de `context_id` autorizados (ej: `["DRIVE_FOLDER_ID"]`). |
-| `scope_label` | `String` | Nombre del ámbito para visualización en el HUD. |
+---
 
-### Clase SATELLITE_SESSION:
-El protocolo `CORE_DISCOVERY` y las validaciones de Gateway retornan un átomo de clase `SATELLITE_SESSION`.
-*   **Payload**: Debe incluir `core_url`, `session_secret` (si aplica) y `user_handle`.
-*   **Identidad**: El `id` de la sesión siempre será el email del propietario del Core o el Token ID del satélite.
+## 8. SINCERIDAD DOCUMENTAL
+Cualquier actualización en la lógica de contratos **json** rompe la Soberanía del Satélite si no se refleja inmediatamente en este manual.
+
+---
+⚡🌞 **Indra OS: La Malla es el Mensaje.** 🌞⚡

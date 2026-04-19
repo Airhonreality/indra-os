@@ -128,7 +128,8 @@ const TEMPLATE = `
                  <span class="badge badge-citizen" id="citizen-badge" style="display:none;"></span>
             </div>
         </div>
-        <div id="master-action-zone">
+        <div id="master-action-zone" style="display:flex; gap:10px;">
+            <button class="btn-master" id="btn-export-citizenship" style="background:#4b5563; display:none;" title="Exportar configuración física para tu repositorio">📥 EXPORTAR</button>
             <button class="btn-master" id="btn-master-action">Conectar al Core</button>
         </div>
     </header>
@@ -231,67 +232,57 @@ class IndraBridgeHUD extends HTMLElement {
             unlockBtn.classList.toggle('unlocked', !this._configLocked);
         }
 
-        // --- MÁQUINA DE ESTADOS SECUENCIAL (Branched v3.3) ---
+        // Botón de Exportación (Soberanía)
+        const exportBtn = this.shadowRoot.getElementById('btn-export-citizenship');
+        if (exportBtn) {
+            exportBtn.style.display = this._bridge.activeWorkspaceId ? 'block' : 'none';
+            exportBtn.onclick = () => this.handleExportCitizenship();
+        }
+
+        // --- MÁQUINA DE ESTADOS SECUENCIAL (Laminar v4.0) ---
         switch (this._mode) {
             case 'GHOST':
-                status.innerText = 'PASO 1: CONECTAR CORE';
+                status.innerText = 'PASO 1: CONEXIÓN';
                 status.className = 'badge';
-                actionBtn.innerText = '🔗 VINCULAR NODO';
+                actionBtn.innerText = '🔗 CONECTAR AL CORE';
                 actionBtn.className = 'btn-master';
                 actionBtn.disabled = false;
                 actionBtn.onclick = () => this.handleIgnition();
                 body.classList.add('locked');
                 break;
 
-            case 'REJECTED':
-                status.innerText = 'ERROR: NODO RECHAZADO';
-                status.className = 'badge badge-divergent';
-                actionBtn.innerText = '🔄 REINTENTAR VÍNCULO';
-                actionBtn.className = 'btn-master divergent';
-                actionBtn.disabled = false; 
-                actionBtn.onclick = () => this.handleIgnition();
-                body.classList.add('locked');
-                console.error("Fallo de Autorización:", this._bridge.lastError);
-                break;
-
             case 'ORPHAN':
-                status.innerText = 'PASO 2: ANCLAR CIUDADANÍA';
+                status.innerText = 'PASO 2: CONFIGURACIÓN';
                 status.className = 'badge badge-divergent';
-                actionBtn.innerText = '👑 GÉNESIS DE SATÉLITE';
+                actionBtn.innerText = '✨ CREAR NUEVO ESPACIO';
                 actionBtn.className = 'btn-master divergent';
-                actionBtn.disabled = false; // DESBLOQUEO FORZADO
-                actionBtn.onclick = () => this.handleAnchorCitizenship();
+                actionBtn.disabled = false;
+                actionBtn.onclick = () => this.handleAnchorCitizenship(); // Genesis
                 body.classList.add('locked');
-                break;
-
-            case 'DIVERGENT':
-                status.innerText = 'ADVERTENCIA: ADN DIVERGENTE';
-                status.className = 'badge badge-divergent';
-                actionBtn.innerText = '🧬 SINCRONIZAR ADN';
-                actionBtn.className = 'btn-master divergent';
-                actionBtn.onclick = () => this.handleDNAsync();
-                body.classList.add('locked');
+                
+                // Habilitar selección de existentes en modo huérfano
+                const wsSelector = this.shadowRoot.getElementById('workspace-ctrl');
+                if (wsSelector) {
+                    wsSelector.style.opacity = "1";
+                    wsSelector.onchange = (e) => {
+                        if (confirm(`¿Conectar este satélite al espacio "${e.detail.name}"?`)) {
+                            this.handleAnchorCitizenship(e.detail.id);
+                        }
+                    };
+                }
                 break;
 
             case 'STABLE':
-                status.innerText = 'SISTEMA RESONANTE';
+                status.innerText = 'SISTEMA CONECTADO';
                 status.className = 'badge badge-auth';
-                actionBtn.innerText = '✅ ESTABLE';
+                actionBtn.innerText = '✅ CONECTADO';
                 actionBtn.className = 'btn-master stable';
                 actionBtn.onclick = null;
                 body.classList.remove('locked');
                 break;
 
-            case 'BROKEN':
-                status.innerText = 'ERROR: ADN ROTO';
-                status.className = 'badge badge-divergent';
-                actionBtn.innerText = '⚠️ EJECUTAR SYNC';
-                actionBtn.onclick = () => window.location.reload();
-                body.classList.add('locked');
-                break;
-
             default:
-                status.innerText = 'MODO LOCAL / OFFLINE';
+                status.innerText = 'MODO LOCAL';
                 actionBtn.innerText = 'REINTENTAR';
                 actionBtn.onclick = () => this._bridge.init();
                 body.classList.remove('locked');
@@ -301,7 +292,7 @@ class IndraBridgeHUD extends HTMLElement {
         // Mostrar Badge de Ciudadano si existe
         if (this._bridge.activeWorkspaceId) {
             citizenBadge.style.display = 'inline-block';
-            citizenBadge.innerText = `CIUDADANO: ${this._bridge.activeWorkspaceId.substring(0,8)}`;
+            citizenBadge.innerText = `ID: ${this._bridge.activeWorkspaceId.substring(0,8)}`;
         } else {
             citizenBadge.style.display = 'none';
         }
@@ -331,6 +322,30 @@ class IndraBridgeHUD extends HTMLElement {
         }
     }
 
+    handleExportCitizenship() {
+        const config = {
+            satellite_name: this._bridge.contract.satellite_name,
+            workspace_id: this._bridge.activeWorkspaceId,
+            ignitions: this._bridge.ignitions || {}
+        };
+        
+        const code = `/**
+ * MANIFIESTO DE CIUDADANÍA INDRA
+ * Guarda este archivo como '_INDRA_PROTOCOL_/indra_config.js' en tu repositorio.
+ */
+export const INDRA_CONFIG = ${JSON.stringify(config, null, 4)};`;
+
+        console.log("--- MANIFIESTO GENERADO ---");
+        console.log(code);
+        
+        // Copiar al portapapeles si es posible
+        navigator.clipboard.writeText(code).then(() => {
+            alert("✅ Manifiesto de Ciudadanía copiado al portapapeles.\n\nGuárdalo en '_INDRA_PROTOCOL_/indra_config.js' para que tu satélite sea soberano.");
+        }).catch(() => {
+            alert("No se pudo copiar automáticamente. Revisa la consola (F12) para copiar el código.");
+        });
+    }
+
     async handleIgnition() {
         const btn = this.shadowRoot.getElementById('btn-master-action');
         btn.disabled = true;
@@ -343,14 +358,14 @@ class IndraBridgeHUD extends HTMLElement {
         }
     }
 
-    async handleAnchorCitizenship() {
+    async handleAnchorCitizenship(workspaceId = null) {
         const btn = this.shadowRoot.getElementById('btn-master-action');
         btn.disabled = true;
-        btn.innerText = "GÉNESIS...";
+        btn.innerText = workspaceId ? "VINCULANDO..." : "GÉNESIS...";
         try {
-            await this._bridge.anchorCitizenship();
+            await this._bridge.anchorCitizenship(workspaceId);
         } catch (e) {
-            alert("Fallo el génesis: " + e.message);
+            alert("Fallo el vínculo celular: " + e.message);
             btn.disabled = false;
             this.updateUI();
         }
@@ -359,11 +374,11 @@ class IndraBridgeHUD extends HTMLElement {
     async handleDNAsync() {
         const btn = this.shadowRoot.getElementById('btn-master-action');
         btn.disabled = true;
-        btn.innerText = "TEJIENDO...";
+        btn.innerText = "ACTUALIZANDO...";
         try {
             await this._bridge.syncDNA();
         } catch (e) {
-            alert("Error de sincronía: " + e.message);
+            alert("Error de actualización: " + e.message);
             btn.disabled = false;
             this.updateUI();
         }

@@ -21,7 +21,8 @@ class IndraBridge {
 
         // --- DATOS ADN ---
         this.contract = { satellite_name: 'Satélite Anónimo', capabilities: { protocols: [], providers: [] }, schemas: [] };
-        this.capabilities = { protocols: [], providers: [], core_version: '0.0' };
+        this.capabilities = { protocols: [], providers: [], core_version: '0.0', system_state: 0 };
+        this.allowedProtocols = []; // Cache of protocols allowed by the Gateway
         
         // --- MODULOS ---
         this.transport = new TransportLayer(this);
@@ -44,7 +45,10 @@ class IndraBridge {
     // RAMA A: Anclaje de nueva identidad
     async anchorCitizenship() { return await this.resonanceSync.anchorCitizenship(); }
     
-    // RAMA B: Sincronización de DNA existente
+    // RAMA B: Cristalización Tabular (Soberanía)
+    async crystallizeResonance() { return await this.resonanceSync.crystallizeResonance(); }
+    
+    // @deprecated Usa crystallizeResonance
     async syncDNA() { return await this.resonanceSync.syncDNA(); }
 
     clearState() {
@@ -55,52 +59,66 @@ class IndraBridge {
     }
 
     async loadContract(path) { return await this.contractCortex.load(path); }
-    async execute(uqo, options) { return await this.transport.execute(uqo, options); }
+    
+    /**
+     * @dharma "La Senda de la Eficiencia Suprema".
+     * Delega el renderizado de un módulo de alta tecnología al Core de Indra.
+     */
+    async invokeUI(module, payload = {}) {
+        return await this.execute({
+            protocol: 'UI_INVOKE',
+            module: module,
+            payload: payload
+        });
+    }
+    
+    async execute(uqo, options) { 
+        // --- VALIDACIÓN DE SORDERA (Anti-Patrón) ---
+        if (this.allowedProtocols.length > 0 && !this.allowedProtocols.includes(uqo.protocol)) {
+            // Bypass para SYSTEM_MANIFEST y SYSTEM_RESONANCE_CRYSTALLIZE que son de infraestructura base
+            if (uqo.protocol !== 'SYSTEM_MANIFEST' && uqo.protocol !== 'SYSTEM_RESONANCE_CRYSTALLIZE') {
+                console.error(`[IndraBridge:Aduana] El protocolo '${uqo.protocol}' no está permitido en el estado actual del núcleo o para tu tipo de jurisdicción.`);
+                throw new Error("PROTOCOL_NOT_ALLOWED_BY_GATEWAY");
+            }
+        }
+        return await this.transport.execute(uqo, options); 
+    }
 
     /**
-     * @dharma Inicializar el sistema nervioso (Nexo de Conectividad).
+     * @dharma Inicializar el nexo celular (Identidad y Vínculo).
+     * @v4.0 El inicio es pasivo y minimalista. No hay sincronía de ADN automática.
      */
     async init() {
         if (this._initializing) return this._initPromise;
         this._initializing = true;
         
         this._initPromise = (async () => {
-            console.log("[IndraBridge:Nexus] Analizando Vias de Resonancia...");
+            console.log("[IndraBridge:Nexus] Analizando Vias de Vínculo Celular...");
+            
+            // 1. Cargamos la verdad del Repositorio (Prioridad Alta)
             await this.loadContract();
+
+            // 2. Intentamos recuperar sesión si no hay en el contrato
+            if (!this.activeWorkspaceId) {
+                this.activeWorkspaceId = localStorage.getItem('INDRA_SATELLITE_LINK');
+            }
 
             if (this.coreUrl && this.satelliteToken) {
                 try {
-                    const localChecksum = this.contractCortex.calculateChecksum(this.contract.schemas);
+                    // Solo pedimos un pulso de salud y capacidades base
                     const statusPulse = await this.execute({ protocol: 'SYSTEM_MANIFEST', provider: 'system' });
                     
-                    // --- SONDA DIFERENCIAL (Nexus Probe) ---
-                    console.group("🛰️ [Bridge:Handshake] Pulso de Sincronía");
-                    console.log("Integridad Local:", localChecksum);
-                    console.log("Realidad del Core:", statusPulse);
-                    
-                    const coreChecksum = statusPulse.metadata?.schema_checksum;
-                    const isUnauthorized = statusPulse.status === 'UNAUTHORIZED' || statusPulse.metadata?.status === 'ERROR';
+                    this.capabilities = statusPulse.metadata || {};
+                    this.allowedProtocols = this.capabilities.allowed_protocols || [];
 
-                    if (isUnauthorized) {
-                        console.warn("🚨 [ALERTA] Firma del Core no disponible. Manteniendo estado de espera.");
-                        console.log(`Diferencial: [Local: ${localChecksum}] vs [Core: ESPERANDO PROPAGACIÓN...]`);
-                        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'REJECTED', error: statusPulse.error } }));
+                    // --- ESTADO CELULAR (Laminar) ---
+                    if (!this.activeWorkspaceId) {
+                        // Estado Huérfano: Registrado pero sin tierra (Workspace)
+                        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'ORPHAN' } }));
                     } else {
-                        console.log(`Diferencial: [Local: ${localChecksum}] vs [Core: ${coreChecksum || 'GÉNESIS_PENDIENTE'}]`);
-                        this.capabilities = statusPulse.metadata || {};
-
-                        // --- DECISIÓN DE RAMA AXIOMÁTICA ---
-                        if (!this.activeWorkspaceId) {
-                            window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'ORPHAN' } }));
-                        } else if (localChecksum !== coreChecksum) {
-                            window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
-                                detail: { mode: 'DIVERGENT', local: localChecksum, core: coreChecksum } 
-                            }));
-                        } else {
-                            window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
-                        }
+                        // Estado Residente: Vínculo establecido
+                        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
                     }
-                    console.groupEnd();
 
                 } catch (e) {
                     console.warn("[IndraBridge:Nexus] Error en Handshake. Modo Offline.", e);

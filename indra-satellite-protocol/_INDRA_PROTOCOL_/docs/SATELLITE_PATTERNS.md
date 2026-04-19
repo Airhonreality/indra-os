@@ -48,12 +48,15 @@ async function generatePreview(file) {
 3. Si falla por `NETWORK_ERROR`, la tarea permanece marcada como `PENDING`.
 4. Al reiniciar la aplicación (evento `load`), un worker escanea el `StateVault` y re-ejecuta automáticamente las tareas pendientes.
 
-## 4. Patrón: UI Adaptativa por Capacidades
-**Propósito**: No frustrar al usuario mostrando opciones que su Core no soporta.
+## 5. Patrón: Navegación Relacional (Jumping)
+**Propósito**: Permitir que el usuario explore el ecosistema de datos de forma fluida saltando entre átomos vinculados.
 
 **Implementación**:
-1. Tras el `init()`, inspecciona el objeto `bridge.capabilities.providers`.
-2. Si el usuario intenta guardar en Notion pero `notion` no está en la lista de proveedores activos del Core, oculta el botón o muestra un aviso de "Provider no vinculado".
+1. Cada vez que visualices un átomo, renderiza sus **Flechas** (`relations`).
+2. Implementa un manejador de clics para estas flechas que extraiga el `target_gid`.
+3. Al hacer clic, el satélite dispara una nueva petición `TABULAR_READ` o `ATOM_READ` usando ese `target_gid`.
+4. El satélite actualiza la vista principal con el nuevo átomo, manteniendo un rastro de "miga de pan" (breadcrumb).
+5. Este patrón transforma tu UI de una lista estática en un navegador de grafos potente.
 
 ---
-*Axioma Indra: "La inteligencia vive en el Core, pero la soberanía del tiempo vive en el Satélite".*
+*Axioma Indra: "La inteligencia vive en la Malla, pero la soberanía del tiempo vive en el Satélite".*

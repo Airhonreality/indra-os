@@ -14,7 +14,13 @@ export class TransportLayer {
         this.activeRequests = 0;
         this.requestQueue = [];
         this.MAX_CONCURRENT = 5; // Mayor paralelismo para evitar bloqueos en handshakes
-    }
+        
+        // --- CIRCUIT BREAKER ---
+        this.circuitStatus = 'CLOSED'; // CLOSED, OPEN, HALF-OPEN
+        this.circuitOpenUntil = null;
+        this.consecutiveFailures = 0;
+        this.FAILURE_THRESHOLD = 3;
+        this.CIRCUIT_REST_TIME_MS = 30000;
 
     purgeQueue() {
         console.warn("[TransportLayer] Purgando cola de peticiones...");
@@ -54,11 +60,44 @@ export class TransportLayer {
     }
 
     async _executeWithRetry(uqo, maxRetries) {
+        if (this.circuitStatus === 'OPEN') {
+            if (Date.now() > this.circuitOpenUntil) {
+                console.warn("[TransportLayer] Circuito en modo HALF-OPEN. Probando terreno...");
+                this.circuitStatus = 'HALF-OPEN';
+            } else {
+                const error = new Error("CIRCUIT_OPEN");
+                error.code = "CIRCUITO_ABIERTO";
+                error.detail = "El Gateway del Core no responde. Previniendo bloqueo de red.";
+                throw error;
+            }
+        }
+
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
             try {
-                return await this._rawFetch(uqo);
+                const response = await this._rawFetch(uqo);
+                
+                // Si llegamos aquí y estábamos fallando, nos recuperamos
+                if (this.circuitStatus === 'HALF-OPEN' || this.consecutiveFailures > 0) {
+                    console.log("[TransportLayer] Conexión estable restaurada. Circuito CLOSED.");
+                    this.circuitStatus = 'CLOSED';
+                    this.consecutiveFailures = 0;
+                }
+                
+                return response;
             } catch (error) {
-                if (attempt === maxRetries || !RETRIABLE_CODES.includes(error.code)) throw error;
+                if (RETRIABLE_CODES.includes(error.code) || error.code === '503') {
+                    this.consecutiveFailures++;
+                    
+                    if (this.consecutiveFailures >= this.FAILURE_THRESHOLD) {
+                        console.error(`[TransportLayer] Superado el umbral de fallos (${this.FAILURE_THRESHOLD}). Abriendo Circuito.`);
+                        this.circuitStatus = 'OPEN';
+                        this.circuitOpenUntil = Date.now() + this.CIRCUIT_REST_TIME_MS;
+                        throw new Error("CIRCUITO_ABIERTO");
+                    }
+                }
+
+                if (attempt === maxRetries || (!RETRIABLE_CODES.includes(error.code) && error.code !== '503')) throw error;
+                
                 const delay = Math.pow(2, attempt) * 1000 + (Math.random() * 500);
                 await new Promise(r => setTimeout(r, delay));
             }
@@ -76,6 +115,7 @@ export class TransportLayer {
             satellite_token: satelliteToken, 
             environment,
             workspace_id: activeWorkspaceId,
+            bridge_version: '4.0_NEXUS',
             ...uqo 
         };
         if (shareTicket) envelope.share_ticket = shareTicket;

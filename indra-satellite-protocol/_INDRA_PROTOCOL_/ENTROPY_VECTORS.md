@@ -31,5 +31,15 @@ La entropía es el desorden natural que degrada los sistemas. En Indra, la entro
 
 ## 🚩 Vector 6: La Basura Espacial de Identidad (Entropía de Keychain)
 **Síntoma:** El Agente o Usuario elimina un Workspace o desactiva un Satélite, pero deja los tokens de acceso marcados como `ACTIVE` en el `keychain_service.gs`.
-**Impacto:** "Puertas Traseras" latentes. Un atacante con un token antiguo podría seguir accediendo a infraestructuras huérfanas o, peor aún, si el token es MASTER, a todo el Core.
-**Antídoto:** Implementar una **Purga en Cascada**. Cada vez que se elimina un átomo de clase `WORKSPACE`, el sistema debe invocar `SYSTEM_KEYCHAIN_REVOKE` para todas las llaves vinculadas a ese `context_id`. La soberanía sin limpieza es inseguridad.
+**Impacto:** "Puertas Traseras" latentes.
+**Antídoto:** Implementar una **Purga en Cascada**. El satélite debe invocar `disengage()` (SYSTEM_KEYCHAIN_REVOKE) al cerrar sesión.
+
+## 🚩 Vector 7: La Sordera de Red (DDoS Involuntario)
+**Síntoma:** El Satélite insiste en enviar peticiones cuando el Core está en mantenimiento o bajo carga (Status 503).
+**Impacto:** Bloqueo total del Gateway de Google Apps Script (límite de 6 min).
+**Antídoto:** Implementar un **Circuit Breaker** en el `TransportLayer`. Si el circuito está `OPEN`, el satélite debe callar y esperar la resonancia.
+
+## 🚩 Vector 8: La Ilusión de la Tabla Pre-existente
+**Síntoma:** El Satélite asume que los Silos (Sheets/Notion) existen antes de la Cristalización.
+**Impacto:** Errores de "File Not Found" al intentar escribir en una tabla que aún no ha sido materializada.
+**Antídoto:** Todo flujo debe nacer de un `crystallizeResonance()`. El Satélite debe manejar estados de espera (Skeletons visuales) mientras el Core "imprime" la infraestructura física.

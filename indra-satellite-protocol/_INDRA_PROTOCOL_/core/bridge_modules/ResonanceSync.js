@@ -14,80 +14,150 @@ export class ResonanceSync {
     }
 
     /**
-     * RAMA A: Anclaje de Ciudadanía (Génesis)
-     * Se usa cuando el satélite no reconoce un workspace local.
+     * RAMA A: Anclaje de Vínculo Celular (Génesis o Re-vinculación)
+     * Se usa para establecer la relación [Satélite] <-> [Workspace].
+     * @v4.0 Solo gestiona la infraestructura, no toca los datos.
      */
-    async anchorCitizenship() {
-        console.log("[ResonanceSync:BranchA] Iniciando Anclaje de Ciudadanía...");
-        return await this._executeAtomicSync(true);
-    }
-
-    /**
-     * RAMA B: Sincronización de ADN (Soberanía)
-     * Se usa cuando ya existe un workspace pero el ADN ha divergido.
-     */
-    async syncDNA() {
-        console.log("[ResonanceSync:BranchB] Iniciando Sincronización de ADN...");
-        return await this._executeAtomicSync(false);
-    }
-
-    /**
-     * @dharma El gran ciclo atómico de sincronización progresiva.
-     */
-    async _executeAtomicSync(isNewSatellite = false) {
+    async anchorCitizenship(workspaceId = null) {
         const { bridge } = this;
-        if (!bridge.coreUrl || !bridge.satelliteToken) throw new Error("AUTH_REQUIRED");
+        console.log("[ResonanceSync:BranchA] Iniciando Anclaje de Vínculo Celular...");
         
-        const localChecksum = bridge.contractCortex.calculateChecksum(bridge.contract.schemas);
-
         try {
-            // 1. Cristalizar en Core (Nube)
-            // Si es un satélite nuevo, enviamos null en workspace para forzar creación
-            const targetWorkspace = isNewSatellite ? null : bridge.activeWorkspaceId;
             const payload = { 
-                contract: bridge.contract, 
-                checksum: localChecksum,
-                force_new: isNewSatellite,
-                requested_workspace: targetWorkspace
+                satellite_name: bridge.contract.satellite_name, 
+                requested_workspace: workspaceId,
+                force_new: !workspaceId 
             };
 
-            // --- SONDA TRANSACCIONAL (Sync Probe) ---
-            console.group("💎 [ResonanceSync:Crystallize] Sonda Transaccional");
-            console.log("Payload enviado al Core:", payload);
-            console.groupEnd();
-
-            const crystalResponse = await bridge.execute({
+            const response = await bridge.execute({
                 protocol: 'SYSTEM_RESONANCE_CRYSTALLIZE',
                 provider: 'system',
                 data: payload
             });
 
-            if (!crystalResponse || crystalResponse.metadata?.status === 'ERROR') {
-                throw new Error(crystalResponse?.metadata?.error || "CRYSTALLIZE_FAILED");
+            if (!response || response.metadata?.status === 'ERROR') {
+                throw new Error(response?.metadata?.error || "LINKAGE_FAILED");
             }
 
-            // 2. Extraer Identidad Asignada
-            if (crystalResponse.metadata?.generated_workspace_id) {
-                bridge.activeWorkspaceId = crystalResponse.metadata.generated_workspace_id;
-            }
-
-            // 3. Persistencia Soberana en Disco (Módulo JS)
-            const saveResult = await this.persistMetadata();
+            // Establecer el vínculo atómico
+            bridge.activeWorkspaceId = response.metadata.generated_workspace_id;
             
-            // 4. Triggerear Compilador Local
-            const apiOrigin = window.location.origin;
-            await fetch(`${apiOrigin}/api/indra/sync`, { method: 'POST' });
-
-            // 5. Recarga y Verificación Final
-            await bridge.contractCortex.load();
+            // Persistencia Ferroso en Disco
+            await this.persistMetadata();
             
-            console.log(`[ResonanceSync] Sincronía Exitosa. Modo: ${isNewSatellite ? 'GÉNESIS' : 'RESIDENTE'}`);
+            // Notificar estabilidad de vínculo
             window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
             
-            return true;
+            return bridge.activeWorkspaceId;
 
         } catch (e) {
-            console.error("[ResonanceSync] Fallo en el Ciclo Atómico:", e);
+            console.error("[ResonanceSync:Anchor] Fallo el vínculo celular:", e);
+            throw e;
+        }
+    }
+
+    /**
+     * @dharma Ignición Industrial (Materialización de Silo).
+     * El satélite decide voluntariamente dar cuerpo a un esquema en un Silo físico
+     * invocando los Motores Naturales de Indra (PINE).
+     */
+    async materializeSchema(schemaName, options = {}) {
+        const { bridge } = this;
+        const schema = bridge.contract.schemas.find(s => s.id === schemaName || s.handle?.alias === schemaName);
+        
+        if (!schema) throw new Error(`SCHEMA_NOT_FOUND: ${schemaName}`);
+
+        console.log(`[ResonanceSync:IndustrialIgnition] Solicitando materialización industrial para: ${schemaName}...`);
+
+        try {
+            // AXIOMA DE GÉNESIS: El satélite envía su ADN (Blueprint) al motor de automatización
+            const response = await bridge.execute({
+                protocol: 'INDUSTRIAL_IGNITE',
+                provider: 'automation',
+                data: {
+                    blueprint: schema,
+                    target_provider: options.provider || 'drive',
+                    workspace_id: bridge.activeWorkspaceId
+                }
+            });
+
+            if (response.metadata?.status === 'OK') {
+                // Capturamos el resultado del motor natural
+                const ticket = response.metadata.ticket;
+                const schemaAtom = response.metadata.schema_atom;
+                const siloId = schemaAtom.payload?.silo_id;
+
+                if (!siloId) {
+                    throw new Error("El motor industrial no devolvió un Silo ID válido.");
+                }
+
+                console.log(`[ResonanceSync] Esquema ${schemaName} cristalizado con éxito en [${options.provider || 'drive'}]: ${siloId}`);
+                
+                // --- REGISTRO DE CIUDADANÍA SOBERANA ---
+                bridge.ignitions = bridge.ignitions || {};
+                bridge.ignitions[schemaName] = {
+                    silo_id: siloId,
+                    provider: options.provider || 'drive',
+                    bridge_id: schemaAtom.payload?.bridge_id,
+                    materialized_at: new Date().toISOString()
+                };
+
+                // Actualizar contrato vivo para feedback instantáneo en UI
+                schema.metadata = { ...schema.metadata, silo_id: siloId };
+
+                // Persistencia Ferroso (indra_config.js)
+                await this.persistMetadata();
+                
+                return siloId;
+            }
+            
+            throw new Error(response.metadata?.error || "INDUSTRIAL_IGNITION_FAILED");
+
+        } catch (e) {
+            console.error(`[ResonanceSync:IndustrialIgnition] Colapso en materialización de ${schemaName}:`, e);
+            throw e;
+        }
+    }
+
+    /**
+     * @dharma Resonancia Industrial (Actualización Contextual).
+     * Sincroniza la realidad del satélite con el silo físico a través
+     * del protocolo industrial consolidado.
+     */
+    async resonateSchema(schemaName) {
+        const { bridge } = this;
+        const schema = bridge.contract.schemas.find(s => s.id === schemaName || s.handle?.alias === schemaName);
+        const ignition = bridge.ignitions?.[schemaName];
+
+        if (!schema) throw new Error(`SCHEMA_NOT_FOUND: ${schemaName}`);
+        if (!ignition) throw new Error(`SCHEMA_NOT_MATERIALIZED: ${schemaName}. Debe materializarse antes de actualizar.`);
+
+        console.log(`[ResonanceSync:IndustrialResonance] Resonando esquema: ${schemaName} con silo: ${ignition.silo_id}...`);
+
+        try {
+            // AXIOMA DE ACTUALIZACIÓN: Delegamos la lógica de sync al Core (PINE)
+            const response = await bridge.execute({
+                protocol: 'INDUSTRIAL_SYNC',
+                provider: 'automation',
+                data: {
+                    schema_id: schema.id,
+                    bridge_id: ignition.bridge_id,
+                    silo_id: ignition.silo_id,
+                    target_provider: ignition.provider,
+                    workspace_id: bridge.activeWorkspaceId
+                    // Aquí se enviaría el payload de datos si el satélite fuera Master
+                }
+            });
+
+            if (response.metadata?.status === 'OK') {
+                console.log(`[ResonanceSync] Resonancia completada para ${schemaName}.`);
+                return response;
+            }
+
+            throw new Error(response.metadata?.error || "INDUSTRIAL_SYNC_FAILED");
+
+        } catch (e) {
+            console.error(`[ResonanceSync:IndustrialResonance] Colapso en resonancia de ${schemaName}:`, e);
             throw e;
         }
     }
@@ -95,15 +165,22 @@ export class ResonanceSync {
     async persistMetadata() {
         const payload = {
             satellite_name: this.bridge.contract.satellite_name,
-            core_id: this.bridge.contract.core_id,
-            workspace_id: this.bridge.activeWorkspaceId
+            workspace_id: this.bridge.activeWorkspaceId,
+            ignitions: this.bridge.ignitions || {} // Guardamos el mapa de materia
         };
         const apiOrigin = window.location.origin;
-        const response = await fetch(`${apiOrigin}/api/indra/metadata`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        return await response.json();
+        try {
+            const response = await fetch(`${apiOrigin}/api/indra/metadata`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            return await response.json();
+        } catch (e) {
+            console.warn("[ResonanceSync] No se pudo persistir en disco. Usando Storage secundario.");
+            localStorage.setItem('INDRA_SATELLITE_LINK', this.bridge.activeWorkspaceId);
+            localStorage.setItem('INDRA_IGNITIONS', JSON.stringify(payload.ignitions));
+        }
     }
+}
 }

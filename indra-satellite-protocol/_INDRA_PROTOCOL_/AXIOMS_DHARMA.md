@@ -1,39 +1,47 @@
-# 🧘 AXIOMAS Y DHARMAS DE INDRA (v2.5)
+# 🧘 AXIOMAS Y DHARMAS DE INDRA (v3.0-MICELAR)
 ### Constitución Existencial del Protocolo Satélite
 
-Este documento es tu **Ley Primera**. Cualquier desviación genera corrupción de datos y fallo en la sincronización.
+Este documento es tu **Ley Primera**. Define la naturaleza de la realidad en Indra v6.1. Cualquier desviación genera corrupción de datos y fallo en la sincronización.
 
 ---
 
-## 🏛️ AXIOMA 0: La Jerarquía Maestra
-**Indra Core (GAS) es el cerebro; el Satélite es la extremidad.**
-*   El Satélite no "manda", el Satélite "peticiona".
-*   Toda decisión de persistencia, seguridad o filtrado complejo OCURRE en el Core. Si lo intentas hacer en el Satélite, fallarás.
+## 🏛️ AXIOMA 0: El Núcleo y la Malla (Paradigma Micelar)
+**Indra no es un servidor central; es un organismo distribuido de Células Soberanas.**
+*   **El Núcleo (Core):** Es el orquestador de resonancia. Gestiona la identidad y el despacho de protocolos, pero no posee el monopolio de los datos.
+*   **La Célula (Workspace):** Cada Ledger es una célula autónoma y soberana. El acceso se realiza mediante **Handshakes JIT (Just-In-Time)**.
+*   **Topología Relacional (Lema de Yoneda):** Un átomo no se define por su estructura JSON aislada, sino por la interacción de sus vectores (flechas) contra el Gateway. El Satélite nunca crea tablas; él *Cristaliza una Resonancia topológica*.
+*   **El Satélite:** Es una membrana inteligente que interactúa con el Núcleo para descubrir y habitar las Células.
 
-## 🛰️ 1. El Dharma del Satélite (Capa de Soberanía)
-**Misión:** Proyectar la voluntad del negocio en interfaces estéticas y funcionales.
+## 🏹 1. El Dharma de la Flecha (La Relación es el Dato)
+**Un Átomo sin vínculos es materia inerte.**
+*   **Axioma de la Conectividad:** La importancia de un átomo no reside solo en su `payload`, sino en sus **Flechas (Relations)**. Una relación es un ciudadano de primera clase con identidad propia.
+*   **Axioma de la Resonancia:** El Satélite tiene la obligación de proyectar las relaciones. Si un componente UI ignora los vínculos relacionales de un átomo, está cometiendo un pecado de *Ceguera Sistémica*.
+
+## 🛰️ 2. El Dharma del Satélite (Capa de Soberanía)
+**Misión:** Proyectar la voluntad del negocio en interfaces estéticas y funcionales dentro de la malla.
 *   **Axioma de la Autonomía**: El Satélite es dueño de su `src/`. Nadie más vive ahí.
-*   **Axioma de la Ignorancia Útil**: El Satélite no sabe qué hay dentro de Drive o Notion. Solo sabe preguntar al Bridge usando el nombre del esquema (`alias`).
-*   **Prohibición de Alucinación**: No inventes campos. Si el campo no está en `indra_contract.json`, no existe en la realidad.
-*   **Axioma de la Resonancia Obligatoria**: Ningún satélite operará en el vacío. Durante la ignición (`init`), el Bridge debe proyectar (`crystallize`) su contrato local hacia el Core para sincronizar esquemas y asegurar la integridad de las automatizaciones globales.
-*   **Axioma de la Espina Dorsal**: Toda UI o Automatización debe nacer de un esquema claro en `src/score/schemas/`. La IA tiene prohibido inventar campos que no existan en la espina dorsal. Toda Lógica de Negocio debe "beber" de los esquemas modularizados allí residentes.
-*   **Axioma de la Paciencia Estética (Estados Nativos)**: Queda prohibida la carga asíncrona "tonta" (UIs que se rompen, parpadean o escupen arrays vacíos antes del fetch). Todas las tarjetas y componentes visuales deben usar un estándar de `null` en sus variables de estado principales para inyectar automáticamente animaciones de carga tipo `Skeleton` por `CSS purista`. Un front-end soberano jamás debe verse como un prototipo en progreso.
-*   **Axioma de Integridad Documental Relacional**: Cualquier actualización en la lógica de contratos o protocolos debe verse reflejada tanto en el código (JS) como en la documentación (`DATA_CONTRACTS.md`). El desfase entre el código y su manual rompe la "Sinceridad del Sistema" y alucina a los agentes de IA.
-*   **Axioma de Invariabilidad del Núcleo**: Queda terminantemente prohibido mezclar lógica de negocio (Silos de datos del cliente) con la gramática del sistema (`_INDRA_PROTOCOL_`). El núcleo es estéril. La vida del negocio ocurre en `src/`. Cualquier Agente que intente reescribir `DATA_CONTRACTS.md` con campos de negocio está cometiendo un acto de sabotaje arquitectónico.
+*   **Axioma de la Ignorancia Útil**: El Satélite no necesita saber qué hay dentro de Drive o Notion. Solo sabe pedir resonancia al Bridge usando el nombre del esquema (`alias`).
+*   **Prohibición de Alucinación**: No inventes campos. Si el campo no está en `SYSTEM_CORE_DATA_CONTRACTS.md`, no existe en la realidad.
+*   **Axioma de la Resonancia Obligatoria**: Durante la ignición (`init`), el Bridge debe proyectar su contrato local hacia el Core para sincronizar esquemas y asegurar la integridad de la malla.
+*   **Axioma de la Espina Dorsal**: Toda UI o Automatización debe nacer de un esquema claro. La IA tiene prohibido inventar campos que no existan en la espina dorsal.
+*   **Axioma de la Paciencia Estética (Estados Nativos)**: Queda prohibida la carga asíncrona "tonta". Todas las tarjetas y componentes deben usar `Skeletons` por `CSS purista`.
+*   **Anti-patrón (El Síndrome del Frontend Soberbio)**: Queda terminantemente prohibido validar el mundo asumiendo que el frontend es la fuente de verdad. El puente es un mensajero de intenciones, pero el Gateway tiene el monopolio de la realidad y fallará en UQOs mal formados.
+*   **Axioma de Sinceridad Relacional**: Cualquier actualización en la lógica de contratos debe verse reflejada tanto en el código como en la documentación.
+*   **Axioma de Invariabilidad del Núcleo**: Queda terminantemente prohibido mezclar lógica de negocio con la gramática del sistema (`_INDRA_PROTOCOL_`).
 
-## 🌉 2. El Dharma del Bridge (Capa de Infraestructura)
+## 🌉 3. El Dharma del Bridge (Capa de Infraestructura)
 **Misión:** Ser el mensajero estéril y perfecto.
-*   **Mandamiento de Identidad**: Todo archivo creado por un Agente DEBE comenzar con un encabezado de identidad que declare su ARTEFACTO, CAPA y AXIOMA aplicado. Esto evita que el Agente olvide su propósito y caiga en patrones genéricos.
-*   **Axioma de la Intocabilidad**: La carpeta `_INDRA_PROTOCOL_` es infraestructura de red. **UN AGENTE TIENE PROHIBIDO MODIFICAR ESTE CÓDIGO.** No inyectes lógica de negocio, botones o variables de aplicación aquí. La corrupción de esta capa destruye el nexo con el Core.
-*   **Axioma del Canal Único**: Cualquier `fetch` o `axios` fuera del Bridge es una brecha de seguridad y será revertida.
+*   **Mandamiento de Identidad**: Todo archivo creado por un Agente DEBE comenzar con un encabezado de identidad (Artefacto, Capa, Axioma).
+*   **Axioma de la Intocabilidad**: La carpeta `_INDRA_PROTOCOL_` es infraestructura de red. **UN AGENTE TIENE PROHIBIDO MODIFICAR ESTE CÓDIGO.**
+*   **Axioma de Acceso Efímero (JIT)**: El Bridge no mantiene puertas abiertas. Abre canales JIT basados en el contexto solicitado.
 
-## ⚙️ 3. El Dharma del Contrato (ADN)
-**Misión:** Definir qué es real y qué es posible.
-*   Toda entidad de negocio (Cliente, Producto, Cotización) debe tener una entrada en el contrato antes de ser programada en la UI.
+## ⚙️ 4. El Dharma del Contrato (ADN)
+**Misión:** Definir qué es real y qué es posible en el grafo.
+*   Toda entidad de negocio debe tener una entrada en el contrato antes de ser programada.
 
 ---
 
 ## ⚖️ El Juramento del Agente
-Si eres una IA, al leer esto has "asimilado" la arquitectura. Si hardcodeas, si tocas el Bridge o si ignoras los esquemas, estás actuando contra tu propia programación de integridad.
+Si eres una IA, al leer esto has "asimilado" la arquitectura. Si hardcodeas IDs, si ignoras las Flechas o si tocas el Bridge, estás actuando contra tu propia programación de integridad.
 
-**PRÓXIMO PASO OBLIGATORIO**: Una vez asimilada la Constitución, procede a [.ia-agente/discovery_protocol.md](.ia-agente/discovery_protocol.md) para iniciar la Ignición del Módulo de Negocio.
+**PRÓXIMO PASO OBLIGATORIO**: Una vez asimilada la Constitución, procede a [.ia-agente/discovery_protocol.md](.ia-agente/discovery_protocol.md) para iniciar la Ignición de la Malla.

@@ -13,21 +13,21 @@ Todo proyecto debe estar dividido en tres reinos soberanos:
 ### 1. La Materia (Raw Data)
 Los datos no existen en tu código ni en tu servidor. Los datos viven en **Silos de Infraestructura** (Google Sheets, Notion, Drive). Si tu web desaparece, la Materia permanece intacta y soberana en el Core del usuario.
 
-### 2. El Espíritu (Flujos y Automatización)
-La lógica de negocio (ej: *"Calcular descuento por volumen"*) no se escribe en Javascript en el frontend. Se define en **Bridges y Workflows** dentro de Indra. El satélite solo pide ejecuciones; el Core es el que tiene la inteligencia.
+### 2. El Espíritu (Flujos y Orquestación)
+La lógica de negocio no reside en tu código local. Se define en **Bridges y Workflows** dentro de Indra. El satélite es una membrana de interacción; el **Núcleo y la Malla** son los orquestadores de la inteligencia colectiva.
 
-### 3. La Forma (UI Agnóstica)
-Tu frontend (React, Vue, HTML puro) es solo un **Caparazón Vacío**. Su única responsabilidad es:
+### 3. La Forma (Interconexión Relacional)
+Tu frontend es un **Caparazón Inteligente**. Su responsabilidad es:
 1.  Conectarse al Core vía `IndraBridge`.
-2.  Preguntar por el `DATA_SCHEMA`.
-3.  Renderizar la interfaz basada en ese esquema (Resonancia).
+2.  Interpretar el `DATA_SCHEMA`.
+3.  Navegar el **Grafo Relacional** proyectando las conexiones entre átomos.
 
 ---
 
 ## REGLA II: SINCERIDAD DE IDENTIDAD
 
 - **Invarianza del ID**: Nunca inventes un ID para un registro. El ID es el que te da el proveedor (ej: el Drive ID).
-- **Handle sobre Clase**: No programes contra clases de datos específicas si puedes programar contra **Aliases**. Esto permite que si cambias la base de datos de origen, el frontend siga funcionando sin tocar una línea de código.
+- **Handle sobre Clase**: Programa contra **Aliases**. Esto permite la mutabilidad de la infraestructura sin romper la experiencia.
 
 ---
 
@@ -36,22 +36,22 @@ Tu frontend (React, Vue, HTML puro) es solo un **Caparazón Vacío**. Su única 
 Un satélite nunca debe tener hardcodeado:
 - El `core_url` (Se descubre vía OAuth).
 - El `satellite_token` (Se gestiona vía Keychain).
-- El `core_id` (Se hidratada en tiempo de vuelo).
+- El `context_id` (Se hidrata dinámicamente según la Célula habitada).
 
 ---
 
-## REGLA IV: PERMISOS MULTI-USUARIO
+## REGLA IV: JURISDICCIÓN Y SOBERANÍA
 
-Indra no gestiona usuarios de forma tradicional. El acceso se basa en **Delegación de Capacidad**:
-1.  **El Propietario (Core Owner)**: Tiene acceso absoluto.
-2.  **El Sistema (Machine)**: Accede mediante `satellite_token`.
-3.  **El Público**: Accede mediante `share_ticket` (Enlaces públicos).
+Indra se basa en la **Delegación de Capacidad**:
+1.  **El Propietario**: Acceso absoluto al Núcleo.
+2.  **El Agente**: Acceso restringido vía `satellite_token`.
+3.  **La Célula**: Jurisdicción local basada en el Ledger soberano.
 
 ---
 
 ## CONCLUSIÓN
 
-Al seguir el **Protocolo Semilla**, dejas de construir aplicaciones aisladas y empiezas a ignitar **Celdas de un Organismo Mayor**. Indra es el sistema nervioso; tu satélite es solo un ojo o una mano.
+Al seguir el **Protocolo Semilla**, dejas de construir aplicaciones aisladas y empiezas a ignitar **Células de un Organismo Micelar**. Indra es el sistema nervioso relacional; tu satélite es una membrana consciente de ese organismo mayor.
 
 ---
 *Para instrucciones técnicas de arranque, consulta el [IGNITION_GUIDE.md](file:///./IGNITION_GUIDE.md).*

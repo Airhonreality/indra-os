@@ -30,7 +30,7 @@ function _keychain_validate(token) {
 /**
  * SYSTEM_KEYCHAIN_GENERATE: Protocolo para emitir nuevas llaves (Soberanía Fractal).
  */
-function _keychain_generate(uqo) {
+function SYSTEM_KEYCHAIN_GENERATE(uqo) {
     const data = uqo.data || {};
     const name = data.name || "Nuevo Satélite";
     
@@ -139,7 +139,7 @@ function _keychain_execute_purge_(targetId, ledger) {
 /**
  * SYSTEM_KEYCHAIN_AUDIT: Inspección de todas las llaves activas en el sistema.
  */
-function _keychain_audit() {
+function SYSTEM_KEYCHAIN_AUDIT() {
     const ledger = _keychain_getLedger_();
     // AXIOMA v7.7: La auditoría solo reconoce la vida (ACTIVE). 
     // Los muertos no votan ni se listan.
@@ -246,4 +246,61 @@ function _keychain_bootstrap_() {
     _keychain_saveLedger_(initial);
     logWarn("[keychain] Bootstrap de Llavero ejecutado con éxito.");
     return initial;
+}
+
+/**
+ * SYSTEM_SATELLITE_INITIALIZE: Cristalización de un nuevo agente (v13.0)
+ */
+function SYSTEM_SATELLITE_INITIALIZE(uqo) {
+    const data = uqo.data || {};
+    const satelliteName = data.name || "Nuevo Satélite";
+    const discoverySecret = data.discovery_secret;
+    
+    // 1. Validar el Secreto de Descubrimiento (Mecanismo de Confianza)
+    // Usamos el token por defecto como secreto inicial si no se configura otro
+    const masterSecret = PropertiesService.getScriptProperties().getProperty('SYS_DISCOVERY_SECRET') || DEFAULT_SATELLITE_TOKEN_;
+    if (discoverySecret !== masterSecret) {
+        throw createError('SECURITY_VIOLATION', 'Secreto de descubrimiento no válido.');
+    }
+
+    // 2. GÉNESIS ATÓMICA: Crear el átomo SATELLITE
+    const genesisRes = infra_protocol_create('SATELLITE', satelliteName, {
+        provider: 'system',
+        data: {
+            handle: { ns: `com.indra.agent.${_system_slugify_(satelliteName)}` },
+            payload: {
+                class: data.is_master ? 'MASTER' : 'SCOPED',
+                scopes: data.scopes || ['WORKSPACE_READ'],
+                device_info: data.device_info || {}
+            }
+        }
+    });
+
+    if (genesisRes.metadata.status !== 'OK') throw new Error(`Fallo en génesis de satélite: ${genesisRes.metadata.error}`);
+    const satAtom = genesisRes.items[0];
+
+    // 3. VINCULACIÓN EN LLAVERO: Generar token vinculado al átomo
+    const newToken = 'sat_' + Math.random().toString(36).substring(2, 15) + '_' + Date.now().toString(36);
+    const ledger = _keychain_getLedger_();
+    
+    ledger[newToken] = {
+        name: satelliteName,
+        status: "ACTIVE",
+        class: satAtom.payload.class,
+        atom_id: satAtom.id, // Vínculo Atómico Sagrado
+        created_at: new Date().toISOString()
+    };
+    
+    _keychain_saveLedger_(ledger);
+    logSuccess(`[keychain] Satélite cristalizado y vinculado: ${satelliteName} -> ${satAtom.id}`);
+
+    return { 
+        items: [{ 
+            token: newToken, 
+            atom_id: satAtom.id,
+            label: satelliteName,
+            config: { core_version: CORE_VERSION } 
+        }], 
+        metadata: { status: 'OK', message: 'Cristalización completada.' } 
+    };
 }

@@ -95,9 +95,13 @@ function _auditProviderResonance_(providerId) {
         const baseId = parts[0];
         const accountId = parts[1] || 'default';
 
-        // El proveedor 'system' no requiere keys
-        if (baseId === 'system') {
-            // No need to check
+        // AXIOMA DE SINCERIDAD: Consultar el manifiesto antes de exigir llaves
+        const conf = getProviderConf(baseId);
+        const needsConfig = conf && conf.config_schema && conf.config_schema.length > 0;
+
+        // El proveedor 'system' y los de infraestructura no requieren keys
+        if (baseId === 'system' || !needsConfig) {
+            // No need to check API Key for infrastructure-as-code providers
         } else {
             const hasKey = readProviderApiKey(baseId, accountId); // De system_config.gs
             if (!hasKey) {

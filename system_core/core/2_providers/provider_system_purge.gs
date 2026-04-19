@@ -1,8 +1,8 @@
 /**
- * SYSTEM_WORKSPACE_DEEP_PURGE
+ * PROTOCOLO: SYSTEM_WORKSPACE_DEEP_PURGE
  * El "Exterminador Atómico": Borra rastro lógico, físico e identitario.
  */
-function _handleWorkspaceDeepPurge_(uqo) {
+function SYSTEM_WORKSPACE_DEEP_PURGE(uqo) {
     const workspaceId = uqo.data?.workspace_id || uqo.workspace_id;
     if (!workspaceId) throw createError('INVALID_INPUT', 'DEEP_PURGE requiere workspace_id.');
 

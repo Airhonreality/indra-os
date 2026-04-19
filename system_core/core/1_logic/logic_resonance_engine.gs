@@ -9,6 +9,8 @@
  * =============================================================================
  */
 
+function RESONANCE_ANALYZE(uqo) { return _resonance_analyze(uqo); }
+
 /**
  * PROTOCOLO: RESONANCE_ANALYZE
  * Realiza un cálculo de diferencias (Drift Check) y aplica transformaciones

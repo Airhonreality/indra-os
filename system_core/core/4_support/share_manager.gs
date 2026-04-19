@@ -9,10 +9,11 @@
 const SHARES_FOLDER_NAME_ = 'shares';
 
 /**
+ * PROTOCOLO: SYSTEM_SHARE_CREATE
  * Crea un ticket de compartición para un artefacto específico.
  * @param {Object} uqo - { data: { artifact_id, artifact_class, auth_mode, acl } }
  */
-function _share_createTicket(uqo) {
+function SYSTEM_SHARE_CREATE(uqo) {
   const data = uqo.data || {};
   if (!data.artifact_id || !data.artifact_class) {
     throw createError('INVALID_INPUT', 'Se requiere artifact_id y artifact_class para compartir.');

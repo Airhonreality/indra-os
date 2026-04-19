@@ -1,9 +1,11 @@
 /**
  * =============================================================================
  * ARTEFACTO: 0_gateway/protocol_registry.gs
- * CAPA: 0 — Gateway Layer (Cortafuegos de Protocolo)
- * RESPONSABILIDAD: Definición declarativa de contratos de entrada.
- * AXIOMA AX-052-3: Inmutabilidad del registro en runtime.
+ * CAPA: 0 — Gateway Layer (Protocol Firewall)
+ * RESPONSABILIDAD: El registro maestro de intenciones del sistema.
+ * AXIOMA DE RESONANCIA: Todo protocolo registrado DEBE tener una función global 
+ *         con el mismo nombre exacto (PAD: Protocol Auto-Discovery).
+ *         Si el nombre no coincide, el sistema será "Sordo" a esa intención. 
  * =============================================================================
  */
 
@@ -39,9 +41,9 @@ const PROTOCOL_CONTRACTS = Object.freeze({
 
   // ── OPERATIVA DEL NÚCLEO (Solo cuando Indra está Despierta) ──
   'ATOM_READ':                    { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
-  'ATOM_CREATE':                  { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
-  'ATOM_UPDATE':                  { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
-  'ATOM_DELETE':                  { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.LOGIC   },
+  'ATOM_CREATE':                  { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
+  'ATOM_UPDATE':                  { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
+  'ATOM_DELETE':                  { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
   'SEARCH_DEEP':                  { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
   
   'ATOM_ROLLBACK':                { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.LOGIC   },
@@ -91,6 +93,10 @@ const PROTOCOL_CONTRACTS = Object.freeze({
   'EMERGENCY_INGEST_CHUNK':       { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
   'EMERGENCY_INGEST_FINALIZE':    { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
 
+  // ── SOBERANÍA SATELITAL (v13.0) ──
+  'SYSTEM_SATELLITE_INITIALIZE':  { min_state: 1, actors: ACTOR_TYPES.ALL,            dispatcher: DISPATCHERS.SYSTEM  },
+  'SYSTEM_SATELLITE_UPGRADE':     { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
+
   // ── RESONANCIA E INDUCCIÓN INDUSTRIAL (v10.0) ──
   'RESONANCE_ANALYZE':            { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
   'INDUSTRIAL_SYNC':              { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
@@ -135,7 +141,8 @@ const ProtocolRegistry = (function() {
 
   return { 
     resolve, 
-    isActorAuthorized 
+    isActorAuthorized,
+    getRegistry: () => PROTOCOL_CONTRACTS
   };
 
 })();

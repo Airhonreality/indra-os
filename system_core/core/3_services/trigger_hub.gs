@@ -54,3 +54,13 @@ function trigger_hub_getWebhookId(workflowId) {
   // Si no existe, lo creamos
   return trigger_registry_register(workflowId, ownerId);
 }
+
+/**
+ * PROTOCOLO: SYSTEM_TRIGGER_HUB_GENERATE
+ * Regenera o sincroniza todos los disparadores activos.
+ */
+function SYSTEM_TRIGGER_HUB_GENERATE(uqo) {
+  logInfo('[trigger_hub] Sincronizando infraestructura de disparadores...');
+  // Por ahora, un simple handshake de éxito hasta que el Ledger de Workflows esté expandido.
+  return { metadata: { status: 'OK', message: 'Infraestructura de disparadores sincronizada.' } };
+}

@@ -146,7 +146,7 @@ function _isProviderConfigured(conf) {
  *
  * @returns {{ items: Array<Object>, metadata: Object }}
  */
-function buildManifest() {
+function SYSTEM_MANIFEST() {
   // AXIOMA DE CRISTALIZACIÓN: En versiones futuras aquí consultaremos el Ledger KERNEL.
   const allConfigs = _scanProviders();
   const manifestItems = [];
@@ -249,7 +249,7 @@ function buildManifest() {
  *
  * @returns {{ items: Array<Object>, metadata: Object }}
  */
-function buildConfigSchema() {
+function SYSTEM_CONFIG_SCHEMA() {
   const allConfigs = _scanProviders();
 
   // Filtrar solo providers que requieren configuración de usuario y son públicos.

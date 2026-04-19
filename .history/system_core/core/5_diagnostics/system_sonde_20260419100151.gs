@@ -6,7 +6,7 @@
  */
 
 function SONDE_STRESS_RESONANCE() {
-  const testWsId = "1xfe7n21UJhctlAXoaP_Y3h80UMXpAUUn"; 
+  const testWsId = "1x62Bzrxhp9RH3C3DxpIIrGK24FC-WQlh"; 
   const iterations = 5;
   const startTime = Date.now();
   
@@ -28,7 +28,6 @@ function SONDE_STRESS_RESONANCE() {
       const result = handleSystem(uqo);
       
       if (result.metadata.status !== 'OK') {
-        logError(`[sonde] Error de Protocolo: ${result.metadata.error}`);
         throw new Error(`Protocol Error: ${result.metadata.error}`);
       }
       
@@ -42,19 +41,10 @@ function SONDE_STRESS_RESONANCE() {
       
       const dnaName = atomData.handle?.label;
       let containerName = "[NO_BODY]";
-      const containerId = atomData.payload?.cell_folder_id;
-      let containerFolder = null;
       
-      if (containerId) {
-        containerFolder = DriveApp.getFolderById(containerId);
-      } else {
-        // Proximidad: Si el ADN no tiene body explícito, el contenedor es su padre
-        const parents = file.getParents();
-        if (parents.hasNext()) containerFolder = parents.next();
-      }
-
-      if (containerFolder) {
-        containerName = containerFolder.getName();
+      if (atomData.payload?.cell_folder_id) {
+        const folder = DriveApp.getFolderById(atomData.payload.cell_folder_id);
+        containerName = folder.getName();
       }
       
       const dnaOk = dnaName === newName;
@@ -68,7 +58,7 @@ function SONDE_STRESS_RESONANCE() {
       }
 
     } catch (e) {
-      logError(`❌ FALLO CRÍTICO EN ONDA ${i}: ${e.message}`);
+      logError(`❌ FALLO CRÍTICO EN ONDA ${i}`, e);
       break;
     }
   }

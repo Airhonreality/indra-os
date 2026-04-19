@@ -52,26 +52,35 @@ function _ledger_get_sheet_(allowMissing = false) {
  * Descubre y monta el Ledger local de una célula basándose en el UQO.
  */
 function _ledger_get_target_sheet_(uqo) {
+  const trx = uqo?.trace_id || 'LOCAL';
   const wsId = uqo?.workspace_id || uqo?.context_id;
   
   // AXIOMA: Si no hay contexto o es el sistema, usamos el ROOT
-  if (!wsId || wsId === 'system' || wsId === 'workspaces') return _ledger_get_sheet_();
+  if (!wsId || wsId === 'system' || wsId === 'workspaces') {
+    logInfo(`[ledger] [${trx}] Resolviendo Ledger Maestro (ROOT).`);
+    return _ledger_get_sheet_();
+  }
   
   // 1. Verificar si ya está montado en memoria efímera
   const cached = MountManager.getMount(wsId);
-  if (cached) return SpreadsheetApp.openById(cached).getSheetByName(LEDGER_SHEET_NAME);
+  if (cached) {
+    logInfo(`[ledger] [${trx}] Usando Ledger Celular en caché para: ${wsId}`);
+    return SpreadsheetApp.openById(cached).getSheetByName(LEDGER_SHEET_NAME);
+  }
   
   // 2. Handshake Relacional: buscar en INFRASTRUCTURE del ROOT
-  // Nota: Esto es el "Descubrimiento de Célula"
   const cellLedgerId = ledger_infra_get(`cell_ledger_${wsId}`);
   if (cellLedgerId) {
+    logInfo(`[ledger] [${trx}] Descubierto núcleo para: ${wsId} -> ${cellLedgerId}`);
     MountManager.mountTransient(wsId, cellLedgerId);
     return SpreadsheetApp.openById(cellLedgerId).getSheetByName(LEDGER_SHEET_NAME);
   }
   
-  // Fallback al ROOT si la célula no tiene núcleo propio (Legado)
-  return _ledger_get_sheet_();
+  // AXIOMA: CERO FALLBACKS.
+  logError(`[ledger] [${trx}] ERROR: Célula ${wsId} carece de núcleo Ledger.`);
+  throw createError('CELLULAR_NUCLEUS_NOT_FOUND', `No se encontró el núcleo (Ledger) para la Célula: ${wsId}`);
 }
+
 
 /**
  * Registra o actualiza un átomo en el Ledger.
@@ -168,16 +177,8 @@ function ledger_remove_atom(driveId, contextUqo) {
     sheet.deleteRow(index + 1);
     logInfo(`[ledger] Átomo removido del Ledger contextualmente: ${driveId}`);
   } else {
-    // Si no está en el target, probamos en el ROOT (Cascada de Sinceridad)
-    const masterSheet = _ledger_get_sheet_();
-    const masterData = masterSheet.getDataRange().getValues();
-    const masterIndex = masterData.findIndex(row => row[1] === driveId);
-    if (masterIndex !== -1) {
-      masterSheet.deleteRow(masterIndex + 1);
-      logInfo(`[ledger] Átomo removido del Master Ledger (Cascada): ${driveId}`);
-    } else {
-      logWarn(`[ledger] Intento de eliminar átomo inexistente en Ledger: ${driveId}`);
-    }
+    // AXIOMA: CERO FALLBACKS. No hay cascada de borrado hacia el maestro.
+    throw createError('LEDGER_PURGE_MISMATCH', `El átomo ${driveId} no existe en el Ledger del contexto solicitado.`);
   }
 }
 
@@ -299,7 +300,16 @@ function ledger_initialize_cell(folderId, label) {
  * Escanea recursivamente la carpeta de Indra en Drive y repuebla el Ledger.
  * @returns {Object} Resumen de la reconstrucción.
  */
-function ledger_rebuild_from_drive() {
+function SYSTEM_REBUILD_LEDGER() {
+  const items = [ledger_rebuild_from_drive_internal_()]; 
+  return { items, metadata: { status: 'OK' } };
+}
+
+/**
+ * Reconstruye el Ledger Maestro a partir de la realidad física de Drive (RESCATE).
+ * @private
+ */
+function ledger_rebuild_from_drive_internal_() {
   logInfo('☢️ INICIANDO RECONSTRUCCIÓN TOTAL DEL LEDGER (MODO BATCH)...');
   
   const homeRoot = _system_ensureHomeRoot();

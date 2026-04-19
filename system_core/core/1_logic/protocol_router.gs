@@ -40,21 +40,7 @@ function _validateReturnLaw_(result, providerId, protocol) {
  * @private
  */
 function _validateAtomContract_(items, providerId) {
-  if (!Array.isArray(items)) return;
-  items.forEach(item => {
-    if (!item || !item.id || !item.class) {
-       logWarn(`[router] Item de ${providerId} tiene contrato de átomo débil. Falta ID o CLASS.`);
-       return;
-    }
-
-    // AXIOMA v10.0: Los Puentes deben ser Semánticos
-    if (item.class === 'BRIDGE') {
-      const p = item.payload || {};
-      if (!p.ui_purpose || !p.cognitive_class) {
-        logWarn(`[router] BRIDGE detected with weak semantics: ${item.id}. Recomendado: ui_purpose y cognitive_class.`);
-      }
-    }
-  });
+  // Las validaciones de contrato ahora viven en el SystemOrchestrator.
 }
 
 /**
@@ -119,8 +105,7 @@ function route(uqo) {
     };
   }
 
-  _validateReturnLaw_(result, providerId, protocol);
-  _validateAtomContract_(result.items, providerId);
+  _validateAtomContract_(result.items, providerId); // Stub para mantener compatibilidad de firma
 
   // Inyectar traza si falta
   result.metadata = result.metadata || {};

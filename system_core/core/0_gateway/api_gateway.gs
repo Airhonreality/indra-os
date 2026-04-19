@@ -58,6 +58,11 @@ function doPost(e) {
   try {
     // 1. ANALÍTICA DEL VECTOR
     const payload = JSON.parse(e.postData.contents);
+    const traceId = 'TRX-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+    payload.trace_id = traceId;
+    
+    logInfo(`[gateway] 📥 ENTRADA: [${traceId}] ${payload.protocol} via ${payload.provider}`);
+
     const pulseResponse = pulse_router_intercept(e); // Bloqueo preventivo de pulso
     if (pulseResponse) return pulseResponse;
 
@@ -147,19 +152,9 @@ function doPost(e) {
  * @private
  */
 function _dispatch_(uqo, contract) {
-  switch (contract.dispatcher) {
-    case DISPATCHERS.SYSTEM:  
-      return SystemOrchestrator.dispatch(uqo);
-    case DISPATCHERS.INSTALL: 
-      return InstallationService.handle(uqo);
-    case DISPATCHERS.LOGIC:   
-      return route(uqo);
-    case DISPATCHERS.PULSE:   
-      pulse_service_process_next(); 
-      return { metadata: { status: 'OK' } };
-    default: 
-      throw new Error(`Dispatcher '${contract.dispatcher}' no registrado en la matriz.`);
-  }
+  // AXIOMA: No hay dispatchers fragmentados. Indra es un organismo unificado.
+  // El SystemOrchestrator es el único motor de resonancia capaz de descubrir y ejecutar.
+  return SystemOrchestrator.dispatch(uqo);
 }
 
 /**

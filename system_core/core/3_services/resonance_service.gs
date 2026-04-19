@@ -114,7 +114,7 @@ function resonance_deep_purge_workspace(uqo) {
  * @dharma Recibe el ADN del satélite y asegura la trazabilidad de sus esquemas.
  * @param {Object} payload - { data: { contract: { schemas, workflows } } }
  */
-function resonance_service_crystallize(payload) {
+function SYSTEM_RESONANCE_CRYSTALLIZE(payload) {
     const contract = payload.data?.contract;
     if (!contract) throw new Error("RESONANCE_FAILED: No se recibió contrato para cristalizar.");
 
@@ -200,4 +200,129 @@ function resonance_service_crystallize(payload) {
             generated_workspace_id: generatedWorkspaceId
         }
     };
+}
+// ─── ORQUESTADOR DE RESONANCIA SOBERANA (v10.7) ───────────────────────────────
+
+/**
+ * Entrada principal para eventos de resonancia. Desacoplada de la infraestructura.
+ * @param {Object} atom - El objeto átomo actualizado.
+ * @param {string} eventType - UPDATE, CREATE, DELETE.
+ * @param {Object} previous - El estado anterior del átomo (opcional).
+ */
+function resonance_service_resonate(atom, eventType, previous) {
+    if (!atom || !atom.class) return;
+    
+    const traits = resonance_registry_get_traits(atom.class);
+    if (traits.length === 0) return;
+
+    logInfo(`[resonance] Despachando eventos para ${atom.class} (ID: ${atom.id}) | Evento: ${eventType}`);
+
+    // Rasgo: RESONANCIA FÍSICA (Idenitdad)
+    if (traits.includes(TRAIT.PHYSICAL_RESONANCE)) {
+        const labelChanged = !previous || (previous.handle?.label !== atom.handle?.label);
+        if (labelChanged) {
+            _resonance_handle_physical_identity(atom);
+        }
+    }
+
+    // Rasgo: SINCRONIZACIÓN LÓGICA (ADN)
+    if (traits.includes(TRAIT.LOGICAL_SYNC)) {
+        // Reservado para futuras implementaciones de cascada de esquemas
+    }
+}
+
+/**
+ * MANEJADOR DE IDENTIDAD FÍSICA (Encapsulado Drive)
+ * @private
+ */
+function _resonance_handle_physical_identity(atom) {
+    const newLabel = atom.handle?.label;
+    if (!newLabel) return;
+
+    // AXIOMA DE RESONANCIA MULTI-CUERPO (Agnóstico):
+    // No preguntamos qué es el átomo, sino dónde se ancla físicamente.
+    const anchorTypes = resonance_registry_get_anchors(atom.class);
+    const anchors = _resonance_resolve_physical_anchors_(atom, anchorTypes);
+
+    if (anchors.length === 0) {
+        logInfo(`[resonance_physical] Átomo sin anclajes físicos detectados: ${atom.id}`);
+        return;
+    }
+
+    anchors.forEach(anchor => {
+        if (!anchor.id) return;
+        const trx = (atom.trace_id || 'LOCAL'); // Intentar capturar traza del átomo
+        
+        try {
+            logInfo(`[resonance] [${trx}] Sincronizando anclaje [${anchor.type}] para ${anchor.id} -> ${newLabel}`);
+            
+            if (anchor.type === ANCHOR_TYPE.LEDGER_ROW) {
+                try {
+                    ledger_sync_atom(atom, atom.id);
+                    logSuccess(`[resonance] [${trx}] Ledger sincronizado para ${atom.id}`);
+                } catch (e) {
+                    logWarn(`[resonance] [${trx}] Ledger en sombra para ${atom.id}: ${e.message}`);
+                }
+                return;
+            }
+
+            const resource = DriveApp.getFileById(anchor.id); // Polimorfismo GAS (File/Folder)
+            const currentName = resource.getName();
+            
+            logDebug(`[resonance_physical] [${trx}] Evaluando recurso: ${currentName} vs ${newLabel}`);
+            
+            if (currentName === newLabel) {
+                logInfo(`[resonance_physical] [${trx}] Anclaje ya resonante. Saltando.`);
+                return;
+            }
+            
+            if (anchor.type === ANCHOR_TYPE.DNA_FILE && (currentName === 'workspace.json' || currentName === 'manifest.json')) {
+                logInfo(`[resonance_physical] [${trx}] Saltando renombrado de ADN sagrado (${currentName})`);
+                return;
+            }
+
+            logInfo(`[resonance_physical] [${trx}] RENOMBRANDO: ${currentName} -> ${newLabel}`);
+            resource.setName(newLabel);
+            logSuccess(`[resonance_physical] [${trx}] Éxito: Anclaje [${anchor.type}] sincronizado.`);
+        } catch (err) {
+            logWarn(`[resonance_physical] [${trx}] Fallo al sincronizar anclaje ${anchor.type} (${anchor.id}): ${err.message}`);
+        }
+    });
+
+    // Limpiar Caché de Resonancia para visibilidad inmediata en todos los listados
+    CacheService.getScriptCache().remove(`res_meta_${atom.id}`);
+}
+
+/**
+ * Resuelve los IDs físicos reales para cada tipo de anclaje de un átomo.
+ * @private
+ */
+function _resonance_resolve_physical_anchors_(atom, types) {
+    const anchors = [];
+    if (!types || !Array.isArray(types)) return anchors;
+
+    types.forEach(type => {
+        if (type === ANCHOR_TYPE.DNA_FILE) {
+            anchors.push({ type: ANCHOR_TYPE.DNA_FILE, id: atom.id });
+        } else if (type === ANCHOR_TYPE.CONTAINER) {
+            if (atom.payload?.cell_folder_id) {
+                anchors.push({ type: ANCHOR_TYPE.CONTAINER, id: atom.payload.cell_folder_id });
+            } else {
+                // --- AXIOMA DE PROXIMIDAD (v11.0) ---
+                try {
+                    const file = DriveApp.getFileById(atom.id);
+                    const parents = file.getParents();
+                    if (parents.hasNext()) {
+                        anchors.push({ type: ANCHOR_TYPE.CONTAINER, id: parents.next().getId() });
+                    }
+                } catch (e) { /* ... */ }
+            }
+        } else if (type === ANCHOR_TYPE.TABULAR && atom.payload?.spreadsheet_id) {
+            anchors.push({ type: ANCHOR_TYPE.TABULAR, id: atom.payload.spreadsheet_id });
+        } else if (type === ANCHOR_TYPE.LEDGER_ROW) {
+            anchors.push({ type: ANCHOR_TYPE.LEDGER_ROW, id: atom.id });
+        }
+    });
+
+    return anchors;
 }

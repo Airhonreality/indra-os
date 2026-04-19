@@ -135,6 +135,38 @@ function deleteConfig(key) {
   }
 }
 
+/**
+ * PROTOCOLO: SYSTEM_CONFIG_WRITE
+ * Escribe una clave de configuración en el almacén persistente.
+ */
+function SYSTEM_CONFIG_WRITE(uqo) {
+  const data = uqo.data || {};
+  const key = data.key || uqo.context_id;
+  const value = data.value;
+
+  if (!key) throw createError('INVALID_INPUT', 'SYSTEM_CONFIG_WRITE requiere key.');
+  
+  if (data.provider_id && data.account_id) {
+      storeProviderAccount(data.provider_id, data.account_id, data.api_key, data.label);
+      return { items: [], metadata: { status: 'OK' } };
+  }
+
+  storeConfig(key, value);
+  return { items: [{ key, value }], metadata: { status: 'OK' } };
+}
+
+/**
+ * PROTOCOLO: SYSTEM_CONFIG_DELETE
+ * Elimina una clave de configuración.
+ */
+function SYSTEM_CONFIG_DELETE(uqo) {
+  const key = uqo.data?.key || uqo.context_id;
+  if (!key) throw createError('INVALID_INPUT', 'SYSTEM_CONFIG_DELETE requiere key.');
+
+  deleteConfig(key);
+  return { items: [], metadata: { status: 'OK' } };
+}
+
 // ─── API PÚBLICA: ESTADO DE BOOTSTRAP ─────────────────────────────────────────
 
 /**

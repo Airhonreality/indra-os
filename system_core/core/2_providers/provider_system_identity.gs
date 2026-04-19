@@ -88,10 +88,32 @@ const IdentityProvider = (function() {
     };
   }
 
+  /**
+   * RESOLUCIÓN FÍSICA DE SATÉLITE (v13.1)
+   * Carga las capacidades y el estado real de un agente desde su ADN.
+   * @param {string} atomId - Drive ID del átomo SATELLITE.
+   */
+  function getSatelliteResolution(atomId) {
+    if (!atomId) return null;
+    try {
+      const dna = infra_persistence_read(atomId);
+      return {
+        class: dna.class,
+        scopes: dna.payload?.scopes || [],
+        device_info: dna.payload?.device_info || {},
+        last_sync: dna.updated_at
+      };
+    } catch (e) {
+      logError(`[identity] Error resolviendo satélite ${atomId}: ${e.message}`);
+      return null;
+    }
+  }
+
   return {
     createProfile: createProfile,
     getProfile: getProfile,
-    verifyCorporateIdentity: verifyCorporateIdentity
+    verifyCorporateIdentity: verifyCorporateIdentity,
+    getSatelliteResolution: getSatelliteResolution
   };
 
 })();

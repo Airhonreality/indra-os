@@ -1,6 +1,19 @@
 /**
  * =============================================================================
- * ARTEFACTO: 2_providers/provider_system_infrastructure.gs
+ */
+// --- INTERFAZ GLOBAL PAD (Protocol Auto-Discovery) ---
+// Estos alias permiten que el SystemOrchestrator descubra y ejecute los protocolos
+// de infraestructura directamente, activando la resonancia axiomática.
+function ATOM_READ(uqo)   { return _system_handleRead(uqo); }
+function ATOM_CREATE(uqo) { return _system_handleCreate(uqo); }
+function ATOM_UPDATE(uqo) { return _system_handleUpdate(uqo); }
+function ATOM_DELETE(uqo) { return _system_handleDelete(uqo); }
+function ATOM_EXISTS(uqo) { return _system_handleExists(uqo); }
+function ATOM_ALIAS_RENAME(uqo) { return _system_handleAliasRename(uqo); }
+function RELATION_SYNC(uqo)     { return _system_handleRelationSync(uqo); }
+
+/**
+ * ARCHIVO: 2_providers/provider_system_infrastructure.gs
  * RESPONSABILIDAD: Operaciones puras de infraestructura y Drive.
  * AXIOMA: Solo gestiona la persistencia física de átomos en el Core.
  * =============================================================================
@@ -20,6 +33,9 @@ const WORKFLOW_CLASS_ = 'WORKFLOW';
 const DATA_SCHEMA_CLASS_ = 'DATA_SCHEMA';
 const FORMULA_CLASS_ = 'FORMULA';
 const DOCUMENT_CLASS_ = 'DOCUMENT';
+const SATELLITE_CLASS_ = 'SATELLITE';
+
+const SATELLITES_FOLDER_NAME_ = '.satellites';
 
 
 // ─── HANDLERS POR PROTOCOLO (INFRAESTRUCTURA) ─────────────────────────────────
@@ -55,33 +71,25 @@ function _system_handleRead(uqo) {
 
 function _system_handleCreate(uqo) {
     const data = uqo.data || {};
-    const label = data.handle?.label || data.label || 'Sin título';
     const atomClass = data.class || WORKSPACE_CLASS_;
-    const result = _system_createAtom(atomClass, label.trim(), uqo);
+    const label = data.handle?.label || data.label || 'Sin título';
     
-    // Si es un WORKFLOW, sincronizamos sus disparadores (ADR-018)
-    if (atomClass === WORKFLOW_CLASS_ && result.items?.[0]) {
-      trigger_service_sync(result.items[0]); // → trigger_service.gs
-    }
-    
-    return result;
+    // DELEGACIÓN MICELAR: Orquestación del nacimiento
+    return infra_protocol_create(atomClass, label.trim(), uqo);
 }
 
 function _system_handleDelete(uqo) {
     if (!uqo.context_id) throw createError('INVALID_INPUT', 'atom_delete requiere context_id.');
-    return _system_deleteAtom(uqo.context_id);
+    
+    // DELEGACIÓN MICELAR: Orquestación de la purga
+    return infra_protocol_delete(uqo.context_id, uqo);
 }
 
 function _system_handleUpdate(uqo) {
     if (!uqo.context_id || !uqo.data) throw createError('INVALID_INPUT', 'atom_update requiere context_id y data.');
-    const result = _system_updateAtom(uqo.context_id, uqo.data, uqo.provider);
     
-    // Resincronizar disparadores si es un WORKFLOW
-    if (result.items?.[0] && result.items[0].class === WORKFLOW_CLASS_) {
-      trigger_service_sync(result.items[0]); // → trigger_service.gs
-    }
-    
-    return result;
+    // DELEGACIÓN MICELAR: El protocolo ahora lo maneja el fragmento especializado
+    return infra_protocol_update(uqo.context_id, uqo.data, uqo.provider);
 }
 
 /**
@@ -534,8 +542,6 @@ function _system_resonate_identity_(items) {
             cacheHits++;
         } else {
             try {
-                // RESONANCIA INTELIGENTE (v8.6)
-                // Si el ID es de un archivo (Json), resonamos el nombre de la CARPETA PADRE.
                 let name = "";
                 let updated = "";
                 
@@ -544,7 +550,6 @@ function _system_resonate_identity_(items) {
                     name = folder.getName();
                     updated = folder.getLastUpdated().toISOString();
                 } catch (e) {
-                    // Si falla como carpeta, es un archivo. Resonamos su Padre.
                     const file = DriveApp.getFileById(driveId);
                     const parents = file.getParents();
                     if (parents.hasNext()) {
@@ -557,10 +562,16 @@ function _system_resonate_identity_(items) {
                     }
                 }
                 
+                // --- AXIOMA: SANACIÓN JIT (v11.0) ---
+                // Si el nombre físico difiere del lógico que traemos, curamos el átomo en memoria.
+                // Nota: El Ledger se curará solo en la próxima onda de resonancia o lectura profunda.
+                if (item.handle.label !== name && item.handle.label !== '[RESONANCE_PENDING]') {
+                    logInfo(`[resonator] JIT: Curando identidad stale: ${item.handle.label} -> ${name}`);
+                }
+
                 item.handle.label = name;
                 item.updated_at = updated;
                 
-                // Guardar en caché por 5 minutos
                 cache.put(cacheKey, JSON.stringify({ name, updated }), 300);
                 driveCalls++;
             } catch (e) {
@@ -582,64 +593,18 @@ function _system_resonate_identity_(items) {
  * @returns {Object} Respuesta estándar de Indra.
  */
 function _system_readAtom(atomId, providerId, uqo = {}) {
-    const cache = CacheService.getScriptCache();
-    const cacheKey = `res_lock_${atomId}`;
-    
     try {
-        // 1. CHEQUEO DE CACHE (Fricción Cero - SOLO SI SE SOLICITA)
-        // AXIOMA v7.6: Indra es SINCERA por defecto. El cache es una optimización, no una ley.
-        const isVerified = cache.get(cacheKey);
-        if (uqo.use_cache && isVerified && !uqo.force_resonance) {
-            logDebug(`[resilience] Cache Hit para ${atomId}.`);
-            const ledgerMeta = ledger_get_by_drive_id(atomId);
-            
-            if (ledgerMeta) {
-                const atomFromLedger = {
-                  id: ledgerMeta.id,
-                  class: ledgerMeta.class,
-                  updated_at: ledgerMeta.updated_at,
-                  handle: { alias: ledgerMeta.alias, label: ledgerMeta.label },
-                  payload: ledgerMeta.payload || {}
-                };
-                return { 
-                    items: [_system_toAtom(atomFromLedger, atomId, providerId)], 
-                    metadata: { status: 'OK', source: 'LEDGER_CACHED' } 
-                };
-            }
-        }
-
-        // 2. ACCESO FÍSICO (Si falla cache o es forzado)
-        const file = _system_findAtomFile(atomId);
-        const contentStr = file.getBlob().getDataAsString();
-        const atomDoc = JSON.parse(contentStr);
-
-        // 3. CHEQUEO JIT DE RESONANCIA
-        const driveLastUpdated = file.getLastUpdated();
-        const ledgerMeta = ledger_get_by_drive_id(atomId);
+        const res = infra_protocol_read(atomId, providerId, uqo);
         
-        if (ledgerMeta) {
-            const ledgerDate = new Date(ledgerMeta.updated_at);
-            if (driveLastUpdated.getTime() > (ledgerDate.getTime() + 2000)) {
-                logInfo(`[resilience] JIT Sync detectado para ${atomId}. Actualizando Ledger...`);
-                ledger_sync_atom(atomDoc, atomId, uqo);
-            }
-        } else if (atomId !== 'workspaces') {
-            logWarn(`[resilience] Puntero huérfano detectado JIT: ${atomId}. Indexando...`);
-            ledger_sync_atom(atomDoc, atomId, uqo);
+        // --- AXIOMA: RESONANCIA JIT (v14.1) ---
+        // Si leemos un Workspace, forzamos la resonancia física para garantizar sinceridad.
+        if (res.items?.[0] && res.items[0].class === WORKSPACE_CLASS_) {
+            _system_resonate_identity_(res.items);
         }
-
-        // 4. SELLADO DE CACHÉ (10 Minutos)
-        cache.put(cacheKey, "verified", 600);
-
-        return { 
-            items: [_system_toAtom(atomDoc, atomId, providerId)], 
-            metadata: { status: 'OK', source: 'DRY_PROBE' } 
-        };
-
+        
+        return res;
     } catch (err) {
         logError(`[infrastructure] ATOM_READ_FAILED: ${atomId}`, err);
-        // RESILIENCIA NATURAL: Informamos el error ruidosamente en metadata
-        // pero mantenemos la Ley de Retorno para no romper el flujo del Satélite.
         return { 
             items: [], 
             metadata: { 
@@ -651,6 +616,7 @@ function _system_readAtom(atomId, providerId, uqo = {}) {
         };
     }
 }
+
 
 /**
  * ATOM_CREATE_PHYSICAL: Orquesta la creación de un átomo en Drive y Ledger.
@@ -702,25 +668,8 @@ function _system_createAtom(atomClass, label, uqo) {
         // Persistir con ID para consistencia física
         file.setContent(JSON.stringify(atomDoc, null, 2));
 
-        // 3. SINCRONIZACIÓN DE REGISTROS (Fallo Ruidoso)
-        try {
-            ledger_sync_atom(atomDoc, driveId, uqo);
-            _system_process_initial_relations_(atomDoc, uqo);
-        } catch (ledgerErr) {
-            logError(`[infrastructure] FALLO EN REGISTRO. Realizando ROLLBACK FÍSICO: ${driveId}`, ledgerErr);
-            file.setTrashed(true); 
-            return { 
-                items: [], 
-                metadata: { 
-                    status: 'ERROR', 
-                    error: `LEDGER_FAILURE: ${ledgerErr.message}`,
-                    code: 'GENESIS_SYNC_FAILED'
-                } 
-            };
-        }
-
+        // 3. RETORNO SINCERO (La resonancia es tarea del orquestador)
         return { items: [_system_toAtom(atomDoc, driveId, providerId)], metadata: { status: 'OK' } };
-
     } catch (err) {
         logError(`[infrastructure] ATOM_CREATE_FAILED: ${atomClass}`, err);
         return { 
@@ -739,12 +688,16 @@ function _system_createAtom(atomClass, label, uqo) {
  * Implementa la creación de un contenedor soberano autocontenido.
  */
 function _system_genesis_cellular_workspace_(label, uqo) {
+    if (!label || label.trim().length < 3) {
+      throw createError('CONTRACT_VIOLATION', 'El Génesis de un Satélite requiere un nombre soberano (mínimo 3 caracteres).');
+    }
+
     const rootWorkspaces = _system_ensureHomeRoot().getFoldersByName(WORKSPACES_FOLDER_NAME_).hasNext() 
         ? _system_ensureHomeRoot().getFoldersByName(WORKSPACES_FOLDER_NAME_).next() 
         : _system_ensureHomeRoot().createFolder(WORKSPACES_FOLDER_NAME_);
         
     const alias = _system_slugify_(label);
-    const cellFolderName = `${alias}_${Date.now()}`;
+    const cellFolderName = label; // Usamos el nombre limpio, sin timestamps pesados para humanos
     
     logInfo(`[genesis] Forjando Célula Soberana: ${cellFolderName}...`);
     const cellFolder = rootWorkspaces.createFolder(cellFolderName);
@@ -784,12 +737,8 @@ function _system_genesis_cellular_workspace_(label, uqo) {
         atomDoc.id = driveId;
         identityFile.setContent(JSON.stringify(atomDoc, null, 2));
 
-        // 4. HANDSHAKE SISTÉMICO
-        // Registramos el núcleo en la infraestructura central
-        ledger_infra_sync(`cell_ledger_${driveId}`, cellLedgerId, `Núcleo de ${label}`);
-        
-        // Sincronizamos en el Master Ledger
-        ledger_sync_atom(atomDoc, driveId, uqo);
+        // 4. RETORNO SINCERO (El Orquestador registrará el núcleo y sincronizará)
+        logSuccess(`[genesis] Célula cristalizada con éxito: ${driveId}`);
 
         logSuccess(`[genesis] Célula cristalizada con éxito: ${driveId}`);
 
@@ -896,57 +845,11 @@ function _system_batchVerifyExistence_(ids) {
 }
 
 
+/**
+ * DELEGACIÓN MICELAR: Wrapper de compatibilidad para el protocolo de actualización.
+ */
 function _system_updateAtom(atomId, updates, providerId) {
-    try {
-        const file = _system_findAtomFile(atomId);
-        const rawContent = file.getBlob().getDataAsString();
-        if (!rawContent) throw createError('NOT_FOUND', '[infra] El archivo está vacío.');
-        
-        const current = JSON.parse(rawContent);
-
-        // ADR-001: Purgar campos inmutables
-        const { id, class: atomClass, provider, raw, strategy, ...pureUpdates } = updates;
-        const updated = JSON.parse(JSON.stringify(current));
-
-        // Gestión del Payload según Estrategia (ADR-001/008)
-        if (pureUpdates.payload) {
-            updated.payload = updated.payload || {};
-            // AXIOMA: Por defecto SOBREESCRIBIMOS. El Merge es origen de entropía en ASTs.
-            if (strategy === 'MERGE') {
-                _indra_deepMerge_(updated.payload, pureUpdates.payload);
-            } else {
-                updated.payload = pureUpdates.payload;
-            }
-            delete pureUpdates.payload;
-        }
-
-        // Merge para la identidad (Handle) - La Verdad Central
-        if (pureUpdates.handle) {
-            updated.handle = { ...(updated.handle || {}), ...pureUpdates.handle };
-            delete pureUpdates.handle;
-        }
-
-        Object.assign(updated, pureUpdates);
-        updated.updated_at = new Date().toISOString();
-
-        // Sincronización física de nombre de archivo (Opcional, para humanos en Drive)
-        const newLabel = updated.handle?.label;
-        if (newLabel && newLabel !== (current.handle?.label || current.name)) {
-            const cleanName = newLabel.replace(/[^\w\s]/gi, '').replace(/\s+/g, '_');
-            file.setName(`${cleanName}.json`);
-        }
-
-        file.setContent(JSON.stringify(updated, null, 2));
-        
-        // AXIOMA: Sincronización de actualización en Ledger
-        ledger_sync_atom(updated, file.getId());
-        
-        return { items: [_system_toAtom(updated, file.getId(), providerId)], metadata: { status: 'OK' } };
-
-    } catch (err) {
-        logError(`[infrastructure] ATOM_UPDATE_FAILED: ${atomId}`, err);
-        return { items: [], metadata: { status: 'ERROR', error: err.message, code: err.code || 'NOT_FOUND' } };
-    }
+    return infra_protocol_update(atomId, updates, providerId);
 }
 
 // ─── INFRAESTRUCTURA DE DRIVE (PRIVADO) ───────────────────────────────────────
@@ -1000,9 +903,8 @@ function _system_getOrCreateSubfolder_(folderName, contextUqo, workspaceId) {
             // AXIOMA: En una Célula, la carpeta 'artifacts' es la raíz para todo el contenido.
             parentFolder = cellInfo.artifactsFolder;
         } else {
-            // Legado: Buscar carpeta con el ID en el directorio global de workspaces
-            const wsRoot = _system_ensureWorkspaceCell_(workspaceId);
-            if (wsRoot) parentFolder = wsRoot;
+            // AXIOMA: CERO FALLBACKS.
+            throw createError('SOVEREIGN_VIOLATION', `El Workspace ${workspaceId} no es una Célula válida o carece de infraestructura Micelar.`);
         }
     }
 
@@ -1059,33 +961,12 @@ function _system_get_cell_infrastructure_(workspaceId) {
     return { isCellular: false };
 }
 
+
 /**
- * Asegura la existencia de la carpeta 'Célula' para un workspace (Legado).
- * Ubicación: .core_system/workspaces/{id}/
- * @private
+ * DELEGACIÓN MICELAR: Buscador de archivos atomizados.
  */
-function _system_ensureWorkspaceCell_(workspaceId) {
-    const homeRoot = _system_ensureHomeRoot();
-    const wsContainer = homeRoot.getFoldersByName(WORKSPACES_FOLDER_NAME_).hasNext() 
-        ? homeRoot.getFoldersByName(WORKSPACES_FOLDER_NAME_).next() 
-        : homeRoot.createFolder(WORKSPACES_FOLDER_NAME_);
-        
-    const cellFolders = wsContainer.getFoldersByName(workspaceId);
-    return cellFolders.hasNext() ? cellFolders.next() : wsContainer.createFolder(workspaceId);
-}
-
 function _system_findAtomFile(contextId) {
-    if (!contextId) throw createError('IDENTITY_VIOLATION', '[infra] Se requiere Drive ID.');
-    const atomId = contextId.includes(':') ? contextId.split(':').pop() : contextId;
-
-    try {
-        const file = DriveApp.getFileById(atomId);
-        if (!file || file.isTrashed()) throw createError('NOT_FOUND', `Archivo no existe: ${atomId}`);
-        return file;
-    } catch (e) {
-        if (e.code) throw e;
-        throw createError('NOT_FOUND', `Drive ID no encontrado: ${atomId}`);
-    }
+    return infra_identity_resolve(contextId, 'FILE');
 }
 
 function _system_toAtom(doc, fileId, providerId) {

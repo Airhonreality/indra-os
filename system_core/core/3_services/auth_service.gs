@@ -48,7 +48,19 @@ const AuthService = (function() {
     if (isOwner) {
       result = { identity_type: 'SOVEREIGN', label: "Sovereign", class: "MASTER", owner_id: coreOwnerEmail, is_master: true };
     } else if (satelliteContext) {
-      result = { identity_type: 'SATELLITE', label: satelliteContext.label, class: satelliteContext.class, owner_id: coreOwnerEmail, is_master: (satelliteContext.class === 'MASTER') };
+      // --- RESOLUCIÓN SATELLITAL AXIOMÁTICA (v13.2) ---
+      // Delegamos la carga física al IdentityProvider (Capa 2) para evitar acoplamiento.
+      const resolution = IdentityProvider.getSatelliteResolution(satelliteContext.atom_id);
+      
+      result = { 
+        identity_type: 'SATELLITE', 
+        label: satelliteContext.name || "Satellite Agent", 
+        class: resolution?.class || satelliteContext.class, 
+        owner_id: coreOwnerEmail, 
+        is_master: (resolution?.class === 'MASTER' || satelliteContext.class === 'MASTER'),
+        scopes: resolution?.scopes || satelliteContext.scopes || [],
+        atom_id: satelliteContext.atom_id 
+      };
     } else if (validTicket) {
       result = { identity_type: 'GUEST', label: "Guest", class: 'GUEST', owner_id: validTicket.core_id, is_master: false, is_public: true };
     } else {

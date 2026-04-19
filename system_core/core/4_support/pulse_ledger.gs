@@ -109,6 +109,16 @@ function pulse_ledger_updateStatus(pulseId, status, extraFields = {}) {
  * @param {string} [ownerId] - Opcional: filtrar por dueño (ADR-019).
  * @returns {Array<Object>}
  */
+function SYSTEM_QUEUE_READ(uqo) {
+  const items = pulse_ledger_getPending(uqo.data?.owner_id);
+  return { items, metadata: { status: 'OK' } };
+}
+
+/**
+ * Lee pulsos pendientes de ejecución (PENDING y scheduled_at <= now).
+ * @param {string} [ownerId] - Opcional: filtrar por dueño (ADR-019).
+ * @returns {Array<Object>}
+ */
 function pulse_ledger_getPending(ownerId) {
   const ss = _pulse_getLedger();
   const sheet = ss.getSheetByName(LEDGER_SHEET_NAME_);

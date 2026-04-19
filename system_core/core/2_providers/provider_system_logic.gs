@@ -1,10 +1,8 @@
 /**
  * =============================================================================
- * ARTEFACTO: 2_providers/provider_system_logic.gs
- * RESPONSABILIDAD: Handlers de lógica, fórmulas y flujos vinculados al sistema.
- * AXIOMA: LÓGICA AGNOSTICA AL ALMACENAMIENTO.
- * =============================================================================
  */
+
+function FORMULA_EVAL(uqo) { return system_evaluateFormula(uqo); }
 
 /**
  * FORMULA_EVAL: El Motor de Fórmulas del Core.

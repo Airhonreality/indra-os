@@ -75,57 +75,12 @@ function CONF_SYSTEM() {
 }
 
 /**
- * PROXY DE DESPACHO SISTÉMICO (Laminar v6.0)
- * Responsable de la fragmentación de dominios y compatibilidad hacia atrás.
+ * PROXY DE DESPACHO SISTÉMICO (Laminar v14.0 - SINCERADO)
+ * Se ha eliminado el baipás interno para centralizar toda la lógica en el Orquestador.
+ * Cualquier petición a 'system' ahora resuena a través de la consciencia central.
  */
 function handleSystem(uqo) {
-  const protocol = (uqo.protocol || '').toUpperCase();
-  logInfo(`[system:proxy] Evaluando protocolo: ${protocol}`);
-
-  // --- 0. DELEGACIÓN DINÁMICA (FRAGMENTACIÓN DE DOMINIOS) ---
-  // Si el protocolo pertenece a otro dominio, delegamos al nuevo handler especializado.
-  // Esto mantiene la compatibilidad con satélites que aún apuntan a 'system'.
-  
-  if (isAutomationProtocol_(protocol)) {
-    logInfo(`[system:proxy] Delegando a AUTOMATION: ${protocol}`);
-    return handleAutomation(uqo);
-  }
-
-  if (isComputeProtocol_(protocol)) {
-    logInfo(`[system:proxy] Delegando a COMPUTE: ${protocol}`);
-    return handleCompute(uqo);
-  }
-
-  // --- 1. DOMINIO DE INFRAESTRUCTURA (CORE INTERNAL) ---
-  
-  // Handlers de Persistencia (provider_system_infrastructure.gs)
-  if (protocol === 'ATOM_READ') return _system_handleRead(uqo);
-  if (protocol === 'ATOM_CREATE') return _system_handleCreate(uqo);
-  if (protocol === 'ATOM_DELETE') return _system_handleDelete(uqo);
-  if (protocol === 'ATOM_UPDATE') return _system_handleUpdate(uqo);
-  if (protocol === 'ATOM_EXISTS') return _system_handleExists(uqo);
-  if (protocol === 'ATOM_ALIAS_RENAME') return _system_handleAliasRename(uqo);
-  if (protocol === 'SCHEMA_FIELD_ALIAS_RENAME') return _system_handleSchemaFieldAliasRename(uqo);
-  if (protocol === 'ALIAS_COLLISION_SCAN') return _system_handleAliasCollisionScan(uqo);
-  if (protocol === 'SERVICE_PAIR') return _system_handleServicePair(uqo);
-  if (protocol === 'SERVICE_UNPAIR') return _system_handleServiceUnpair(uqo);
-  if (protocol === 'RELATION_SYNC') return _system_handleRelationSync(uqo);
-  if (protocol === 'SYSTEM_CORE_DISCOVERY') return _system_handleCoreDiscovery(uqo);
-
-  // Handlers de Jurisdicción (provider_system_workspace.gs)
-  if (protocol === 'SYSTEM_PIN') return _system_handlePin(uqo);
-  if (protocol === 'SYSTEM_UNPIN') return _system_handleUnpin(uqo);
-  if (protocol === 'SYSTEM_PINS_READ') return _system_handlePinsRead(uqo);
-
-  // Handlers de Auditoría (provider_system_diagnostics.gs)
-  if (protocol === 'SYSTEM_WORKSPACE_REPAIR') return _system_handleWorkspaceRepair(uqo);
-  if (protocol === 'ACCOUNT_RESOLVE') return _system_handleAccountResolve(uqo);
-  if (protocol === 'SYSTEM_AUDIT') return _system_handleAudit(uqo);
-  if (protocol === 'REVISIONS_LIST') return _system_handleRevisionsList(uqo);
-  if (protocol === 'ATOM_ROLLBACK') return _system_handleRollback(uqo);
-
-  const err = createError('PROTOCOL_NOT_FOUND', `Infrastructure (System) no soporta: ${protocol}`);
-  return { items: [], metadata: { status: 'ERROR', error: err.message, code: err.code } };
+  return SystemOrchestrator.dispatch(uqo);
 }
 
 /**

@@ -15,26 +15,41 @@ const InstallationService = (function() {
   function handle(uqo) {
     const protocol = uqo.protocol;
 
-    if (protocol === 'SYSTEM_MANIFEST') {
-      return buildManifest(); // provider_system.gs
-    }
-
-    if (protocol === 'SYSTEM_INSTALL_HANDSHAKE') {
-      return _igniteHandshake_(uqo);
-    }
-
-    if (protocol === 'SYSTEM_CONFIG_WRITE') {
-      return _igniteSovereignty_(uqo);
+    // AXIOMA: Las funciones internas del InstallationService ahora coinciden con el protocolo.
+    // Intentamos resolución dinámica local o global.
+    const handler = _resolveInstallationHandler_(protocol);
+    if (handler) {
+      return handler(uqo);
     }
 
     throw new Error(`[installation_service] Protocolo '${protocol}' no soportado en esta capa.`);
   }
 
   /**
+   * Resuelve el handler para protocolos de instalación.
+   * @private
+   */
+  function _resolveInstallationHandler_(protocol) {
+    const scope = globalThis || this;
+    
+    // 1. Buscar en scope global (Auto-Discovery)
+    if (typeof scope[protocol] === 'function') return scope[protocol];
+    
+    // 2. Buscar alias internos (Mapeo de legado)
+    const aliases = {
+      'SYSTEM_MANIFEST':          () => SYSTEM_MANIFEST(),
+      'SYSTEM_INSTALL_HANDSHAKE': (p) => SYSTEM_INSTALL_HANDSHAKE(p),
+      'SYSTEM_CONFIG_WRITE':      (p) => SYSTEM_CONFIG_WRITE(p)
+    };
+    
+    return aliases[protocol] || null;
+  }
+
+  /**
    * Handshake de Ignición: Anclaje de identidad del dueño.
    * @private
    */
-  function _igniteHandshake_(uqo) {
+  function SYSTEM_INSTALL_HANDSHAKE(uqo) {
     const currentState = SystemStateManager.getState();
     const activeEmail = Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail();
 
@@ -58,7 +73,7 @@ const InstallationService = (function() {
    * Ignición de Soberanía: Ejecución de las tareas de activación.
    * @private
    */
-  function _igniteSovereignty_(uqo) {
+  function SYSTEM_CONFIG_WRITE_IGNITION(uqo) {
     console.log('[ignition] Iniciando ignición de soberanía...');
 
     try {
@@ -94,6 +109,9 @@ const InstallationService = (function() {
     }
   }
 
-  return { handle };
+  return { 
+    handle,
+    SYSTEM_INSTALL_HANDSHAKE 
+  };
 
 })();

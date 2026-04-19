@@ -29,37 +29,39 @@ async function ignite() {
     // AUTO-RELLENAR: Si hay pacto previo, mostrarlo en pantalla
     if (bridge.coreUrl && bridge.coreUrl.includes("github.io")) {
         // AUTO-HEALING: Purgar localStorage si se infectó con la URL estática de GitHub
-        // Esto previene los horribles errores 405 y fallos de JSON de forma automática.
         console.warn("⚠️ URL venenosa detectada en LocalStorage. Purgando y Reiniciando motor...");
         localStorage.removeItem('INDRA_SATELLITE_LINK');
         bridge.coreUrl = null;
-        inputCoreUrl.value = '';
+        if (inputCoreUrl) inputCoreUrl.value = '';
     } else if (bridge.coreUrl) {
-        inputCoreUrl.value = bridge.coreUrl;
+        if (inputCoreUrl) inputCoreUrl.value = bridge.coreUrl;
     }
 
     if (bridge.satelliteToken) {
-        inputToken.value = bridge.satelliteToken;
+        if (inputToken) inputToken.value = bridge.satelliteToken;
     } else {
         // AXIOMA DE INICIO: Token Maestro Real (ADR-041)
-        inputToken.value = "indra_satellite_omega";
+        if (inputToken) inputToken.value = "indra_satellite_omega";
     }
 
     // 3. EVENTO: Ignición Automática (Google / Resonance)
-    btnLogin.addEventListener('click', async () => {
-        try {
-            console.log("🚀 Solicitando ignición...");
-            await bridge.ignite();
-        } catch (error) {
-            console.error("❌ Fallo en ignición:", error);
-            alert("Resonancia fallida. Prueba el Pacto Manual.");
-        }
-    });
+    if (btnLogin) {
+      btnLogin.addEventListener('click', async () => {
+          try {
+              console.log("🚀 Solicitando ignición...");
+              await bridge.ignite();
+          } catch (error) {
+              console.error("❌ Fallo en ignición:", error);
+              alert("Resonancia fallida. Prueba el Pacto Manual.");
+          }
+      });
+    }
 
     // 4. EVENTO: Pacto Manual (Direct Link - CANON ISP v2.5)
-    btnManualLink.addEventListener('click', async () => {
-        const url = inputCoreUrl.value.trim();
-        const token = inputToken.value.trim();
+    if (btnManualLink) {
+      btnManualLink.addEventListener('click', async () => {
+          const url = inputCoreUrl?.value?.trim();
+          const token = inputToken?.value?.trim();
 
         if (!url || !token) {
             alert("Se requiere URL y Token para firmar el pacto.");

@@ -170,6 +170,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "2_providers/provider_system_purge.gs",
+    "name": "provider_system_purge",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "2_providers/provider_system_workspace.gs",
     "name": "provider_system_workspace",
     "type": "SERVER_JS"

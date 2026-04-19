@@ -146,6 +146,8 @@ export const createAuthSlice = (set, get) => ({
         }
     },
 
+    setCoreUrl: (url) => set({ coreUrl: url }),
+
     resetConnectionState: () => set({ coreStatus: null, error: null, isConnecting: false }),
     clearError: () => set({ error: null }),
 

@@ -918,10 +918,18 @@ function _system_getOrCreateSubfolder_(folderName, contextUqo, workspaceId) {
     const homeRoot = _system_ensureHomeRoot();
     let parentFolder = homeRoot;
 
-    // ── LÓGICA DE ARQUITECTURA CELULAR (INDRA v4.2) ──
+    // ── LÓGICA DE ARQUITECTURA MICELAR (INDRA v7.5) ──
     if (workspaceId && workspaceId !== 'system' && workspaceId !== 'workspaces') {
-        const wsRoot = _system_ensureWorkspaceCell_(workspaceId);
-        if (wsRoot) parentFolder = wsRoot;
+        const cellInfo = _system_get_cell_infrastructure_(workspaceId);
+        
+        if (cellInfo.isCellular) {
+            // AXIOMA: En una Célula, la carpeta 'artifacts' es la raíz para todo el contenido.
+            parentFolder = cellInfo.artifactsFolder;
+        } else {
+            // Legado: Buscar carpeta con el ID en el directorio global de workspaces
+            const wsRoot = _system_ensureWorkspaceCell_(workspaceId);
+            if (wsRoot) parentFolder = wsRoot;
+        }
     }
 
     // 📦 RECOLECCIÓN VÍA BRÚJULA (Solo para carpetas globales o de primer nivel de workspace)
@@ -954,7 +962,31 @@ function _system_getOrCreateSubfolder_(folderName, contextUqo, workspaceId) {
 }
 
 /**
- * Asegura la existencia de la carpeta 'Célula' para un workspace.
+ * Helper: Resuelve la infraestructura de una Célula (Micelar) o determina si es Legado.
+ * @private
+ */
+function _system_get_cell_infrastructure_(workspaceId) {
+    // 1. Consultar el átomo para ver sus metadatos (Payload Sincero)
+    try {
+        const res = _system_readAtom(workspaceId, 'system');
+        const atom = res.items?.[0];
+        
+        if (atom && atom.payload?.artifacts_folder_id) {
+            return {
+                isCellular: true,
+                cellFolder: DriveApp.getFolderById(atom.payload.cell_folder_id),
+                artifactsFolder: DriveApp.getFolderById(atom.payload.artifacts_folder_id)
+            };
+        }
+    } catch (e) {
+        logWarn(`[infra] No se pudo resolver metadata de célula para ${workspaceId}.`);
+    }
+
+    return { isCellular: false };
+}
+
+/**
+ * Asegura la existencia de la carpeta 'Célula' para un workspace (Legado).
  * Ubicación: .core_system/workspaces/{id}/
  * @private
  */

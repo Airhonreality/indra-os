@@ -109,22 +109,23 @@ function ledger_sync_atom(atom, driveId, contextUqo) {
  */
 function _ledger_build_row_(atom, driveId) {
   const owner = atom.owner_id || readCoreOwnerEmail();
-  // AXIOMA v5.0: El creador es siempre el Administrador de su universo.
   const acl = atom.acl || { 
     admins: [owner], 
     readers: [], 
     writers: [] 
   };
 
+  // --- AXIOMA: INDRA SIN PESO (FLECHA RELACIONAL) ---
+  // Solo persistimos lo que es vital para la soberanía y el enrutamiento.
   return [
     atom.gid || `GID-${driveId.substring(0,8)}`,
     driveId,
     atom.class || 'UNKNOWN',
-    atom.handle?.alias || '',
-    atom.handle?.label || '',
+    atom.handle?.alias || '', // Mantenemos el alias para resolución de rutas
+    '', // Label -> Ahora es una resonancia física
     owner,
-    atom.updated_at || new Date().toISOString(),
-    JSON.stringify(atom.payload || {}),
+    '', // UpdatedAt -> Ahora es una resonancia física
+    '{}', // Payload -> Ahora reside solo en el Átomo
     JSON.stringify(acl)
   ];
 }
@@ -145,9 +146,9 @@ function ledger_list_by_class(atomClass, contextUqo) {
       gid: row[0],
       id: row[1],
       class: row[2],
-      handle: { alias: row[3], label: row[4] },
+      handle: { alias: row[3], label: row[4] || '[RESONANCE_PENDING]' },
       owner_id: row[5],
-      updated_at: row[6],
+      updated_at: row[6] || null,
       payload: row[7] ? JSON.parse(row[7]) : {},
       acl: row[8] ? JSON.parse(row[8]) : null
     }));

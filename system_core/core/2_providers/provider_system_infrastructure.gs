@@ -493,21 +493,84 @@ function _system_handleExists(uqo) {
 
 function _system_listAtomsByClass(atomClass, providerId, uqo) {
     try {
-        // AXIOMA 1: FALLO RUIDOSO. Si el sistema está bootstrapped y no hay Ledger,
-        // lanzamos un error en lugar de usar Drive legacy.
         const items = ledger_list_by_class(atomClass, uqo);
         
-        // Transformar a Átomos de Sistema (Contrato Universal ADR-001)
-        // Nota: ledger_list_by_class ya devuelve objetos semi-formados, 
-        // pero pasamos por _system_toAtom para asegurar protocolos dinámicos.
-        const atoms = items.map(item => _system_toAtom(item, item.id, providerId));
+        // --- AXIOMA: RESONANCIA FÍSICA (Indra Sin Peso) ---
+        // Si es un WORKSPACE, hidratamos los nombres directamente desde Drive
+        if (atomClass === WORKSPACE_CLASS_) {
+            _system_resonate_identity_(items);
+        }
         
-        return { items: atoms, metadata: { status: 'OK', total: atoms.length, source: 'LEDGER' } };
+        const atoms = items.map(item => _system_toAtom(item, item.id, providerId));
+        return { items: atoms, metadata: { status: 'OK', total: atoms.length, source: 'LEDGER_RESONATED' } };
     } catch (err) {
         logError(`[infrastructure] Error al listar clase ${atomClass} vía Ledger.`, err);
-        // Error ruidoso: Informamos del fallo de infraestructura Ledger
         return { items: [], metadata: { status: 'ERROR', error: `LEDGER_FAILURE: ${err.message}` } };
     }
+}
+
+/**
+ * MOTOR DE RESONANCIA FÍSICA (v8.5)
+ * Hidrata una lista de átomos con la verdad del plano físico (Drive).
+ * @param {Object[]} items - Lista de átomos ligeros del Ledger.
+ */
+function _system_resonate_identity_(items) {
+    if (!items || items.length === 0) return;
+    
+    const cache = CacheService.getScriptCache();
+    const startTime = Date.now();
+    let cacheHits = 0;
+    let driveCalls = 0;
+
+    items.forEach(item => {
+        const driveId = item.id;
+        const cacheKey = `res_meta_${driveId}`;
+        const cached = cache.get(cacheKey);
+
+        if (cached) {
+            const meta = JSON.parse(cached);
+            item.handle.label = meta.name;
+            item.updated_at = meta.updated;
+            cacheHits++;
+        } else {
+            try {
+                // RESONANCIA INTELIGENTE (v8.6)
+                // Si el ID es de un archivo (Json), resonamos el nombre de la CARPETA PADRE.
+                let name = "";
+                let updated = "";
+                
+                try {
+                    const folder = DriveApp.getFolderById(driveId);
+                    name = folder.getName();
+                    updated = folder.getLastUpdated().toISOString();
+                } catch (e) {
+                    // Si falla como carpeta, es un archivo. Resonamos su Padre.
+                    const file = DriveApp.getFileById(driveId);
+                    const parents = file.getParents();
+                    if (parents.hasNext()) {
+                        const parent = parents.next();
+                        name = parent.getName();
+                        updated = parent.getLastUpdated().toISOString();
+                    } else {
+                        name = file.getName().replace('.json', '');
+                        updated = file.getLastUpdated().toISOString();
+                    }
+                }
+                
+                item.handle.label = name;
+                item.updated_at = updated;
+                
+                // Guardar en caché por 5 minutos
+                cache.put(cacheKey, JSON.stringify({ name, updated }), 300);
+                driveCalls++;
+            } catch (e) {
+                logWarn(`[resonator] Falla de resonancia física para ${driveId}: ${e.message}`);
+                item.handle.label = item.handle.label || '[IDENTIDAD_PERDIDA]';
+            }
+        }
+    });
+
+    logDebug(`[resonator] Resonancia completada en ${Date.now() - startTime}ms. Hits: ${cacheHits}, Drive: ${driveCalls}`);
 }
 
 /**

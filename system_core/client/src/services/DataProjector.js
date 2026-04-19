@@ -158,13 +158,18 @@ export class DataProjector {
      */
     static projectWorkspace(ws) {
         if (!ws) return null;
+        
+        // --- AXIOMA: PROYECCIÓN SINCERA (v10.5) ---
+        // Si el Core ha resonado el nombre físico, lo usamos como Verdad Absoluta.
+        const title = ws.handle?.label || ws.label || ws.id || '[DEUDA_IDENTIDAD]';
+        
         return {
+            ...ws,
             id: ws.id,
-            // Sinceridad Radical: Prioridad de identidad descendente.
-            // Buscamos en handle (Contrato) -> Etiqueta Plana -> Alias -> ID (Último recurso)
-            title: ws.handle?.label || ws.label || ws.handle?.alias || ws.alias || ws.id || '[DEUDA_IDENTIDAD]',
-            description: ws.handle?.description || ws.description || '',
-            subtitle: `${ws.class || 'WORKSPACE'} // ${ws.id?.substring(0, 8)}`,
+            title: title === '[RESONANCE_PENDING]' ? 'Resonando...' : title,
+            alias: ws.handle?.alias || ws.alias || ws.id,
+            icon: ws.handle?.icon || 'FORGE',
+            status: ws.metadata?.status || 'READY',
             pinCount: ws.pins?.length || 0,
             updatedAt: ws.updated_at || ws.created_at || Date.now(),
             relations: ws.relations || [],

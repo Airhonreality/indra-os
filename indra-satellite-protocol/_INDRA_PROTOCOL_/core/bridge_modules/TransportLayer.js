@@ -21,6 +21,7 @@ export class TransportLayer {
         this.consecutiveFailures = 0;
         this.FAILURE_THRESHOLD = 3;
         this.CIRCUIT_REST_TIME_MS = 30000;
+    }
 
     purgeQueue() {
         console.warn("[TransportLayer] Purgando cola de peticiones...");
@@ -147,7 +148,7 @@ export class TransportLayer {
                  throw err;
              }
              throw error;
-        }
+         }
     }
 
     _invokeUI(uqo) {

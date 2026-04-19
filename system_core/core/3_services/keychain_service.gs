@@ -158,15 +158,18 @@ function _keychain_audit() {
  */
 function SYSTEM_KEYCHAIN_SCHEMA() {
     return {
-        fields: [
-            { id: 'name', label: 'NOMBRE_DE_IDENTIDAD', placeholder: 'Ej: Agente Operativo Alpha', required: true },
-            { id: 'class', label: 'CLASE_DE_IDENTIDAD', options: ['MASTER', 'SCOPED'], default: 'SCOPED' },
-            { id: 'scopes', label: 'ALCANCE_DE_ACCESO', placeholder: 'ALL o WorkspaceID' }
-        ],
-        metadata: {
-            ledger_version: 'v7.8',
-            sincerity_standard: 'ADR-041'
-        }
+        items: [{
+            fields: [
+                { id: 'name', label: 'NOMBRE_DE_IDENTIDAD', placeholder: 'Ej: Agente Operativo Alpha', required: true },
+                { id: 'class', label: 'CLASE_DE_IDENTIDAD', options: ['MASTER', 'SCOPED'], default: 'SCOPED' },
+                { id: 'scopes', label: 'ALCANCE_DE_ACCESO', placeholder: 'ALL o WorkspaceID' }
+            ],
+            metadata: {
+                ledger_version: 'v7.9',
+                sincerity_standard: 'ADR-041'
+            }
+        }],
+        metadata: { status: 'OK', total: 1 }
     };
 }
 

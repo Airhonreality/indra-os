@@ -488,7 +488,7 @@ export const createDomainSlice = (set, get) => ({
                  provider: 'system',
                  protocol: 'SYSTEM_KEYCHAIN_SCHEMA'
              }, coreUrl, sessionSecret);
-             set({ keychainSchema: result });
+             set({ keychainSchema: result.items?.[0] || null });
          } catch (err) {
              console.error('[domain_slice] loadIdentitySchema failed:', err);
          }

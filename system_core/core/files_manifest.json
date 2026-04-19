@@ -300,6 +300,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "5_diagnostics/system_sonde.gs",
+    "name": "system_sonde",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "6_audit/CORE_DEBUG_LAB.gs",
     "name": "CORE_DEBUG_LAB",
     "type": "SERVER_JS"

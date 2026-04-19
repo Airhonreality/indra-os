@@ -85,7 +85,7 @@ export default function KeychainManager({ onClose }) {
                         >
                             <option value="ALL">ACCESO UNIVERSAL (MASTER)</option>
                             {workspaces.map(w => (
-                                <option key={w.id} value={w.id}>LIMITADO: {w.handle.label.toUpperCase()}</option>
+                                <option key={w.id} value={w.id}>LIMITADO: {w.handle?.label?.toUpperCase() || 'WORKSPACE_SIN_NOMBRE'}</option>
                             ))}
                         </select>
                     </div>

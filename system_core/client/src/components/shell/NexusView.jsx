@@ -10,7 +10,7 @@ import { useAppState } from '../../state/app_state';
 import './NexusView.css';
 
 import { IndraMacroHeader } from '../utilities/IndraMacroHeader';
-import { KeychainManager } from './KeychainManager';
+import KeychainManager from './KeychainManager';
 
 /**
  * =============================================================================

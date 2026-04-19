@@ -8,11 +8,8 @@
  * =============================================================================
  */
 
-import * as Mp4BoxPkg from 'mp4box';
+import * as MP4Box from 'mp4box';
 import * as Mp4Muxer from 'mp4-muxer';
-
-// Resolución segura de empaquetado (CJS / ESM compatibility)
-const MP4Box = Mp4BoxPkg.default || Mp4BoxPkg;
 
 /**
  * =============================================================================

@@ -1,159 +1,118 @@
-import React, { useState, useEffect } from 'react';
-import { useProtocol } from '../../context/NeuralSplitter';
-import { useLexicon } from '../../services/lexicon';
-
 /**
- * COMPONENTE: KeychainManager
- * RESPONSABILIDAD: Gestión del Ledger de Identidades (Llavero) del Core.
- * Permite al usuario maestro ver, crear y revocar llaves soberanas.
+ * =============================================================================
+ * ARTEFACTO: KeychainManager.jsx
+ * RESPONSABILIDAD: Proyector del Ledger de Identidades (Llavero).
+ * 
+ * DHARMA (Armonía v6.1):
+ *   - Desacoplamiento total de protocolos.
+ *   - Suscripción al domain.slice (Verdad Global).
+ * =============================================================================
  */
-export const KeychainManager = () => {
-    const { execute } = useProtocol();
-    const t = useLexicon();
-    const [keys, setKeys] = useState([]);
-    const [workspaces, setWorkspaces] = useState([]);
+
+import React, { useState, useEffect } from 'react';
+import { useAppState } from '../../state/app_state';
+import { IndraIcon } from '../utilities/IndraIcons';
+
+export default function KeychainManager({ onClose }) {
+    const identities = useAppState(s => s.identities);
+    const workspaces = useAppState(s => s.workspaces);
+    const { loadIdentityLedger, generateIdentity, revokeIdentity } = useAppState();
+
+    const [keyName, setKeyName] = useState('');
+    const [targetWorkspace, setTargetWorkspace] = useState('ALL');
     const [loading, setLoading] = useState(false);
-    const [newName, setNewName] = useState('');
-    const [selectedScope, setSelectedScope] = useState('ALL');
 
-    // 1. CARGA: Auditar el llavero actual y los workspaces
-    const loadData = async () => {
+    useEffect(() => {
+        loadIdentityLedger();
+    }, []);
+
+    const handleCreate = async () => {
+        if (!keyName.trim()) return;
         setLoading(true);
         try {
-            // Cargar llaves
-            const keyRes = await execute({ protocol: 'SYSTEM_KEYCHAIN_AUDIT' });
-            if (keyRes.items) setKeys(keyRes.items);
-
-            // Cargar Workspaces (Para los scopes)
-            const wsRes = await execute({ 
-                provider: 'system',
-                protocol: 'ATOM_READ', 
-                context_id: 'workspaces' 
-            });
-            if (wsRes.items) setWorkspaces(wsRes.items);
-        } catch (e) {
-            console.error("❌ Fallo al cargar datos de soberanía:", e);
+            await generateIdentity(keyName, targetWorkspace);
+            setKeyName('');
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => { loadData(); }, []);
-
-    // 2. ACCIÓN: Generar nueva llave
-    const handleGenerate = async () => {
-        if (!newName) return;
-        setLoading(true);
-        try {
-            const scopeAttr = selectedScope === 'ALL' ? {} : {
-                scope_id: selectedScope,
-                scope_label: workspaces.find(w => w.id === selectedScope)?.handle?.label || "Workspace Específico"
-            };
-
-            await execute({
-                protocol: 'SYSTEM_KEYCHAIN_GENERATE',
-                data: { 
-                    name: newName,
-                    ...scopeAttr
-                }
-            });
-            setNewName('');
-            setSelectedScope('ALL');
-            await loadData();
-        } catch (e) {
-            alert("Error al generar llave: " + e.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // 3. ACCIÓN: Revocar llave
     const handleRevoke = async (id) => {
-        if (!confirm("¿Estás seguro de revocar esta llave? El satélite perderá acceso inmediato.")) return;
-        setLoading(true);
-        try {
-            await execute({
-                protocol: 'SYSTEM_KEYCHAIN_REVOKE',
-                context_id: id
-            });
-            await loadKeychain();
-        } catch (e) {
-            alert("Error al revocar: " + e.message);
-        } finally {
-            setLoading(false);
-        }
+        if (!confirm("¿Estás seguro de revocar esta llave?")) return;
+        await revokeIdentity(id);
     };
 
     return (
-        <div className="keychain-manager" style={{ padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
-            <h3 style={{ marginBottom: '20px', fontSize: '14px', letterSpacing: '0.1em' }}>GESTIÓN DE LLAVES // KEYCHAIN</h3>
-
-            {/* FORMULARIO DE CREACIÓN */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '30px' }}>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <input 
-                        type="text" 
-                        placeholder="Nombre del Satélite (ej: Seed_Hibrido_01)" 
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                        style={{ flex: 1, padding: '10px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '4px' }}
-                    />
-                    <button 
-                        onClick={handleGenerate}
-                        disabled={loading}
-                        style={{ padding: '10px 20px', background: '#34A853', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                    >
-                        {loading ? 'GENERANDO...' : 'GENERAR LLAVE'}
+        <div className="indra-overlay" onClick={onClose}>
+            <div 
+                className="keychain-glass shelf-tight glass-chassis stack--loose" 
+                style={{ width: '600px', padding: '30px' }}
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="spread">
+                    <h2 className="font-mono" style={{ fontSize: '10px', opacity: 0.6 }}>GESTIÓN DE LLAVES // KEYCHAIN</h2>
+                    <button onClick={onClose} className="btn-icon">
+                        <IndraIcon name="CLOSE" size="14px" />
+                        <span style={{ fontSize: '10px', marginLeft: '5px' }}>CERRAR</span>
                     </button>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <label style={{ fontSize: '10px', opacity: 0.5 }}>ÁMBITO DE ACCESO:</label>
-                    <select 
-                        value={selectedScope}
-                        onChange={(e) => setSelectedScope(e.target.value)}
-                        style={{ flex: 1, padding: '8px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', color: 'white', borderRadius: '4px', fontSize: '11px' }}
-                    >
-                        <option value="ALL">ACCESO UNIVERSAL (MASTER)</option>
-                        {workspaces.map(ws => (
-                            <option key={ws.id} value={ws.id}>LIMITADO A: {ws.handle?.label || ws.id}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
 
-            {/* LISTA DE LLAVES */}
-            <div className="key-list">
-                {keys.length === 0 && <p style={{ opacity: 0.5, fontSize: '12px' }}>No hay llaves registradas.</p>}
-                {keys.map(key => (
-                    <div key={key.id} style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center', 
-                        padding: '15px', 
-                        background: 'rgba(255,255,255,0.03)', 
-                        border: '1px solid rgba(255,255,255,0.05)',
-                        borderLeft: `3px solid ${key.class === 'MASTER' ? '#4285F4' : '#FBBC04'}`,
-                        marginBottom: '10px',
-                        borderRadius: '6px'
-                    }}>
-                        <div>
-                            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{key.name}</div>
-                            <div style={{ fontSize: '10px', fontFamily: 'monospace', color: '#4285F4', marginTop: '4px' }}>{key.id}</div>
-                            <div style={{ fontSize: '9px', opacity: 0.7, marginTop: '6px', color: key.class === 'MASTER' ? '#fff' : '#FBBC04' }}>
-                                AMBITO: {key.scope_label || key.scopes?.join(', ')} {" // "} {key.class}
-                            </div>
-                        </div>
-                        {key.status === 'ACTIVE' && (
-                            <button 
-                                onClick={() => handleRevoke(key.id)}
-                                style={{ background: 'transparent', color: '#EA4335', border: '1px solid #EA4335', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}
-                            >
-                                REVOCAR
-                            </button>
-                        )}
+                <section className="terminal-inset stack--tight" style={{ padding: '20px' }}>
+                     <div className="shelf--tight">
+                        <input 
+                            type="text" 
+                            className="fill input--dark"
+                            placeholder="Nombre del Satélite (ej. Seed_Hibrido_01)"
+                            value={keyName}
+                            onChange={(e) => setKeyName(e.target.value)}
+                        />
+                        <button 
+                            className="btn btn--accent" 
+                            onClick={handleCreate}
+                            disabled={loading || !keyName.trim()}
+                        >
+                            {loading ? 'CRISTALIZANDO...' : 'GENERAR LLAVE'}
+                        </button>
                     </div>
-                ))}
+
+                    <div className="shelf--tight" style={{ marginTop: '10px' }}>
+                        <span style={{ fontSize: '9px', opacity: 0.5, marginRight: '10px' }}>ÁMBITO DE ACCESO:</span>
+                        <select 
+                            className="input--dark fill" 
+                            value={targetWorkspace}
+                            onChange={e => setTargetWorkspace(e.target.value)}
+                            style={{ padding: '4px' }}
+                        >
+                            <option value="ALL">ACCESO UNIVERSAL (MASTER)</option>
+                            {workspaces.map(w => (
+                                <option key={w.id} value={w.id}>LIMITADO: {w.handle.label.toUpperCase()}</option>
+                            ))}
+                        </select>
+                    </div>
+                </section>
+
+                <div className="key-list scroll-y stack--tight" style={{ maxHeight: '300px', marginTop: '20px' }}>
+                    {identities.length === 0 ? (
+                        <div className="center opacity-3 font-mono" style={{ padding: '40px' }}>[ SIN_LLAVES_ACTIVAS ]</div>
+                    ) : (
+                        identities.map(key => (
+                            <div key={key.id} className="key-item glass shelf--loose" style={{ padding: '15px' }}>
+                                <div className="fill stack--none">
+                                    <span className="font-bold">{key.name || 'Sin Nombre'}</span>
+                                    <code style={{ fontSize: '10px', color: 'var(--color-accent)', display: 'block' }}>{key.id}</code>
+                                    <span style={{ fontSize: '9px', opacity: 0.5 }}>ÁMBITO: {key.scope_label || 'MASTER'}</span>
+                                </div>
+                                <button 
+                                    className="btn btn--danger btn--xs"
+                                    onClick={() => handleRevoke(key.id)}
+                                >
+                                    REVOCAR
+                                </button>
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
         </div>
     );
-};
+}

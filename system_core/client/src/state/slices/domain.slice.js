@@ -15,6 +15,7 @@ export const createDomainSlice = (set, get) => ({
     isMaterializing: false, // Estado de transición para hidratación
     pendingSyncs: {}, // { atomId: boolean } - Rastreo de resonancia
     pendingCreations: [], // [ { class, handle, status: 'PROVISIONING' } ]
+    identities: [], // Ledger de Identidades (Llavero)
 
     setActiveWorkspace: (id) => {
         if (id) localStorage.setItem('indra-active-workspace-id', id);
@@ -430,6 +431,7 @@ export const createDomainSlice = (set, get) => ({
              const { activeWorkspaceId } = get();
              if (activeWorkspaceId) get().loadPins();
              get().refreshInductionTicket();
+             get().loadIdentityLedger(); // Carga inicial del llavero
          } catch (err) {
              console.error('[domain_slice] Bootstrap failed:', err);
              get().disconnect();
@@ -456,6 +458,64 @@ export const createDomainSlice = (set, get) => ({
          } catch (err) {
              console.error('[domain_slice] establishRelation failed:', err);
              toastEmitter.error(`Error al crear vínculo: ${err.message}`);
+         }
+     },
+
+     /**
+      * GESTIÓN SOBERANA DEL LLAVERO (KEYCHAIN)
+      * Axioma de Desacoplamiento v6.1
+      */
+     loadIdentityLedger: async () => {
+         const { coreUrl, sessionSecret } = get();
+         try {
+             const result = await executeDirective({
+                 provider: 'system',
+                 protocol: 'SYSTEM_KEYCHAIN_AUDIT'
+             }, coreUrl, sessionSecret);
+             set({ identities: result.items || [] });
+         } catch (err) {
+             console.error('[domain_slice] loadIdentityLedger failed:', err);
+         }
+     },
+
+     generateIdentity: async (name, workspaceId = 'ALL') => {
+         const { coreUrl, sessionSecret } = get();
+         const scopeAttr = workspaceId === 'ALL' ? {} : {
+            scope_id: workspaceId,
+            scope_label: get().workspaces.find(w => w.id === workspaceId)?.handle?.label || "Workspace Específico"
+         };
+
+         try {
+             await executeDirective({
+                 provider: 'system',
+                 protocol: 'SYSTEM_KEYCHAIN_GENERATE',
+                 data: { name, ...scopeAttr }
+             }, coreUrl, sessionSecret);
+             toastEmitter.success(`Identidad '${name}' cristalizada.`);
+             await get().loadIdentityLedger();
+         } catch (err) {
+             toastEmitter.error(`Fallo al generar identidad: ${err.message}`);
+             throw err;
+         }
+     },
+
+     revokeIdentity: async (id) => {
+         const { coreUrl, sessionSecret, identities } = get();
+         const previous = [...identities];
+         set({ identities: identities.filter(k => k.id !== id) });
+
+         try {
+             await executeDirective({
+                 provider: 'system',
+                 protocol: 'SYSTEM_KEYCHAIN_REVOKE',
+                 context_id: id
+             }, coreUrl, sessionSecret);
+             toastEmitter.success('Identidad revocada y purgada del nexo.');
+             await get().loadIdentityLedger();
+         } catch (err) {
+             set({ identities: previous });
+             toastEmitter.error(`Error en revocación: ${err.message}`);
+             throw err;
          }
      }
  });

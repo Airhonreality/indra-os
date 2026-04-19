@@ -26,9 +26,9 @@ export const KeychainManager = () => {
 
             // Cargar Workspaces (Para los scopes)
             const wsRes = await execute({ 
-                provider: 'drive',
+                provider: 'system',
                 protocol: 'ATOM_READ', 
-                data: { class: 'WORKSPACE' } 
+                context_id: 'workspaces' 
             });
             if (wsRes.items) setWorkspaces(wsRes.items);
         } catch (e) {

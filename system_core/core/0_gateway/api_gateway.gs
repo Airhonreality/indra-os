@@ -92,7 +92,12 @@ function doPost(e) {
     if (!identityContext) {
       return _buildStandardResponse_(401, { 
         items: [], 
-        metadata: { status: 'UNAUTHORIZED', error: 'Identidad no válida o privilegios insuficientes.' } 
+        metadata: { 
+          status: 'UNAUTHORIZED', 
+          error: 'Identidad no válida o privilegios insuficientes.',
+          core_id: readCoreOwnerEmail(),
+          core_version: CORE_VERSION
+        } 
       });
     }
 
@@ -127,7 +132,12 @@ function doPost(e) {
     console.error('[GATEWAY] Error Fatal:', fatalError.stack);
     return _buildStandardResponse_(500, { 
       items: [], 
-      metadata: { status: 'CRITICAL_SYSTEM_FAILURE', error: fatalError.message } 
+      metadata: { 
+        status: 'CRITICAL_SYSTEM_FAILURE', 
+        error: fatalError.message,
+        core_id: readCoreOwnerEmail(),
+        core_version: CORE_VERSION
+      } 
     });
   }
 }

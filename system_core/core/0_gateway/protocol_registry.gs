@@ -44,6 +44,19 @@ const PROTOCOL_CONTRACTS = Object.freeze({
   'ATOM_DELETE':                  { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.LOGIC   },
   'SEARCH_DEEP':                  { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
   
+  'ATOM_ROLLBACK':                { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.LOGIC   },
+  'ATOM_EXISTS':                  { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
+  'ATOM_ALIAS_RENAME':            { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.LOGIC   },
+  'SCHEMA_FIELD_ALIAS_RENAME':    { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.LOGIC   },
+  'ALIAS_COLLISION_SCAN':         { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
+  'RELATION_SYNC':                { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+  
+  // ── JURISDICCIÓN DE WORKSPACES ──
+  'SYSTEM_PIN':                   { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+  'SYSTEM_UNPIN':                 { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+  'SYSTEM_PINS_READ':             { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+  'SYSTEM_WORKSPACE_REPAIR':      { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.LOGIC   },
+
   // ── GESTIÓN DE SISTEMA ──
   'SYSTEM_CONFIG_SCHEMA':         { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
   'SYSTEM_CONFIG_DELETE':         { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
@@ -53,6 +66,12 @@ const PROTOCOL_CONTRACTS = Object.freeze({
   'SYSTEM_KEYCHAIN_GENERATE':     { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
   'SYSTEM_KEYCHAIN_REVOKE':       { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
   'SYSTEM_KEYCHAIN_AUDIT':        { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
+  'SERVICE_PAIR':                 { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+  'SERVICE_UNPAIR':               { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+  'ACCOUNT_RESOLVE':              { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+  'REVISIONS_LIST':               { min_state: 2, actors: ACTOR_TYPES.PUBLIC, dispatcher: DISPATCHERS.LOGIC   },
+
+  // ── OPERATIVA AVANZADA ──
   'SYSTEM_BATCH_EXECUTE':         { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
   'SYSTEM_WORKSPACE_DEEP_PURGE':  { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
   'SYSTEM_RESONANCE_CRYSTALLIZE': { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },

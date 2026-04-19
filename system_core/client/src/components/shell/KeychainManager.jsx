@@ -5,12 +5,12 @@ import { Badge } from '../utilities/primitives/Badge';
 
 /**
  * =============================================================================
- * COMPONENTE: KeychainManager.jsx (Refactor v7.7 Soberano)
+ * COMPONENTE: KeychainManager.jsx (Refactor v7.8 Pulcro)
  * RESPONSABILIDAD: Gestión de Identidades y Tokens de Acceso.
- * AXIOMA: Sinceridad Estructural y Cero Compresión.
+ * AXIOMA: Sinceridad Estructural, Cero Compresión y Contraste Industrial.
  * =============================================================================
  */
-const KeychainManager = () => {
+const KeychainManager = ({ onClose }) => {
     const { 
         identities, 
         generateIdentity, 
@@ -36,135 +36,165 @@ const KeychainManager = () => {
     };
 
     return (
-        <div className="indra-layout-tripartite fill" style={{ background: 'var(--color-bg-void)', padding: 'var(--space-6)' }}>
+        <div className="indra-overlay fill center" style={{ zIndex: 5000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
             
-            {/* LADO IZQUIERDO: LA FORJA (Creación) */}
-            <aside className="tripartite-side stack--loose" style={{ flex: '0 0 380px' }}>
-                <header className="stack--tight">
-                    <h2 className="font-bold text-xl color-accent">LA FORJA</h2>
-                    <p className="text-xs opacity-50">Cristalizar nuevas identidades soberanas.</p>
-                </header>
-
-                <div className="slot-large stack--loose glass-strong" style={{ padding: 'var(--space-6)', border: '1px solid var(--color-accent-dim)' }}>
-                    <div className="stack--tight">
-                        <label className="text-tiny font-bold opacity-40">NOMBRE_DEL_SATÉLITE</label>
-                        <input 
-                            type="text" 
-                            className="inspector-field__input fill"
-                            placeholder="Ej: Agente Operativo Alpha"
-                            value={newName}
-                            onChange={(e) => setNewName(e.target.value)}
-                            style={{ fontSize: '14px', padding: '12px' }}
-                        />
-                    </div>
-
-                    <div className="stack--tight">
-                        <label className="text-tiny font-bold opacity-40">ÁMBITO_DE_SOBERANÍA</label>
-                        <select 
-                            className="inspector-field__input fill"
-                            value={newScope}
-                            onChange={(e) => setNewScope(e.target.value)}
-                            style={{ fontSize: '14px', padding: '10px' }}
-                        >
-                            <option value="ALL">✦ SOBERANÍA GLOBAL (Nexo)</option>
-                            <optgroup label="WORKSPACES_DISPONIBLES">
-                                {workspaces.map(ws => (
-                                    <option key={ws.id} value={ws.id}>○ {ws.title}</option>
-                                ))}
-                            </optgroup>
-                        </select>
-                    </div>
-
-                    <button 
-                        className={`btn-primary fill ${isForging ? 'loading' : ''}`}
-                        onClick={handleGenerate}
-                        disabled={!newName || isForging}
-                        style={{ height: '50px', marginTop: 'var(--space-4)' }}
-                    >
-                        <IndraIcon name="VAULT" />
-                        <span className="ml-2">CRISTALIZAR IDENTIDAD</span>
-                    </button>
-                </div>
+            <div className="indra-container stack--loose glass-strong shadow-2xl" 
+                 style={{ 
+                    width: '95vw', 
+                    maxWidth: '1200px', 
+                    height: '85vh', 
+                    maxHeight: '800px',
+                    border: '1px solid var(--color-border-strong)',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column'
+                 }}>
                 
-                <div className="slot-small opacity-50 text-tiny italic">
-                    Axioma ADR-041: Las identidades heredan el alcance de su progenitor pero pueden ser acotadas a células específicas.
-                </div>
-            </aside>
-
-            {/* CENTRO/DERECHA: LA BÓVEDA (Auditoría) */}
-            <main className="tripartite-center fill stack--loose" style={{ flex: 1 }}>
-                <header className="spread">
-                    <div className="stack--tight">
-                        <h2 className="font-bold text-xl">LA BÓVEDA</h2>
-                        <p className="text-xs opacity-50">Identidades activas en el nexo {identities.length}.</p>
+                {/* HEADER SOBERANO */}
+                <header className="spread" style={{ padding: 'var(--space-5) var(--space-6)', background: 'var(--color-bg-deep)', borderBottom: '1px solid var(--color-border)' }}>
+                    <div className="shelf--loose">
+                        <IndraIcon name="VAULT" color="var(--color-accent)" size="20px" />
+                        <div className="stack--none">
+                            <h2 className="text-xl font-bold letter-spacing-wide">GESTIÓN_DE_IDENTIDADES</h2>
+                            <p className="text-tiny opacity-50 font-mono">CORE_IDENT_LEDGER // V7.8</p>
+                        </div>
                     </div>
-                    <div className="shelf--tight">
-                        <Badge label="SINCERIDAD_TOTAL" color="var(--color-success)" variant="dot" />
-                    </div>
+                    <button className="btn btn--danger btn--mini" onClick={onClose} style={{ borderRadius: '50%', width: '32px', height: '32px', padding: 0 }}>
+                        <IndraIcon name="CLOSE" size="14px" />
+                    </button>
                 </header>
 
-                <div className="grid-auto fill scroll-y" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 'var(--space-6)', paddingRight: 'var(--space-4)' }}>
-                    {identities.map(key => (
-                        <IdentityCard 
-                            key={key.id} 
-                            data={key} 
-                            onRevoke={() => {
-                                if (confirm(`¿PURGAR DEFINITIVAMENTE '${key.name}'?\nEsta acción es irreversible y eliminará el registro del Ledger.`)) {
-                                    revokeIdentity(key.id);
-                                }
-                            }}
-                        />
-                    ))}
-                    {identities.length === 0 && (
-                        <div className="center fill opacity-20 stack--tight" style={{ minHeight: '400px' }}>
-                            <IndraIcon name="VAULT" size="64px" />
-                            <p>Bóveda Vacía</p>
+                <div className="fill shelf--none" style={{ display: 'grid', gridTemplateColumns: '380px 1fr', overflow: 'hidden' }}>
+                    
+                    {/* SECCIÓN A: LA FORJA (Inscripción) */}
+                    <aside className="stack--loose" style={{ padding: 'var(--space-8)', background: 'var(--color-bg-void)', borderRight: '1px solid var(--color-border)' }}>
+                        <div className="stack--tight">
+                            <h3 className="text-label color-accent">01 // LA FORJA</h3>
+                            <p className="text-hint opacity-60">Crear nuevos puntos de acceso al Nexo.</p>
                         </div>
-                    )}
+
+                        <div className="stack--loose" style={{ marginTop: 'var(--space-6)' }}>
+                            <div className="stack--tight">
+                                <label className="text-tiny font-bold opacity-40">NOMBRE_DEL_ALMA</label>
+                                <input 
+                                    type="text" 
+                                    className="inspector-field__input fill"
+                                    placeholder="Agente Operativo Alpha"
+                                    value={newName}
+                                    onChange={(e) => setNewName(e.target.value)}
+                                    style={{ 
+                                        background: 'rgba(255,255,255,0.05)', 
+                                        border: '1px solid var(--color-border-strong)',
+                                        color: 'white',
+                                        fontSize: '14px',
+                                        padding: '12px'
+                                    }}
+                                />
+                            </div>
+
+                            <div className="stack--tight">
+                                <label className="text-tiny font-bold opacity-40">ÁMBITO_DE_SOBERANÍA</label>
+                                <select 
+                                    className="inspector-field__input fill"
+                                    value={newScope}
+                                    onChange={(e) => setNewScope(e.target.value)}
+                                    style={{ 
+                                        background: 'rgba(255,255,255,0.05)', 
+                                        border: '1px solid var(--color-border-strong)',
+                                        color: 'white',
+                                        fontSize: '14px',
+                                        padding: '10px'
+                                    }}
+                                >
+                                    <option value="ALL">✦ SOBERANÍA GLOBAL (MASTER)</option>
+                                    <optgroup label="CÉLULAS MICELLARES">
+                                        {workspaces.map(ws => (
+                                            <option key={ws.id} value={ws.id}>○ {ws.title}</option>
+                                        ))}
+                                    </optgroup>
+                                </select>
+                            </div>
+
+                            <button 
+                                className={`btn btn--accent btn--full ${isForging ? 'loading' : ''}`}
+                                onClick={handleGenerate}
+                                disabled={!newName || isForging}
+                                style={{ height: '48px', marginTop: 'var(--space-4)', fontSize: '11px', fontWeight: 'bold' }}
+                            >
+                                <IndraIcon name="VAULT" size="14px" />
+                                <span style={{ marginLeft: '12px' }}>CRISTALIZAR IDENTIDAD</span>
+                            </button>
+                        </div>
+
+                        <div className="hud-line opacity-20" style={{ margin: 'var(--space-8) 0' }} />
+                        
+                        <div className="opacity-40 text-tiny italic stack--tight">
+                            <p>● Las llaves maestras tienen acceso a la CLI y al Core Directo.</p>
+                            <p>● Las llaves de Workspace están confinadas a su célula.</p>
+                        </div>
+                    </aside>
+
+                    {/* SECCIÓN B: LA BÓVEDA (Auditoría) */}
+                    <main className="stack--loose" style={{ padding: 'var(--space-8)', background: 'var(--color-bg-deep)', overflowY: 'auto' }}>
+                        <div className="spread">
+                            <div className="stack--tight">
+                                <h3 className="text-label">02 // LA BÓVEDA</h3>
+                                <p className="text-hint opacity-60">Identidades registradas en el Ledger activo.</p>
+                            </div>
+                            <Badge label="INSPECCIÓN_SINCERA" color="var(--color-success)" variant="dot" />
+                        </div>
+
+                        <div className="grid-auto" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-6)', marginTop: 'var(--space-4)' }}>
+                            {identities.map(key => (
+                                <IdentityCard 
+                                    key={key.id} 
+                                    data={key} 
+                                    onRevoke={() => {
+                                        if (confirm(`¿EXPULSAR DEFINITIVAMENTE A '${key.name}'?\nEsta acción es irreversible física y lógicamente.`)) {
+                                            revokeIdentity(key.id);
+                                        }
+                                    }}
+                                />
+                            ))}
+                            {identities.length === 0 && (
+                                <div className="center fill opacity-10" style={{ minHeight: '300px' }}>
+                                    <IndraIcon name="VAULT" size="80px" />
+                                </div>
+                            )}
+                        </div>
+                    </main>
                 </div>
-            </main>
+            </div>
         </div>
     );
 };
 
 const IdentityCard = ({ data, onRevoke }) => {
     return (
-        <div className="slot-small stack--loose glass-hover relative" style={{ padding: 'var(--space-6)', minHeight: '160px', border: `1px solid ${data.theme?.color}22` }}>
+        <div className="ws-card glass stack--loose relative" style={{ padding: 'var(--space-5)', minHeight: '140px', border: `1px solid ${data.theme?.color}33` }}>
             <div className="spread">
                 <div className="shelf--tight">
-                    <IndraIcon name={data.theme?.icon} color={data.theme?.color} size="20px" />
-                    <span className="font-bold text-lg">{data.name}</span>
+                    <IndraIcon name={data.theme?.icon} color={data.theme?.color} size="16px" />
+                    <span className="font-bold text-md">{data.name}</span>
                 </div>
-                <button className="btn-micro-action btn-danger-hover" onClick={onRevoke}>
-                    <IndraIcon name="CLOSE" size="12px" />
+                <button className="btn btn--danger btn--xs" onClick={onRevoke} style={{ padding: '4px' }}>
+                    <IndraIcon name="CLOSE" size="10px" />
                 </button>
             </div>
 
-            <div className="stack--tight">
-                <div className="shelf--tight opacity-60">
-                    <span className="text-tiny font-mono">{data.id}</span>
-                </div>
-                <div className="shelf--tight">
-                   <Badge label={data.theme?.label} color={data.theme?.color} variant="outline" />
-                   {data.parentId && <span className="text-tiny opacity-40">Hijo de: {data.parentId.substring(0,8)}</span>}
+            <div className="stack--none">
+                <span className="text-tiny font-mono opacity-40 truncate">{data.id}</span>
+                <div className="shelf--tight" style={{ marginTop: 'var(--space-2)' }}>
+                   <Badge label={data.theme?.label} color={data.theme?.color} variant="outline" size="xs" />
                 </div>
             </div>
 
-            <div className="hud-line" />
+            <div className="hud-line opacity-10" />
 
-            <div className="spread text-tiny opacity-50">
-                <span>CREADO: {new Date(data.createdAt).toLocaleDateString()}</span>
+            <div className="spread text-tiny opacity-40 font-mono">
+                <span>{new Date(data.createdAt).toLocaleDateString()}</span>
                 <span>SCOPES: {data.scopes?.length || 0}</span>
             </div>
-
-            {/* Glow sutil de estatus */}
-            <div style={{ 
-                position: 'absolute', 
-                top: 0, right: 0, 
-                width: '40px', height: '40px', 
-                background: `radial-gradient(circle at top right, ${data.theme?.color}11, transparent)`, 
-                borderRadius: '0 var(--radius-lg) 0 0' 
-            }} />
         </div>
     );
 };

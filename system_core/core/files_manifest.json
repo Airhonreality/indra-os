@@ -60,6 +60,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "1_logic/logic_resonance_engine.gs",
+    "name": "logic_resonance_engine",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "1_logic/logic_wrappers.gs",
     "name": "logic_wrappers",
     "type": "SERVER_JS"
@@ -100,8 +105,18 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "2_providers/provider_automation.gs",
+    "name": "provider_automation",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "2_providers/provider_calendar_universal.gs",
     "name": "provider_calendar_universal",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/provider_compute.gs",
+    "name": "provider_compute",
     "type": "SERVER_JS"
   },
   {
@@ -157,6 +172,11 @@
   {
     "path": "2_providers/provider_system_workspace.gs",
     "name": "provider_system_workspace",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "3_api/system_stress_test.gs",
+    "name": "system_stress_test",
     "type": "SERVER_JS"
   },
   {

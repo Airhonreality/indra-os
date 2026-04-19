@@ -69,7 +69,16 @@ const PROTOCOL_CONTRACTS = Object.freeze({
   'PULSE_WAKEUP':                 { min_state: 2, actors: ACTOR_TYPES.INTERNAL,      dispatcher: DISPATCHERS.PULSE   },
   'EMERGENCY_INGEST_INIT':        { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
   'EMERGENCY_INGEST_CHUNK':       { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
-  'EMERGENCY_INGEST_FINALIZE':    { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  }
+  'EMERGENCY_INGEST_FINALIZE':    { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
+
+  // ── RESONANCIA E INDUCCIÓN INDUSTRIAL (v10.0) ──
+  'RESONANCE_ANALYZE':            { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+  'INDUSTRIAL_SYNC':              { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+  'INDUSTRIAL_IGNITE':            { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+  'INDUCTION_START':              { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+  'INDUCTION_STATUS':             { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+  'INDUCTION_CANCEL':             { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+  'INDUCTION_DRIFT_CHECK':        { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   }
 });
 
 const ProtocolRegistry = (function() {

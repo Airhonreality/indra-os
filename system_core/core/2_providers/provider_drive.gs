@@ -50,6 +50,7 @@ function CONF_DRIVE() {
       ATOM_CREATE: { sync: 'BLOCKING', purge: 'ALL' },
       ATOM_UPDATE: { sync: 'BLOCKING', purge: 'ID' },
       ATOM_DELETE: { sync: 'BLOCKING', purge: 'ALL' },
+      BATCH_UPDATE: { sync: 'BLOCKING', purge: 'ALL' },
       HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE' },
       SEARCH_DEEP: { sync: 'BLOCKING', purge: 'NONE' },
       TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE' },
@@ -141,6 +142,7 @@ function handleDrive(uqo) {
   if (protocol === 'TABULAR_STREAM') return _drive_handleTabularStream(uqo);
   if (protocol === 'ATOM_CREATE')    return _drive_handleAtomCreate(uqo);
   if (protocol === 'ATOM_UPDATE')    return _drive_handleAtomUpdate(uqo);
+  if (protocol === 'BATCH_UPDATE')   return _drive_handleBatchUpdate(uqo);
   if (protocol === 'SEARCH_DEEP')    return _drive_handleSearchDeep(uqo);
   if (protocol === 'TRANSFER_HANDSHAKE') return _drive_handleTransferHandshake(uqo);
   if (protocol === 'MEDIA_RESOLVE')   return _drive_handleMediaResolve(uqo);
@@ -266,21 +268,22 @@ function _drive_handleAtomRead(uqo) {
     const err = createError('INVALID_INPUT', 'ATOM_READ requiere context_id o (query.name + query.parentId).');
     return { items: [], metadata: { status: 'ERROR', error: err.message } };
   }
-
   try {
     // Intentar como archivo primero, luego como carpeta
     let atom = null;
     try {
       const file = DriveApp.getFileById(contextId);
+      if (file.isTrashed()) throw new Error("TRASHED"); 
       atom = _drive_fileToAtom(file, uqo.provider, true);
     } catch (e) {
-      // No es un archivo — intentar como carpeta
+      // No es un archivo o está en papelera — intentar como carpeta
       try {
         const folder = DriveApp.getFolderById(contextId);
+        if (folder.isTrashed()) throw new Error("TRASHED");
         atom = _drive_folderToAtom(folder, uqo.provider);
       } catch (e2) {
         const err = createError('NOT_FOUND', `Elemento "${contextId}" no encontrado.`);
-        return { items: [], metadata: { status: 'ERROR', error: err.message } };
+        return { items: [], metadata: { status: 'ERROR', error: err.message, code: 'NOT_FOUND' } };
       }
     }
 
@@ -966,6 +969,65 @@ function _drive_handleTransferHandshake(uqo) {
     return { metadata: { status: 'ERROR', error: err.message } };
   }
 }
+
+/**
+ * BATCH_UPDATE: Procesa múltiples acciones de escritura en una única transacción de silo.
+ * @private
+ */
+function _drive_handleBatchUpdate(uqo) {
+  const { silo_id, actions } = uqo.data || {};
+  if (!silo_id || !Array.isArray(actions)) {
+    throw createError('INVALID_INPUT', 'BATCH_UPDATE requiere silo_id y un array de acciones.');
+  }
+
+  logInfo(`[provider_drive] Iniciando BATCH_UPDATE en Silo: ${silo_id}. Acciones: ${actions.length}`);
+
+  try {
+    const ss = SpreadsheetApp.openById(silo_id);
+    const sheet = ss.getSheets()[0]; 
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const results = [];
+
+    actions.forEach(action => {
+      if (action.type === 'CREATE' || action.type === 'UPDATE') {
+        const rowData = headers.map(h => action.data[h] !== undefined ? action.data[h] : '');
+
+        if (action.type === 'CREATE') {
+          sheet.appendRow(rowData);
+          results.push({ id: action.id, status: 'CREATED' });
+        } else {
+          const ids = sheet.getRange(1, 1, Math.max(1, sheet.getLastRow()), 1).getValues();
+          let rowIndex = -1;
+          for(let i=0; i<ids.length; i++) {
+            if (String(ids[i][0]) === String(action.id)) { rowIndex = i + 1; break; }
+          }
+          
+          if (rowIndex > 0) {
+            sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+            results.push({ id: action.id, status: 'UPDATED' });
+          } else {
+            sheet.appendRow(rowData);
+            results.push({ id: action.id, status: 'CREATED_ON_UPDATE' });
+          }
+        }
+      }
+    });
+
+    return {
+      items: results,
+      metadata: {
+        status: 'OK',
+        silo_id: silo_id,
+        actions_executed: actions.length,
+        trace: uqo.trace_id
+      }
+    };
+  } catch (err) {
+    logError('[provider_drive] Fallo en BATCH_UPDATE.', err);
+    return { metadata: { status: 'ERROR', error: err.message, code: 'BATCH_EXECUTION_FAILED' } };
+  }
+}
+
 
 
 

@@ -1321,24 +1321,15 @@ function _system_handleSchemaIgnite(uqo) {
   const siloAtom = createResult.items[0];
   logInfo(`[system] Silo ignitado con éxito: ${siloAtom.id} (${targetProvider})`);
 
-  // 4. Vincular el ID y Provider en el Esquema (Incarnation)
-  const updateData = {
-    payload: {
-      ...schemaAtom.payload,
-      target_silo_id: siloAtom.id,
-      target_provider: targetProvider,
-      status: 'LIVE' // Marcamos como publicado al cobrar vida física
-    }
-  };
-
-  const updateRes = _system_updateAtom(schemaId, updateData, uqo.provider);
-  
+  // 4. Retornar el Silo Creado (Agnosticismo Total)
+  // AXIOMA v4.0: El Core no guarda el estado de "Incarnación". 
+  // Es el Satélite quien recibe este ID y lo mapea en su ADN soberano.
   return {
-    items: updateRes.items || [],
+    items: [siloAtom],
     metadata: {
       status: 'OK',
       trace_id: traceId,
-      silo_atom: siloAtom,
+      silo_id: siloAtom.id,
       target_provider: targetProvider
     }
   };

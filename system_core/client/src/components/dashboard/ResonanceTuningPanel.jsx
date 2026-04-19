@@ -49,26 +49,52 @@ export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
     const fields = artifact.payload?.fields || [];
     const provider = artifact.provider || 'UNKNOWN';
 
-    // AXIOMA DE SINCERIDAD: Cargar datos reales para previsualización inmediata
+    const [analysisReport, setAnalysisReport] = useState(null);
+
+    // AXIOMA DE SINCERIDAD: Cargar datos reales y previsualizar transformación cognitiva
     React.useEffect(() => {
-        const fetchPreview = async () => {
+        const fetchAnalysis = async () => {
             setIsLoadingPreview(true);
             try {
-                const result = await executeDirective({
-                    provider: artifact.provider,
-                    protocol: 'TABULAR_STREAM',
-                    context_id: artifact.id,
-                    query: { limit: 5 }
-                }, coreUrl, sessionSecret);
-                setPreviewData(result.items || []);
+                // Si hay un schema destino, usamos el motor de RESONANCIA pura
+                if (targetSchema) {
+                    const result = await executeDirective({
+                        provider: 'compute', // El cerebro de Indra
+                        protocol: 'RESONANCE_ANALYZE',
+                        data: {
+                            bridge_atom: {
+                                payload: {
+                                    source_provider: artifact.provider,
+                                    target_provider: targetSchema.provider,
+                                    mappings: { [targetSchema.id]: fieldMappings }
+                                }
+                            },
+                            sat_payload: { items: previewData.length ? previewData : [{ id: 'mock', payload: { fields: {} } }] },
+                            dry_run: true
+                        }
+                    }, coreUrl, sessionSecret);
+                    
+                    setAnalysisReport(result.metadata?.resonance || null);
+                } else {
+                    // Si no hay destino, solo cargamos el stream crudo original
+                    const result = await executeDirective({
+                        provider: artifact.provider,
+                        protocol: 'TABULAR_STREAM',
+                        context_id: artifact.id,
+                        query: { limit: 5 }
+                    }, coreUrl, sessionSecret);
+                    setPreviewData(result.items || []);
+                }
             } catch (err) {
-                console.error("[Resonance] Fallo al cargar previsualización:", err);
+                console.error("[Resonance] Fallo en análisis cognitivo:", err);
             } finally {
                 setIsLoadingPreview(false);
             }
         };
-        fetchPreview();
-    }, [artifact, coreUrl, sessionSecret]);
+
+        const timer = setTimeout(fetchAnalysis, 500); // Debounce para no saturar el core
+        return () => clearTimeout(timer);
+    }, [artifact, targetSchema, fieldMappings, coreUrl, sessionSecret]);
 
     const hydrateSchemaFromId = async (schemaId) => {
         if (!schemaId) return;
@@ -305,7 +331,7 @@ export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
                                             background: mutedFields.includes(f.id) ? 'transparent' : 'var(--color-accent)'
                                         }}>
                                              {!mutedFields.includes(f.id) && <IndraIcon name="CHECK" size="10px" color="var(--color-bg-void)" />}
-                                        </div>
+                                         </div>
                                         <div className="stack--tight">
                                             <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{f.label || f.id}</span>
                                             <div className="shelf--tight">
@@ -477,29 +503,48 @@ export function ResonanceTuningPanel({ artifact, onConfirm, onCancel }) {
                                 )}
                             </div>
 
-                            {/* ── DATA PREVIEW (Sinceridad de Realidad) ── */}
+                            {/* ── DATA PREVIEW (Sinceridad de Realidad / Resonancia Cognitiva) ── */}
                             <div className="stack--tight" style={{ marginTop: 'auto', paddingTop: 'var(--space-4)' }}>
-                                <span className="text-label" style={{ marginBottom: 'var(--space-2)' }}>VISTA PREVIA DE MATERIA OSCURA (MUESTRA REAL)</span>
+                                <div className="spread">
+                                    <span className="text-label" style={{ marginBottom: 'var(--space-2)' }}>VISTA PREVIA DE MATERIA (RESONANCIA COGNITIVA)</span>
+                                    {analysisReport && <span className="util-label" style={{ color: 'var(--color-accent)' }}>RESONANCIA ACTIVA: {analysisReport.actions?.length || 0} CAMBIOS</span>}
+                                </div>
                                 <div className="terminal-inset" style={{ padding: 'var(--space-2)', maxHeight: '140px', overflow: 'hidden' }}>
                                     {isLoadingPreview ? (
-                                        <div className="center" style={{ padding: 'var(--space-8)', opacity: 0.5, fontSize: '10px', color: 'var(--color-accent)' }}>Escaneando origen...</div>
+                                        <div className="center" style={{ padding: 'var(--space-8)', opacity: 0.5, fontSize: '10px', color: 'var(--color-accent)' }}>Realizando Análisis Resonante...</div>
                                     ) : (
                                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', textAlign: 'left', color: 'inherit' }}>
                                             <thead>
                                                 <tr style={{ borderBottom: '1px solid var(--color-border)', opacity: 0.6 }}>
                                                     {fields.slice(0, 4).map(f => (
-                                                        <th key={f.id} style={{ padding: '6px', fontWeight: 'bold' }}>{f.label || f.id}</th>
+                                                        <th key={f.id} style={{ padding: '6px', fontWeight: 'bold' }}>
+                                                            {f.label || f.id}
+                                                            {fieldMappings[f.id] && <div style={{ fontSize: '8px', color: 'var(--color-accent)' }}>→ {fieldMappings[f.id]}</div>}
+                                                        </th>
                                                     ))}
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {previewData.map((row, idx) => (
+                                                {/* 
+                                                    AXIOMA DE SINCERIDAD: 
+                                                    Si hay reporte de resonancia, mostramos el dato como quedará 
+                                                    tras la hidratación/sincronización.
+                                                */}
+                                                {(analysisReport?.preview_items || previewData).map((row, idx) => (
                                                     <tr key={idx} style={{ borderBottom: '1px solid var(--color-border)', background: idx % 2 === 0 ? 'rgba(var(--color-accent-rgb), 0.02)' : 'transparent' }}>
-                                                        {fields.slice(0, 4).map(f => (
-                                                            <td key={f.id} style={{ padding: '6px', opacity: 0.9, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80px' }}>
-                                                                {String(row.payload?.fields?.[f.id] || '')}
-                                                            </td>
-                                                        ))}
+                                                        {fields.slice(0, 4).map(f => {
+                                                            const rawVal = row.payload?.fields?.[f.id] || '';
+                                                            // Buscamos si hay una acción de transformación para este campo en el reporte
+                                                            const action = analysisReport?.actions?.find(a => a.item_id === row.id && a.field === fieldMappings[f.id]);
+                                                            
+                                                            return (
+                                                                <td key={f.id} style={{ padding: '6px', opacity: 0.9, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80px' }}>
+                                                                    {action ? (
+                                                                        <span style={{ color: 'var(--color-accent)', fontWeight: 'bold' }}>{String(action.value)}</span>
+                                                                    ) : String(rawVal)}
+                                                                </td>
+                                                            );
+                                                        })}
                                                     </tr>
                                                 ))}
                                             </tbody>

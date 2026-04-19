@@ -48,3 +48,51 @@ export function buildCloneMeta({ createdBy, schemaVersion, originAtom }) {
         trust_level:  'SYNCED',
     };
 }
+/**
+ * AXIOMA DE PERCEPCIÓN: La UI no lee bits, lee intenciones.
+ * Estas funciones extraen la "clase cognitiva" del átomo para que el Front-end
+ * sepa cómo manifestar la realidad del dato.
+ */
+
+/**
+ * Retorna la Intención Semántica del átomo.
+ * @param {Object} atom 
+ * @returns {string} 'GENERIC_BOARD' | 'DATA_HYDRATION' | 'CALCULUS' | etc.
+ */
+export function getAtomPurpose(atom) {
+    if (!atom) return 'UNKNOWN';
+    
+    // Si es un puente, su propósito vive en el payload semántico
+    if (atom.class === 'BRIDGE') {
+        return atom.payload?.ui_purpose || 'GENERIC_MAPPING';
+    }
+
+    return atom.class || 'GENERIC_ATOM';
+}
+
+/**
+ * Extrae el Mapa de Relacionalidad de un Puente.
+ * Traduce IDs crudos a etiquetas comprensibles para el usuario.
+ */
+export function getBridgeManifest(bridge) {
+    if (!bridge || bridge.class !== 'BRIDGE') return null;
+
+    const payload = bridge.payload || {};
+    return {
+        id: bridge.id,
+        purpose: payload.ui_purpose || 'SYNC',
+        cognitiveClass: payload.cognitive_class || 'UNKNOWN',
+        // Inferencia: La primera fuente suele ser el Satélite (Notion/etc)
+        sourceProvider: payload.source_provider || 'satellite', 
+        // El target físico (Google Sheets/etc)
+        targetProvider: payload.target_provider || 'silo'
+    };
+}
+
+/**
+ * Indica si el puente es una herramienta de Hidratación (Migración de datos).
+ */
+export function isHydrationBridge(bridge) {
+    const purpose = getAtomPurpose(bridge);
+    return ['DATA_HYDRATION', 'HYDRATION_TASK', 'MIGRATION'].includes(purpose);
+}

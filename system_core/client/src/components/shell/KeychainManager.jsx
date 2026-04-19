@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppState } from '../../state/app_state';
-import IndraIcon from '../common/IndraIcon';
-import StatusBadge from '../common/StatusBadge';
+import { IndraIcon } from '../utilities/IndraIcons';
+import { Badge } from '../utilities/primitives/Badge';
 
 /**
  * =============================================================================
@@ -99,7 +99,7 @@ const KeychainManager = () => {
                         <p className="text-xs opacity-50">Identidades activas en el nexo {identities.length}.</p>
                     </div>
                     <div className="shelf--tight">
-                        <StatusBadge status="ACTIVE" label="SINCERIDAD_TOTAL" />
+                        <Badge label="SINCERIDAD_TOTAL" color="var(--color-success)" variant="dot" />
                     </div>
                 </header>
 
@@ -145,7 +145,7 @@ const IdentityCard = ({ data, onRevoke }) => {
                     <span className="text-tiny font-mono">{data.id}</span>
                 </div>
                 <div className="shelf--tight">
-                   <StatusBadge status={data.status} label={data.theme?.label} color={data.theme?.color} />
+                   <Badge label={data.theme?.label} color={data.theme?.color} variant="outline" />
                    {data.parentId && <span className="text-tiny opacity-40">Hijo de: {data.parentId.substring(0,8)}</span>}
                 </div>
             </div>

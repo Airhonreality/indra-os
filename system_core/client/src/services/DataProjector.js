@@ -160,12 +160,13 @@ export class DataProjector {
         if (!ws) return null;
         return {
             id: ws.id,
-            title: ws.handle?.label || 'UNNAMED_WORKSPACE',
+            // Sinceridad Radical: Si no hay label, mostramos el alias o el ID. Nunca un placeholder ficticio.
+            title: ws.handle?.label || ws.handle?.alias || ws.id || '[DEUDA_IDENTIDAD]',
             description: ws.handle?.description || '',
-            subtitle: `ID: ${ws.id?.substring(0, 8)}`,
+            subtitle: `${ws.class || 'WORKSPACE'} // ${ws.id?.substring(0, 8)}`,
             pinCount: ws.pins?.length || 0,
             updatedAt: ws.updated_at || ws.created_at || Date.now(),
-            relations: ws.relations || [], // Soporte relacional para workspaces
+            relations: ws.relations || [],
             raw: ws
         };
     }
@@ -421,5 +422,34 @@ export class DataProjector {
         // Soportar array (Notion files) o valor único
         const arr = Array.isArray(value) ? value : [value];
         return arr.map(normalize).filter(Boolean);
+    }
+
+    /**
+     * AXIOMA v7.7: Autoproyección de Identidades (Llavero).
+     * Mapea exactamente las columnas de la base de datos de tokens de acceso.
+     */
+    static projectIdentity(raw) {
+        if (!raw) return null;
+
+        const isMaster = raw.class === 'MASTER';
+        
+        // Mapeo 1:1 con el Ledger de Acceso del Core
+        return {
+            id: raw.id,
+            name: raw.name || 'ANÓNIMO',
+            status: raw.status || 'UNKNOWN',
+            class: raw.class || 'SCOPED',
+            parentId: raw.parent_id || null,
+            canDelegate: raw.can_delegate === true,
+            createdAt: raw.created_at,
+            scopes: raw.scopes || [],
+            
+            // Proyección Semántica (Sin inventar datos)
+            theme: {
+                color: isMaster ? 'var(--color-accent)' : 'var(--color-warm)',
+                icon: isMaster ? 'VAULT' : 'TARGET',
+                label: isMaster ? 'SOBERANÍA_GLOBAL' : 'SATELLITE_SCOPED'
+            }
+        };
     }
 }

@@ -268,34 +268,9 @@ export function NexusView() {
 
             </div>
 
-            {/* OVERLAY: GESTIÓN DE LLAVES (KEYCHAIN) */}
+            {/* OVERLAY SOBERANO: GESTIÓN DE LLAVES (KEYCHAIN) */}
             {showKeychain && (
-                <div style={{
-                    position: 'fixed', inset: 0, zIndex: 5000,
-                    background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '40px'
-                }}>
-                    <div className="glass stack" style={{ 
-                        width: '100%', maxWidth: '900px', maxHeight: '90vh', 
-                        overflowY: 'auto', position: 'relative', border: '1px solid var(--color-accent)',
-                        boxShadow: '0 0 50px rgba(0, 255, 200, 0.2)'
-                    }}>
-                        <div className="shelf" style={{ padding: 'var(--space-4)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                            <label className="text-label" style={{ opacity: 0.8 }}>GESTIÓN DE LLAVES // ACCESO SATELLITE</label>
-                            <button 
-                                className="btn btn--mini btn--ghost" 
-                                style={{ marginLeft: 'auto' }}
-                                onClick={() => setShowKeychain(false)}
-                            >
-                                <span style={{ marginRight: '6px' }}>✕</span> CERRAR
-                            </button>
-                        </div>
-                        <div style={{ padding: 'var(--space-4)' }}>
-                            <KeychainManager />
-                        </div>
-                    </div>
-                </div>
+                <KeychainManager onClose={() => setShowKeychain(false)} />
             )}
         </div>
     );

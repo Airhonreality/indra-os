@@ -472,7 +472,8 @@ export const createDomainSlice = (set, get) => ({
                  provider: 'system',
                  protocol: 'SYSTEM_KEYCHAIN_AUDIT'
              }, coreUrl, sessionSecret);
-             set({ identities: result.items || [] });
+             const projected = (result.items || []).map(k => DataProjector.projectIdentity(k));
+             set({ identities: projected });
          } catch (err) {
              console.error('[domain_slice] loadIdentityLedger failed:', err);
          }

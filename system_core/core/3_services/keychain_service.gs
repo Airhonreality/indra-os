@@ -83,34 +83,57 @@ function _keychain_generate(uqo) {
 /**
  * SYSTEM_KEYCHAIN_REVOKE: Protocolo para invalidar una llave y TODA su descendencia.
  */
-function _keychain_revoke(uqo) {
-    const token = uqo.context_id || uqo.data?.token;
-    if (!token) throw createError('INVALID_INPUT', 'Se requiere el token para revocar.');
-    
-    const ledger = _keychain_getLedger_();
-    if (!ledger[token]) throw createError('NOT_FOUND', 'Token no encontrado.');
+/**
+ * SYSTEM_KEYCHAIN_REVOKE: Comando de Nivel 1 (Protocol Router)
+ * Recibe la intención y valida el permiso de ejecución.
+ */
+function SYSTEM_KEYCHAIN_REVOKE(uqo) {
+  const token = uqo.context_id || uqo.data?.token;
+  if (!token) throw createError('INVALID_INPUT', 'Se requiere el token para revocar.');
+  
+  logWarn(`[keychain] ☢️ COMANDO DE PURGADO RECIBIDO PARA: ${token}`);
+  
+  // Iniciamos la transacción 2PC (Two-Phase Commit)
+  const masterLedger = ledger_keychain_read_all();
+  _keychain_execute_purge_(token, masterLedger);
+  
+  return { metadata: { status: 'OK', message: 'Identidad y descendencia purgadas bajo protocolo 2PC.' } };
+}
 
-    // Protocolo de Matanza de Herencia (Cascading Revocation)
-    const revokeRecursive = (targetId) => {
-        if (!ledger[targetId]) return;
-        
-        // Revocar el actual
-        ledger[targetId].status = "REVOKED";
-        ledger[targetId].revoked_at = new Date().toISOString();
-        logInfo(`[keychain] Revocado: ${targetId}`);
+/**
+ * PROTOCOLO DE DOS FASES (2PC) - Ejecutor Interno
+ * 1. Fase Física: Purgado de recursos (Drive).
+ * 2. Fase Lógica: Purgado de Ledger.
+ */
+function _keychain_execute_purge_(targetId, ledger) {
+  const entry = ledger[targetId];
+  if (!entry) return;
 
-        // Buscar hijos
-        Object.keys(ledger).forEach(childId => {
-            if (ledger[childId].parent_id === targetId && ledger[childId].status === 'ACTIVE') {
-                revokeRecursive(childId);
-            }
-        });
-    };
+  // 1. RECURSIÓN: Purgar descendencia primero (Cascada)
+  Object.keys(ledger).forEach(key => {
+    if (ledger[key].parent_id === targetId) {
+      _keychain_execute_purge_(key, ledger);
+    }
+  });
 
-    revokeRecursive(token);
-    _keychain_saveLedger_(ledger);
-    
-    return { metadata: { status: 'OK', message: 'Llave y toda su descendencia han sido revocadas.' } };
+  // 2. FASE FÍSICA: Purgado Territorial
+  const territorialScopes = (entry.scopes || []).filter(s => 
+    ['DEPLOY_TARGET', 'WORKSPACE_ROOT', 'DATA_VAULT'].includes(s.type)
+  );
+  
+  territorialScopes.forEach(scope => {
+    if (scope.value) {
+      try {
+        logInfo(`[keychain] Liberando espacio físico: ${scope.type} -> ${scope.value}`);
+        DriveApp.getFolderById(scope.value).setTrashed(true);
+      } catch (e) {
+        logWarn(`[keychain] Fallo en purga física (No-bloqueante): ${e.message}`);
+      }
+    }
+  });
+
+  // 3. FASE LÓGICA: Borrado en Ledger
+  ledger_keychain_delete(targetId);
 }
 
 /**
@@ -118,11 +141,34 @@ function _keychain_revoke(uqo) {
  */
 function _keychain_audit() {
     const ledger = _keychain_getLedger_();
-    const items = Object.keys(ledger).map(token => ({
-        id: token,
-        ...ledger[token]
-    }));
+    // AXIOMA v7.7: La auditoría solo reconoce la vida (ACTIVE). 
+    // Los muertos no votan ni se listan.
+    const items = Object.keys(ledger)
+        .filter(token => ledger[token].status === 'ACTIVE')
+        .map(token => ({
+            id: token,
+            ...ledger[token]
+        }));
     return { items, metadata: { status: 'OK', total: items.length } };
+}
+
+/**
+ * Procedimiento de Exorcismo: Limpia las ScriptProperties que causan interferencia.
+ */
+function system_purge_legacy_karma() {
+    const keysToPurge = [
+        "SYS_CORE_OWNER_UID",
+        "SYS_MOUNT_DRIVE_ROOT_ID",
+        "SYS_MOUNT_ROOT_ID",
+        "SYS_IS_BOOTSTRAPPED",
+        "SYS_ROOT_FOLDER_ID"
+    ];
+    const props = PropertiesService.getScriptProperties();
+    keysToPurge.forEach(k => {
+        props.deleteProperty(k);
+        logInfo(`[exorcism] Karma purgado: ${k}`);
+    });
+    return { status: 'CLEAN' };
 }
 
 // ─── MOTOR INTERNO (PERSISTENCIA) ───────────────────────────────────────────

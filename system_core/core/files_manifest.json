@@ -60,6 +60,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "1_logic/logic_protocols.gs",
+    "name": "logic_protocols",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "1_logic/logic_resonance_engine.gs",
     "name": "logic_resonance_engine",
     "type": "SERVER_JS"
@@ -97,6 +102,21 @@
   {
     "path": "2_providers/adapter_tabular_calendar.gs",
     "name": "adapter_tabular_calendar",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/infrastructure_identity.gs",
+    "name": "infrastructure_identity",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/infrastructure_persistence.gs",
+    "name": "infrastructure_persistence",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/infrastructure_protocols.gs",
+    "name": "infrastructure_protocols",
     "type": "SERVER_JS"
   },
   {
@@ -220,6 +240,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "3_services/resonance_registry.gs",
+    "name": "resonance_registry",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "3_services/resonance_service.gs",
     "name": "resonance_service",
     "type": "SERVER_JS"
@@ -305,8 +330,23 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "5_diagnostics/sonde_satellite_crystallize.gs",
+    "name": "sonde_satellite_crystallize",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "5_diagnostics/system_sonde.gs",
     "name": "system_sonde",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "5_diagnostics/system_sonde_lifecycle.gs",
+    "name": "system_sonde_lifecycle",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "5_diagnostics/system_sonde_ultra.gs",
+    "name": "system_sonde_ultra",
     "type": "SERVER_JS"
   },
   {
@@ -322,6 +362,11 @@
   {
     "path": "6_audit/UpdateManifest_Dev.gs",
     "name": "UpdateManifest_Dev",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "6_audit/protocol_resonance_audit.gs",
+    "name": "protocol_resonance_audit",
     "type": "SERVER_JS"
   },
   {

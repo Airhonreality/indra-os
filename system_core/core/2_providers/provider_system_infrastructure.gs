@@ -523,15 +523,14 @@ function _system_readAtom(atomId, providerId, uqo = {}) {
     const cacheKey = `res_lock_${atomId}`;
     
     try {
-        // 1. CHEQUEO DE CACHE (Fricción Cero)
-        // Si no se pide resonancia forzada y el cache está vigente, evitamos Drive API.
+        // 1. CHEQUEO DE CACHE (Fricción Cero - SOLO SI SE SOLICITA)
+        // AXIOMA v7.6: Indra es SINCERA por defecto. El cache es una optimización, no una ley.
         const isVerified = cache.get(cacheKey);
-        if (!uqo.force_resonance && isVerified) {
-            logDebug(`[resilience] Cache Hit para ${atomId}. Omitiendo validación física.`);
+        if (uqo.use_cache && isVerified && !uqo.force_resonance) {
+            logDebug(`[resilience] Cache Hit para ${atomId}.`);
             const ledgerMeta = ledger_get_by_drive_id(atomId);
             
             if (ledgerMeta) {
-                // Reconstruimos átomo desde Ledger (Velocidad N3)
                 const atomFromLedger = {
                   id: ledgerMeta.id,
                   class: ledgerMeta.class,
@@ -772,22 +771,34 @@ function _system_process_initial_relations_(atomDoc, uqo) {
  * AXIOMA ADR-008: La eliminación es atómica. No puede quedar ningún
  * puntero muerto (pin fantasma) tras el borrado.
  */
-function _system_deleteAtom(atomId) {
+function _system_deleteAtom(atomId, uqo = {}) {
+    const cache = CacheService.getScriptCache();
+    const cacheKey = `res_lock_${atomId}`;
+
     try {
-        // AXIOMA: La eliminación es física y determinista.
-        // No escaneamos el sistema buscando referencias; la sinceridad se 
-        // resuelve en el momento del acceso (Homeostasis bajo demanda).
+        // 1. LA MUERTE FÍSICA
         const file = _system_findAtomFile(atomId);
         file.setTrashed(true);
         
-        // Eliminar del Ledger (Fallo Ruidoso si no se encuentra en Drive ya se encargó findAtomFile)
-        ledger_remove_atom(atomId);
+        // 2. INVALIDACIÓN DE CACHE (Anti-Zombies)
+        cache.remove(cacheKey);
         
-        logInfo(`[infra] Átomo eliminado de Drive y Ledger: ${atomId}`);
+        // 3. LIMPIEZA DE REGISTROS (Aislación Micelar)
+        ledger_remove_atom(atomId, uqo);
+        
+        logInfo(`[infra] Átomo purgado físicamente: ${atomId}`);
 
         return { items: [], metadata: { status: 'OK' } };
     } catch (err) {
-        return { items: [], metadata: { status: 'ERROR', error: err.message, code: err.code || 'NOT_FOUND' } };
+        logError(`[infra] FALLO EN EL PROTOCOLO DE BORRADO: ${atomId}`, err);
+        return { 
+            items: [], 
+            metadata: { 
+                status: 'ERROR', 
+                error: err.message, 
+                code: err.code || 'NOT_FOUND' 
+            } 
+        };
     }
 }
 

@@ -10,9 +10,10 @@ Indra OS es un ecosistema de computación soberana diseñado bajo los principios
 
 Este repositorio no es un código monolítico; es una **Malla de Sistemas Soberanos**. Para asimilar su arquitectura, cualquier Agente o Arquitecto debe seguir el orden de lectura **MCEP (Multi-Context Evaluation Protocol)**:
 
-1.  **Capa 2 (Persistencia):** Entender el [Core README](./system_core/core/README.md) y la persistencia en Drive/Sheets.
-2.  **Capa 1 (Lógica):** Simular el flujo de un `UQO` (Universal Query Object) en la lógica de GAS.
-3.  **Capa 0 (Interfaz):** Analizar el [Client README](./system_core/client/README.md) y la resonancia visual de la UI.
+1.  **MANIFIESTO CENTRAL:** Consultar primero el [indra.manifest.json](./indra.manifest.json). Es el mapa de realidad del sistema.
+2.  **Capa 2 (Persistencia):** Entender el [Core README](./system_core/core/README.md) y la persistencia en Drive/Sheets.
+3.  **Capa 1 (Lógica):** Simular el flujo de un `UQO` (Universal Query Object) en la lógica de GAS.
+4.  **Capa 0 (Interfaz):** Analizar el [Client README](./system_core/client/README.md) y la resonancia visual de la UI.
 
 ---
 

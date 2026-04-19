@@ -1,0 +1,56 @@
+{
+  "system": "Indra OS",
+  "version": "7.5",
+  "paradigm": "Micelar / Axiomatic Design (Suh) / TGS",
+  "identity": "Distributed Relational Consciousness Graph",
+  "topology": {
+    "nucleus": {
+      "id": "CORE_GAS",
+      "path": "system_core/core",
+      "description": "Orquestador de protocolos y transductor de materia física a lógica.",
+      "axioms": ["Sinceridad de ID", "Ley de Retorno (ADR_001)", "Fallo Ruidoso"]
+    },
+    "membrane": {
+      "id": "CLIENT_FRONT",
+      "path": "system_core/client",
+      "description": "Visualización fractal y chasis de agencia para el usuario.",
+      "ui_axioms": {
+        "source": "system_core/Documentacion/2_UI_UX_and_Agency_Design/UI_MANIFESTO_INDUSTRIAL.md",
+        "mandamientos": [
+          "Acción Explícita (CRUD Premium)",
+          "Micro-módulos Canónicos Atomizados",
+          "Flex-First / Auto-layout Responsivo",
+          "Relacionalidad de Cards (Malla de Grafos)",
+          "Uso estricto de Fractal Viewers"
+        ]
+      }
+    },
+    "nervous_system": {
+      "id": "SATELLITE_ISP",
+      "path": "system_core/client/public/indra-satellite-protocol",
+      "protocol": "ISP v3.0 / MCEP"
+    }
+  },
+  "documentation_topology": {
+    "0_Axioms": "Fundamental Laws and Data Contracts (IUH v4.0)",
+    "1_System": "Internal Core Architecture and Engineering",
+    "2_Membrana": "UI/UX, Agency and Interaction Design",
+    "3_Protocols": "Internal Workflows (Auth, Ingestion)",
+    "4_Providers": "External Integrations (Calendars, Notion, Drive)",
+    "5_Research": "Scientific Research Papers (invs_ prefix)",
+    "6_Archive": "Audits, Legacy Plans and Historical Memory"
+  },
+  "agent_directives": {
+    "context_bootstrap": [
+      "README.md",
+      "indra.manifest.json",
+      "system_core/Documentacion/0_Axioms_and_Data_Contracts/ADR_001_DATA_CONTRACTS.md"
+    ],
+    "operational_rules": {
+      "anti_patch": true,
+      "loud_failure": true,
+      "sincere_mapping": true,
+      "micelar_containment": "All workspace assets must reside in cellular folders."
+    }
+  }
+}

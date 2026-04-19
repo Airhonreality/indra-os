@@ -154,18 +154,29 @@ function ledger_list_by_class(atomClass, contextUqo) {
 }
 
 /**
- * Elimina un átomo del Ledger.
+ * Elimina un átomo del Ledger (Respetando el Contexto Micelar).
  * @param {string} driveId 
+ * @param {Object} contextUqo - Contexto para determinar qué núcleo (cell) limpiar.
  */
-function ledger_remove_atom(driveId) {
-  const sheet = _ledger_get_sheet_();
+function ledger_remove_atom(driveId, contextUqo) {
+  const sheet = _ledger_get_target_sheet_(contextUqo);
   const data = sheet.getDataRange().getValues();
   const index = data.findIndex(row => row[1] === driveId);
   
   if (index !== -1) {
     sheet.deleteRow(index + 1);
+    logInfo(`[ledger] Átomo removido del Ledger contextualmente: ${driveId}`);
   } else {
-    console.warn(`[ledger] Intento de eliminar átomo inexistente en Ledger: ${driveId}`);
+    // Si no está en el target, probamos en el ROOT (Cascada de Sinceridad)
+    const masterSheet = _ledger_get_sheet_();
+    const masterData = masterSheet.getDataRange().getValues();
+    const masterIndex = masterData.findIndex(row => row[1] === driveId);
+    if (masterIndex !== -1) {
+      masterSheet.deleteRow(masterIndex + 1);
+      logInfo(`[ledger] Átomo removido del Master Ledger (Cascada): ${driveId}`);
+    } else {
+      logWarn(`[ledger] Intento de eliminar átomo inexistente en Ledger: ${driveId}`);
+    }
   }
 }
 
@@ -464,6 +475,30 @@ function ledger_keychain_sync(token, entry) {
       sheet.appendRow(rowData);
     } else {
       sheet.getRange(index + 1, 1, 1, rowData.length).setValues([rowData]);
+    }
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Elimina físicamente una identidad del Llavero.
+ */
+function ledger_keychain_delete(token) {
+  const ssId = MountManager.getMount('ROOT');
+  if (!ssId) return;
+  const ss = SpreadsheetApp.openById(ssId);
+  const sheet = ss.getSheetByName(KEYCHAIN_SHEET_NAME);
+  if (!sheet) return;
+
+  const lock = LockService.getScriptLock();
+  try {
+    if (!lock.tryLock(5000)) return;
+    const data = sheet.getDataRange().getValues();
+    const index = data.findIndex(row => row[0] === token);
+    if (index !== -1) {
+       sheet.deleteRow(index + 1);
+       logInfo(`[ledger] Identidad eliminada físicamente: ${token}`);
     }
   } finally {
     lock.releaseLock();

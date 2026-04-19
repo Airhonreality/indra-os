@@ -126,7 +126,7 @@ export default function KeychainManager({ onClose }) {
                     </header>
 
                     <div className="fill scroll-y" style={{ marginTop: '10px' }}>
-                        <div className="grid-auto" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--space-4)' }}>
+                        <div className="grid-auto" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 'var(--space-4)', padding: '2px' }}>
                             {identities.length === 0 ? (
                                 <div className="center stack--tight" style={{ height: '300px', opacity: 0.15 }}>
                                     <IndraIcon name="SEARCH" size="32px" />
@@ -155,12 +155,12 @@ function SatelliteCard({ data, onRevoke }) {
     const isMaster = !data.scope_id || data.scope_id === 'ALL';
 
     return (
-        <div className="slot-small stack--tight glass-hover" style={{ padding: '12px', minHeight: '110px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div className="slot-small stack--tight glass-hover" style={{ padding: '16px', minHeight: '130px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flexShrink: 0 }}>
             <div>
                 <div className="spread">
-                    <div className="shelf--tight" style={{ overflow: 'hidden' }}>
-                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0, background: isMaster ? 'var(--color-accent)' : 'var(--color-warm)', boxShadow: `0 0 6px ${isMaster ? 'var(--color-accent-glow)' : 'rgba(245,166,35,0.4)'}` }} />
-                        <span className="font-bold" style={{ fontSize: '11px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{data.name || 'ANÓNIMO'}</span>
+                    <div className="shelf--tight" style={{ overflow: 'hidden', flex: 1 }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0, background: isMaster ? 'var(--color-accent)' : 'var(--color-warm)', boxShadow: `0 0 6px ${isMaster ? 'var(--color-accent-glow)' : 'rgba(245,166,35,0.4)'}` }} />
+                        <span className="font-bold" style={{ fontSize: '12px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', minWidth: 0 }}>{data.name || 'ANÓNIMO'}</span>
                     </div>
                     <button className="btn-micro-action" onClick={onRevoke} style={{ opacity: 0.3 }}>
                         <IndraIcon name="CLOSE" size="8px" />

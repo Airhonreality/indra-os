@@ -160,9 +160,10 @@ export class DataProjector {
         if (!ws) return null;
         return {
             id: ws.id,
-            // Sinceridad Radical: Si no hay label, mostramos el alias o el ID. Nunca un placeholder ficticio.
-            title: ws.handle?.label || ws.handle?.alias || ws.id || '[DEUDA_IDENTIDAD]',
-            description: ws.handle?.description || '',
+            // Sinceridad Radical: Prioridad de identidad descendente.
+            // Buscamos en handle (Contrato) -> Etiqueta Plana -> Alias -> ID (Último recurso)
+            title: ws.handle?.label || ws.label || ws.handle?.alias || ws.alias || ws.id || '[DEUDA_IDENTIDAD]',
+            description: ws.handle?.description || ws.description || '',
             subtitle: `${ws.class || 'WORKSPACE'} // ${ws.id?.substring(0, 8)}`,
             pinCount: ws.pins?.length || 0,
             updatedAt: ws.updated_at || ws.created_at || Date.now(),

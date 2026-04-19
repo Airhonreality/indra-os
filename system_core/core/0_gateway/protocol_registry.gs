@@ -66,6 +66,7 @@ const PROTOCOL_CONTRACTS = Object.freeze({
   'SYSTEM_KEYCHAIN_GENERATE':     { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
   'SYSTEM_KEYCHAIN_REVOKE':       { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
   'SYSTEM_KEYCHAIN_AUDIT':        { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
+  'SYSTEM_KEYCHAIN_SCHEMA':       { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
   'SERVICE_PAIR':                 { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
   'SERVICE_UNPAIR':               { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
   'ACCOUNT_RESOLVE':              { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },

@@ -23,6 +23,7 @@ const SystemOrchestrator = (function() {
     'SYSTEM_KEYCHAIN_GENERATE':     (p) => _keychain_generate(p),
     'SYSTEM_KEYCHAIN_REVOKE':       (p) => _keychain_revoke(p),
     'SYSTEM_KEYCHAIN_AUDIT':        (p) => _keychain_audit(p),
+    'SYSTEM_KEYCHAIN_SCHEMA':       () => SYSTEM_KEYCHAIN_SCHEMA(),
     'SYSTEM_BATCH_EXECUTE':         (p) => _handleBatchExecute_(p),
     'SYSTEM_NEXUS_HANDSHAKE_INIT':  (p) => NexusService.initiateHandshake(p.data.remote_url, p.data.alias),
     'SYSTEM_NEXUS_HANDSHAKE_ACCEPT':(p) => NexusService.acceptHandshake(p),
@@ -32,7 +33,8 @@ const SystemOrchestrator = (function() {
     'SYSTEM_INSTALL_HANDSHAKE':     () => ({ metadata: { status: 'OK' } }),
     'HEALTH_CHECK':                 () => ({ metadata: { status: 'ONLINE', message: 'Indra is listening.' } }),
     'SYSTEM_RESONANCE_CRYSTALLIZE': (p) => resonance_service_crystallize(p),
-    'SYSTEM_TRIGGER_HUB_GENERATE':  (p) => trigger_hub_generate_all(p)
+    'SYSTEM_TRIGGER_HUB_GENERATE':  (p) => trigger_hub_generate_all(p),
+    'SYSTEM_WORKSPACE_DEEP_PURGE':  (p) => _handleWorkspaceDeepPurge_(p)
   });
 
   /**

@@ -79,7 +79,8 @@ async function ignite() {
             // 2. Persistir en el Almacenamiento Soberano
             localStorage.setItem('INDRA_SATELLITE_LINK', JSON.stringify({
                 coreUrl: url,
-                token: token
+                token: token,
+                workspaceId: bridge.activeWorkspaceId
             }));
             
             // 3. Re-ignición forzada del Motor

@@ -122,10 +122,11 @@ export class TransportLayer {
         if (shareTicket) envelope.share_ticket = shareTicket;
 
         try {
+            console.log(`📡 [Transport:Fetch] Llamando a Core: ${coreUrl} [Protocol: ${uqo.protocol}]`);
             const response = await fetch(coreUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
-                credentials: 'include', // AXIOMA: Permite que el Core vea la sesión de Google del dueño
+                credentials: 'include',
                 signal: controller.signal,
                 body: JSON.stringify(envelope)
             });
@@ -136,12 +137,14 @@ export class TransportLayer {
             const result = JSON.parse(rawText);
 
             if (result.metadata?.status === 'ERROR') {
+                logError(`[Transport:RemoteError] Protocolo ${uqo.protocol} falló:`, result.metadata.error);
                 const error = new Error(result.metadata.error);
                 error.code = result.metadata.error;
                 throw error;
             }
             return result;
         } catch (error) {
+             console.error(`❌ [Transport:Critical] Fallo de red hacia ${coreUrl}:`, error.message || error);
              if (error.name === 'AbortError') {
                  const err = new Error("GATEWAY_TIMEOUT");
                  err.code = "GATEWAY_TIMEOUT";

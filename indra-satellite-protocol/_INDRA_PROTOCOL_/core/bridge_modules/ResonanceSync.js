@@ -177,8 +177,11 @@ export class ResonanceSync {
             });
             return await response.json();
         } catch (e) {
-            console.warn("[ResonanceSync] No se pudo persistir en disco. Usando Storage secundario.");
-            localStorage.setItem('INDRA_SATELLITE_LINK', this.bridge.activeWorkspaceId);
+            localStorage.setItem('INDRA_SATELLITE_LINK', JSON.stringify({
+                coreUrl: this.bridge.coreUrl,
+                token: this.bridge.satelliteToken,
+                workspaceId: this.bridge.activeWorkspaceId
+            }));
             localStorage.setItem('INDRA_IGNITIONS', JSON.stringify(payload.ignitions));
         }
     }

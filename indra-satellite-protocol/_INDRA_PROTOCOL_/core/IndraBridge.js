@@ -98,9 +98,22 @@ class IndraBridge {
             // 1. Cargamos la verdad del Repositorio (Prioridad Alta)
             await this.loadContract();
 
-            // 2. Intentamos recuperar sesión si no hay en el contrato
-            if (!this.activeWorkspaceId) {
-                this.activeWorkspaceId = localStorage.getItem('INDRA_SATELLITE_LINK');
+            // 2. Intentamos recuperar sesión y nexo
+            if (!this.coreUrl || !this.satelliteToken || !this.activeWorkspaceId) {
+                const linkData = localStorage.getItem('INDRA_SATELLITE_LINK');
+                if (linkData) {
+                    if (linkData.startsWith('{')) {
+                        try {
+                            const parsed = JSON.parse(linkData);
+                            this.coreUrl = parsed.coreUrl || this.coreUrl;
+                            this.satelliteToken = parsed.token || this.satelliteToken;
+                            this.activeWorkspaceId = parsed.workspaceId || this.activeWorkspaceId;
+                            console.log("♻️ [Bridge] Sesión restaurada desde Pacto Manual.");
+                        } catch (e) { /* Fallback */ }
+                    } else if (!this.activeWorkspaceId) {
+                        this.activeWorkspaceId = linkData;
+                    }
+                }
             }
 
             if (this.coreUrl && this.satelliteToken) {

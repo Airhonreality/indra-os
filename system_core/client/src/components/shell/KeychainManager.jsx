@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppState } from '../../state/app_state';
 import { IndraIcon } from '../utilities/IndraIcons';
 import { Badge } from '../utilities/primitives/Badge';
+import { Spinner } from '../utilities/primitives/Spinner';
 
 /**
  * =============================================================================
- * COMPONENTE: KeychainManager.jsx (Refactor v7.8 Pulcro)
- * RESPONSABILIDAD: Gestión de Identidades y Tokens de Acceso.
- * AXIOMA: Sinceridad Estructural, Cero Compresión y Contraste Industrial.
+ * COMPONENTE: KeychainManager.jsx (Refactor v7.9 Autoproyectado)
+ * RESPONSABILIDAD: Gestión de Identidades guiada por el Esquema del Core.
+ * AXIOMA: Sinceridad Estructural. La UI es un reflejo del Ledger Config.
  * =============================================================================
  */
 const KeychainManager = ({ onClose }) => {
@@ -16,24 +17,38 @@ const KeychainManager = ({ onClose }) => {
         generateIdentity, 
         revokeIdentity, 
         workspaces,
-        loadingKeys 
+        keychainSchema,
+        loadIdentitySchema
     } = useAppState();
 
-    const [newName, setNewName] = useState('');
-    const [newScope, setNewScope] = useState('ALL');
+    const [formData, setFormData] = useState({});
     const [isForging, setIsForging] = useState(false);
 
+    useEffect(() => {
+        if (!keychainSchema) loadIdentitySchema();
+    }, [keychainSchema, loadIdentitySchema]);
+
     const handleGenerate = async () => {
-        if (!newName) return;
+        const name = formData['name'];
+        const scope = formData['scopes'] || 'ALL';
+        
+        if (!name) return;
         setIsForging(true);
         try {
-            await generateIdentity(newName, newScope);
-            setNewName('');
-            setNewScope('ALL');
+            await generateIdentity(name, scope);
+            setFormData({}); // Reset
         } finally {
             setIsForging(false);
         }
     };
+
+    if (!keychainSchema) {
+        return (
+            <div className="indra-overlay fill center" style={{ zIndex: 5000, background: 'rgba(0,0,0,0.8)' }}>
+                <Spinner label="SINCRONIZANDO_CONTRATO_LEDGER..." />
+            </div>
+        );
+    }
 
     return (
         <div className="indra-overlay fill center" style={{ zIndex: 5000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
@@ -56,7 +71,7 @@ const KeychainManager = ({ onClose }) => {
                         <IndraIcon name="VAULT" color="var(--color-accent)" size="20px" />
                         <div className="stack--none">
                             <h2 className="text-xl font-bold letter-spacing-wide">GESTIÓN_DE_IDENTIDADES</h2>
-                            <p className="text-tiny opacity-50 font-mono">CORE_IDENT_LEDGER // V7.8</p>
+                            <p className="text-tiny opacity-50 font-mono">CORE_IDENT_LEDGER // {keychainSchema.metadata?.ledger_version || 'v7.9'}</p>
                         </div>
                     </div>
                     <button className="btn btn--danger btn--mini" onClick={onClose} style={{ borderRadius: '50%', width: '32px', height: '32px', padding: 0 }}>
@@ -66,71 +81,60 @@ const KeychainManager = ({ onClose }) => {
 
                 <div className="fill shelf--none" style={{ display: 'grid', gridTemplateColumns: '380px 1fr', overflow: 'hidden' }}>
                     
-                    {/* SECCIÓN A: LA FORJA (Inscripción) */}
+                    {/* SECCIÓN A: LA FORJA (Proyección Dinámica) */}
                     <aside className="stack--loose" style={{ padding: 'var(--space-8)', background: 'var(--color-bg-void)', borderRight: '1px solid var(--color-border)' }}>
                         <div className="stack--tight">
                             <h3 className="text-label color-accent">01 // LA FORJA</h3>
-                            <p className="text-hint opacity-60">Crear nuevos puntos de acceso al Nexo.</p>
+                            <p className="text-hint opacity-60">Sincronizado con esquema canónico.</p>
                         </div>
 
                         <div className="stack--loose" style={{ marginTop: 'var(--space-6)' }}>
-                            <div className="stack--tight">
-                                <label className="text-tiny font-bold opacity-40">NOMBRE_DEL_ALMA</label>
-                                <input 
-                                    type="text" 
-                                    className="inspector-field__input fill"
-                                    placeholder="Agente Operativo Alpha"
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
-                                    style={{ 
-                                        background: 'rgba(255,255,255,0.05)', 
-                                        border: '1px solid var(--color-border-strong)',
-                                        color: 'white',
-                                        fontSize: '14px',
-                                        padding: '12px'
-                                    }}
-                                />
-                            </div>
-
-                            <div className="stack--tight">
-                                <label className="text-tiny font-bold opacity-40">ÁMBITO_DE_SOBERANÍA</label>
-                                <select 
-                                    className="inspector-field__input fill"
-                                    value={newScope}
-                                    onChange={(e) => setNewScope(e.target.value)}
-                                    style={{ 
-                                        background: 'rgba(255,255,255,0.05)', 
-                                        border: '1px solid var(--color-border-strong)',
-                                        color: 'white',
-                                        fontSize: '14px',
-                                        padding: '10px'
-                                    }}
-                                >
-                                    <option value="ALL">✦ SOBERANÍA GLOBAL (MASTER)</option>
-                                    <optgroup label="CÉLULAS MICELLARES">
-                                        {workspaces.map(ws => (
-                                            <option key={ws.id} value={ws.id}>○ {ws.title}</option>
-                                        ))}
-                                    </optgroup>
-                                </select>
-                            </div>
+                            {keychainSchema.fields.map(field => (
+                                <div key={field.id} className="stack--tight">
+                                    <label className="text-tiny font-bold opacity-40">{field.label}</label>
+                                    
+                                    {field.id === 'scopes' ? (
+                                        <select 
+                                            className="inspector-field__input fill dynamic-input"
+                                            value={formData[field.id] || ''}
+                                            onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
+                                        >
+                                            <option value="ALL">✦ SOBERANÍA GLOBAL (MASTER)</option>
+                                            <optgroup label="CÉLULAS MICELLARES ACTIVE">
+                                                {workspaces.map(ws => (
+                                                    <option key={ws.id} value={ws.id}>○ {ws.title}</option>
+                                                ))}
+                                            </optgroup>
+                                        </select>
+                                    ) : (
+                                        <input 
+                                            type="text" 
+                                            className="inspector-field__input fill dynamic-input"
+                                            placeholder={field.placeholder}
+                                            value={formData[field.id] || ''}
+                                            onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
+                                            required={field.required}
+                                        />
+                                    )}
+                                </div>
+                            ))}
 
                             <button 
                                 className={`btn btn--accent btn--full ${isForging ? 'loading' : ''}`}
                                 onClick={handleGenerate}
-                                disabled={!newName || isForging}
+                                disabled={!formData['name'] || isForging}
                                 style={{ height: '48px', marginTop: 'var(--space-4)', fontSize: '11px', fontWeight: 'bold' }}
                             >
                                 <IndraIcon name="VAULT" size="14px" />
-                                <span style={{ marginLeft: '12px' }}>CRISTALIZAR IDENTIDAD</span>
+                                <span style={{ marginLeft: '12px' }}>GENERAR_IDENTIDAD_EN_CORE</span>
                             </button>
                         </div>
 
                         <div className="hud-line opacity-20" style={{ margin: 'var(--space-8) 0' }} />
                         
                         <div className="opacity-40 text-tiny italic stack--tight">
-                            <p>● Las llaves maestras tienen acceso a la CLI y al Core Directo.</p>
-                            <p>● Las llaves de Workspace están confinadas a su célula.</p>
+                            <p>● El esquema dicta los requerimientos de la identidad.</p>
+                            <p>● Sinceridad ADR-041 activa: UI como mero proyector.</p>
                         </div>
                     </aside>
 
@@ -156,15 +160,26 @@ const KeychainManager = ({ onClose }) => {
                                     }}
                                 />
                             ))}
-                            {identities.length === 0 && (
-                                <div className="center fill opacity-10" style={{ minHeight: '300px' }}>
-                                    <IndraIcon name="VAULT" size="80px" />
-                                </div>
-                            )}
                         </div>
                     </main>
                 </div>
             </div>
+
+            <style>{`
+                .dynamic-input {
+                    background: rgba(255,255,255,0.05) !important;
+                    border: 1px solid var(--color-border-strong) !important;
+                    color: white !important;
+                    font-size: 13px !important;
+                    padding: 10px !important;
+                    transition: all 0.2s ease;
+                }
+                .dynamic-input:focus {
+                    background: rgba(255,255,255,0.1) !important;
+                    border-color: var(--color-accent) !important;
+                    outline: none;
+                }
+            `}</style>
         </div>
     );
 };

@@ -16,6 +16,7 @@ export const createDomainSlice = (set, get) => ({
     pendingSyncs: {}, // { atomId: boolean } - Rastreo de resonancia
     pendingCreations: [], // [ { class, handle, status: 'PROVISIONING' } ]
     identities: [], // Ledger de Identidades (Llavero)
+    keychainSchema: null,
 
     setActiveWorkspace: (id) => {
         if (id) localStorage.setItem('indra-active-workspace-id', id);
@@ -432,6 +433,7 @@ export const createDomainSlice = (set, get) => ({
              if (activeWorkspaceId) get().loadPins();
              get().refreshInductionTicket();
              get().loadIdentityLedger(); // Carga inicial del llavero
+             get().loadIdentitySchema(); // Carga del contrato de datos
          } catch (err) {
              console.error('[domain_slice] Bootstrap failed:', err);
              get().disconnect();
@@ -476,6 +478,19 @@ export const createDomainSlice = (set, get) => ({
              set({ identities: projected });
          } catch (err) {
              console.error('[domain_slice] loadIdentityLedger failed:', err);
+         }
+     },
+
+     loadIdentitySchema: async () => {
+         const { coreUrl, sessionSecret } = get();
+         try {
+             const result = await executeDirective({
+                 provider: 'system',
+                 protocol: 'SYSTEM_KEYCHAIN_SCHEMA'
+             }, coreUrl, sessionSecret);
+             set({ keychainSchema: result });
+         } catch (err) {
+             console.error('[domain_slice] loadIdentitySchema failed:', err);
          }
      },
 

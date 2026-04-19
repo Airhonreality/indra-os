@@ -153,6 +153,24 @@ function _keychain_audit() {
 }
 
 /**
+ * SYSTEM_KEYCHAIN_SCHEMA: Retorna el contrato de datos del Llavero.
+ * AXIOMA: La UI no inventa, el Core dicta.
+ */
+function SYSTEM_KEYCHAIN_SCHEMA() {
+    return {
+        fields: [
+            { id: 'name', label: 'NOMBRE_DE_IDENTIDAD', placeholder: 'Ej: Agente Operativo Alpha', required: true },
+            { id: 'class', label: 'CLASE_DE_IDENTIDAD', options: ['MASTER', 'SCOPED'], default: 'SCOPED' },
+            { id: 'scopes', label: 'ALCANCE_DE_ACCESO', placeholder: 'ALL o WorkspaceID' }
+        ],
+        metadata: {
+            ledger_version: 'v7.8',
+            sincerity_standard: 'ADR-041'
+        }
+    };
+}
+
+/**
  * Procedimiento de Exorcismo: Limpia las ScriptProperties que causan interferencia.
  */
 function system_purge_legacy_karma() {

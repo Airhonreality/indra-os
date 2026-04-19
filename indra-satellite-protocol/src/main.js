@@ -93,7 +93,8 @@ async function ignite() {
             btnManualLink.innerText = "REINTENTAR";
             btnManualLink.disabled = false;
         }
-    });
+      });
+    }
 
     // 5. ESCUCHA: Actualizar UI cuando cambie el estado del Bridge (ISP v2.5 Canon)
     window.addEventListener('indra-ready', (e) => {

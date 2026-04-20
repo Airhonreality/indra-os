@@ -51,7 +51,11 @@ function _system_handleSatelliteDiscover(uqo) {
         }
 
         return { 
-            items: discovered, 
+            items: discovered.map(d => ({
+                ...d,
+                provider: 'system',
+                metadata: { ...d.metadata, status: 'OK', physical: true }
+            })), 
             metadata: { 
                 status: 'OK', 
                 total: discovered.length,

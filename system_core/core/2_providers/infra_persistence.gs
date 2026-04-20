@@ -34,6 +34,10 @@ function _system_handleRead(uqo) {
     if (contextId === 'documents') targetClass = DOCUMENT_CLASS_;
 
     if (targetClass) {
+        // AXIOMA: Los Workspaces son SOBERANOS y FÍSICOS. El resto de átomos pueden usar el Ledger.
+        if (targetClass === WORKSPACE_CLASS_) {
+            return _system_handleSatelliteDiscover(uqo);
+        }
         return _system_listAtomsByClass(targetClass, uqo.provider, uqo);
     }
     

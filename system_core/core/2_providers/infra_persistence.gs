@@ -139,7 +139,7 @@ function _system_createAtom(atomClass, label, uqo) {
     }
 
     try {
-        const providerId = uqo.provider || 'system';
+        const providerId = uqo.provider || 'indra';
         const extraData = uqo.data || {};
         const now = new Date().toISOString();
 
@@ -233,13 +233,19 @@ function _system_deleteAtom(atomId, uqo = {}) {
 }
 
 function _system_toAtom(doc, fileId, providerId) {
-    if (!doc.class || !doc.handle?.label) {
-        return { id: fileId, class: 'BROKEN_ATOM' };
+    // Soportar tanto estructura de Átomo completa como fila plana de Ledger
+    const label = doc.handle?.label || doc.label;
+    const alias = doc.handle?.alias || doc.alias;
+    const atomClass = doc.class || 'UNKNOWN';
+
+    if (!atomClass || (!label && atomClass !== 'WORKSPACE')) {
+        return { id: fileId, class: 'BROKEN_ATOM', metadata: { error: 'MISSING_IDENTITY' } };
     }
+
     const safeHandle = {
-        ns: doc.handle?.ns || `com.indra.system.${doc.class.toLowerCase()}`,
-        alias: doc.handle?.alias || _system_slugify_(doc.handle?.label),
-        label: doc.handle?.label
+        ns: doc.handle?.ns || `com.indra.system.${atomClass.toLowerCase()}`,
+        alias: alias || _system_slugify_(label || 'sin-titulo'),
+        label: label || 'Sin título'
     };
 
     return {
@@ -248,7 +254,7 @@ function _system_toAtom(doc, fileId, providerId) {
         handle: safeHandle,
         class: doc.class,
         protocols: doc.protocols || [],
-        provider: providerId || 'system',
+        provider: providerId || 'indra',
         created_at: doc.created_at,
         updated_at: doc.updated_at,
         payload: doc.payload || {},
@@ -262,7 +268,7 @@ function _system_listAtomsByClass(atomClass, providerId, uqo) {
         if (atomClass === WORKSPACE_CLASS_) {
             _system_resonate_identity_(items);
         }
-        const atoms = items.map(item => _system_toAtom(item, item.id, providerId));
+        const atoms = items.map(item => _system_toAtom(item, item.id, providerId || 'indra'));
         return { items: atoms, metadata: { status: 'OK', total: atoms.length } };
     } catch (err) {
         return { items: [], metadata: { status: 'ERROR', error: err.message } };

@@ -193,11 +193,11 @@ function _ledger_build_row_(atom, driveId) {
     atom.gid || `GID-${driveId.substring(0,8)}`,
     driveId,
     atom.class || 'UNKNOWN',
-    atom.handle?.alias || '', // Mantenemos el alias para resolución de rutas
-    '', // Label -> Ahora es una resonancia física
+    atom.handle?.alias || atom.alias || '', 
+    atom.handle?.label || atom.label || 'Sin título',
     owner,
-    '', // UpdatedAt -> Ahora es una resonancia física
-    '{}', // Payload -> Ahora reside solo en el Átomo
+    atom.updated_at || new Date().toISOString(),
+    JSON.stringify(atom.payload || {}), 
     JSON.stringify(acl)
   ];
 }

@@ -17,7 +17,9 @@ class IndraSchemaProjector extends HTMLElement {
     }
 
     set schemas(data) {
-        this._schemas = data || [];
+        const newData = data || [];
+        if (JSON.stringify(this._schemas) === JSON.stringify(newData)) return;
+        this._schemas = newData;
         this.render();
     }
 

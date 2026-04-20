@@ -325,6 +325,7 @@ class IndraBridgeHUD extends HTMLElement {
     }
 
     handleResonanceUpdate(detail) {
+        if (this._mode === detail.mode) return; // AXIOMA DE PAZ: No interrumpir la realidad si no hay cambio
         this._mode = detail.mode; 
         this.updateUI();
     }
@@ -354,8 +355,15 @@ class IndraBridgeHUD extends HTMLElement {
 
         // Población de Universo (Picker y Ribbon)
         if (this._bridge.capabilities) {
-            if (picker) picker.providers = this._bridge.capabilities.providers || [];
-            if (ribbon) ribbon.workflows = this._bridge.contract?.workflows || [];
+            const newProviders = this._bridge.capabilities.providers || [];
+            if (picker && JSON.stringify(picker.providers) !== JSON.stringify(newProviders)) {
+                picker.providers = newProviders;
+            }
+
+            const newWorkflows = this._bridge.contract?.workflows || [];
+            if (ribbon && JSON.stringify(ribbon.workflows) !== JSON.stringify(newWorkflows)) {
+                ribbon.workflows = newWorkflows;
+            }
         }
 
         switch (this._mode) {

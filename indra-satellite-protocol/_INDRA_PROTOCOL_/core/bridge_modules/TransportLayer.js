@@ -24,7 +24,7 @@ export class TransportLayer {
 
     async execute(uqo, options = {}) {
         if (!uqo.provider && uqo.protocol !== 'SYSTEM_MANIFEST') {
-            uqo.provider = 'system';
+            uqo.provider = this.bridge.contract?.satellite_name || 'indra';
         }
 
         // --- INTERCEPCIÓN DE PROTOCOLO DE INTERFAZ (SHELL MADRE) ---

@@ -578,6 +578,15 @@ function _drive_fileToAtom(file, providerId, includeFields) {
       payload.fields = [];
     }
   }
+  
+  // ADR-0XX: Extracción de ADN Puro para Esquemas JSON
+  if (includeFields && mimeType === 'application/json') {
+      try {
+          payload.content = file.getBlob().getDataAsString();
+      } catch (e) {
+          logWarn(`[provider_drive] Error leyendo contenido JSON: ${e.message}`);
+      }
+  }
 
   // ADR-023: Si el archivo es una imagen, construir el tipo INDRA_MEDIA canónico.
   if (mimeType && mimeType.startsWith('image/')) {

@@ -27,7 +27,7 @@ function _system_handleSatelliteDiscover(uqo) {
             const folder = folders.next();
             if (folder.isTrashed()) continue;
 
-            const files = folder.getFilesByName('workspace.json');
+            const files = folder.getFilesByName('manifest.json');
             if (files.hasNext()) {
                 const file = files.next();
                 try {
@@ -41,8 +41,8 @@ function _system_handleSatelliteDiscover(uqo) {
                         },
                         payload: {
                             cell_folder_id: folder.getId(),
-                            artifacts_folder_id: doc.payload?.artifacts_folder_id,
-                            cell_ledger_id: doc.payload?.cell_ledger_id,
+                            artifacts_folder_id: doc.payload?.artifacts_folder_id || doc.membrane?.artifacts_folder_id,
+                            cell_ledger_id: doc.payload?.cell_ledger_id || doc.membrane?.ledger_id,
                             created_at: doc.created_at
                         }
                     });
@@ -152,7 +152,7 @@ function _system_genesis_cellular_workspace_(label, uqo) {
             protocols: ['ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE']
         };
 
-        const identityFile = cellFolder.createFile('workspace.json', JSON.stringify(atomDoc, null, 2));
+        const identityFile = cellFolder.createFile('manifest.json', JSON.stringify(atomDoc, null, 2));
         const driveId = identityFile.getId();
         atomDoc.id = driveId;
         identityFile.setContent(JSON.stringify(atomDoc, null, 2));

@@ -71,24 +71,40 @@ export class ResonanceSync {
             });
 
             if (igniteResponse.metadata?.status === 'OK') {
-                const siloItem = igniteResponse.items?.[0];
-                
-                // CAPTURA DE EVIDENCIA FINAL (Sincronía de Doble Vínculo)
-                schema.metadata = {
-                    drive_id: siloItem?.id || atomId, // ID de la tabla física
-                    atom_id: atomId,                 // ID del esquema lógico
-                    synced_at: new Date().toLocaleString(),
-                    workspace_id: workspaceId
-                };
+            const siloItem = igniteResponse.items?.[0];
+            
+            // PASO 3: ANCLAJE DE VISIBILIDAD (SYSTEM_PIN) - AXIOMA v7.8
+            // Registramos el Pin para que el Dashboard React lo reconozca en sus columnas.
+            console.log(`[Sincerity:Anchor] Paso 3/3: Anclando visibilidad en el Dashboard...`);
+            await bridge.execute({
+                protocol: 'SYSTEM_PIN',
+                provider: 'system',
+                workspace_id: workspaceId,
+                data: { 
+                    atom: {
+                        id: atomId,
+                        class: schemaClass,
+                        handle: { alias: schema.handle?.alias, label: schemaLabel }
+                    }
+                }
+            });
 
-                // PERSISTENCIA LOCAL
-                bridge.ignitions = bridge.ignitions || {};
-                bridge.ignitions[schemaName] = schema.metadata;
-                localStorage.setItem('INDRA_IGNITIONS', JSON.stringify(bridge.ignitions));
-                
-                console.log(`🚀 [Sincerity:Complete] Realidad materializada: ${schemaLabel} -> Silo:${siloItem?.id}`);
-                return igniteResponse;
-            }
+            // CAPTURA DE EVIDENCIA FINAL (Sincronía de Doble Vínculo)
+            schema.metadata = {
+                drive_id: siloItem?.id || atomId, // ID de la tabla física
+                atom_id: atomId,                 // ID del esquema lógico
+                synced_at: new Date().toLocaleString(),
+                workspace_id: workspaceId
+            };
+
+            // PERSISTENCIA LOCAL
+            bridge.ignitions = bridge.ignitions || {};
+            bridge.ignitions[schemaName] = schema.metadata;
+            localStorage.setItem('INDRA_IGNITIONS', JSON.stringify(bridge.ignitions));
+            
+            console.log(`🚀 [Sincerity:Complete] Realidad materializada y anclada: ${schemaLabel} -> Silo:${siloItem?.id}`);
+            return igniteResponse;
+        }
 
             throw new Error(igniteResponse.metadata?.error || "CORE_REJECTED_IGNITION");
 

@@ -71,11 +71,17 @@ export class ResonanceSync {
 
         try {
             // AXIOMA DE GÉNESIS: El satélite envía su ADN (Blueprint) al motor de automatización
+            // INYECCIÓN DE ADN: Aseguramos que el Core reconozca el objeto como un esquema puro
+            const blueprint = {
+                ...schema,
+                class: 'DATA_SCHEMA'
+            };
+
             const response = await bridge.execute({
                 protocol: 'INDUSTRIAL_IGNITE',
                 provider: 'automation',
                 data: {
-                    blueprint: schema,
+                    blueprint: blueprint,
                     target_provider: options.provider || 'drive',
                     workspace_id: bridge.activeWorkspaceId
                 }

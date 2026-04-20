@@ -145,18 +145,15 @@ const TEMPLATE = `
     }
     .config-card.active { display: grid; }
 
-    .form-group { display: flex; flex-direction: column; gap: 8px; }
-    .form-group label { font-size: 9px; font-weight: 800; color: var(--indra-text-dim); text-transform: uppercase; }
-    .form-group input { 
-        padding: 12px 16px; 
-        border: 1px solid var(--indra-border); 
-        border-radius: 10px; 
-        font-size: 13px; 
+        color: #8E8E93;
+        letter-spacing: 1px;
+        text-transform: uppercase;
     }
 
-    .hud-body { display: grid; grid-template-columns: 350px 1fr; background: var(--indra-border); gap: 1px; }
-    .hud-body.locked { opacity: 0.15; filter: grayscale(1); pointer-events: none; }
-    .hud-body.locked aside { opacity: 1; filter: none; pointer-events: auto; } /* Excepción de Soberanía: Los esquemas siempre se ven */
+    .panel-content { padding: 0 30px 30px 30px; }
+    
+    .hud-container.locked { opacity: 0.3; filter: grayscale(1); pointer-events: none; }
+    .hud-container.locked .col-adn { opacity: 1; filter: none; pointer-events: auto; } /* Sinceridad: DNA siempre visible */
     
     .panel-indra { background: rgba(255,255,255,0.8); padding: 30px; }
     .panel-title { 
@@ -219,29 +216,38 @@ const TEMPLATE = `
         </div>
     </section>
 
-    <main class="hud-body locked" id="hud-body">
-        <aside class="panel-indra">
-            <h3 class="panel-title">Espacio de Trabajo</h3>
-            <indra-workspace-selector id="workspace-ctrl" style="margin-bottom:30px;"></indra-workspace-selector>
-            
-            <h3 class="panel-title">Seguridad (Keychain)</h3>
-            <indra-keychain-widget id="keychain-ctrl"></indra-keychain-widget>
-            
-            <h3 class="panel-title" style="margin-top:40px;">Esquemas de Datos</h3>
-            <indra-schema-projector id="schema-projector"></indra-schema-projector>
-        </aside>
+    <main class="hud-container locked" id="hud-body">
+        <div class="main-grid">
+            <!-- COLUMNA 1: IDENTIDAD -->
+            <aside class="col col-identity">
+                <header class="panel-header">Ciudadanía e Identidad</header>
+                <div class="panel-content">
+                    <indra-workspace-selector id="workspace-ctrl" style="margin-bottom:40px;"></indra-workspace-selector>
+                    <indra-keychain-widget id="keychain-ctrl"></indra-keychain-widget>
+                </div>
+            </aside>
 
-        <section style="display: flex; flex-direction: column; gap: 1px; background: var(--indra-border);">
-            <div class="panel-indra">
-                <h3 class="panel-title">Buscador de Átomos</h3>
-                <indra-universal-picker id="universal-picker"></indra-universal-picker>
-            </div>
-            
-            <div class="panel-indra" style="flex-grow: 1;">
-                <h3 class="panel-title">Flujos de Trabajo Activos</h3>
-                <indra-workflow-ribbon id="workflow-ribbon"></indra-workflow-ribbon>
-            </div>
-        </section>
+            <!-- COLUMNA 2: TERRITORIO (Los Esquemas) -->
+            <section class="col col-adn">
+                <header class="panel-header">ADN Local (Leyes de Datos)</header>
+                <div class="panel-content">
+                    <indra-schema-projector id="schema-projector"></indra-schema-projector>
+                </div>
+            </section>
+
+            <!-- COLUMNA 3: ACCIONES -->
+            <aside class="col col-actions">
+                <header class="panel-header">Manifiesto del Universo</header>
+                <div class="panel-content">
+                    <indra-universal-picker id="universal-picker" style="margin-bottom:30px;"></indra-universal-picker>
+                </div>
+
+                <header class="panel-header">Secuencias de Trabajo</header>
+                <div class="panel-content" style="flex: 1; display: flex; flex-direction: column;">
+                    <indra-workflow-ribbon id="workflow-ribbon" style="flex: 1;"></indra-workflow-ribbon>
+                </div>
+            </aside>
+        </div>
     </main>
 </div>
 `;
@@ -304,20 +310,28 @@ class IndraBridgeHUD extends HTMLElement {
     updateUI() {
         if (!this.shadowRoot || !this._bridge) return;
 
-        const body = this.shadowRoot.getElementById('hud-body');
-        const status = this.shadowRoot.getElementById('master-status');
-        const actionBtn = this.shadowRoot.getElementById('btn-master-action');
-        const satNameDisplay = this.shadowRoot.getElementById('display-sat-name');
-        const coreUrlDisplay = this.shadowRoot.getElementById('display-core-url');
-        const capManifest = this.shadowRoot.getElementById('capabilities-manifest');
+        const status = this.shadowRoot.getElementById('resonance-status');
+        const satNameDisplay = this.shadowRoot.getElementById('sat-name');
+        const coreUrlDisplay = this.shadowRoot.getElementById('core-url');
+        const container = this.shadowRoot.getElementById('hud-body');
+
+        // Hidratación de Componentes
+        const picker = this.shadowRoot.getElementById('universal-picker');
+        const ribbon = this.shadowRoot.getElementById('workflow-ribbon');
+        const projector = this.shadowRoot.getElementById('schema-projector');
 
         satNameDisplay.innerText = this._bridge.contract?.satellite_name || 'Satélite Desconocido';
         coreUrlDisplay.innerText = this._bridge.coreUrl || 'Sin conexión activa';
 
-        // Actualizar esquemas (Sincronía Continua)
+        // Sincronía Continua de Datos
         if (this._bridge.contract && this._bridge.contract.schemas) {
-            const projector = this.shadowRoot.getElementById('schema-projector');
-            if (projector) projector.schemas = this._bridge.contract.schemas;
+            projector.schemas = this._bridge.contract.schemas;
+        }
+
+        // Población de Universo (Picker y Ribbon)
+        if (this._bridge.capabilities) {
+            if (picker) picker.providers = this._bridge.capabilities.providers || [];
+            if (ribbon) ribbon.workflows = this._bridge.contract?.workflows || [];
         }
 
         switch (this._mode) {
@@ -368,12 +382,14 @@ class IndraBridgeHUD extends HTMLElement {
         };
 
         this.shadowRoot.getElementById('btn-master-action').onclick = () => {
-            if (this._mode === 'GHOST') this._bridge.init();
+            if (this._mode === 'GHOST') this.handleMasterAction();
             else if (this._mode === 'DISCOVERY') {
                 const selector = this.shadowRoot.getElementById('workspace-ctrl');
                 if (selector && selector.shadowRoot.getElementById('ws-select')) {
                     selector.shadowRoot.getElementById('ws-select').focus();
                 }
+            } else {
+                this.handleMasterAction();
             }
         };
 

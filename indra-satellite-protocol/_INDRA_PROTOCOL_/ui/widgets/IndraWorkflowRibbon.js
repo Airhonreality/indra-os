@@ -73,13 +73,36 @@ class IndraWorkflowRibbon extends HTMLElement {
 
         this.shadowRoot.innerHTML = `
         <style>
-            :host { display: block; --accent: ${activeCategory === 'SYSTEM' ? '#f59e0b' : '#8B5CF6'}; }
+            :host { display: block; --accent: ${activeCategory === 'SYSTEM' ? '#f59e0b' : '#007AFF'}; }
             
-            .tabs-nav { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid #DADCE0; background: #EEE; padding: 4px 4px 0 4px; border-radius: 4px; }
-            .tab-btn { padding: 6px 12px; font-size: 10px; font-weight: 700; cursor: pointer; border: none; background: transparent; color: #666; border-bottom: 2px solid transparent; text-transform: uppercase; }
-            .tab-btn.active { color: #000; border-bottom-color: var(--accent); background: #FFF; border-radius: 4px 4px 0 0; }
+            .tabs-nav { 
+                display: flex; 
+                gap: 2px; 
+                margin-bottom: 25px; 
+                background: rgba(0,0,0,0.05); 
+                padding: 3px; 
+                border-radius: 9px;
+            }
+            .tab-btn { 
+                flex: 1;
+                padding: 10px 5px; 
+                font-size: 9px; 
+                font-weight: 800; 
+                cursor: pointer; 
+                border: none; 
+                background: transparent; 
+                color: #8E8E93; 
+                border-radius: 7px;
+                text-transform: uppercase; 
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .tab-btn.active { 
+                color: #000; 
+                background: #FFF; 
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
 
-            .ribbon-container { display: flex; flex-direction: column; gap: 15px; }
+            .ribbon-container { display: flex; flex-direction: column; gap: 12px; }
             .workflow-item { background: #FFFFFF; border: 1px solid #DADCE0; border-left: 4px solid var(--accent); border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
             .wf-header { padding: 12px 15px; border-bottom: 1px solid #F1F3F4; display: flex; justify-content: space-between; align-items: center; }
             .wf-label { font-size: 12px; font-weight: 700; color: #1A1F36; border: none; background: transparent; }

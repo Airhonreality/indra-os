@@ -76,10 +76,11 @@ function _ledger_get_target_sheet_(uqo) {
       logInfo(`[ledger] [${trx}] JIT: Intentando auto-adopción física para ${wsId}...`);
       try {
           const folder = DriveApp.getFolderById(wsId);
-          const manifestFile = folder.getFilesByName('workspace.json');
+          // AXIOMA: manifest.json es la ÚNICA fuente de verdad celular (v5.1)
+          const manifestFile = folder.getFilesByName('manifest.json');
           if (manifestFile.hasNext()) {
               const dna = JSON.parse(manifestFile.next().getBlob().getDataAsString());
-              cellLedgerId = dna.payload?.cell_ledger_id;
+              cellLedgerId = dna.membrane?.ledger_id || dna.payload?.cell_ledger_id;
               if (cellLedgerId) {
                   logSuccess(`[ledger] [${trx}] Célula adoptada con éxito: ${wsId} -> ${cellLedgerId}`);
                   ledger_infra_sync(infraKey, cellLedgerId, dna.handle?.label || wsId);

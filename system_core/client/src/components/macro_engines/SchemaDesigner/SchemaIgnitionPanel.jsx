@@ -23,9 +23,9 @@ export function SchemaIgnitionPanel({ atom, bridge, onIgnited }) {
     const [isIgniting, setIsIgniting] = useState(false);
     const [selectedProvider, setSelectedProvider] = useState('drive');
 
-    // Filtrar proveedores que soportan creación tabular
+    // Filtrar proveedores que soportan el flujo de datos tabular (Silos reales)
     const tabularProviders = services.filter(s => 
-        s.protocols?.includes('ATOM_CREATE') && 
+        s.protocols?.includes('TABULAR_STREAM') && 
         s.id !== 'system'
     );
 

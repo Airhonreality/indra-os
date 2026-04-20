@@ -48,6 +48,10 @@ export async function executeDirective(uqo, coreUrl, sessionSecret, shareTicket 
     console.log('%c FULL_PAYLOAD: ', 'color: #444;', sanitizedPayload);
 
 
+    // --- RESILIENCIA AXIAL (TIMEOUT) ---
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos de paciencia
+
     const t0 = Date.now();
     try {
         console.log(`%c [wire] Conectando con Core (SANITIZED): ${cleanCoreUrl} `, 'color: #999; font-style: italic;');
@@ -55,24 +59,25 @@ export async function executeDirective(uqo, coreUrl, sessionSecret, shareTicket 
         const response = await fetch(cleanCoreUrl, {
             method: 'POST',
             mode: 'cors',
+            signal: controller.signal,
             headers: {
                 'Content-Type': 'text/plain;charset=utf-8',
             },
             body: JSON.stringify(payload)
         }).catch(err => {
+            if (err.name === 'AbortError') {
+                throw new Error('CORE_TIMEOUT: El núcleo no respondió en el tiempo esperado (30s).');
+            }
             // Sonda de diagnóstico JIT para errores de red
             console.error(`%c [CRITICAL_NETWORK_ERROR] Fallo de conexión física con el Core. `, 'background: red; color: white;');
-            console.error(`  > URL de destino (LIMPIA): ${cleanCoreUrl}`);
-            console.error(`  > Mensaje original: ${err.message}`);
-            console.warn(`  > DIAGNÓSTICO: Si usas múltiples cuentas de Google, logueate solo con la propietaria del Core.`);
             throw err;
         });
 
+        clearTimeout(timeoutId);
         const responseText = await response.text();
         
         if (!response.ok) {
             console.error('CORE_HTTP_FAILURE:', response.status, responseText);
-            console.groupEnd();
             throw new Error(`CORE_HTTP_ERROR: ${response.status} - ${responseText.substring(0, 200)}`);
         }
 

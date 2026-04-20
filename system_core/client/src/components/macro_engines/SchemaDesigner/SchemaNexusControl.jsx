@@ -196,22 +196,28 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers
                 context_id: atom.id,
                 data: { target_provider: selectedProvider, parent_id: targetFolder.id }
             }, coreUrl, sessionSecret);
-
             if (result.metadata?.status === 'OK') {
                 updateLastLog("DONE");
                 
                 // Paso 3: Vinculación de ID
-                addLog(`🧬 Vinculando ID de almacenamiento [${result.metadata.silo_id.substring(0,8)}...]`, "DONE");
+                addLog(`🧬 Vinculando ID de almacenamiento [${result.metadata.silo_id?.substring(0,8)}...]`, "DONE");
                 
                 // Paso 4: Registro en Workspace (Pinning)
                 addLog("📌 Registrando acceso en el panel de control...");
-                // Esperamos un segundo para simular la persistencia física del Ledger si fuera necesario
-                await new Promise(r => setTimeout(r, 800));
                 
+                // Verificación de Despliegue (Honestidad de Versión)
+                const coreVersion = result.metadata?.core_patch_version || "LEGACY_PRE_IGNITION";
+                console.log(`[Materialization] Core Version Detectada: ${coreVersion}`);
+                
+                if (coreVersion === "LEGACY_PRE_IGNITION") {
+                    console.warn("⚠️ ALERTA: El Core está ejecutando una versión antigua.");
+                    toastEmitter.warning("Despliegue de GAS desactualizado.");
+                }
+
+                await new Promise(r => setTimeout(r, 800));
                 toastEmitter.success("Base de datos configurada y vinculada.");
                 updateLastLog("DONE");
                 
-                // Finalizamos devolviendo el ESQUEMA (result.items[0] ya es el esquema gracias al cambio en el Core)
                 onComplete(result.items[0]);
             } else {
                 updateLastLog("ERROR");

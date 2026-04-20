@@ -108,9 +108,11 @@ function _system_handleSchemaIgnite(uqo) {
   }
 
   const siloAtom = createResult.items[0];
+  logInfo(`[ignite] Almacenamiento físico creado: ${siloAtom.id} (${siloAtom.class})`);
 
   // 3. VINCULACIÓN TÉCNICA (Trazabilidad Lineal)
   // Actualizamos el esquema original para que "conozca" su destino físico.
+  logInfo(`[ignite] Vinculando a esquema origen: ${schemaId} (Clase: ${schemaAtom.class})`);
   const patchResult = _system_handlePatch({
     provider: uqo.provider,
     context_id: schemaId,
@@ -119,9 +121,15 @@ function _system_handleSchemaIgnite(uqo) {
         target_silo_id: siloAtom.id,
         target_provider: targetProvider,
         ignited_at: new Date().toISOString()
+      },
+      metadata: { // Inyectamos metadatos de sincronización
+        last_materialization: siloAtom.id,
+        materialization_status: 'OK'
       }
     }
   });
+
+  logInfo(`[ignite] Vinculación completada. Items devueltos: ${patchResult.items.length}. Clase del primero: ${patchResult.items[0]?.class}`);
 
   return {
     items: patchResult.items, // Devolvemos el ESQUEMA ACTUALIZADO
@@ -130,6 +138,7 @@ function _system_handleSchemaIgnite(uqo) {
       trace_id: traceId,
       silo_id: siloAtom.id,
       target_provider: targetProvider,
+      core_patch_version: 'v10.1-IGNITION-FIX', // Marca de verificación
       message: 'Base de datos configurada y vinculada exitosamente.'
     }
   };

@@ -144,6 +144,24 @@ export async function executeDirective(uqo, coreUrl, sessionSecret, shareTicket 
         return result;
 
     } catch (error) {
+        // --- AXIOMA DE AUTO-SANACIÓN (v7.5) ---
+        // Si el Core informa que el Ledger está desincronizado (IDs Fantasma), 
+        // intentamos una reconstrucción automática y reintentamos la directiva original.
+        if (error.message.includes('SYSTEM_REBUILD_LEDGER') && uqo.protocol !== 'SYSTEM_REBUILD_LEDGER') {
+            console.warn(`%c 🛡️ [Self-Healing] Detectada inconsistencia en Ledger. Intentando reconstrucción... `, 'background: #333; color: #ffeb3b; padding: 2px;');
+            try {
+                // Ejecutamos la reconstrucción (Recursión segura ya que validamos el protocolo)
+                await executeDirective({ protocol: 'SYSTEM_REBUILD_LEDGER', provider: 'system' }, coreUrl, sessionSecret, shareTicket);
+                console.log(`%c ✅ [Self-Healing] Ledger reconstruido. Reintentando operación: ${resolvedProtocol}... `, 'color: #4caf50;');
+                // Reintento recursivo
+                return await executeDirective(uqo, coreUrl, sessionSecret, shareTicket);
+            } catch (rebuildErr) {
+                console.error(`%c ❌ [Self-Healing] La reconstrucción automática falló. `, 'color: #f44;', rebuildErr);
+                // Si la sanación falla, lanzamos el error original para no ocultar el problema base
+                throw error;
+            }
+        }
+
         if (error.name !== 'Error') console.groupEnd(); // Evitar grupos abiertos en crashes fatales
         console.error(`[directive_executor] Failure [${traceId}]:`, error);
         throw error;

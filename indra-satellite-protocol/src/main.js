@@ -106,6 +106,35 @@ async function ignite() {
             authStatusChip.style.color = "white";
         }
     });
+
+    window.addEventListener('indra-resonance-sync', (e) => {
+        const mode = e.detail?.mode;
+        const error = e.detail?.error;
+        
+        if (mode === 'GHOST') {
+            authStatusChip.innerText = error ? "ESTADO: SESIÓN MUERTA" : "ESTADO: GHOST";
+            authStatusChip.style.background = error ? "#EA4335" : "#666";
+        }
+        if (mode === 'OFFLINE') {
+            authStatusChip.innerText = "ESTADO: OFFLINE";
+            authStatusChip.style.background = "#FBBC05";
+        }
+        if (error) {
+            console.error("🚨 Error de Resonancia detectado:", error);
+            const errorBanner = document.createElement('div');
+            errorBanner.style = "position: fixed; bottom: 20px; left: 20px; background: #EA4335; color: white; padding: 10px 20px; border-radius: 8px; font-family: monospace; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideIn 0.3s ease-out;";
+            errorBanner.innerText = `⚠️ INDRA: ${error}`;
+            document.body.appendChild(errorBanner);
+            setTimeout(() => errorBanner.remove(), 5000);
+        }
+    });
 }
 
-ignite().catch(err => console.error("❌ ERROR EN IGNICIÓN:", err));
+ignite().catch(err => {
+    console.error("❌ ERROR EN IGNICIÓN:", err);
+    const chip = document.getElementById('auth-status-chip');
+    if (chip) {
+        chip.innerText = "FALLO DE IGNICIÓN";
+        chip.style.background = "#EA4335";
+    }
+});

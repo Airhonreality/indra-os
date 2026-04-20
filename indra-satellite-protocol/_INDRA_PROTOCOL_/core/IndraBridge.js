@@ -134,8 +134,18 @@ class IndraBridge {
                     }
 
                 } catch (e) {
-                    console.warn("[IndraBridge:Nexus] Error en Handshake. Modo Offline.", e);
-                    window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'OFFLINE' } }));
+                    console.warn(`⚠️ [IndraBridge] Handshake fallido: ${e.message}`);
+                    
+                    // AXIOMA DE RESILIENCIA: Si el ID ya no existe en el universo Indra,
+                    // limpiamos la sesión local para permitir un nuevo Génesis.
+                    if (e.message.indexOf('NOT_FOUND') !== -1 || e.message.indexOf('NUC') !== -1) {
+                        console.log("♻️ [IndraBridge] Sesión muerta detectada. Liberando anclaje.");
+                        this.activeWorkspaceId = null;
+                        localStorage.removeItem('INDRA_SATELLITE_LINK'); // Purgar configuración tóxica
+                        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'GHOST', error: e.message } }));
+                    } else {
+                        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'OFFLINE', error: e.message } }));
+                    }
                 }
             } else {
                 console.log("[IndraBridge:Nexus] Sin credenciales. Entrando en modo GHOST.");

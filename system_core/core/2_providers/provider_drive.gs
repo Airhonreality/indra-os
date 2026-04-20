@@ -359,6 +359,13 @@ function _drive_handleAtomCreate(uqo) {
 
       atom = _drive_fileToAtom(file, uqo.provider, true);
       logInfo(`[provider_drive] Hoja de cálculo generada: "${label}" en "${parentFolder.getName()}"`);
+    } else if (source.class === 'DATA_SCHEMA') {
+      // ── MODO SEMILLA: Crear archivo JSON de esquema puro (Axioma de Sinceridad)
+      const fileName = `${label.trim()}.json`;
+      const content = JSON.stringify(source, null, 2);
+      const newFile = parentFolder.createFile(fileName, content, 'application/json');
+      atom = _drive_fileToAtom(newFile, uqo.provider, false);
+      logInfo(`[provider_drive] Semilla de ADN materializada: "${fileName}" en artifacts.`);
     } else if (source.class === 'DOCUMENT' && source.intent === 'TRANSFER') {
       // ── MODO TRANSFERENCIA: Emitir Handshake para el Cliente
       return _drive_handleTransferHandshake({ 

@@ -359,6 +359,7 @@ function _drive_handleAtomCreate(uqo) {
 
       atom = _drive_fileToAtom(file, uqo.provider, true);
       logInfo(`[provider_drive] Hoja de cálculo generada: "${label}" en "${parentFolder.getName()}"`);
+      logInfo(`[IDENTITY_TRACE] URL Real: ${file.getUrl()} | ID: ${file.getId()}`);
     } else if (source.class === 'DATA_SCHEMA') {
       // ── MODO SEMILLA: Crear archivo JSON de esquema puro (Axioma de Sinceridad)
       const fileName = `${label.trim()}.json`;
@@ -383,7 +384,14 @@ function _drive_handleAtomCreate(uqo) {
       logInfo(`[provider_drive] Carpeta creada: "${label}" en "${parentFolder.getName()}"`);
     }
 
-    return { items: [atom], metadata: { status: 'OK' } };
+    return { 
+      items: [atom], 
+      metadata: { 
+        status: 'OK',
+        silo_url: atom.raw?.url || file.getUrl(),
+        physical_id: file.getId()
+      } 
+    };
 
   } catch (err) {
     logError('[provider_drive] Error en atom_create.', err);

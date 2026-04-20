@@ -144,6 +144,7 @@ function _system_handleSchemaIgnite(uqo) {
       status: 'OK',
       trace_id: traceId,
       silo_id: physicalId,
+      silo_url: createResult.metadata?.silo_url,
       target_provider: targetProvider,
       core_patch_version: 'v10.1-ULTRA-SONDE',
       message: 'Base de datos configurada y vinculada exitosamente.'

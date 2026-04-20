@@ -284,6 +284,7 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers
                 const coreVersion = result.metadata?.core_patch_version || "LEGACY_PRE_IGNITION";
                 console.log(`[UltraSonde] Core Version: ${coreVersion}`);
                 console.log(`[UltraSonde] Silo ID (Metadata): ${result.metadata?.silo_id}`);
+                console.log(`[UltraSonde] Silo URL (Metadata): ${result.metadata?.silo_url}`);
                 console.log(`[UltraSonde] Items devueltos:`, result.items);
                 
                 if (coreVersion === "LEGACY_PRE_IGNITION") {

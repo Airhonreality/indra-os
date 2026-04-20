@@ -43,6 +43,27 @@ const TEMPLATE = `
         animation: fadeIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
+    .main-grid {
+        display: flex;
+        flex: 1;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        gap: 1px; /* Espacio micelar entre columnas */
+        background: rgba(60, 60, 67, 0.1);
+    }
+
+    .col {
+        display: flex;
+        flex-direction: column;
+        background: var(--indra-bg);
+        overflow-y: auto;
+    }
+    
+    .col-identity { flex: 0 0 25%; min-width: 200px; }
+    .col-dna      { flex: 0 0 45%; border-left: 1px solid var(--indra-border); border-right: 1px solid var(--indra-border); }
+    .col-actions  { flex: 0 0 30%; min-width: 250px; }
+
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px) scale(0.98); }
         to { opacity: 1; transform: translateY(0) scale(1); }
@@ -216,35 +237,36 @@ const TEMPLATE = `
         </div>
     </section>
 
-    <main class="hud-container locked" id="hud-body">
+    <main class="hud-body-wrapper locked" id="hud-body">
         <div class="main-grid">
             <!-- COLUMNA 1: IDENTIDAD -->
             <aside class="col col-identity">
-                <header class="panel-header">Ciudadanía e Identidad</header>
+                <header class="panel-header">
+                    IDENTIDAD: <span id="sat-name" style="color:var(--indra-accent);">---</span>
+                </header>
                 <div class="panel-content">
                     <indra-workspace-selector id="workspace-ctrl" style="margin-bottom:40px;"></indra-workspace-selector>
                     <indra-keychain-widget id="keychain-ctrl"></indra-keychain-widget>
                 </div>
+                <div style="padding: 20px; font-size: 8px; font-family: monospace; opacity: 0.5; border-top: 1px solid var(--indra-border);">
+                    CORE: <span id="core-url">---</span><br>
+                    RESONANCIA: <span id="resonance-status">INIT</span>
+                    <div id="capabilities-manifest" style="display:flex; gap:4px; flex-wrap:wrap; margin-top:10px;"></div>
+                </div>
             </aside>
 
             <!-- COLUMNA 2: TERRITORIO (Los Esquemas) -->
-            <section class="col col-adn">
+            <section class="col col-dna">
                 <header class="panel-header">ADN Local (Leyes de Datos)</header>
-                <div class="panel-content">
-                    <indra-schema-projector id="schema-projector"></indra-schema-projector>
-                </div>
+                <indra-schema-projector id="schema-projector"></indra-schema-projector>
             </section>
 
             <!-- COLUMNA 3: ACCIONES -->
             <aside class="col col-actions">
-                <header class="panel-header">Manifiesto del Universo</header>
-                <div class="panel-content">
+                <header class="panel-header">Universo y Acciones</header>
+                <div class="panel-content" style="padding: 20px;">
                     <indra-universal-picker id="universal-picker" style="margin-bottom:30px;"></indra-universal-picker>
-                </div>
-
-                <header class="panel-header">Secuencias de Trabajo</header>
-                <div class="panel-content" style="flex: 1; display: flex; flex-direction: column;">
-                    <indra-workflow-ribbon id="workflow-ribbon" style="flex: 1;"></indra-workflow-ribbon>
+                    <indra-workflow-ribbon id="workflow-ribbon"></indra-workflow-ribbon>
                 </div>
             </aside>
         </div>
@@ -313,15 +335,17 @@ class IndraBridgeHUD extends HTMLElement {
         const status = this.shadowRoot.getElementById('resonance-status');
         const satNameDisplay = this.shadowRoot.getElementById('sat-name');
         const coreUrlDisplay = this.shadowRoot.getElementById('core-url');
-        const container = this.shadowRoot.getElementById('hud-body');
+        const body = this.shadowRoot.getElementById('hud-body');
+        const actionBtn = this.shadowRoot.getElementById('btn-master-action');
+        const capManifest = this.shadowRoot.getElementById('capabilities-manifest');
 
         // Hidratación de Componentes
         const picker = this.shadowRoot.getElementById('universal-picker');
         const ribbon = this.shadowRoot.getElementById('workflow-ribbon');
         const projector = this.shadowRoot.getElementById('schema-projector');
 
-        satNameDisplay.innerText = this._bridge.contract?.satellite_name || 'Satélite Desconocido';
-        coreUrlDisplay.innerText = this._bridge.coreUrl || 'Sin conexión activa';
+        if (satNameDisplay) satNameDisplay.innerText = this._bridge.contract?.satellite_name || 'Satélite Desconocido';
+        if (coreUrlDisplay) coreUrlDisplay.innerText = this._bridge.coreUrl || 'Sin conexión activa';
 
         // Sincronía Continua de Datos
         if (this._bridge.contract && this._bridge.contract.schemas) {
@@ -336,35 +360,27 @@ class IndraBridgeHUD extends HTMLElement {
 
         switch (this._mode) {
             case 'GHOST':
-                status.innerText = 'Desconectado';
-                status.className = 'status-badge status--ghost';
-                actionBtn.innerText = 'CONECTAR AL CORE';
-                actionBtn.className = 'btn-indra';
-                body.classList.add('locked');
+                if (status) { status.innerText = 'Desconectado'; status.className = 'status-badge status--ghost'; }
+                if (actionBtn) { actionBtn.innerText = 'CONECTAR AL CORE'; actionBtn.className = 'btn-indra'; }
+                if (body) body.classList.add('locked');
                 break;
 
             case 'DISCOVERY':
-                status.innerText = 'Buscando...';
-                status.className = 'status-badge status--orphan';
-                actionBtn.innerText = 'ELEGIR WORKSPACE';
-                actionBtn.className = 'btn-indra';
-                body.classList.remove('locked');
+                if (status) { status.innerText = 'Buscando...'; status.className = 'status-badge status--orphan'; }
+                if (actionBtn) { actionBtn.innerText = 'ELEGIR WORKSPACE'; actionBtn.className = 'btn-indra'; }
+                if (body) body.classList.remove('locked');
                 break;
 
             case 'STABLE':
-                status.innerText = 'Conectado';
-                status.className = 'status-badge status--stable';
-                actionBtn.innerText = 'SESIÓN ACTIVA';
-                actionBtn.className = 'btn-indra stable';
-                body.classList.remove('locked');
+                if (status) { status.innerText = 'Conectado'; status.className = 'status-badge status--stable'; }
+                if (actionBtn) { actionBtn.innerText = 'SESIÓN ACTIVA'; actionBtn.className = 'btn-indra stable'; }
+                if (body) body.classList.remove('locked');
                 break;
             
             case 'ERROR_LEDGER':
-                status.innerText = 'Error de Enlace';
-                status.className = 'status-badge status--error';
-                actionBtn.innerText = 'REINTENTAR';
-                actionBtn.className = 'btn-indra';
-                body.classList.add('locked');
+                if (status) { status.innerText = 'Error de Enlace'; status.className = 'status-badge status--error'; }
+                if (actionBtn) { actionBtn.innerText = 'REINTENTAR'; actionBtn.className = 'btn-indra'; }
+                if (body) body.classList.add('locked');
                 break;
         }
 

@@ -77,39 +77,71 @@ export class ResonanceSync {
                 class: 'DATA_SCHEMA'
             };
 
+            // 1. LOCALIZACIÓN TERRITORIAL: Buscamos dónde debe nacer físicamente la materia
+            const activeWS = bridge.availableWorkspaces.find(w => w.id === bridge.activeWorkspaceId);
+            const artifactsFolderId = activeWS?.payload?.artifacts_folder_id;
+
+            if (!artifactsFolderId) {
+                console.warn("[ResonanceSync] No se encontró carpeta de artifacts en el Workspace. Se creará en el destino por defecto.");
+            }
+
             const response = await bridge.execute({
                 protocol: 'INDUSTRIAL_IGNITE',
                 provider: 'automation',
                 data: {
                     blueprint: blueprint,
                     target_provider: options.provider || 'drive',
+                    target_folder_id: artifactsFolderId, // <-- AQUÍ LA CLAVE
                     workspace_id: bridge.activeWorkspaceId
                 }
             });
 
             if (response.metadata?.status === 'OK') {
-                // Capturamos el resultado del motor natural
-                const ticket = response.metadata.ticket;
-                const schemaAtom = response.metadata.schema_atom;
-                const siloId = schemaAtom.payload?.silo_id;
+                // Capturamos el resultado del universo cristalizado
+                const universe = response.metadata.universe || {};
+                const schemaAtom = response.items?.[0];
+
+                const siloId = universe.silo_id;
+                const bridgeId = universe.bridge_id;
+                const driveId = schemaAtom?.id; // El ID físico del archivo
 
                 if (!siloId) {
-                    throw new Error("El motor industrial no devolvió un Silo ID válido.");
+                    throw new Error("El motor industrial no devolvió un Silo ID (Materia) válido.");
                 }
 
                 console.log(`[ResonanceSync] Esquema ${schemaName} cristalizado con éxito en [${options.provider || 'drive'}]: ${siloId}`);
                 
                 // --- REGISTRO DE CIUDADANÍA SOBERANA ---
                 bridge.ignitions = bridge.ignitions || {};
+                // --- INYECCIÓN EN EL CONTRATO OFICIAL ---
+                const contractSchema = bridge.contract.schemas.find(s => s.id === schema.id);
+                if (contractSchema) {
+                    contractSchema.metadata = {
+                        ...contractSchema.metadata,
+                        silo_id: siloId,
+                        bridge_id: bridgeId,
+                        drive_id: driveId,
+                        artifacts_folder: artifactsFolderId
+                    };
+                }
+
                 bridge.ignitions[schemaName] = {
                     silo_id: siloId,
                     provider: options.provider || 'drive',
-                    bridge_id: schemaAtom.payload?.bridge_id,
+                    bridge_id: bridgeId,
+                    drive_id: driveId,
+                    artifacts_folder: artifactsFolderId,
+                    metadata: schemaAtom?.metadata,
                     materialized_at: new Date().toISOString()
                 };
 
-                // Actualizar contrato vivo para feedback instantáneo en UI
-                schema.metadata = { ...schema.metadata, silo_id: siloId };
+                // Guardar rastro persistente
+                localStorage.setItem('INDRA_IGNITIONS', JSON.stringify(bridge.ignitions));
+                
+                // Notificar Sincronía Total para refrescar la UI (Botones verdes)
+                window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
+                
+                console.log(`🚀 [ResonanceSync] Sincronía estable cimentada: ${schemaName} -> ${bridgeId}`);
 
                 // Persistencia Ferroso (indra_config.js)
                 await this.persistMetadata();
@@ -157,10 +189,12 @@ export class ResonanceSync {
 
             if (response.metadata?.status === 'OK') {
                 console.log(`[ResonanceSync] Resonancia completada para ${schemaName}.`);
+                // Persistencia de Soberanía: Guardamos para que sobreviva a refrescos
+                localStorage.setItem('INDRA_IGNITIONS', JSON.stringify(bridge.ignitions));
                 return response;
+            } else {
+                throw new Error(response.metadata?.error || "INDUSTRIAL_SYNC_FAILED");
             }
-
-            throw new Error(response.metadata?.error || "INDUSTRIAL_SYNC_FAILED");
 
         } catch (e) {
             console.error(`[ResonanceSync:IndustrialResonance] Colapso en resonancia de ${schemaName}:`, e);

@@ -27,61 +27,84 @@ class IndraSchemaProjector extends HTMLElement {
         this.shadowRoot.innerHTML = `
         <style>
             :host { display: block; font-family: inherit; }
+            :host { display: block; font-family: inherit; }
             .projector-container { 
                 display: flex; 
                 flex-direction: column; 
-                gap: 10px; 
-                max-height: 450px; 
+                gap: 12px; 
+                padding: 20px;
+                max-height: 80vh; 
                 overflow-y: auto; 
-                padding-right: 8px;
             }
             /* Custom Scrollbar */
             .projector-container::-webkit-scrollbar { width: 4px; }
             .projector-container::-webkit-scrollbar-track { background: transparent; }
-            .projector-container::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+            .projector-container::-webkit-scrollbar-thumb { background: var(--indra-border); border-radius: 10px; }
 
             .schema-card { 
-                background: rgba(255, 255, 255, 0.7); 
-                backdrop-filter: blur(8px);
-                border: 1px solid rgba(60, 60, 67, 0.1); 
-                border-radius: 14px; 
+                background: white;
+                border: 1px solid var(--indra-border); 
+                border-radius: 12px; 
                 overflow: hidden; 
                 transition: all 0.2s ease;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.03);
             }
-            .schema-card:hover { border-color: #007AFF; transform: translateX(2px); }
+            .schema-card:hover { border-color: var(--indra-accent); box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
 
             .header { 
-                background: rgba(0,0,0,0.02); 
-                padding: 10px 14px; 
-                font-size: 10px; 
-                font-weight: 800; 
-                border-bottom: 1px solid rgba(60, 60, 67, 0.08);
+                padding: 12px 16px; 
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                background: rgba(0,0,0,0.01);
             }
-            .type-badge { font-size: 8px; color: #8E8E93; background: #E8EAED; padding: 2px 6px; border-radius: 4px; }
-            .body { padding: 10px 14px; font-size: 10px; max-height: 120px; overflow-y: auto; }
-            .field-row { display: flex; justify-content: space-between; margin-bottom: 4px; color: #1C1C1E; }
-            .field-type { color: #8E8E93; font-size: 8px; font-family: 'JetBrains Mono', monospace; }
+            .schema-title { font-size: 11px; font-weight: 800; color: var(--indra-text-main); }
             
+            .body { 
+                border-top: 1px solid var(--indra-border);
+                padding: 0;
+            }
+            
+            summary {
+                padding: 10px 16px;
+                font-size: 10px;
+                font-weight: 700;
+                color: var(--indra-text-dim);
+                cursor: pointer;
+                background: var(--indra-surface);
+                list-style: none;
+                display: flex;
+                justify-content: space-between;
+            }
+            summary:hover { background: #eee; }
+            summary::after { content: '▾'; opacity: 0.5; }
+            
+            .fields-list { padding: 10px 16px; background: white; }
+            .field-row { 
+                display: flex; 
+                justify-content: space-between; 
+                padding: 4px 0;
+                border-bottom: 1px solid rgba(0,0,0,0.03);
+                font-size: 10px;
+            }
+            .field-row:last-child { border-bottom: none; }
+            .field-type { color: var(--indra-accent); font-family: monospace; font-size: 9px; }
+
             .btn-action {
-                padding: 5px 10px;
-                border-radius: 7px;
-                font-size: 9px;
-                font-weight: 900;
+                padding: 6px 12px;
+                border-radius: 8px;
+                font-size: 10px;
+                font-weight: 800;
                 cursor: pointer;
                 border: none;
-                text-transform: uppercase;
                 transition: all 0.2s;
             }
-            .btn-ignite { background: #007AFF; color: white; box-shadow: 0 4px 10px rgba(0, 122, 255, 0.2); }
-            .btn-ignite:hover { transform: translateY(-1px); }
-            .btn-update { background: white; color: #007AFF; border: 1px solid #007AFF; }
+            .btn-ignite { background: var(--indra-accent); color: white; }
+            .btn-update { background: transparent; color: var(--indra-accent); border: 1px solid var(--indra-accent); }
             
-            .status-indicator { font-size: 10px; margin-right: 6px; }
-            .status-sync { color: #34C759; }
-            .status-local { color: #8E8E93; opacity: 0.5; }
+            .status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+            .status-sync { background: var(--indra-success); box-shadow: 0 0 8px var(--indra-success); }
+            .status-local { background: var(--indra-text-dim); }
 
             .igniting { opacity: 0.5; pointer-events: none; }
             
@@ -102,8 +125,8 @@ class IndraSchemaProjector extends HTMLElement {
                 return `
                 <div class="schema-card" id="card-${s.id}">
                     <div class="header">
-                        <div style="display:flex; align-items:center;">
-                            <span class="status-indicator ${isSynced ? 'status-sync' : 'status-local'}">●</span>
+                        <div class="schema-title">
+                            <span class="status-dot ${isSynced ? 'status-sync' : 'status-local'}"></span>
                             <span>${(s.handle?.alias || s.id).toUpperCase()}</span>
                         </div>
                         <div style="display:flex; align-items:center;">
@@ -113,22 +136,27 @@ class IndraSchemaProjector extends HTMLElement {
                                     <option value="notion" disabled>Notion</option>
                                 </select>
                                 <button class="btn-action btn-ignite" onclick="this.getRootNode().host.handleExport('${s.id}')">
-                                    Exportar a Sheets
+                                    Exportar
                                 </button>
                             ` : `
                                 <button class="btn-action btn-update" onclick="this.getRootNode().host.handleSync('${s.id}')">
-                                    Sincronizar Datos
+                                    Sincronizar
                                 </button>
                             `}
                         </div>
                     </div>
                     <div class="body">
-                        ${(s.fields || s.payload?.fields || []).map(f => `
-                            <div class="field-row">
-                                <span>${f.label || f.id}</span>
-                                <span class="field-type">${f.type}</span>
+                        <details>
+                            <summary>Estructura de Datos</summary>
+                            <div class="fields-list">
+                                ${(s.fields || s.payload?.fields || []).map(f => `
+                                    <div class="field-row">
+                                        <span>${f.label || f.id}</span>
+                                        <span class="field-type">${f.type}</span>
+                                    </div>
+                                `).join('')}
                             </div>
-                        `).join('')}
+                        </details>
                     </div>
                 </div>
                 `;

@@ -176,6 +176,11 @@ export default class WorkflowEngine {
                     stepOutput = await this.bridge.execute(req, { maxRetries });
                     
                     // { items, metadata }
+                    
+                    // AXIOMA DE FALLA RUIDOSA: Si el paso atómico falla en el Core, abortamos el flujo.
+                    if (stepOutput && stepOutput.metadata?.status === 'ERROR') {
+                        throw new Error(`[CoreError] ${stepOutput.metadata.error || 'Fallo desconocido en estación'}`);
+                    }
                 } else {
                     throw new Error(`Unknown station type: ${station.type}`);
                 }

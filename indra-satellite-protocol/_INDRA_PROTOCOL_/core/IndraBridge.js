@@ -108,7 +108,7 @@ class IndraBridge {
                 
                 // PASO 2: REALIDAD SINCERA (Discovery de Territorio)
                 notifyStep('DISCOVER_TERRITORY', { message: 'Explorando Territorio Físico...' });
-                const discovery = await this.execute({ protocol: 'ATOM_READ', context_id: 'workspaces', provider: 'system' });
+                const discovery = await this.execute({ protocol: 'SYSTEM_SATELLITE_DISCOVER', provider: 'system' });
                 this.availableWorkspaces = discovery.items || [];
 
                 // AXIOMA: Si el Core tiene una asignación primaria, la respetamos.

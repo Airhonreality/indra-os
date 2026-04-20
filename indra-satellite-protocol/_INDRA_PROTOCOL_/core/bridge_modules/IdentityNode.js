@@ -90,11 +90,15 @@ export class IdentityNode {
         this.bridge.satelliteToken = payload.google_token;
         this.bridge.environment = payload.environment || 'PRODUCTION';
         
-        // Aislar por Workspace ID para Multi-Tenancy (Ej: Guardar en localStorage con prefijo)
-        const wid = payload.workspace_id || 'DEFAULT';
-        localStorage.setItem(`INDRA_LINK_${wid}`, JSON.stringify(payload));
+        // UNIFICACIÓN DE SOBERANÍA: Usamos la llave estándar que IndraBridge espera
+        localStorage.setItem('INDRA_SATELLITE_LINK', JSON.stringify({
+            coreUrl: this.bridge.coreUrl,
+            token: this.bridge.satelliteToken,
+            workspace_id: payload.workspace_id,
+            environment: this.bridge.environment
+        }));
         
-        console.log("[IdentityNode] Resonancia aplicada. Soberanía otorgada.");
+        console.log("[IdentityNode] Resonancia aplicada. Soberanía otorgada y persistida.");
         window.dispatchEvent(new CustomEvent("indra-ready", { detail: payload }));
         this.bridge.init();
     }
@@ -115,7 +119,7 @@ export class IdentityNode {
             await this.bridge.execute({
                 protocol: 'SYSTEM_KEYCHAIN_REVOKE',
                 provider: 'system',
-                payload: { token: this.bridge.satelliteToken }
+                data: { token: this.bridge.satelliteToken }
             });
             console.log("[IdentityNode] Llave revocada exitosamente en el Ledger.");
         } catch (e) {

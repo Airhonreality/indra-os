@@ -23,6 +23,27 @@ class IndraSchemaProjector extends HTMLElement {
         this.render();
     }
 
+    diff(local, remote) {
+        if (!remote) return { status: 'NEW' };
+        const changes = [];
+        const localFields = local.fields || local.payload?.fields || [];
+        const remoteFields = remote.fields || remote.payload?.fields || [];
+
+        // Buscamos nuevos o cambiados
+        localFields.forEach(lf => {
+            const rf = remoteFields.find(f => f.id === lf.id);
+            if (!rf) changes.push({ id: lf.id, op: 'ADD', label: lf.label });
+            else if (rf.type !== lf.type) changes.push({ id: lf.id, op: 'MOD', label: lf.label, detail: `${rf.type} → ${lf.type}` });
+        });
+
+        // Buscamos eliminados
+        remoteFields.forEach(rf => {
+            if (!localFields.find(f => f.id === rf.id)) changes.push({ id: rf.id, op: 'DEL', label: rf.label });
+        });
+
+        return { status: changes.length > 0 ? 'DIVERGENT' : 'STABLE', changes };
+    }
+
     render() {
         if (this._schemas === null) {
             this.shadowRoot.innerHTML = `<div style="padding:40px; text-align:center; opacity:0.5; font-family:inherit; font-size:11px;">📡 Sincronizando con el Manifiesto...</div>`;
@@ -97,6 +118,17 @@ class IndraSchemaProjector extends HTMLElement {
             }
             .field-type { color: var(--indra-accent); font-weight: 600; font-size: 9px; opacity: 0.8; }
 
+            .diff-box {
+                padding: 15px 20px;
+                background: #fffbe6;
+                border-top: 1px solid #ffe58f;
+                font-size: 9px;
+            }
+            .diff-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-family: monospace; }
+            .op-ADD { color: #52c41a; font-weight: 800; }
+            .op-DEL { color: #f5222d; font-weight: 800; }
+            .op-MOD { color: #fa8c16; font-weight: 800; }
+
             .metadata-box {
                 padding: 15px 20px;
                 background: #fdfdfd;
@@ -122,8 +154,15 @@ class IndraSchemaProjector extends HTMLElement {
                 letter-spacing: 0.05em;
             }
             .btn-sync:hover { background: var(--indra-accent); color: white; }
+            .btn-sync.divergent { background: #fa8c16; color: white; border-color: #fa8c16; animation: pulse 2s infinite; }
             .btn-sync.synced { background: var(--indra-success); color: white; border-color: var(--indra-success); }
             
+            @keyframes pulse {
+                0% { box-shadow: 0 0 0 0 rgba(250, 140, 22, 0.4); }
+                70% { box-shadow: 0 0 0 8px rgba(250, 140, 22, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(250, 140, 22, 0); }
+            }
+
             .btn-unlink { 
                 background: transparent; 
                 color: var(--indra-danger); 
@@ -137,6 +176,7 @@ class IndraSchemaProjector extends HTMLElement {
             
             .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 12px; }
             .status-sync { background: var(--indra-success); box-shadow: 0 0 10px var(--indra-success); }
+            .status-divergent { background: #fa8c16; box-shadow: 0 0 10px #fa8c16; }
             .status-local { background: var(--indra-text-dim); opacity: 0.3; }
 
             .badge-sync {
@@ -147,6 +187,7 @@ class IndraSchemaProjector extends HTMLElement {
                 border-radius: 4px;
                 margin-left: 10px;
             }
+            .badge-divergent { background: #fa1616; }
 
             .error-banner {
                 padding: 10px 20px;
@@ -160,6 +201,8 @@ class IndraSchemaProjector extends HTMLElement {
         <div class="projector-container">
             ${this._schemas.map(s => {
                 const meta = s.metadata || {};
+                const remote = s._remoteState;
+                const resonance = this.diff(s, remote);
                 const isSynced = !!meta.drive_id;
                 const error = s._lastError;
                 
@@ -167,21 +210,39 @@ class IndraSchemaProjector extends HTMLElement {
                 <div class="schema-card" id="card-${s.id}">
                     <div class="header">
                         <div class="schema-title">
-                            <span class="status-dot ${isSynced ? 'status-sync' : 'status-local'}"></span>
+                            <span class="status-dot ${resonance.status === 'DIVERGENT' ? 'status-divergent' : (isSynced ? 'status-sync' : 'status-local')}"></span>
                             <span>${(s.handle?.alias || s.id).toUpperCase()}</span>
-                            ${isSynced ? `<span class="badge-sync">NATIVO WORKSPACE</span>` : ''}
+                            ${resonance.status === 'DIVERGENT' ? `<span class="badge-sync badge-divergent">DESVIACIÓN DETECTADA</span>` : (isSynced ? `<span class="badge-sync">SINCERIDAD: ON</span>` : '')}
                         </div>
                         <div style="display:flex; align-items:center; gap:10px;">
                             ${isSynced ? `<button class="btn-unlink" title="Desvincular" onclick="this.getRootNode().host.handleUnlink('${s.id}')">✕</button>` : ''}
-                            <button class="btn-sync ${isSynced ? 'synced' : ''}" onclick="this.getRootNode().host.handleSync('${s.id}')">
-                                ${isSynced ? 'Actualizar' : 'Sincronizar'}
+                            <button class="btn-sync ${resonance.status === 'DIVERGENT' ? 'divergent' : (isSynced ? 'synced' : '')}" onclick="this.getRootNode().host.handleSync('${s.id}')">
+                                ${resonance.status === 'DIVERGENT' ? 'Resolver Fuga' : (isSynced ? 'Sincronizado' : 'Sincronizar')}
                             </button>
                         </div>
                     </div>
+                    
+                    ${resonance.status === 'DIVERGENT' ? `
+                    <div class="diff-box">
+                        <div style="font-weight:800; margin-bottom:8px; display:flex; justify-content:space-between;">
+                            <span>INFORME DE RESONANCIA</span>
+                            <span style="opacity:0.6;">Divergencia Detectada</span>
+                        </div>
+                        ${resonance.changes.map(ch => `
+                            <div class="diff-row">
+                                <span class="op-${ch.op}">${ch.op === 'ADD' ? '[+]' : (ch.op === 'DEL' ? '[-]' : '[~]')}</span>
+                                <span style="flex:1;">${ch.label || ch.id}</span>
+                                <span style="opacity:0.5;">${ch.detail || ''}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ` : ''}
+
                     ${error ? `<div class="error-banner">⚠ ERROR: ${error}</div>` : ''}
+
                     <div class="body">
                         <details name="indra-accordion">
-                            <summary>Estructura de Datos</summary>
+                            <summary>Estructura de Datos Local</summary>
                             <div class="fields-list">
                                 ${(s.fields || s.payload?.fields || []).map(f => `
                                     <div class="field-row">
@@ -194,11 +255,14 @@ class IndraSchemaProjector extends HTMLElement {
                         
                         ${isSynced ? `
                         <details name="indra-accordion">
-                            <summary>Evidencia Física (Sinceridad)</summary>
+                            <summary>Evidencia del Core</summary>
                             <div class="metadata-box">
                                 <div class="meta-item"><span class="meta-key">DRIVE_FILE_ID:</span> <span class="meta-val">${meta.drive_id}</span></div>
                                 <div class="meta-item"><span class="meta-key">SYNCED_AT:</span> <span class="meta-val">${meta.synced_at || 'Desconocido'}</span></div>
-                                <div class="meta-item"><span class="meta-key">LOCATION:</span> <span class="meta-val">${meta.artifacts_folder || 'Workspace Folder'}</span></div>
+                                <div class="meta-item"><span class="meta-key">MAPPING:</span> <span class="meta-val">${remote ? 'LEÍDO CON ÉXITO' : 'PENDIENTE DE PULL'}</span></div>
+                                <div style="margin-top:10px; display:flex; gap:10px;">
+                                    <button class="btn-action" style="padding:4px 10px; font-size:8px; background:#eee;" onclick="this.getRootNode().host.handlePull('${s.id}')">Validar Realidad (PULL)</button>
+                                </div>
                             </div>
                         </details>
                         ` : ''}
@@ -208,6 +272,41 @@ class IndraSchemaProjector extends HTMLElement {
             }).join('')}
         </div>
         `;
+    }
+
+    async handlePull(schemaId) {
+        const bridge = this._bridge;
+        const schema = this._schemas.find(s => s.id === schemaId);
+        if (!schema || !schema.metadata?.drive_id) return;
+
+        try {
+            console.log(`[Resonance] Solicitando PULL de realidad para: ${schemaId}...`);
+            const response = await bridge.execute({
+                protocol: 'ATOM_READ',
+                provider: 'drive',
+                context_id: schema.metadata.drive_id
+            });
+
+            if (response.metadata?.status === 'OK') {
+                const remoteAtom = response.items?.[0];
+                // Intentar leer el contenido JSON si es posible
+                if (remoteAtom && remoteAtom.payload?.content) {
+                   schema._remoteState = JSON.parse(remoteAtom.payload.content);
+                } else {
+                   // Si el atom_read básico no trae el contenido, usamos un protocolo de lectura de archivo
+                   const content = await bridge.execute({
+                       protocol: 'DATA_PULL', // Protocolo ficticio o mapeado a ATOM_READ con fetch
+                       provider: 'drive',
+                       context_id: schema.metadata.drive_id
+                   });
+                   schema._remoteState = content.items?.[0];
+                }
+            }
+        } catch (e) {
+            console.error("Fallo el PULL de realidad:", e);
+        } finally {
+            this.render();
+        }
     }
 
     async handleSync(schemaId) {

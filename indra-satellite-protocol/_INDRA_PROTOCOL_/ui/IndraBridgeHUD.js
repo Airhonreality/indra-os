@@ -155,7 +155,8 @@ const TEMPLATE = `
     }
 
     .hud-body { display: grid; grid-template-columns: 350px 1fr; background: var(--indra-border); gap: 1px; }
-    .hud-body.locked { opacity: 0.1; filter: grayscale(1); pointer-events: none; }
+    .hud-body.locked { opacity: 0.15; filter: grayscale(1); pointer-events: none; }
+    .hud-body.locked aside { opacity: 1; filter: none; pointer-events: auto; } /* Excepción de Soberanía: Los esquemas siempre se ven */
     
     .panel-indra { background: rgba(255,255,255,0.8); padding: 30px; }
     .panel-title { 
@@ -263,8 +264,15 @@ class IndraBridgeHUD extends HTMLElement {
     set bridge(instance) {
         this._bridge = instance;
         this._bridge.onStateChange = () => this.updateUI();
+        
+        // Hidratación inmediata (Soberanía Local)
         this.shadowRoot.getElementById('keychain-ctrl').bridge = instance;
         this.shadowRoot.getElementById('workspace-ctrl').bridge = instance;
+        
+        if (instance.contract && instance.contract.schemas) {
+            this.shadowRoot.getElementById('schema-projector').schemas = instance.contract.schemas;
+        }
+
         this.updateUI();
     }
 
@@ -304,6 +312,12 @@ class IndraBridgeHUD extends HTMLElement {
 
         satNameDisplay.innerText = this._bridge.contract?.satellite_name || 'Satélite Desconocido';
         coreUrlDisplay.innerText = this._bridge.coreUrl || 'Sin conexión activa';
+
+        // Actualizar esquemas (Sincronía Continua)
+        if (this._bridge.contract && this._bridge.contract.schemas) {
+            const projector = this.shadowRoot.getElementById('schema-projector');
+            if (projector) projector.schemas = this._bridge.contract.schemas;
+        }
 
         switch (this._mode) {
             case 'GHOST':

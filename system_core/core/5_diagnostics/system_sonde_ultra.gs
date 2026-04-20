@@ -145,3 +145,28 @@ function _sonde_deep_cleanup_infra_() {
         logWarn("[cleanup] Fallo parcial en barrido espacial: " + e.message);
     }
 }
+
+/**
+ * OMNI-DIAGNOSTIC: PRUEBA DE STRESS LOCAL
+ * Ejecuta esta función desde el editor de GAS para ver si el núcleo responde sin red.
+ */
+function OMNI_DIAGNOSTIC_LOCAL_TEST() {
+  const mockEvent = {
+    postData: {
+      contents: JSON.stringify({
+        protocol: 'SYSTEM_MANIFEST',
+        provider: 'system',
+        satellite_token: 'DIAGNOSTIC_BYPASS',
+        environment: 'DIAGNOSTIC'
+      })
+    }
+  };
+  
+  try {
+    console.log("🚀 Iniciando Simulación de Petición Satelital...");
+    const response = doPost(mockEvent);
+    console.log("✅ Respuesta del Núcleo:", response.getContent());
+  } catch (e) {
+    console.error("❌ Fallo Crítico en el Núcleo:", e.toString());
+  }
+}

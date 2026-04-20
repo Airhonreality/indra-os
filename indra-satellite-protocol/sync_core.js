@@ -41,7 +41,7 @@ async function harvestAssets(folderName) {
     return assets.filter(Boolean);
 }
 
-async function package() {
+async function consolidateSnapshot() {
     console.log("📦 [Packager] Iniciando empaquetado de Snapshot...");
 
     try {
@@ -85,5 +85,5 @@ async function package() {
     }
 }
 
-package();
+consolidateSnapshot();
 

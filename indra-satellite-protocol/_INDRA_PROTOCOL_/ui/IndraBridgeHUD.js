@@ -1,6 +1,6 @@
 /**
  * =============================================================================
- * INDRA BRIDGE HUD (Standard UI v3.6 - SINCERITY EDITION)
+ * INDRA BRIDGE HUD (Standard UI v4.0 - AXIOMATIC EDITION)
  * =============================================================================
  */
 
@@ -11,187 +11,10 @@ import './widgets/IndraParamModal.js';
 import './widgets/IndraKeychainWidget.js';
 import './widgets/IndraWorkspaceSelector.js';
 
+import { IndraCrystallizer } from '../core/bridge_modules/IndraCrystallizer.js';
+
 const TEMPLATE = `
-<style>
-    :host {
-        display: block;
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        --indra-accent: #007AFF;
-        --indra-success: #34C759;
-        --indra-warning: #FF9500;
-        --indra-danger: #FF3B30;
-        --indra-bg: rgba(255, 255, 255, 0.8);
-        --indra-surface: rgba(242, 242, 247, 0.6);
-        --indra-glass: blur(16px) saturate(180%);
-        --indra-border: rgba(60, 60, 67, 0.12);
-        --indra-text-main: #1C1C1E;
-        --indra-text-dim: #8E8E93;
-    }
-
-    .hud-container {
-        display: flex;
-        flex-direction: column;
-        background: var(--indra-bg);
-        backdrop-filter: var(--indra-glass);
-        -webkit-backdrop-filter: var(--indra-glass);
-        border: 1px solid var(--indra-border);
-        border-radius: 20px;
-        overflow: hidden;
-        color: var(--indra-text-main);
-        margin: 20px auto;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-        animation: fadeIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-
-    .main-grid {
-        display: flex;
-        flex: 1;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        gap: 1px;
-        background: rgba(60, 60, 67, 0.1);
-    }
-
-    .col {
-        display: flex;
-        flex-direction: column;
-        background: var(--indra-bg);
-        overflow-y: auto;
-    }
-    
-    .col-identity { flex: 0 0 25%; min-width: 200px; }
-    .col-dna      { flex: 0 0 45%; border-left: 1px solid var(--indra-border); border-right: 1px solid var(--indra-border); }
-    .col-actions  { flex: 0 0 30%; min-width: 250px; }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px) scale(0.98); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    .resonance-header {
-        background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%);
-        padding: 30px;
-        border-bottom: 1px solid var(--indra-border);
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 30px;
-        align-items: flex-start;
-    }
-
-    .identity-box h4 { 
-        margin: 0; 
-        font-size: 10px; 
-        font-weight: 800;
-        text-transform: uppercase; 
-        letter-spacing: 0.12em; 
-        color: var(--indra-accent);
-        margin-bottom: 8px;
-    }
-    .identity-box .name { 
-        font-size: 28px; 
-        font-weight: 900; 
-        margin: 0; 
-        letter-spacing: -0.02em;
-        background: linear-gradient(90deg, var(--indra-text-main) 0%, #444 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .identity-box .core-url { 
-        font-family: 'JetBrains Mono', monospace; 
-        font-size: 11px; 
-        color: var(--indra-text-dim); 
-        margin-top: 6px;
-    }
-
-    .handshake-monitor {
-        margin-top: 20px;
-        background: rgba(0,0,0,0.03);
-        border-radius: 12px;
-        padding: 12px 16px;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        max-height: 80px;
-        overflow-y: auto;
-        border: 1px solid rgba(0,0,0,0.05);
-    }
-    .handshake-step { margin-bottom: 4px; display: flex; gap: 8px; align-items: center; }
-    .handshake-step span { color: var(--indra-accent); font-weight: 700; }
-
-    .status-area { display: flex; flex-direction: column; align-items: flex-end; gap: 16px; }
-
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 18px;
-        border-radius: 99px;
-        font-size: 10px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        background: var(--indra-surface);
-    }
-    .status-badge::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
-    
-    .status--ghost { color: var(--indra-text-dim); }
-    .status--orphan { color: var(--indra-warning); }
-    .status--stable { color: var(--indra-success); }
-    .status--error { color: var(--indra-danger); }
-
-    .btn-indra {
-        background: var(--indra-accent);
-        color: white;
-        border: none;
-        padding: 14px 32px;
-        border-radius: 14px;
-        font-size: 11px;
-        font-weight: 800;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        box-shadow: 0 8px 24px rgba(0, 122, 255, 0.25);
-    }
-    .btn-indra:hover { transform: translateY(-3px); }
-    .btn-indra.stable { background: var(--indra-success); }
-
-    .config-card {
-        background: var(--indra-surface);
-        padding: 24px 30px;
-        border-bottom: 1px solid var(--indra-border);
-        display: none;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 24px;
-    }
-    .config-card.active { display: grid; }
-
-    .panel-header {
-        padding: 20px 30px;
-        border-bottom: 1px solid var(--indra-border);
-        font-size: 10px;
-        font-weight: 800;
-        color: var(--indra-text-dim);
-        letter-spacing: 1px;
-        text-transform: uppercase;
-    }
-
-    .panel-content { padding: 0 30px 30px 30px; }
-    
-    .hud-container.locked { opacity: 0.3; filter: grayscale(1); pointer-events: none; }
-    .hud-container.locked .col-adn { opacity: 1; filter: none; pointer-events: auto; }
-    
-    .cap-tag {
-        font-size: 9px;
-        padding: 4px 10px;
-        background: rgba(0, 122, 255, 0.1);
-        color: var(--indra-accent);
-        border-radius: 7px;
-        font-weight: 700;
-        text-transform: uppercase;
-        margin-right: 4px;
-    }
-</style>
+<link rel="stylesheet" href="/_INDRA_PROTOCOL_/ui/styles/IndraBridgeHUD.css">
 
 <div class="hud-container">
     <header class="resonance-header">
@@ -199,9 +22,7 @@ const TEMPLATE = `
             <h4>Perfil del Satélite</h4>
             <div class="name" id="display-sat-name">--</div>
             <div class="core-url" id="display-core-url">Desconectado del Core</div>
-            
             <div style="margin-top:12px;" id="capabilities-manifest-header"></div>
-
             <div class="handshake-monitor" id="handshake-log">
                 <div class="handshake-step"><span>[INFO]</span> Sistema cargado. Esperando conexión.</div>
             </div>
@@ -210,7 +31,7 @@ const TEMPLATE = `
         <div class="status-area">
             <div id="master-status" class="status-badge status--ghost">Sin Conexión</div>
             <div style="display:flex; gap:8px;">
-                <button class="btn-indra" id="btn-save-session" style="opacity:0.3; pointer-events:none; background:var(--indra-text-dim); box-shadow:none;">Guardar Sesión</button>
+                <button class="btn-indra" id="btn-save-session" title="Cristalizar ADN">Guardar Sesión</button>
                 <button class="btn-indra" id="btn-master-action">CONECTAR AL CORE</button>
             </div>
         </div>
@@ -285,24 +106,27 @@ class IndraBridgeHUD extends HTMLElement {
         this._bridge = instance;
         this._bridge.onStateChange = () => this.updateUI();
         
-        if (instance.contract && instance.contract.schemas) {
-            this.shadowRoot.getElementById('schema-projector').schemas = instance.contract.schemas;
-        }
+        // Hidratación Axiomática: Despertando widgets
+        this._wakeWidgets(instance);
 
-        // Snapshot inicial para detección de cambios
         this._initialIgnitions = JSON.stringify(instance.ignitions || {});
-        
         this.updateUI();
+    }
+
+    _wakeWidgets(bridge) {
+        const widgets = ['keychain-ctrl', 'workspace-ctrl', 'schema-projector', 'universal-picker', 'workflow-ribbon'];
+        widgets.forEach(id => {
+            const el = this.shadowRoot.getElementById(id);
+            if (el) el.bridge = bridge;
+        });
     }
 
     logHandshake(detail) {
         const log = this.shadowRoot.getElementById('handshake-log');
         if (!log) return;
-        
-        let msg = detail.message;
         const step = document.createElement('div');
         step.className = 'handshake-step';
-        step.innerHTML = `<span>[${detail.step}]</span> ${msg}`;
+        step.innerHTML = `<span>[${detail.step}]</span> ${detail.message}`;
         log.appendChild(step);
         log.scrollTop = log.scrollHeight;
     }
@@ -316,66 +140,81 @@ class IndraBridgeHUD extends HTMLElement {
     updateUI() {
         if (!this.shadowRoot || !this._bridge) return;
 
-        const statusLabel = this.shadowRoot.getElementById('resonance-status');
-        const masterStatus = this.shadowRoot.getElementById('master-status');
-        const satNameDisplay = this.shadowRoot.getElementById('sat-name');
-        const dispSatName = this.shadowRoot.getElementById('display-sat-name');
-        const coreUrlDisplay = this.shadowRoot.getElementById('core-url');
-        const dispCoreUrl = this.shadowRoot.getElementById('display-core-url');
-        const body = this.shadowRoot.getElementById('hud-body');
-        const actionBtn = this.shadowRoot.getElementById('btn-master-action');
-        const saveBtn = this.shadowRoot.getElementById('btn-save-session');
-        const syncWarning = this.shadowRoot.getElementById('sync-warning');
-        const capManifest = this.shadowRoot.getElementById('capabilities-manifest');
-
         // Detección de Cambios
         const currentIgnitions = JSON.stringify(this._bridge.ignitions || {});
         this._hasChanges = this._initialIgnitions !== null && this._initialIgnitions !== currentIgnitions;
 
-        if (saveBtn) {
-            if (this._hasChanges) {
-                saveBtn.style.opacity = "1";
-                saveBtn.style.pointerEvents = "auto";
-                saveBtn.style.background = "var(--indra-accent)";
-                saveBtn.style.boxShadow = "0 8px 24px rgba(0, 122, 255, 0.4)";
-                if (syncWarning) syncWarning.style.opacity = "1";
-            } else {
-                saveBtn.style.opacity = "0.3";
-                saveBtn.style.pointerEvents = "none";
-                saveBtn.style.background = "var(--indra-text-dim)";
-                saveBtn.style.boxShadow = "none";
-                if (syncWarning) syncWarning.style.opacity = "0";
-            }
-        }
+        // 1. Estados Visuales (Cero Hardcode)
+        this._updateSaveButton();
+        this._updateIdentityLabels();
+        this._updateProtocolTags();
+        this._updateMasterStatus();
+    }
 
-        if (satNameDisplay) satNameDisplay.innerText = this._bridge.contract?.satellite_name || 'Desconocido';
-        if (dispSatName) dispSatName.innerText = this._bridge.contract?.satellite_name || '--';
-        if (coreUrlDisplay) coreUrlDisplay.innerText = this._bridge.coreUrl || 'Sin conexión';
-        if (dispCoreUrl) dispCoreUrl.innerText = this._bridge.coreUrl || 'Desconectado';
+    _updateSaveButton() {
+        const saveBtn = this.shadowRoot.getElementById('btn-save-session');
+        const syncWarning = this.shadowRoot.getElementById('sync-warning');
+        if (!saveBtn) return;
 
-        const projector = this.shadowRoot.getElementById('schema-projector');
-        if (projector && this._bridge.contract?.schemas) {
-            projector.schemas = this._bridge.contract.schemas;
-            projector.bridge = this._bridge;
+        if (this._hasChanges) {
+            saveBtn.classList.add('luminous'); // Definido en CSS externo
+            saveBtn.style.opacity = "1";
+            saveBtn.style.pointerEvents = "auto";
+            saveBtn.style.background = "var(--indra-accent)";
+            if (syncWarning) syncWarning.style.opacity = "1";
+        } else {
+            saveBtn.classList.remove('luminous');
+            saveBtn.style.opacity = "0.3";
+            saveBtn.style.pointerEvents = "none";
+            saveBtn.style.background = "var(--indra-text-dim)";
+            if (syncWarning) syncWarning.style.opacity = "0";
         }
+    }
 
-        switch (this._mode) {
-            case 'GHOST':
-                if (masterStatus) { masterStatus.innerText = 'Desconectado'; masterStatus.className = 'status-badge status--ghost'; }
-                if (actionBtn) actionBtn.innerText = 'CONECTAR AL CORE';
-                if (body) body.classList.add('locked');
-                break;
-            case 'DISCOVERY':
-                if (masterStatus) { masterStatus.innerText = 'Buscando...'; masterStatus.className = 'status-badge status--orphan'; }
-                if (actionBtn) actionBtn.innerText = 'ELEGIR WORKSPACE';
-                if (body) body.classList.remove('locked');
-                break;
-            case 'STABLE':
-                if (masterStatus) { masterStatus.innerText = 'Conectado'; masterStatus.className = 'status-badge status--stable'; }
-                if (actionBtn) actionBtn.innerText = 'SESIÓN ACTIVA';
-                if (body) body.classList.remove('locked');
-                break;
+    _updateIdentityLabels() {
+        const name = this._bridge.contract?.satellite_name || '--';
+        const url = this._bridge.coreUrl || 'Desconectado';
+        
+        ['display-sat-name', 'sat-name'].forEach(id => {
+            const el = this.shadowRoot.getElementById(id);
+            if (el) el.innerText = name;
+        });
+
+        ['display-core-url', 'core-url'].forEach(id => {
+            const el = this.shadowRoot.getElementById(id);
+            if (el) el.innerText = url;
+        });
+    }
+
+    _updateProtocolTags() {
+        const caps = this._bridge.capabilities?.protocols || [];
+        const tags = caps.map(c => `<span class="cap-tag">${c.replace('SYSTEM_', '').replace('ATOM_', '')}</span>`).join('');
+        
+        ['capabilities-manifest', 'capabilities-manifest-header'].forEach(id => {
+            const el = this.shadowRoot.getElementById(id);
+            if (el) el.innerHTML = tags;
+        });
+    }
+
+    _updateMasterStatus() {
+        const masterStatus = this.shadowRoot.getElementById('master-status');
+        const actionBtn = this.shadowRoot.getElementById('btn-master-action');
+        const body = this.shadowRoot.getElementById('hud-body');
+
+        const states = {
+            'GHOST': { text: 'Desconectado', class: 'status--ghost', action: 'CONECTAR AL CORE', locked: true },
+            'DISCOVERY': { text: 'Buscando...', class: 'status--orphan', action: 'ELEGIR WORKSPACE', locked: false },
+            'STABLE': { text: 'Conectado', class: 'status--stable', action: 'SESIÓN ACTIVA', locked: false }
+        };
+
+        const current = states[this._mode] || states['GHOST'];
+        
+        if (masterStatus) {
+            masterStatus.innerText = current.text;
+            masterStatus.className = `status-badge ${current.class}`;
         }
+        if (actionBtn) actionBtn.innerText = current.action;
+        if (body) current.locked ? body.classList.add('locked') : body.classList.remove('locked');
     }
 
     render() {
@@ -386,55 +225,22 @@ class IndraBridgeHUD extends HTMLElement {
         };
 
         this.shadowRoot.getElementById('btn-master-action').onclick = () => {
-            if (this._mode === 'GHOST') this.handleMasterAction ? this.handleMasterAction() : console.log("Master Action Triggered");
+            if (this._mode === 'GHOST') this.dispatchEvent(new CustomEvent('indra-master-action'));
             else this.updateUI();
         };
 
-        this.shadowRoot.getElementById('btn-save-session').onclick = () => this.handleSaveSession();
+        this.shadowRoot.getElementById('btn-save-session').onclick = async () => {
+            const result = await IndraCrystallizer.saveSession(this._bridge);
+            if (result.status === 'OK') {
+                this._initialIgnitions = JSON.stringify(this._bridge.ignitions);
+                this.updateUI();
+            }
+        };
 
         this.shadowRoot.getElementById('config-sat-name').oninput = (e) => {
             if (this._bridge) this._bridge.contract.satellite_name = e.target.value;
             this.updateUI();
         };
-        
-        // Link widgets
-        const keychain = this.shadowRoot.getElementById('keychain-ctrl');
-        const workspace = this.shadowRoot.getElementById('workspace-ctrl');
-        if (this._bridge) {
-            keychain.bridge = this._bridge;
-            workspace.bridge = this._bridge;
-        }
-    }
-
-    handleSaveSession() {
-        if (!this._hasChanges) return;
-
-        const contract = {
-            satellite_name: this._bridge.contract.satellite_name,
-            core_id: this._bridge.contract.core_id,
-            ignitions: this._bridge.ignitions,
-            synced_at: new Date().toISOString()
-        };
-
-        const fileContent = `/**
- * =============================================================================
- * INDRA CONTRACT SNAPSHOT (Crystalized DNA)
- * =============================================================================
- */
-export const INDRA_CONTRACT = ${JSON.stringify(contract, null, 4)};
-`;
-
-        const blob = new Blob([fileContent], { type: 'text/javascript' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'indra_contract.js';
-        a.click();
-        URL.revokeObjectURL(url);
-
-        this._initialIgnitions = JSON.stringify(this._bridge.ignitions);
-        this.updateUI();
-        console.log("💎 [Sincerity] Sesión cristalizada.");
     }
 }
 

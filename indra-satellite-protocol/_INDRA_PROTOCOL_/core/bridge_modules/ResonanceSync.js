@@ -1,10 +1,6 @@
 /**
  * =============================================================================
- * INDRA RESONANCE SYNC (Orchestrator v3.3 - Branching Edition)
- * =============================================================================
- * Responsibilidad: Orquestación de las dos ramas de soberanía:
- * Rama A: Anclaje de Ciudadanía (Nuevo Satélite)
- * Rama B: Sincronización de ADN (Satélite Existente)
+ * INDRA RESONANCE SYNC (Orchestrator v5.0 - SINCERITY EDITION)
  * =============================================================================
  */
 
@@ -14,215 +10,94 @@ export class ResonanceSync {
     }
 
     /**
-     * RAMA A: Anclaje de Vínculo Celular (Génesis o Re-vinculación)
-     * Se usa para establecer la relación [Satélite] <-> [Workspace].
-     * @v4.0 Solo gestiona la infraestructura, no toca los datos.
+     * PROTOCOLO DE ANCLAJE (THE PURE SEED)
+     * Sincroniza el ADN local (JS/JSON) con el territorio del Workspace.
+     * Crea o actualiza un archivo .json nativo que React puede consumir.
+     */
+    async anchorSchema(schemaName) {
+        const { bridge } = this;
+        const schema = bridge.contract.schemas.find(s => s.id === schemaName || s.handle?.alias === schemaName);
+        
+        if (!schema) throw new Error(`SCHEMA_NOT_FOUND: ${schemaName}`);
+
+        // 1. LOCALIZACIÓN TERRITORIAL
+        const activeWS = bridge.availableWorkspaces.find(w => w.id === bridge.activeWorkspaceId);
+        const folderId = activeWS?.payload?.artifacts_folder_id;
+
+        if (!folderId) {
+            throw new Error("No se detectó una carpeta de /artifacts en el Workspace activo. El anclaje es imposible.");
+        }
+
+        console.log(`[Sincerity:Anchor] Inyectando semilla '${schemaName}' en artifacts (${folderId})...`);
+
+        try {
+            // 2. EJECUCIÓN DE PROTOCOLO PURO (ATOM_CREATE de clase DATA_SCHEMA)
+            const response = await bridge.execute({
+                protocol: 'ATOM_CREATE',
+                provider: 'drive',
+                context_id: folderId,
+                data: {
+                    ...schema,
+                    class: 'DATA_SCHEMA'
+                }
+            });
+
+            if (response.metadata?.status === 'OK') {
+                const coreAtom = response.items?.[0];
+                
+                // 3. CAPTURA DE EVIDENCIA REAL (Sin inventos)
+                schema.metadata = {
+                    drive_id: coreAtom.id,
+                    synced_at: new Date().toLocaleString(),
+                    artifacts_folder: folderId
+                };
+
+                // 4. PERSISTENCIA DE SOBERANÍA (LocalStorage para la sesión)
+                bridge.ignitions = bridge.ignitions || {};
+                bridge.ignitions[schemaName] = schema.metadata;
+                localStorage.setItem('INDRA_IGNITIONS', JSON.stringify(bridge.ignitions));
+                
+                console.log(`🚀 [Sincerity] Semilla anclada: ${schemaName} -> Drive:${coreAtom.id}`);
+                return response;
+            }
+
+            throw new Error(response.metadata?.error || "CORE_REJECTED_SEED");
+
+        } catch (e) {
+            console.error(`[Sincerity:Anchor] Error en anclaje de ${schemaName}:`, e);
+            throw e;
+        }
+    }
+
+    /**
+     * RAMA A: Anclaje de Vínculo Celular
      */
     async anchorCitizenship(workspaceId = null) {
         const { bridge } = this;
-        console.log("[ResonanceSync:BranchA] Iniciando Anclaje de Vínculo Celular...");
-        
         try {
-            const payload = { 
-                satellite_name: bridge.contract.satellite_name, 
-                requested_workspace: workspaceId,
-                force_new: !workspaceId 
-            };
-
             const response = await bridge.execute({
                 protocol: 'SYSTEM_RESONANCE_CRYSTALLIZE',
                 provider: 'system',
-                data: payload
+                data: { 
+                    satellite_name: bridge.contract.satellite_name, 
+                    requested_workspace: workspaceId,
+                    force_new: !workspaceId 
+                }
             });
 
-            if (!response || response.metadata?.status === 'ERROR') {
-                throw new Error(response?.metadata?.error || "LINKAGE_FAILED");
+            if (response.metadata?.status === 'OK') {
+                bridge.activeWorkspaceId = response.metadata.generated_workspace_id;
+                window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
+                return bridge.activeWorkspaceId;
             }
-
-            // Establecer el vínculo atómico
-            bridge.activeWorkspaceId = response.metadata.generated_workspace_id;
-            
-            // Persistencia Ferroso en Disco
-            await this.persistMetadata();
-            
-            // Notificar estabilidad de vínculo
-            window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
-            
-            return bridge.activeWorkspaceId;
-
+            throw new Error(response.metadata?.error || "LINKAGE_FAILED");
         } catch (e) {
             console.error("[ResonanceSync:Anchor] Fallo el vínculo celular:", e);
             throw e;
         }
     }
 
-    /**
-     * @dharma Ignición Industrial (Materialización de Silo).
-     * El satélite decide voluntariamente dar cuerpo a un esquema en un Silo físico
-     * invocando los Motores Naturales de Indra (PINE).
-     */
-    async materializeSchema(schemaName, options = {}) {
-        const { bridge } = this;
-        const schema = bridge.contract.schemas.find(s => s.id === schemaName || s.handle?.alias === schemaName);
-        
-        if (!schema) throw new Error(`SCHEMA_NOT_FOUND: ${schemaName}`);
-
-        console.log(`[ResonanceSync:IndustrialIgnition] Solicitando materialización industrial para: ${schemaName}...`);
-
-        try {
-            // AXIOMA DE GÉNESIS: El satélite envía su ADN (Blueprint) al motor de automatización
-            // INYECCIÓN DE ADN: Aseguramos que el Core reconozca el objeto como un esquema puro
-            const blueprint = {
-                ...schema,
-                class: 'DATA_SCHEMA'
-            };
-
-            // 1. LOCALIZACIÓN TERRITORIAL: Buscamos dónde debe nacer físicamente la materia
-            const activeWS = bridge.availableWorkspaces.find(w => w.id === bridge.activeWorkspaceId);
-            const artifactsFolderId = activeWS?.payload?.artifacts_folder_id;
-
-            if (!artifactsFolderId) {
-                console.warn("[ResonanceSync] No se encontró carpeta de artifacts en el Workspace. Se creará en el destino por defecto.");
-            }
-
-            const response = await bridge.execute({
-                protocol: 'INDUSTRIAL_IGNITE',
-                provider: 'automation',
-                data: {
-                    blueprint: blueprint,
-                    target_provider: options.provider || 'drive',
-                    target_folder_id: artifactsFolderId, // <-- AQUÍ LA CLAVE
-                    workspace_id: bridge.activeWorkspaceId
-                }
-            });
-
-            if (response.metadata?.status === 'OK') {
-                // Capturamos el resultado del universo cristalizado
-                const universe = response.metadata.universe || {};
-                const schemaAtom = response.items?.[0];
-
-                const siloId = universe.silo_id;
-                const bridgeId = universe.bridge_id;
-                const driveId = schemaAtom?.id; // El ID físico del archivo
-
-                if (!siloId) {
-                    throw new Error("El motor industrial no devolvió un Silo ID (Materia) válido.");
-                }
-
-                console.log(`[ResonanceSync] Esquema ${schemaName} cristalizado con éxito en [${options.provider || 'drive'}]: ${siloId}`);
-                
-                // --- REGISTRO DE CIUDADANÍA SOBERANA ---
-                bridge.ignitions = bridge.ignitions || {};
-                // --- INYECCIÓN EN EL CONTRATO OFICIAL ---
-                const contractSchema = bridge.contract.schemas.find(s => s.id === schema.id);
-                if (contractSchema) {
-                    contractSchema.metadata = {
-                        ...contractSchema.metadata,
-                        silo_id: siloId,
-                        bridge_id: bridgeId,
-                        drive_id: driveId,
-                        artifacts_folder: artifactsFolderId
-                    };
-                }
-
-                bridge.ignitions[schemaName] = {
-                    silo_id: siloId,
-                    provider: options.provider || 'drive',
-                    bridge_id: bridgeId,
-                    drive_id: driveId,
-                    artifacts_folder: artifactsFolderId,
-                    metadata: schemaAtom?.metadata,
-                    materialized_at: new Date().toISOString()
-                };
-
-                // Guardar rastro persistente
-                localStorage.setItem('INDRA_IGNITIONS', JSON.stringify(bridge.ignitions));
-                
-                // Notificar Sincronía Total para refrescar la UI (Botones verdes)
-                window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
-                
-                console.log(`🚀 [ResonanceSync] Sincronía estable cimentada: ${schemaName} -> ${bridgeId}`);
-
-                // Persistencia Ferroso (indra_config.js)
-                await this.persistMetadata();
-                
-                return siloId;
-            }
-            
-            throw new Error(response.metadata?.error || "INDUSTRIAL_IGNITION_FAILED");
-
-        } catch (e) {
-            console.error(`[ResonanceSync:IndustrialIgnition] Colapso en materialización de ${schemaName}:`, e);
-            throw e;
-        }
-    }
-
-    /**
-     * @dharma Resonancia Industrial (Actualización Contextual).
-     * Sincroniza la realidad del satélite con el silo físico a través
-     * del protocolo industrial consolidado.
-     */
-    async resonateSchema(schemaName) {
-        const { bridge } = this;
-        const schema = bridge.contract.schemas.find(s => s.id === schemaName || s.handle?.alias === schemaName);
-        const ignition = bridge.ignitions?.[schemaName];
-
-        if (!schema) throw new Error(`SCHEMA_NOT_FOUND: ${schemaName}`);
-        if (!ignition) throw new Error(`SCHEMA_NOT_MATERIALIZED: ${schemaName}. Debe materializarse antes de actualizar.`);
-
-        console.log(`[ResonanceSync:IndustrialResonance] Resonando esquema: ${schemaName} con silo: ${ignition.silo_id}...`);
-
-        try {
-            // AXIOMA DE ACTUALIZACIÓN: Delegamos la lógica de sync al Core (PINE)
-            const response = await bridge.execute({
-                protocol: 'INDUSTRIAL_SYNC',
-                provider: 'automation',
-                data: {
-                    schema_id: schema.id,
-                    bridge_id: ignition.bridge_id,
-                    silo_id: ignition.silo_id,
-                    target_provider: ignition.provider,
-                    workspace_id: bridge.activeWorkspaceId
-                    // Aquí se enviaría el payload de datos si el satélite fuera Master
-                }
-            });
-
-            if (response.metadata?.status === 'OK') {
-                console.log(`[ResonanceSync] Resonancia completada para ${schemaName}.`);
-                // Persistencia de Soberanía: Guardamos para que sobreviva a refrescos
-                localStorage.setItem('INDRA_IGNITIONS', JSON.stringify(bridge.ignitions));
-                return response;
-            } else {
-                throw new Error(response.metadata?.error || "INDUSTRIAL_SYNC_FAILED");
-            }
-
-        } catch (e) {
-            console.error(`[ResonanceSync:IndustrialResonance] Colapso en resonancia de ${schemaName}:`, e);
-            throw e;
-        }
-    }
-
-    async persistMetadata() {
-        const payload = {
-            satellite_name: this.bridge.contract.satellite_name,
-            workspace_id: this.bridge.activeWorkspaceId,
-            ignitions: this.bridge.ignitions || {} // Guardamos el mapa de materia
-        };
-        const apiOrigin = window.location.origin;
-        try {
-            const response = await fetch(`${apiOrigin}/api/indra/metadata`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            return await response.json();
-        } catch (e) {
-            localStorage.setItem('INDRA_SATELLITE_LINK', JSON.stringify({
-                coreUrl: this.bridge.coreUrl,
-                token: this.bridge.satelliteToken,
-                workspaceId: this.bridge.activeWorkspaceId
-            }));
-            localStorage.setItem('INDRA_IGNITIONS', JSON.stringify(payload.ignitions));
-        }
-    }
+    // El resto de métodos industriales quedan depreciados en favor del Anclaje de Semillas
+    async materializeSchema() { console.warn("DEPRECATED: Use anchorSchema for Sincerity Protocol."); }
+    async resonateSchema() { console.warn("DEPRECATED: Use anchorSchema for Sincerity Protocol."); }
 }

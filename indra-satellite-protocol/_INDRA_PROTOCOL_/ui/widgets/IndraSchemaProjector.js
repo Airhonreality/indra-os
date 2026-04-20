@@ -1,6 +1,8 @@
 /**
  * =============================================================================
- * INDRA SCHEMA PROJECTOR (SINCERITY EDITION v5.0 - THE PURE SEED)
+ * INDRA SCHEMA PROJECTOR (v6.0 - TOTAL REVELATION)
+ * =============================================================================
+ * Responsabilidad: Visor técnico de metadatos y control de sincronía atómica.
  * =============================================================================
  */
 
@@ -21,318 +23,263 @@ class IndraSchemaProjector extends HTMLElement {
         if (JSON.stringify(this._schemas) === JSON.stringify(newData)) return;
         this._schemas = newData;
         this.render();
+        this._autoDiscoverRemoteSignals();
     }
 
-    diff(local, remote) {
-        if (!remote) return { status: 'NEW' };
-        const changes = [];
-        const localFields = local.fields || local.payload?.fields || [];
-        const remoteFields = remote.fields || remote.payload?.fields || [];
-
-        // Buscamos nuevos o cambiados
-        localFields.forEach(lf => {
-            const rf = remoteFields.find(f => f.id === lf.id);
-            if (!rf) changes.push({ id: lf.id, op: 'ADD', label: lf.label });
-            else if (rf.type !== lf.type) changes.push({ id: lf.id, op: 'MOD', label: lf.label, detail: `${rf.type} → ${lf.type}` });
+    _autoDiscoverRemoteSignals() {
+        if (!this._bridge || !this._schemas) return;
+        this._schemas.forEach(s => {
+            if (s.metadata?.drive_id && !s._remoteState) {
+                this.handleRefreshRemote(s.id);
+            }
         });
-
-        // Buscamos eliminados
-        remoteFields.forEach(rf => {
-            if (!localFields.find(f => f.id === rf.id)) changes.push({ id: rf.id, op: 'DEL', label: rf.label });
-        });
-
-        return { status: changes.length > 0 ? 'DIVERGENT' : 'STABLE', changes };
     }
 
     render() {
         if (this._schemas === null) {
-            this.shadowRoot.innerHTML = `<div style="padding:40px; text-align:center; opacity:0.5; font-family:inherit; font-size:11px;">📡 Sincronizando con el Manifiesto...</div>`;
+            this.shadowRoot.innerHTML = `<div style="padding:40px; text-align:center; opacity:0; animation: fadeIn 0.5s forwards;">⌛ Escaneando Estructuras...</div>
+            <style>@keyframes fadeIn { to { opacity: 0.5; } }</style>`;
             return;
         }
 
         this.shadowRoot.innerHTML = `
         <style>
-            :host { display: block; font-family: inherit; }
-            .projector-container { 
-                display: flex; 
-                flex-direction: column; 
-                gap: 12px; 
-                padding: 10px 0px 40px 0px;
-                height: auto;
+            @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;600;800&display=swap');
+            
+            :host { 
+                display: block; font-family: 'Inter', sans-serif; 
+                --indra-accent: #007AFF; 
+                --indra-border: rgba(0,0,0,0.1); 
+                --indra-bg-soft: #f9f9fb;
+                --indra-warning: #ff9f0a;
             }
+            
+            .projector-container { display: flex; flex-direction: column; gap: 20px; padding: 20px 0; }
+            
+            .header-info { display: flex; justify-content: space-between; align-items: center; padding: 0 10px; }
+            .header-info h3 { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #8e8e93; margin: 0; }
+            
+            .btn-scan {
+                background: white; border: 1px solid var(--indra-border); border-radius: 8px;
+                padding: 8px 14px; font-size: 10px; font-weight: 600; cursor: pointer; color: #1c1c1e;
+                transition: all 0.2s;
+            }
+            .btn-scan:hover { background: #f2f2f7; border-color: #8e8e93; }
 
+            /* --- CARDS --- */
             .schema-card { 
-                background: white;
-                border: 1px solid var(--indra-border); 
-                border-radius: 16px; 
-                overflow: hidden; 
-                transition: all 0.3s ease;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+                background: white; border: 1px solid var(--indra-border); 
+                border-radius: 12px; margin: 10px;
+                display: flex; flex-direction: column;
+                overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.02);
             }
-            .schema-card:hover { border-color: var(--indra-accent); }
+            
+            .card-header { 
+                padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center;
+                background: white; border-bottom: 1px solid var(--indra-border);
+            }
+            
+            .schema-identity { display: flex; align-items: center; gap: 12px; }
+            .status-indicator { width: 8px; height: 8px; border-radius: 50%; background: #d1d1d6; }
+            .status-indicator.synced { background: #34c759; box-shadow: 0 0 8px rgba(52, 199, 89, 0.4); }
+            .status-indicator.divergent { background: var(--indra-warning); box-shadow: 0 0 8px rgba(255, 159, 10, 0.4); }
+            
+            .schema-name { font-size: 13px; font-weight: 800; color: #1c1c1e; }
+            .schema-file { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: #8e8e93; }
 
-            .header { 
-                padding: 12px 20px; 
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                border-bottom: 1px solid var(--indra-border);
+            .btn-action-main {
+                background: var(--indra-accent); color: white; border: none; border-radius: 10px;
+                padding: 8px 18px; font-size: 10px; font-weight: 700; cursor: pointer;
+                transition: filter 0.2s; text-transform: uppercase;
             }
-            .schema-title { display: flex; align-items: center; font-size: 11px; font-weight: 800; color: var(--indra-text-main); letter-spacing: 0.05em; }
+            .btn-action-main:hover { filter: brightness(1.1); }
+            .btn-action-main.outline { background: white; color: var(--indra-accent); border: 1px solid var(--indra-accent); }
+
+            /* --- METADATA GRID --- */
+            .metadata-inspector { padding: 0; }
             
-            .body { background: #fafafa; }
+            table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: auto; }
+            th { 
+                text-align: left; padding: 1rem; color: #8e8e93; font-weight: 600; 
+                background: var(--indra-bg-soft); border-bottom: 1px solid var(--indra-border);
+                text-transform: uppercase; font-size: 9px;
+            }
+            td { padding: 1rem; border-bottom: 1px solid rgba(0,0,0,0.03); vertical-align: middle; }
             
-            summary {
-                padding: 10px 20px;
-                font-size: 9px;
-                font-weight: 800;
-                color: var(--indra-text-dim);
-                cursor: pointer;
-                background: white;
-                border-top: 1px solid var(--indra-border);
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                text-transform: uppercase;
-                list-style: none;
+            .id-badge { font-family: 'IBM Plex Mono', monospace; color: #8e8e93; font-size: 10px; }
+            .type-badge { 
+                padding: 4px 8px; background: #f2f2f7; border-radius: 6px; 
+                font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 600;
+            }
+            
+            .divergence-row { background: rgba(255, 159, 10, 0.05); }
+            .divergence-label { color: var(--indra-warning); font-weight: 800; font-size: 8px; margin-top: 4px; }
+
+            /* --- BUTTONS --- */
+            .action-cell { display: flex; gap: 8px; justify-content: flex-end; }
+            .btn-trad {
+                padding: 6px 12px; border-radius: 6px; border: 1px dotted var(--indra-border);
+                background: white; color: #1c1c1e; font-size: 10px; font-weight: 600; 
+                cursor: pointer; transition: 0.2s;
+            }
+            .btn-trad:hover { background: #1c1c1e; color: white; border-color: #1c1c1e; }
+            .btn-trad.accent { border-style: solid; color: var(--indra-accent); border-color: var(--indra-accent); }
+            .btn-trad.accent:hover { background: var(--indra-accent); color: white; }
+
+            details { border-top: 1px solid var(--indra-border); }
+            summary { 
+                padding: 12px 25px; font-size: 10px; font-weight: 700; color: #8e8e93;
+                cursor: pointer; list-style: none; user-select: none;
             }
             summary:hover { color: var(--indra-accent); }
-            summary::after { content: '↓'; font-size: 10px; opacity: 0.5; transition: transform 0.3s; }
-            details[open] summary::after { transform: rotate(180deg); }
-            
-            .fields-list { 
-                padding: 12px 20px; 
-                background: #fff;
-                border-top: 1px solid var(--indra-border);
-            }
-            .field-row { 
-                display: flex; 
-                justify-content: space-between; 
-                padding: 6px 0;
-                border-bottom: 1px solid rgba(0,0,0,0.03);
-                font-family: 'JetBrains Mono', monospace;
-                font-size: 10px;
-            }
-            .field-type { color: var(--indra-accent); font-weight: 600; font-size: 9px; opacity: 0.8; }
-
-            .diff-box {
-                padding: 15px 20px;
-                background: #fffbe6;
-                border-top: 1px solid #ffe58f;
-                font-size: 9px;
-            }
-            .diff-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-family: monospace; }
-            .op-ADD { color: #52c41a; font-weight: 800; }
-            .op-DEL { color: #f5222d; font-weight: 800; }
-            .op-MOD { color: #fa8c16; font-weight: 800; }
-
-            .metadata-box {
-                padding: 15px 20px;
-                background: #fdfdfd;
-                border-top: 1px solid var(--indra-border);
-                font-family: 'JetBrains Mono', monospace;
-                font-size: 9px;
-            }
-            .meta-item { display: flex; gap: 8px; margin-bottom: 6px; }
-            .meta-key { color: var(--indra-text-dim); font-weight: 800; min-width: 80px; }
-            .meta-val { color: #444; word-break: break-all; }
-
-            .btn-sync {
-                padding: 8px 20px;
-                border-radius: 10px;
-                font-size: 10px;
-                font-weight: 800;
-                cursor: pointer;
-                border: 1px solid var(--indra-accent);
-                background: white;
-                color: var(--indra-accent);
-                transition: all 0.2s;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-            }
-            .btn-sync:hover { background: var(--indra-accent); color: white; }
-            .btn-sync.divergent { background: #fa8c16; color: white; border-color: #fa8c16; animation: pulse 2s infinite; }
-            .btn-sync.synced { background: var(--indra-success); color: white; border-color: var(--indra-success); }
-            
-            @keyframes pulse {
-                0% { box-shadow: 0 0 0 0 rgba(250, 140, 22, 0.4); }
-                70% { box-shadow: 0 0 0 8px rgba(250, 140, 22, 0); }
-                100% { box-shadow: 0 0 0 0 rgba(250, 140, 22, 0); }
-            }
-
-            .btn-unlink { 
-                background: transparent; 
-                color: var(--indra-danger); 
-                border: none; 
-                font-size: 14px; 
-                cursor: pointer;
-                padding: 4px 8px;
-                opacity: 0.4;
-            }
-            .btn-unlink:hover { opacity: 1; background: rgba(255, 59, 48, 0.1); border-radius: 6px; }
-            
-            .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 12px; }
-            .status-sync { background: var(--indra-success); box-shadow: 0 0 10px var(--indra-success); }
-            .status-divergent { background: #fa8c16; box-shadow: 0 0 10px #fa8c16; }
-            .status-local { background: var(--indra-text-dim); opacity: 0.3; }
-
-            .badge-sync {
-                font-size: 8px;
-                background: #000;
-                color: #fff;
-                padding: 2px 6px;
-                border-radius: 4px;
-                margin-left: 10px;
-            }
-            .badge-divergent { background: #fa1616; }
-
-            .error-banner {
-                padding: 10px 20px;
-                background: #fff5f5;
-                color: #c53030;
-                font-size: 9px;
-                border-top: 1px solid #feb2b2;
-                font-weight: 600;
-            }
         </style>
+
         <div class="projector-container">
-            ${this._schemas.map(s => {
-                const meta = s.metadata || {};
-                const remote = s._remoteState;
-                const resonance = this.diff(s, remote);
-                const isSynced = !!meta.drive_id;
-                const error = s._lastError;
-                
-                return `
-                <div class="schema-card" id="card-${s.id}">
-                    <div class="header">
-                        <div class="schema-title">
-                            <span class="status-dot ${resonance.status === 'DIVERGENT' ? 'status-divergent' : (isSynced ? 'status-sync' : 'status-local')}"></span>
-                            <span>${(s.handle?.alias || s.id).toUpperCase()}</span>
-                            ${resonance.status === 'DIVERGENT' ? `<span class="badge-sync badge-divergent">DESVIACIÓN DETECTADA</span>` : (isSynced ? `<span class="badge-sync">SINCERIDAD: ON</span>` : '')}
-                        </div>
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            ${isSynced ? `<button class="btn-unlink" title="Desvincular" onclick="this.getRootNode().host.handleUnlink('${s.id}')">✕</button>` : ''}
-                            <button class="btn-sync ${resonance.status === 'DIVERGENT' ? 'divergent' : (isSynced ? 'synced' : '')}" onclick="this.getRootNode().host.handleSync('${s.id}')">
-                                ${resonance.status === 'DIVERGENT' ? 'Resolver Fuga' : (isSynced ? 'Sincronizado' : 'Sincronizar')}
-                            </button>
-                        </div>
-                    </div>
-                    
-                    ${resonance.status === 'DIVERGENT' ? `
-                    <div class="diff-box">
-                        <div style="font-weight:800; margin-bottom:8px; display:flex; justify-content:space-between;">
-                            <span>INFORME DE RESONANCIA</span>
-                            <span style="opacity:0.6;">Divergencia Detectada</span>
-                        </div>
-                        ${resonance.changes.map(ch => `
-                            <div class="diff-row">
-                                <span class="op-${ch.op}">${ch.op === 'ADD' ? '[+]' : (ch.op === 'DEL' ? '[-]' : '[~]')}</span>
-                                <span style="flex:1;">${ch.label || ch.id}</span>
-                                <span style="opacity:0.5;">${ch.detail || ''}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    ` : ''}
+            <div class="header-info">
+                <h3>Esquemas Detectados en Proyecto</h3>
+                <button class="btn-scan" id="btn-scan-root">Refrescar Escaneo Local</button>
+            </div>
 
-                    ${error ? `<div class="error-banner">⚠ ERROR: ${error}</div>` : ''}
+            ${this._schemas.map(s => this._renderSchemaInspector(s)).join('')}
+        </div>
+        `;
 
-                    <div class="body">
-                        <details name="indra-accordion">
-                            <summary>Estructura de Datos Local</summary>
-                            <div class="fields-list">
-                                ${(s.fields || s.payload?.fields || []).map(f => `
-                                    <div class="field-row">
-                                        <span class="field-label">${f.label || f.id}</span>
-                                        <span class="field-type">${f.type}</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </details>
-                        
-                        ${isSynced ? `
-                        <details name="indra-accordion">
-                            <summary>Evidencia del Core</summary>
-                            <div class="metadata-box">
-                                <div class="meta-item"><span class="meta-key">DRIVE_FILE_ID:</span> <span class="meta-val">${meta.drive_id}</span></div>
-                                <div class="meta-item"><span class="meta-key">SYNCED_AT:</span> <span class="meta-val">${meta.synced_at || 'Desconocido'}</span></div>
-                                <div class="meta-item"><span class="meta-key">MAPPING:</span> <span class="meta-val">${remote ? 'LEÍDO CON ÉXITO' : 'PENDIENTE DE PULL'}</span></div>
-                                <div style="margin-top:10px; display:flex; gap:10px;">
-                                    <button class="btn-action" style="padding:4px 10px; font-size:8px; background:#eee;" onclick="this.getRootNode().host.handlePull('${s.id}')">Validar Realidad (PULL)</button>
-                                </div>
-                            </div>
-                        </details>
-                        ` : ''}
+        this._setupListeners();
+    }
+
+    _renderSchemaInspector(s) {
+        const meta = s.metadata || {};
+        const isSynced = !!meta.drive_id;
+        const remote = s._remoteState || null;
+        const fields = s.payload?.fields || s.fields || [];
+        const remoteFields = remote?.fields || remote?.payload?.fields || [];
+
+        // Identificar Divergencias
+        let hasDivergence = false;
+        if (isSynced && remote) {
+            hasDivergence = fields.some(f => {
+                const rf = remoteFields.find(r => r.id === f.id);
+                return this._checkDivergence(f, rf);
+            }) || fields.length !== remoteFields.length;
+        }
+
+        return `
+        <div class="schema-card">
+            <div class="card-header">
+                <div class="schema-identity">
+                    <div class="status-indicator ${isSynced ? (hasDivergence ? 'divergent' : 'synced') : ''}"></div>
+                    <div>
+                        <div class="schema-name">${(s.handle?.alias || s.id).toUpperCase()}</div>
+                        <div class="schema-file">${s._source?.file || 'manual_entry.js'}</div>
                     </div>
                 </div>
-                `;
-            }).join('')}
+                <div class="header-actions">
+                    <button class="btn-action-main ${isSynced ? 'outline' : ''}" onclick="this.getRootNode().host.handleFullSync('${s.id}')">
+                        ${isSynced ? (hasDivergence ? 'Actualizar Core' : 'Sincronizado') : 'Exportar al Core'}
+                    </button>
+                </div>
+            </div>
+
+            <div class="metadata-inspector">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Propiedad / Metadatos</th>
+                            <th>ID Átomo</th>
+                            <th>Tipo de Dato</th>
+                            <th>Mapeo Drive</th>
+                            <th style="text-align:right;">Sincronía Atómica</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${fields.map(f => this._renderFieldRow(s.id, f, remoteFields.find(rf => rf.id === f.id), isSynced)).join('')}
+                    </tbody>
+                </table>
+            </div>
+
+            <details>
+                <summary>PROPIEDADES DEL TRONCO (JSON)</summary>
+                <div style="padding: 20px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #444; background: #fafafa;">
+                    <pre style="margin:0;">${JSON.stringify(s, null, 2)}</pre>
+                </div>
+            </details>
         </div>
         `;
     }
 
-    async handlePull(schemaId) {
-        const bridge = this._bridge;
+    _renderFieldRow(schemaId, local, remote, isSynced) {
+        const isDivergent = isSynced && remote && this._checkDivergence(local, remote);
+        return `
+            <tr class="${isDivergent ? 'divergence-row' : ''}">
+                <td>
+                    <div style="font-weight: 600; color: #1c1c1e;">${local.label}</div>
+                    ${isDivergent ? `<div class="divergence-label">⚠️ DIVERGENCIA DETECTADA</div>` : ''}
+                </td>
+                <td class="id-badge">${local.id}</td>
+                <td><span class="type-badge">${local.type}</span></td>
+                <td style="opacity:0.5; font-size:9px;">${local.mapping?.drive || '--'}</td>
+                <td class="action-cell">
+                    <button class="btn-trad" onclick="this.getRootNode().host.handleAtomicPull('${schemaId}', '${local.id}')">IMPORTAR</button>
+                    <button class="btn-trad accent" onclick="this.getRootNode().host.handleAtomicPush('${schemaId}', '${local.id}')">EXPORTAR</button>
+                </td>
+            </tr>
+        `;
+    }
+
+    _checkDivergence(f1, f2) {
+        if (!f2) return true;
+        return f1.type !== f2.type || f1.label !== f2.label;
+    }
+
+    _setupListeners() {
+        const scanBtn = this.shadowRoot.getElementById('btn-scan-root');
+        if (scanBtn) {
+            scanBtn.onclick = () => {
+                this.dispatchEvent(new CustomEvent('indra-refresh-local', { bubbles: true, composed: true }));
+            };
+        }
+    }
+
+    async handleAtomicPush(schemaId, fieldId) {
+        const schema = this._schemas.find(s => s.id === schemaId);
+        const field = (schema.fields || schema.payload?.fields || []).find(f => f.id === fieldId);
+        try {
+            await this._bridge.resonanceSync.patchSchemaField(schemaId, field);
+            this.handleRefreshRemote(schemaId);
+        } catch (e) {
+            alert("Error en Exportación: " + e.message);
+        }
+    }
+
+    async handleAtomicPull(schemaId, fieldId) {
+        alert("Comando 'IMPORTAR': Esta acción requiere escritura en disco local. No implementada en cliente puro.");
+    }
+
+    async handleFullSync(schemaId) {
+        try {
+            await this._bridge.resonanceSync.anchorSchema(schemaId);
+            this.handleRefreshRemote(schemaId);
+        } catch (e) {
+            alert("Fallo en Exportación Global: " + e.message);
+        }
+    }
+
+    async handleRefreshRemote(schemaId) {
         const schema = this._schemas.find(s => s.id === schemaId);
         if (!schema || !schema.metadata?.drive_id) return;
-
         try {
-            console.log(`[Resonance] Solicitando PULL de realidad para: ${schemaId}...`);
-            const response = await bridge.execute({
+            const resp = await this._bridge.execute({
                 protocol: 'ATOM_READ',
                 provider: 'drive',
                 context_id: schema.metadata.drive_id
             });
-
-            if (response.metadata?.status === 'OK') {
-                const remoteAtom = response.items?.[0];
-                // Intentar leer el contenido JSON si es posible
-                if (remoteAtom && remoteAtom.payload?.content) {
-                   schema._remoteState = JSON.parse(remoteAtom.payload.content);
-                } else {
-                   // Si el atom_read básico no trae el contenido, usamos un protocolo de lectura de archivo
-                   const content = await bridge.execute({
-                       protocol: 'DATA_PULL', // Protocolo ficticio o mapeado a ATOM_READ con fetch
-                       provider: 'drive',
-                       context_id: schema.metadata.drive_id
-                   });
-                   schema._remoteState = content.items?.[0];
-                }
+            if (resp.metadata?.status === 'OK') {
+                schema._remoteState = resp.items?.[0]?.payload;
+                this.render();
             }
         } catch (e) {
-            console.error("Fallo el PULL de realidad:", e);
-        } finally {
-            this.render();
+            console.warn("Fallo el sondeo del Core para " + schemaId);
         }
-    }
-
-    async handleSync(schemaId) {
-        const bridge = this._bridge;
-        const schema = this._schemas.find(s => s.id === schemaId);
-        if (!schema) return;
-
-        try {
-            schema._lastError = null;
-            this.render();
-            console.log(`[Sincerity] Sincronizando semilla: ${schemaId}...`);
-            await bridge.resonanceSync.anchorSchema(schemaId);
-        } catch (e) {
-            schema._lastError = e.message;
-        } finally {
-            this.render();
-        }
-    }
-
-    async handleUnlink(schemaId) {
-        if (!confirm(`¿Deseas desvincular físicamente '${schemaId}' de este Workspace?`)) return;
-        const bridge = this._bridge;
-        const schema = this._schemas.find(s => s.id === schemaId);
-        if (schema) {
-            schema.metadata = {};
-            if (bridge.ignitions) delete bridge.ignitions[schemaId];
-            localStorage.setItem('INDRA_IGNITIONS', JSON.stringify(bridge.ignitions));
-        }
-        this.render();
     }
 }
 

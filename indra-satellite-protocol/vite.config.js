@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import fs from 'fs';
 import path from 'path';
+import { exec } from 'child_process';
 
 // Plugin de Vite Crudo para el Daemon Soberano
 const indraDevServerPlugin = () => {
@@ -55,11 +56,10 @@ const indraDevServerPlugin = () => {
         }
       });
 
-      // 3. Sincronización (Compilador Local)
-      server.middlewares.use('/api/indra/sync', (req, res) => {
+      // 3. Escaneo de ADN (Cosecha Local)
+      server.middlewares.use('/api/indra/scan', (req, res) => {
         if (req.method === 'POST') {
-          const { exec } = require('child_process');
-          exec('node sync_core.js', (error, stdout) => {
+          exec('node local_scanner.js', (error, stdout) => {
             if (error) {
               res.statusCode = 500;
               res.end(JSON.stringify({ status: 'error', message: error.message }));
@@ -78,6 +78,10 @@ export default defineConfig({
   plugins: [indraDevServerPlugin()],
   server: {
     port: 3000,
-    open: true
+    open: true,
+    watch: {
+        // ARIES: Ignoramos la carpeta de protocolos para evitar el bucle de recarga infinita
+        ignored: ['**/_INDRA_PROTOCOL_/**']
+    }
   }
 });

@@ -29,16 +29,16 @@
     border-radius: 20px;
     overflow: hidden;
     color: var(--indra-text-main);
-    margin: 20px auto;
+    margin: 10px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.08);
     animation: fadeIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    width: calc(100% - 20px);
 }
 
 .main-grid {
     display: flex;
     flex: 1;
     width: 100%;
-    height: 100%;
     overflow: hidden;
     gap: 1px;
     background: rgba(60, 60, 67, 0.1);
@@ -51,9 +51,9 @@
     overflow-y: auto;
 }
 
-.col-identity { flex: 0 0 25%; min-width: 200px; }
-.col-dna      { flex: 0 0 45%; border-left: 1px solid var(--indra-border); border-right: 1px solid var(--indra-border); }
-.col-actions  { flex: 0 0 30%; min-width: 250px; }
+.col-identity { flex: 1; min-width: 300px; }
+.col-dna      { flex: 3; border-left: 1px solid var(--indra-border); border-right: 1px solid var(--indra-border); }
+.col-actions  { flex: 1.5; min-width: 350px; }
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px) scale(0.98); }

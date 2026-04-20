@@ -74,6 +74,45 @@ export class ResonanceSync {
         }
     }
 
+    /**
+     * CIRUGÍA ATÓMICA (PATCHING)
+     * Actualiza solo un sub-conjunto de la estructura del esquema en el Core.
+     */
+    async patchSchemaField(schemaName, fieldDelta) {
+        const { bridge } = this;
+        const schema = bridge.contract.schemas.find(s => s.id === schemaName || s.handle?.alias === schemaName);
+        
+        if (!schema || !schema.metadata?.drive_id) {
+            throw new Error(`SCHEMA_NOT_ANCHORED: ${schemaName}. Primero debes anclar el esquema al core.`);
+        }
+
+        console.log(`[Sincerity:Patch] Aplicando cirugía atómica a '${schemaName}' - Campo: ${fieldDelta.id}...`);
+
+        try {
+            const response = await bridge.execute({
+                protocol: 'ATOM_PATCH',
+                provider: 'drive',
+                context_id: schema.metadata.drive_id,
+                data: {
+                    payload: {
+                        fields: schema.fields // El delta se aplica en el Core, pero mandamos el estado deseado de la lista
+                    }
+                }
+            });
+
+            if (response.metadata?.status === 'OK') {
+                schema.metadata.synced_at = new Date().toLocaleString();
+                console.log(`✅ [Sincerity] Campo '${fieldDelta.id}' sincronizado exitosamente.`);
+                return response;
+            }
+
+            throw new Error(response.metadata?.error || "CORE_REJECTED_PATCH");
+        } catch (e) {
+            console.error(`[Sincerity:Patch] Falló la cirugía en ${schemaName}:`, e);
+            throw e;
+        }
+    }
+
     async anchorCitizenship(workspaceId = null) {
         const { bridge } = this;
         try {

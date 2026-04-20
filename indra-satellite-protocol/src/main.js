@@ -61,11 +61,10 @@ function setupUI() {
             bridge.coreUrl = url;
             bridge.satelliteToken = token;
 
-            // Persistencia del Pacto
+            // Persistencia del Pacto (Soberanía Pura)
             localStorage.setItem('INDRA_SATELLITE_LINK', JSON.stringify({
                 coreUrl: url,
-                token: token,
-                workspaceId: bridge.activeWorkspaceId
+                token: token
             }));
 
             try {
@@ -90,6 +89,9 @@ function setupUI() {
             } else if (mode === 'ERROR_LEDGER') {
                 authStatusChip.innerText = "FALLO NÚCLEO";
                 authStatusChip.style.background = "#EA4335";
+            } else if (mode === 'DISCOVERY') {
+                authStatusChip.innerText = "EXPLORANDO...";
+                authStatusChip.style.background = "#4285F4";
             } else if (mode === 'GHOST') {
                 authStatusChip.innerText = error ? "SESIÓN MUERTA" : "MODO GHOST";
                 authStatusChip.style.background = error ? "#EA4335" : "#666";

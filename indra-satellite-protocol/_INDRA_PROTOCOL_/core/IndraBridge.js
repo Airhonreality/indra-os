@@ -9,6 +9,7 @@ class IndraBridge {
         this.coreUrl = config.coreUrl || "https://airhonreality.github.io/indra-os";
         this.satelliteToken = null;
         this.activeWorkspaceId = null; 
+        this.availableWorkspaces = []; // Descubrimiento físico de realidad
         this.environment = config.environment || 'PRODUCTION';
 
         // --- DATOS ADN ---
@@ -76,17 +77,17 @@ class IndraBridge {
             console.log("🚀 [IndraBridge] Iniciando Ignición Síncrona...");
             
             try {
-                // PASO 0: Carga del contrato
+                // PASO 0: Carga del contrato (ADN Lógico)
                 await this.loadContract();
 
-                // Recuperar pacto desde localStorage
+                // Recuperar pacto desde localStorage (Soberanía Pura: Solo URL y Token)
                 const linkData = localStorage.getItem('INDRA_SATELLITE_LINK');
                 if (linkData) {
                     try {
                         const parsed = JSON.parse(linkData);
                         this.coreUrl = parsed.coreUrl || this.coreUrl;
                         this.satelliteToken = parsed.token || this.satelliteToken;
-                        this.activeWorkspaceId = parsed.workspaceId || this.activeWorkspaceId;
+                        // El workspaceId NO se recupera de disco. Es volátil.
                     } catch (e) { /* Fail silently */ }
                 }
 
@@ -94,27 +95,42 @@ class IndraBridge {
                     throw new Error("GHOST: Sin nexo configurado.");
                 }
 
-                // PASO 1: Validación de Red
+                // PASO 1: Validación de Red e Identidad (Discovery de Capacidades)
                 const statusPulse = await this.execute({ protocol: 'SYSTEM_MANIFEST', provider: 'system' });
                 this.capabilities = statusPulse.metadata || {};
                 this.allowedProtocols = this.capabilities.allowed_protocols || [];
+                
+                // PASO 2: REALIDAD SINCERA (Discovery de Territorio)
+                // Si no hay ID o si queremos ser sinceros, escaneamos.
+                const discovery = await this.execute({ protocol: 'SYSTEM_SATELLITE_DISCOVER', provider: 'system' });
+                this.availableWorkspaces = discovery.items || [];
 
-                // PASO 2: Validación de Ledger
-                if (this.activeWorkspaceId) {
-                    try {
-                        await this.execute({ 
-                            protocol: 'ATOM_EXISTS', 
-                            context_id: this.activeWorkspaceId, 
-                            data: { ids: [this.activeWorkspaceId] } 
-                        });
-                        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
-                    } catch (error) {
-                        window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
-                            detail: { mode: 'ERROR_LEDGER', error: error.message, id: this.activeWorkspaceId } 
-                        }));
-                    }
-                } else {
-                    window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'ORPHAN' } }));
+                // AXIOMA: Si el Core tiene una asignación primaria, la respetamos.
+                if (statusPulse.metadata?.primary_workspace) {
+                    this.activeWorkspaceId = statusPulse.metadata.primary_workspace;
+                }
+
+                // SI NO TENEMOS ID, lanzamos modo DISCOVERY para que el usuario elija
+                if (!this.activeWorkspaceId) {
+                    console.log("📡 [Indra] Iniciando en modo Descubrimiento de Realidades.");
+                    window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
+                        detail: { mode: 'DISCOVERY', items: this.availableWorkspaces } 
+                    }));
+                    return;
+                }
+
+                // PASO 3: Validación de Ledger Físico (Solo si el Core nos asignó algo o ya lo teníamos)
+                try {
+                    await this.execute({ 
+                        protocol: 'ATOM_EXISTS', 
+                        context_id: this.activeWorkspaceId, 
+                        data: { ids: [this.activeWorkspaceId] } 
+                    });
+                    window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
+                } catch (error) {
+                    window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
+                        detail: { mode: 'ERROR_LEDGER', error: error.message, id: this.activeWorkspaceId } 
+                    }));
                 }
 
             } catch (e) {

@@ -33,10 +33,9 @@ class IndraWorkspaceSelector extends HTMLElement {
         if (!this._bridge || !this._bridge.satelliteToken) return;
 
         try {
-            // Axioma: Consultar workspaces disponibles al Core
+            // Axioma: Descubrimiento Físico Directo (Sinceridad de Territorio)
             const response = await this._bridge.execute({
-                protocol: 'ATOM_READ',
-                context_id: 'workspaces',
+                protocol: 'SYSTEM_SATELLITE_DISCOVER',
                 provider: 'system'
             });
 
@@ -53,15 +52,10 @@ class IndraWorkspaceSelector extends HTMLElement {
 
         console.log(`[WorkspaceSelector] Cambiando contexto a: ${workspaceId}`);
         
-        // 1. Actualizar el Bridge
+        // 1. Actualizar el Bridge (Memoria RAM únicamente)
         this._bridge.activeWorkspaceId = workspaceId;
         
-        // 2. Persistir para refrescos
-        const link = JSON.parse(localStorage.getItem('INDRA_SATELLITE_LINK') || '{}');
-        link.workspaceId = workspaceId;
-        localStorage.setItem('INDRA_SATELLITE_LINK', JSON.stringify(link));
-
-        // 3. Reiniciar el Bridge para cristalizar el nuevo contexto
+        // 2. Reiniciar el Bridge para cristalizar el nuevo contexto
         this._bridge.init().then(() => {
              // Notificar al HUD que todo cambió
              window.dispatchEvent(new CustomEvent('indra:workspace_changed', { detail: { workspaceId } }));

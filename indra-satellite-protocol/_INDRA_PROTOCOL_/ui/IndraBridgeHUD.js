@@ -323,6 +323,19 @@ class IndraBridgeHUD extends HTMLElement {
                 actionBtn.onclick = () => this.handleDNAsync();
                 body.classList.remove('locked');
                 break;
+
+            case 'DISCOVERY':
+                status.innerText = 'Explorando Territorio...';
+                status.className = 'status-badge status--pending';
+                actionBtn.innerText = 'Seleccionar Realidad';
+                actionBtn.className = 'btn-master';
+                actionBtn.disabled = false;
+                actionBtn.onclick = () => {
+                    const selector = this.shadowRoot.querySelector('indra-workspace-selector');
+                    if (selector) selector.shadowRoot.querySelector('select').focus();
+                };
+                body.classList.add('locked');
+                break;
             
             case 'ERROR_LEDGER':
                 status.innerText = 'FALLO DE NÚCLEO';

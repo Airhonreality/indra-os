@@ -12,6 +12,7 @@
 function ATOM_READ(uqo)   { return _system_handleRead(uqo); }
 function ATOM_CREATE(uqo) { return _system_handleCreate(uqo); }
 function ATOM_UPDATE(uqo) { return _system_handleUpdate(uqo); }
+function ATOM_PATCH(uqo)  { return _system_handlePatch(uqo); }
 function ATOM_DELETE(uqo) { return _system_handleDelete(uqo); }
 function ATOM_EXISTS(uqo) { return _system_handleExists(uqo); }
 function ATOM_ALIAS_RENAME(uqo) { return _system_handleAliasRename(uqo); }
@@ -67,6 +68,13 @@ function _system_handleUpdate(uqo) {
     
     // DELEGACIÓN MICELAR: El protocolo ahora lo maneja el fragmento especializado
     const result = _system_updateAtom(uqo.context_id, uqo.data, uqo.provider);
+    return { items: result.items, metadata: result.metadata };
+}
+
+function _system_handlePatch(uqo) {
+    if (!uqo || !uqo.context_id || !uqo.data) throw createError('INVALID_INPUT', 'ATOM_PATCH requiere context_id y data.');
+    
+    const result = _system_patchAtom(uqo.context_id, uqo.data, uqo.provider);
     return { items: result.items, metadata: result.metadata };
 }
 
@@ -182,6 +190,31 @@ function _system_updateAtom(atomId, updates, providerId) {
         const nextDoc = { ...doc, ...updates, updated_at: new Date().toISOString() };
         file.setContent(JSON.stringify(nextDoc, null, 2));
         
+        return { items: [_system_toAtom(nextDoc, atomId, providerId)], metadata: { status: 'OK' } };
+    } catch (err) {
+        return { items: [], metadata: { status: 'ERROR', error: err.message } };
+    }
+}
+
+function _system_patchAtom(atomId, delta, providerId) {
+    try {
+        const file = _system_findAtomFile(atomId);
+        const doc = JSON.parse(file.getBlob().getDataAsString());
+        
+        // AXIOMA: Mezcla selectiva del payload
+        if (delta.payload) {
+            doc.payload = { ...doc.payload, ...delta.payload };
+            delete delta.payload;
+        }
+
+        // Merge del resto de propiedades (metadata)
+        const nextDoc = { 
+            ...doc, 
+            ...delta, 
+            updated_at: new Date().toISOString() 
+        };
+        
+        file.setContent(JSON.stringify(nextDoc, null, 2));
         return { items: [_system_toAtom(nextDoc, atomId, providerId)], metadata: { status: 'OK' } };
     } catch (err) {
         return { items: [], metadata: { status: 'ERROR', error: err.message } };

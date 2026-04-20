@@ -14,6 +14,7 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
   'ATOM_READ':                    (p) => _system_handleRead(p),
   'ATOM_CREATE':                  (p) => _system_handleCreate(p),
   'ATOM_UPDATE':                  (p) => _system_handleUpdate(p),
+  'ATOM_PATCH':                   (p) => _system_handlePatch(p),
   'ATOM_DELETE':                  (p) => _system_handleDelete(p),
   'ATOM_EXISTS':                  (p) => _system_handleExists(p),
   'ATOM_ALIAS_RENAME':            (p) => _system_handleAliasRename(p),

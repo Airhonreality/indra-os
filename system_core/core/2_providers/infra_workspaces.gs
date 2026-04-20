@@ -152,7 +152,13 @@ function _system_genesis_cellular_workspace_(label, uqo) {
             protocols: ['ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE']
         };
 
-        const identityFile = cellFolder.createFile('manifest.json', JSON.stringify(atomDoc, null, 2));
+        // --- UNIFICACIÓN DE MANIFIESTO (v7.9.3) ---
+        // Evitamos el eco: si ledger_initialize_cell ya creó el manifiesto, lo usamos.
+        const existingManifest = cellFolder.getFilesByName('manifest.json');
+        const identityFile = existingManifest.hasNext() 
+            ? existingManifest.next() 
+            : cellFolder.createFile('manifest.json', JSON.stringify(atomDoc, null, 2));
+            
         const driveId = identityFile.getId();
         atomDoc.id = driveId;
         identityFile.setContent(JSON.stringify(atomDoc, null, 2));

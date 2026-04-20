@@ -23,24 +23,34 @@ function infra_identity_resolve(rawId, expectedType = 'FILE') {
     try {
         if (expectedType === 'FOLDER') {
             const folder = DriveApp.getFolderById(atomId);
-            logDebug(`[infra:ident] Carpeta localizada: ${folder.getName()}`);
             if (folder.isTrashed()) throw new Error('TRASHED');
             return folder;
         }
 
-        const file = DriveApp.getFileById(atomId);
-        const mime = file.getMimeType();
-        logDebug(`[infra:ident] Recurso localizado: ${file.getName()} [${mime}]`);
-
-        if (file.isTrashed()) throw new Error('TRASHED');
-
-        // AXIOMA DE SINCERIDAD: Si pedimos un archivo y nos dan una carpeta, es un error de identidad.
-        if (mime === MimeType.FOLDER) {
-            logError(`[infra:ident] VIOLACIÓN DE TIPO: Se esperaba Archivo, es Carpeta: ${atomId}`);
-            throw createError('IDENTITY_TYPE_MISMATCH', `Se esperaba un ADN (Archivo) pero el ID ${atomId} es una CARPETA.`);
+        // --- INTELIGENCIA DE UBICACIÓN (v7.9.1) ---
+        // Si pedimos un FILE pero recibimos un FOLDER, intentamos resolver al manifest.json interno.
+        let resource;
+        try {
+            resource = DriveApp.getFileById(atomId);
+        } catch(e) {
+            // Podría ser una carpeta? Google Drive API a veces lanza error al pedir File con ID de Folder.
+            resource = DriveApp.getFolderById(atomId);
         }
 
-        return file;
+        const mime = resource.getMimeType();
+        if (mime === MimeType.FOLDER) {
+            logInfo(`[infra:ident] Detectado puntero de Carpeta. Resolviendo a manifest.json...`);
+            const manifest = resource.getFoldersByName('manifest.json'); // Error: getFilesByName
+            const files = resource.getFilesByName('manifest.json');
+            if (files.hasNext()) {
+                return files.next();
+            }
+            throw createError('SOVEREIGN_VIOLATION', `La ubicación ${atomId} no contiene un 'manifest.json' válido.`);
+        }
+
+        if (resource.isTrashed()) throw new Error('TRASHED');
+        return resource;
+
     } catch (e) {
         if (e.code) throw e; 
         logError(`[infra:ident] Error en resolución de ${atomId}: ${e.message}`);

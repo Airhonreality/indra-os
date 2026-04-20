@@ -77,6 +77,13 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
                         desc="Mover registros entre tablas mediante mapeo." 
                         onClick={() => setCurrentPath('HYDRATE')} 
                     />
+                    <MenuCard 
+                        icon="DELETE" 
+                        title="Desvincular ID" 
+                        desc="Eliminar el vínculo físico actual (ID Fantasma)." 
+                        onClick={() => setCurrentPath('UNLINK')} 
+                        danger
+                    />
                 </div>
             </div>
         );
@@ -133,27 +140,95 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
         );
     }
 
+    if (currentPath === 'UNLINK') {
+        return (
+            <PathUnlink 
+                atom={atom}
+                coreUrl={coreUrl} 
+                sessionSecret={sessionSecret} 
+                onComplete={onUpdate}
+                onBack={() => setCurrentPath('MENU')}
+                renderHeader={renderHeader}
+            />
+        );
+    }
+
     return null;
 }
 
 // --- SUB-COMPONENTES DE APOYO ---
 
-function MenuCard({ icon, title, desc, onClick }) {
+// 5. FLUJO: DESVINCULAR (REPARACIÓN TÉCNICA)
+function PathUnlink({ atom, coreUrl, sessionSecret, onComplete, onBack, renderHeader }) {
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handleUnlink = async () => {
+        setIsProcessing(true);
+        try {
+            // Unlink es un PATCH que limpia los campos de destino
+            const result = await executeDirective({
+                provider: 'system',
+                protocol: 'ATOM_UPDATE',
+                context_id: atom.id,
+                data: {
+                    payload: {
+                        ...atom.payload,
+                        target_silo_id: null,
+                        target_provider: null,
+                        ignited_at: null
+                    }
+                }
+            }, coreUrl, sessionSecret);
+
+            if (result.metadata?.status === 'OK') {
+                toastEmitter.success("Vínculo eliminado. El esquema es ahora un diseño puro.");
+                onComplete(result.items[0]);
+            } else {
+                toastEmitter.error("Error al desvincular.");
+            }
+        } catch (e) { toastEmitter.error("Fallo crítico en el protocolo de desvinculación."); }
+        finally { setIsProcessing(false); }
+    };
+
+    return (
+        <div className="nexus-path fill stack">
+            {renderHeader("DESVINCULAR ALMACENAMIENTO", "Paso de recuperación: el ID actual será olvidado.")}
+            <div className="nexus-content fill center stack--loose" style={{ padding: '24px' }}>
+                <div style={{ textAlign: 'center', color: '#ff4655' }}>
+                    <IndraIcon name="DELETE" size="48px" />
+                    <p style={{ fontSize: '11px', marginTop: '12px', maxWidth: '240px', color: 'white', opacity: 0.8 }}>
+                        ¿Seguro que desea eliminar el vínculo con el ID <strong>{atom.payload?.target_silo_id}</strong>?
+                    </p>
+                    <p style={{ fontSize: '9px', opacity: 0.5, marginTop: '8px' }}>
+                        Esto no borrará el archivo en Drive, solo hará que Indra lo "olvide" para permitir una nueva configuración.
+                    </p>
+                </div>
+                
+                <button className="btn btn--danger" onClick={handleUnlink} disabled={isProcessing} style={{ height: '50px', width: '100%', borderRadius: '12px' }}>
+                    {isProcessing ? "DESVINCULANDO..." : "CONFIRMAR DESVINCULACIÓN"}
+                </button>
+                <button className="btn btn--xs btn--ghost" onClick={onBack}>CANCELAR</button>
+            </div>
+        </div>
+    );
+}
+
+function MenuCard({ icon, title, desc, onClick, danger }) {
     return (
         <div className="nexus-card glass-hover" onClick={onClick} style={{
             padding: '20px',
             borderRadius: '16px',
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.05)',
+            background: danger ? 'rgba(255, 70, 85, 0.05)' : 'rgba(255,255,255,0.02)',
+            border: `1px solid ${danger ? '#ff465533' : 'rgba(255,255,255,0.05)'}`,
             cursor: 'pointer',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
             transition: 'all 0.2s ease'
         }}>
-            <IndraIcon name={icon} size="24px" color="var(--indra-dynamic-accent)" />
+            <IndraIcon name={icon} size="24px" color={danger ? '#ff4655' : "var(--indra-dynamic-accent)"} />
             <div className="stack--none">
-                <h3 style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>{title.toUpperCase()}</h3>
+                <h3 style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '4px', color: danger ? '#ff4655' : 'white' }}>{title.toUpperCase()}</h3>
                 <p style={{ fontSize: '10px', opacity: 0.4, lineHeight: '1.4' }}>{desc}</p>
             </div>
         </div>

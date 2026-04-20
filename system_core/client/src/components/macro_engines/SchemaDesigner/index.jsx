@@ -36,7 +36,7 @@ export function SchemaDesigner({ atom, bridge }) {
     const [renameError, setRenameError] = useState('');
     const [aliasResetNonce, setAliasResetNonce] = useState(0);
     const [showProvisionManager, setShowProvisionManager] = useState(false);
-
+    const [linkStatus, setLinkStatus] = useState('OK'); // OK, BROKEN, VERIFYING
     const hasHydrated = useRef(false);
 
     // ── PERSISTENCIA ──
@@ -51,6 +51,30 @@ export function SchemaDesigner({ atom, bridge }) {
             }
         };
     }, []);
+
+    // ── VERIFICACIÓN DE VÍNCULO (AUTO-REPARACIÓN) ──
+    useEffect(() => {
+        const verifyLink = async () => {
+            if (!localAtom.payload?.target_silo_id) {
+                setLinkStatus('OK');
+                return;
+            }
+            setLinkStatus('VERIFYING');
+            try {
+                // Intentamos una lectura rápida de metadatos del silo para confirmar existencia
+                const res = await bridge.callProtocol({
+                    provider: localAtom.payload.target_provider || 'drive',
+                    protocol: 'ATOM_READ',
+                    context_id: localAtom.payload.target_silo_id
+                });
+                if (res.metadata?.status === 'OK') setLinkStatus('OK');
+                else setLinkStatus('BROKEN');
+            } catch (e) {
+                setLinkStatus('BROKEN');
+            }
+        };
+        verifyLink();
+    }, [localAtom.payload?.target_silo_id]);
 
     // ── HIDRATACIÓN ──
     useEffect(() => {
@@ -168,11 +192,18 @@ export function SchemaDesigner({ atom, bridge }) {
                             <div className="shelf--loose" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div className="stack" style={{ gap: '4px' }}>
                                     <div className="shelf--tight">
-                                        <div style={{ padding: '4px 8px', borderRadius: '4px', background: isOrphan ? '#ff4655' : 'var(--indra-dynamic-accent)', color: 'black', fontSize: '8px', fontWeight: '900' }}>
-                                            {isOrphan ? 'DESCONECTADO' : 'CONECTADO'}
+                                        <div style={{ 
+                                            padding: '4px 8px', 
+                                            borderRadius: '4px', 
+                                            background: isOrphan ? '#ff4655' : (linkStatus === 'BROKEN' ? '#ff9f1c' : 'var(--indra-dynamic-accent)'), 
+                                            color: 'black', 
+                                            fontSize: '8px', 
+                                            fontWeight: '900' 
+                                        }}>
+                                            {isOrphan ? 'DESCONECTADO' : (linkStatus === 'BROKEN' ? 'VÍNCULO ROTO' : (linkStatus === 'VERIFYING' ? 'VERIFICANDO...' : 'CONECTADO'))}
                                         </div>
                                         <span style={{ fontSize: '11px', fontWeight: 'bold' }}>
-                                            {isOrphan ? 'SIN ALMACENAMIENTO FÍSICO' : `VINCULADO A ${localAtom.payload?.target_provider?.toUpperCase()}`}
+                                            {isOrphan ? 'SIN ALMACENAMIENTO FÍSICO' : (linkStatus === 'BROKEN' ? 'ID FANTASMA DETECTADO' : `VINCULADO A ${localAtom.payload?.target_provider?.toUpperCase()}`)}
                                         </span>
                                     </div>
                                     <div className="shelf--tight" style={{ fontSize: '9px', opacity: 0.5, fontFamily: 'var(--font-mono)' }}>

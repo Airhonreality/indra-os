@@ -122,18 +122,26 @@ class IndraWorkspaceSelector extends HTMLElement {
     }
 
     async createWorkspace() {
-        const name = prompt("Nombre del Nuevo Workspace:", "Mi Veta");
+        const name = prompt("Nombre del Nuevo Workspace (Realidad):", "Mi Veta de Oro");
         if (!name) return;
 
         try {
-            await this._bridge.execute({
+            console.log(`[WorkspaceSelector] Materializando realidad: ${name}...`);
+            const response = await this._bridge.execute({
                 protocol: 'ATOM_CREATE',
                 data: { label: name, class: 'WORKSPACE' },
                 provider: 'system'
             });
-            this.fetchWorkspaces();
+
+            if (response.metadata?.status === 'OK') {
+                alert(`Realidad '${name}' cristalizada con éxito.`);
+                await this.fetchWorkspaces();
+            } else {
+                alert(`Fallo en Génesis: ${response.metadata?.error || 'Respuesta desconocida'}`);
+            }
         } catch (e) {
-            alert("Error al crear workspace. Verifica la conexión.");
+            console.error("[WorkspaceSelector] Error CRÍTICO en Génesis:", e);
+            alert("Error crítico al materializar el espacio. Revisa la consola y el estado del Núcleo.");
         }
     }
 }

@@ -63,7 +63,6 @@ class IndraSchemaProjector extends HTMLElement {
             .sk-row-w1 { width: 70%; }
             .sk-row-w2 { width: 40%; }
             .sk-row-w3 { width: 55%; }
-        </style>
             .btn-update {
                 background: #F8F9FA; 
                 color: #3C4043; 

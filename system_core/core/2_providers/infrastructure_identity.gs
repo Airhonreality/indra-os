@@ -40,7 +40,6 @@ function infra_identity_resolve(rawId, expectedType = 'FILE') {
         const mime = resource.getMimeType();
         if (mime === MimeType.FOLDER) {
             logInfo(`[infra:ident] Detectado puntero de Carpeta. Resolviendo a manifest.json...`);
-            const manifest = resource.getFoldersByName('manifest.json'); // Error: getFilesByName
             const files = resource.getFilesByName('manifest.json');
             if (files.hasNext()) {
                 return files.next();

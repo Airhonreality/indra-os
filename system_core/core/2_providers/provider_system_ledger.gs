@@ -69,16 +69,37 @@ function _ledger_get_target_sheet_(uqo) {
   }
   
   // 2. Handshake Relacional: buscar en INFRASTRUCTURE del ROOT
-  const cellLedgerId = ledger_infra_get(`cell_ledger_${wsId}`);
+  const infraKey = `cell_ledger_${wsId}`;
+  let cellLedgerId = ledger_infra_get(infraKey);
+  
+  if (!cellLedgerId) {
+      logInfo(`[ledger] [${trx}] JIT: Intentando auto-adopción física para ${wsId}...`);
+      try {
+          const folder = DriveApp.getFolderById(wsId);
+          const manifestFile = folder.getFilesByName('workspace.json');
+          if (manifestFile.hasNext()) {
+              const dna = JSON.parse(manifestFile.next().getBlob().getDataAsString());
+              cellLedgerId = dna.payload?.cell_ledger_id;
+              if (cellLedgerId) {
+                  logSuccess(`[ledger] [${trx}] Célula adoptada con éxito: ${wsId} -> ${cellLedgerId}`);
+                  ledger_infra_sync(infraKey, cellLedgerId, dna.handle?.label || wsId);
+                  MountManager.mountTransient(wsId, cellLedgerId);
+              }
+          }
+      } catch (e) {
+          logWarn(`[ledger] [${trx}] Fallo en auto-adopción física: ${e.message}`);
+      }
+  }
+
   if (cellLedgerId) {
-    logInfo(`[ledger] [${trx}] Descubierto núcleo para: ${wsId} -> ${cellLedgerId}`);
+    logInfo(`[ledger] [${trx}] Usando núcleo para: ${wsId} -> ${cellLedgerId}`);
     MountManager.mountTransient(wsId, cellLedgerId);
     return SpreadsheetApp.openById(cellLedgerId).getSheetByName(LEDGER_SHEET_NAME);
   }
   
   // AXIOMA: CERO FALLBACKS.
   logError(`[ledger] [${trx}] ERROR: Célula ${wsId} carece de núcleo Ledger.`);
-  throw createError('CELLULAR_NUCLEUS_NOT_FOUND', `No se encontró el núcleo (Ledger) para la Célula: ${wsId}`);
+  throw createError('CELLULAR_NUCLEUS_NOT_FOUND', `No se encontró el núcleo (Ledger) para la Célula: ${wsId}. Realiza un SYSTEM_REBUILD_LEDGER si la célula es válida.`);
 }
 
 

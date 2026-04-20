@@ -47,4 +47,9 @@ export const createUiSlice = (set) => ({
     toggleIntelligencePortal: (open) => set(s => ({ 
         isIntelligencePortalOpen: open !== undefined ? open : !s.isIntelligencePortalOpen 
     })),
+
+    // --- DHARMA DE ERRORES: Sincronización Atómica ---
+    activeError: null, // El átomo INDRA_ERROR activo
+    raiseError: (errorAtom) => set({ activeError: errorAtom }),
+    clearError: () => set({ activeError: null }),
 });

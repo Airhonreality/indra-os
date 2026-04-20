@@ -300,3 +300,49 @@ function _system_induction_cancel(uqo) {
   _system_induction_writeTicket_(ticket);
   return { items: [], metadata: { status: 'OK', ticket: ticket } };
 }
+
+/**
+ * _system_induction_drift_check: Sensor de Entropía Estructural.
+ * Compara el Silo Físico contra el DNA (Schema) para detectar divergencias.
+ */
+function _system_induction_drift_check(uqo) {
+  const bridgeId = uqo.context_id || uqo.data?.bridge_id;
+  if (!bridgeId) throw createError('INVALID_INPUT', 'INDUCTION_DRIFT_CHECK requiere bridge_id.');
+
+  const bridgeAtom = route({ provider: 'system', protocol: 'ATOM_READ', context_id: bridgeId }).items?.[0];
+  if (!bridgeAtom || bridgeAtom.class !== 'BRIDGE') throw createError('NOT_FOUND', 'Puente no encontrado para chequeo de drift.');
+
+  const dnaId = bridgeAtom.payload?.dna_id;
+  const targetSiloId = bridgeAtom.payload?.targets?.[0];
+  
+  // 1. Leer el ADN (Esquema Ideal)
+  const schemaAtom = route({ provider: 'system', protocol: 'ATOM_READ', context_id: dnaId }).items?.[0];
+  
+  // 2. Leer la Materia (Silo Físico)
+  const siloStream = route({ 
+    provider: bridgeAtom.payload?.target_provider || 'drive', 
+    protocol: 'TABULAR_STREAM', 
+    context_id: targetSiloId,
+    query: { limit: 1 } 
+  });
+
+  const idealFields = schemaAtom?.payload?.fields || [];
+  const physicalFields = siloStream.metadata?.schema?.fields || [];
+
+  // 3. Comparación de Resonancia
+  const missingInPhysical = idealFields.filter(f => !physicalFields.find(pf => pf.id === f.id));
+  const driftDetected = missingInPhysical.length > 0;
+
+  return {
+    items: [],
+    metadata: {
+      status: 'OK',
+      drift_detected: driftDetected,
+      entropy_report: {
+        missing_fields: missingInPhysical.map(f => f.id),
+        ideal_count: idealFields.length,
+        physical_count: physicalFields.length
+      }
+    }
+  };
+}

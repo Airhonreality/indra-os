@@ -1,53 +1,72 @@
-# INDRA CORE — El Núcleo de Consciencia GAS (v7.5)
+# INDRA OS CORE: El Núcleo Soberano
 
-Este directorio constituye el **Cerebro Operativo** de Indra OS, desarrollado íntegramente en Google Apps Script (GAS). Su diseño no es accidental; es el resultado de la aplicación rigurosa del **Diseño Axiomático (Suh)** y la **Teoría General de Sistemas (TGS)** para crear un entorno de soberanía de datos sobre infraestructura cloud pública.
+> "En la sinceridad de la materia y la independencia del diseño reside la libertad del sistema."
 
----
-
-## 1. Justificación Sistémica (TGS)
-Desde la perspectiva de la **TGS**, el Core de Indra se define como un **Sistema Abierto con Membrana Semipermeable**. 
-
-*   **Identidad Micelar:** El sistema no es un monolito; es un organismo que se fractaliza. El Core central actúa como el "Silo Madre", pero tiene la capacidad de engendrar **Celdas (Workspaces)** que replican su propia estructura de datos y lógica, garantizando la supervivencia del sistema incluso si se fragmenta la infraestructura física.
-*   **Homeostasis y Entropía:** El Core combate la entropía de los servicios cloud mediante protocolos de **Resiliencia Natural** (JIT checks) y un **Reloj de Pulso** que garantiza la coherencia entre el estado físico (Drive) y el estado lógico (Ledger).
+Este documento detalla la arquitectura axiomática de Indra OS, un motor de orquestación de datos diseñado bajo los principios de la **Teoría General de Sistemas (TGS)** y el **Diseño Axiomático de Suh**.
 
 ---
 
-## 2. Diseño Axiomático (Axiomatic Design)
+## 1. Arquitectura de Capas (Diferenciación Orgánica)
 
-Siguiendo los principios de **Nam Pyo Suh**, el Core se divide en dominios funcionales desacoplados para cumplir con el **Axioma de Independencia**.
+Indra se organiza en 4 estratos de responsabilidad, donde la información fluye de forma centrífuga desde el Gateway hasta la Infraestructura.
 
-### Matriz de Requerimientos Funcionales (FR) y Parámetros de Diseño (DP)
+### Capa 0: Gateway & Registry (`0_gateway/`)
+- **Responsabilidad**: Interfaz de entrada única y registro de capacidades.
+- **RF (Requerimiento Funcional)**: Validar la autenticidad de la petición y despacharla al Router.
+- **DP (Parámetro de Diseño)**: `protocol_registry.gs`.
+- **Restricción**: No debe contener lógica de negocio. Es una membrana semipermeable.
 
-| Req. Funcional (FR) | Parámetro de Diseño (DP) | Capa |
-| :--- | :--- | :--- |
-| **FR1: Regulación de Entrada** (Filtrado de vectores y validación de seguridad). | **DP1: Protocol Firewall** (`0_gateway`) | Capa 0 |
-| **FR2: Procesamiento Semántico** (Transformación y resonancia de átomos). | **DP2: Logic Engine/Orchestrator** (`1_logic`) | Capa 1 |
-| **FR3: Persistencia de Materia** (Interacción con APIs físicas de Drive/Sheets). | **DP3: Infrastructure Providers** (`2_providers`) | Capa 2 |
+### Capa 1: Lógica & Orquestación (`1_logic/`)
+- **Responsabilidad**: Despacho determinista de protocolos y orquestación de flujos (Inducción).
+- **RF**: Garantizar que cada protocolo sea atendido por un handler físico verificado.
+- **DP**: `protocol_router.gs` y `induction_orchestrator.gs`.
+- **Axioma**: **Independencia Funcional**. Una decisión en el router no debe afectar la persistencia física.
 
-### Axioma 1: Independencia Funcional
-Las capas están diseñadas para que un cambio en la persistencia física (sustituir Drive por SQL, por ejemplo) no afecte a la lógica de negocio ni a las reglas de seguridad del firewall.
+### Capa 2: Proveedores e Infraestructura (`2_providers/`)
+- **Responsabilidad**: Gestión de la materia física (Drive, Notion, etc.) y persistencia.
+- **Silos de Infraestructura**:
+    - `infra_persistence`: CRUD Atómico.
+    - `infra_identity`: Soberanía de nombres y alias.
+    - `infra_workspaces`: Génesis y descubrimiento físico.
+- **Restricción**: **Estatismo Puro**. Ningún provider puede mutar el estado global (PropertiesService) directamente sin pasar por un protocolo de orquestación.
 
-### Axioma 2: Minimización de Información
-Indra no genera datos sintéticos. El Core es un **transductor puro**. La complejidad de la infraestructura se oculta tras el **Contrato Universal de Átomos**, minimizando la carga cognitiva para el Satélite (Frontend).
-
----
-
-## 3. Restricciones Axiomáticas Críticas (Constitución)
-
-1.  **AX-01 (Sinceridad de ID):** Un ID en la lógica debe ser SIEMPRE el mismo ID de la infraestructura física. No se permiten IDs internos o mapeos artificiales fuera del Ledger.
-2.  **AX-02 (Ley de Retorno):** Ningún componente puede retornar `null` o `undefined`. Toda interacción debe culminar en un sobre de respuesta `{ items: Array, metadata: Object }`.
-3.  **AX-03 (Soberanía Celular):** Un Workspace debe ser capaz de operar con su propio Ledger local. El Core central solo actúa como un "Punto de Montaje" transitorio.
-4.  **AX-04 (Fallo Ruidoso):** Ante una violación de contrato, el sistema debe loguear el error de forma explícita y ejecutar un rollback físico (Ej. Purga total de la carpeta en creación fallida).
-
----
-
-## 4. El Protocolo MCEP (Multi-Context Evaluation Protocol)
-
-Este repositorio está estructurado para ser leído por agentes humanos e IAs siguiendo el protocolo **MCEP**:
-1.  **Lectura de Identidad:** Consultar `manifest.json`.
-2.  **Lectura de Reglas:** Revisar este `README.md` y los ADRs.
-3.  **Evaluación de Capas:** Navegar de `0_gateway` hacia `2_providers`.
+### Capa 3: Servicios & Extensiones (`3_services/`)
+- **Responsabilidad**: Capacidades avanzadas (Keychain, Resonance, Intelligence).
+- **RF**: Proveer servicios de valor añadido sobre los átomos existentes.
+- **Axioma**: **Acoplamiento Débil**. Los servicios deben ser "enchufables" y no críticos para el arranque del sistema.
 
 ---
 
-⚡ **Indra Core: La materia al servicio de la consciencia.** ⚡
+## 2. Análisis Axiomático (Suh)
+
+### Axioma 1: Independencia de Contenido
+Cada handler de protocolo debe ser funcionalmente independiente. La modificación de la lógica de "Rename" en Identidad no debe requerir cambios en el handler de "Create" en Persistencia.
+
+### Axioma 2: Sinceridad de la Materia (Anti-Ledger)
+El sistema confía en la realidad física (Drive) antes que en el estado virtual (Base de datos). 
+- **Restricción**: El "Ghost ID" está estrictamente prohibido. Si un archivo no existe en Drive, no existe en Indra.
+
+### Axioma 3: El Dharma de Errores
+El error es una información soberana.
+- **Restricción**: Todo fallo debe retornar un átomo de tipo `INDRA_ERROR` con `recovery_hint`. El silencio administrativo es una falla sistémica.
+
+---
+
+## 3. Parámetros de Calidad y Validación
+
+El sistema cuenta con una **Suite de Auditoría Local** (Node.js) que garantiza:
+1. **Resonancia (Oracle)**: 100% de los protocolos ruteados a handlers existentes.
+2. **Duplicidad**: 0 colisiones en el espacio de nombres global.
+3. **Contrato**: Validación rigurosa de UQO (Universal Query Object) y cumplimiento de la Ley de Retorno.
+
+---
+
+## 4. Guía de Evolución
+Para añadir un nuevo protocolo al sistema:
+1. Registre el protocolo en `protocol_registry.gs`.
+2. Asigne el handler en `protocol_router.gs`.
+3. Implemente el handler en el Silo correspondiente de `2_providers/`.
+4. valide con `node infra_oracle.js`.
+
+---
+*Indra OS - Hacia una tecnología axiomáticamente sincera.*

@@ -30,15 +30,29 @@ const ERROR_SEVERITY_MAP = Object.freeze({
   PROVIDER_UNREACHABLE: 'CRITICAL', // La API externa no respondió
   EXTERNAL_API_ERROR:   'CRITICAL', // La API externa respondió con un error 4xx/5xx
   CONTRACT_VIOLATION:   'CRITICAL', // Un Provider retornó un átomo sin campos canónicos
+  SECURITY_BREACH:      'CRITICAL', // Intento de acceso a recurso protegido
 
   // === WARNING ===
   INVALID_INPUT:        'WARNING',  // El UQO está mal formado
-  PROTOCOL_NOT_FOUND:   'WARNING',  // El protocolo solicitado no existe en el provider
+  PROTOCOL_NOT_FOUND:   'WARNING',  // El protocolo solicitado no existe
+  PROTOCOL_NOT_CRYSTALIZED: 'WARNING', // El protocolo no está en el mapa estático
   PROVIDER_NOT_FOUND:   'WARNING',  // El provider solicitado no está registrado
   UNSUPPORTED_FILTER:   'WARNING',  // El operador de filtro no es válido
   NOT_FOUND:            'WARNING',  // El ítem solicitado no existe
   DATA_PROCESSING_ERROR:'WARNING',  // Error al mapear datos del backend externo
+  PERSISTENCE_FAILURE:  'WARNING',  // Error al escribir en Google Drive
 });
+
+/**
+ * Catálogo de sugerencias de recuperación (Recovery Hints).
+ */
+const RECOVERY_HINTS = {
+  UNAUTHORIZED: 'Inicia sesión de nuevo para renovar tus credenciales.',
+  PROTOCOL_NOT_CRYSTALIZED: 'Contacta al soberano para registrar este protocolo en el mapa estático.',
+  NOT_FOUND: 'Verifica el ID del átomo o la ruta solicitada.',
+  SYSTEM_FAILURE: 'Inténtalo de nuevo en unos momentos o revisa el Core Log.',
+  PROVIDER_UNREACHABLE: 'Verifica tu conexión a internet o el estado del servicio externo.'
+};
 
 /**
  * Serializa el campo `details` de forma segura, evitando referencias circulares.
@@ -72,18 +86,10 @@ function _serializeDetails_(details) {
  * @param {string} message - Descripción legible del error para logs y UI.
  * @param {Object} [details=null] - Contexto adicional (stack, payload, etc.)
  * @returns {Readonly<Object>} Objeto de error congelado.
- *
- * @example
- * const err = createError('UNAUTHORIZED', 'Token de acceso inválido.');
- * // { code: 'UNAUTHORIZED', message: '...', severity: 'CRITICAL', timestamp: '...', details: null }
  */
 function createError(code, message, details) {
-  if (!code || typeof code !== 'string') {
-    code = 'SYSTEM_FAILURE';
-  }
-  if (!message || typeof message !== 'string') {
-    message = 'Error desconocido. El código de error no tenía descripción.';
-  }
+  if (!code || typeof code !== 'string') code = 'SYSTEM_FAILURE';
+  if (!message || typeof message !== 'string') message = 'Error desconocido.';
 
   const severity = ERROR_SEVERITY_MAP[code] || 'WARNING';
 
@@ -93,9 +99,28 @@ function createError(code, message, details) {
     severity:  severity,
     timestamp: new Date().toISOString(),
     details:   _serializeDetails_(details || null),
+    recovery_hint: RECOVERY_HINTS[code] || 'No hay sugerencias disponibles para este error.'
   };
 
   return Object.freeze(errorObject);
+}
+
+/**
+ * Crea un Átomo de Indra que representa un error.
+ * Sigue el estándar de Sinceridad Atómica de Indra OS.
+ */
+function createErrorAtom(code, message, details) {
+  const errorObj = createError(code, message, details);
+  
+  return {
+    id: `err_${Date.now()}_${code.toLowerCase()}`,
+    class: 'INDRA_ERROR',
+    payload: errorObj,
+    metadata: {
+      generated_by: 'core_error_handler_v1',
+      is_system_error: true
+    }
+  };
 }
 
 /**

@@ -19,6 +19,7 @@ import { Spinner } from './components/utilities/primitives/Spinner';
 import { useLexicon } from './services/lexicon';
 import { SacredField } from './components/utilities/SacredField';
 import { ManifestResolver } from './components/shell/ManifestResolver';
+import { IndraErrorHUD } from './components/shell/IndraErrorHUD';
 import './styles/ui_invoke.css';
 
 /**
@@ -294,6 +295,7 @@ export default function App() {
 
     return (
         <NeuralSplitter>
+            <IndraErrorHUD />
             <ToastProvider>
                 <SacredField>
                     {isResonating ? (

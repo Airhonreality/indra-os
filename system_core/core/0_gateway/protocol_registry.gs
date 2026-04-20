@@ -60,6 +60,7 @@ const PROTOCOL_CONTRACTS = Object.freeze({
   'SYSTEM_WORKSPACE_REPAIR':      { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.LOGIC   },
 
   // ── GESTIÓN DE SISTEMA ──
+  'SYSTEM_CORE_DISCOVERY':        { min_state: 1, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
   'SYSTEM_CONFIG_SCHEMA':         { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
   'SYSTEM_CONFIG_DELETE':         { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
   'SYSTEM_SHARE_CREATE':          { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
@@ -72,7 +73,21 @@ const PROTOCOL_CONTRACTS = Object.freeze({
   'SERVICE_PAIR':                 { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
   'SERVICE_UNPAIR':               { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
   'ACCOUNT_RESOLVE':              { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
-  'REVISIONS_LIST':               { min_state: 2, actors: ACTOR_TYPES.PUBLIC, dispatcher: DISPATCHERS.LOGIC   },
+  'REVISIONS_LIST':               { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
+  'SYSTEM_AUDIT':                 { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+
+  // ── OPERATIVA DE DATOS Y ESTRUCTURA ──
+  'TABULAR_STREAM':               { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
+  'HIERARCHY_TREE':               { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
+  'MEDIA_RESOLVE':                { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
+  'SCHEMA_FIELD_OPTIONS':         { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
+  'ATOM_LIST_QUERY':              { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
+
+  // ── INTELIGENCIA Y LÓGICA ──
+  'INTELLIGENCE_CHAT':            { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
+  'INTELLIGENCE_DISCOVERY':       { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
+  'WORKFLOW_EXECUTE':             { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+  'LOGIC_EXECUTE':                { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
 
   // ── OPERATIVA AVANZADA ──
   'SYSTEM_BATCH_EXECUTE':         { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
@@ -97,6 +112,8 @@ const PROTOCOL_CONTRACTS = Object.freeze({
   'SYSTEM_SATELLITE_INITIALIZE':  { min_state: 1, actors: ACTOR_TYPES.ALL,            dispatcher: DISPATCHERS.SYSTEM  },
   'SYSTEM_SATELLITE_DISCOVER':    { min_state: 1, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
   'SYSTEM_SATELLITE_UPGRADE':     { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
+  'SYSTEM_BLUEPRINT_SYNC':        { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
+  'SYSTEM_SCHEMA_IGNITE':         { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
 
   // ── RESONANCIA E INDUCCIÓN INDUSTRIAL (v10.0) ──
   'RESONANCE_ANALYZE':            { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },

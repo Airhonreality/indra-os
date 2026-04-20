@@ -33,7 +33,7 @@ const SystemOrchestrator = (function() {
     const protocol = (payload.protocol || '').trim().toUpperCase();
     let result;
 
-    logInfo(`[orchestrator] [${trx}] 🧠 Iniciando despacho para protocolo: ${protocol}`);
+    logInfo(`[orchestrator] [${trx}] 🧠 Despachando protocolo cristalizado: ${protocol}`);
 
     try {
       // 1. MODO: INGESTA PERISTÁLTICA (Sincronización por fragments)
@@ -42,23 +42,10 @@ const SystemOrchestrator = (function() {
         result = _handlePeristalticIngest_(payload);
       } 
       
-      // 2. MODO: ALIAS DE SERVICIO (Servicios Encapsulados)
-      else if (_SERVICE_ALIASES_[protocol]) {
-        logInfo(`[orchestrator] [${trx}] Ruta detectada: SERVICIO_ENCAPSULADO`);
-        result = _SERVICE_ALIASES_[protocol](payload);
-      } 
-      
-      // 3. MODO: AUTO-DISCOVERY (Global PAD)
+      // 2. MODO: RUTA CRISTALIZADA (Mapa Estático)
       else {
-        logInfo(`[orchestrator] [${trx}] Ruta detectada: PAD (Auto-Discovery)`);
-        const handler = _resolveDynamicHandler_(protocol);
-        
-        if (!handler) {
-           logError(`[orchestrator] [${trx}] ERROR: Protocolo '${protocol}' no localizado en el Plano Global.`);
-           throw createError('PROTOCOL_NOT_FOUND', `Protocolo ${protocol} no cristalizado en el scope soberano.`);
-        }
-        
-        result = handler(payload);
+        // Delegamos en el Router Estático (protocol_router.gs)
+        result = route(payload);
       }
 
       // --- SINCERIDAD DE LEY DE RETORNO (Validación de Contrato) ---
@@ -77,28 +64,7 @@ const SystemOrchestrator = (function() {
     }
   }
 
-
-
-  /**
-   * Busca en el scope global una función que coincida con el protocolo.
-   * @private
-   */
-  function _resolveDynamicHandler_(protocol) {
-    // AXIOMA: Resolución de Identidad en el Plano Global
-    const scope = (function() { return this; })(); // Capturar el verdadero Global de GAS
-    
-    // 1. Verificación en el Mapa Global (Directa)
-    if (typeof scope[protocol] === 'function') return scope[protocol];
-    if (typeof globalThis[protocol] === 'function') return globalThis[protocol];
-    
-    // 2. Verificación por Evaluación (Último recurso de resonancia)
-    try {
-      const fn = eval(protocol);
-      if (typeof fn === 'function') return fn;
-    } catch(e) {}
-
-    return null;
-  }
+  // --- ELIMINADA RESOLUCIÓN DINÁMICA (PAD BURN) ---
 
 
   /**

@@ -1,126 +1,142 @@
 /**
  * =============================================================================
- * INDRA PROTOCOL ROUTER (The Sovereign Gateway v10.0)
- * =============================================================================
- * AXIOMA: Es la única membrana que separa al núcleo de Indra de la materia física.
- * Ningún comando toca un provider sin pasar por esta aduana de contratos.
- * v10.0: Ahora valida la Intención Cognitiva además de la estructura.
+ * INDRA PROTOCOL ROUTER (The Sovereign Gateway v14.6 - CONSOLIDADO)
  * =============================================================================
  */
 
-/**
- * Valida la integridad del UQO antes de procesarlo.
- * @private
- */
-function _validateInputContract_(uqo) {
-  if (!uqo || typeof uqo !== 'object') {
-    throw createError('INVALID_INPUT', 'El UQO debe ser un objeto válido.');
-  }
-  if (!uqo.trace_id) {
-    uqo.trace_id = 'T_' + Math.random().toString(36).substring(2, 11);
-    // logWarn(`[router] UQO entrante sin trace_id. Generando traza de emergencia: ${uqo.trace_id}`);
-  }
-}
+const PROTOCOL_ROUTING_TABLE = Object.freeze({
+  // --- INFRAESTRUCTURA Y ESTADO ---
+  'SYSTEM_MANIFEST':              SYSTEM_MANIFEST,
+  'SYSTEM_INSTALL_HANDSHAKE':     SYSTEM_INSTALL_HANDSHAKE,
+  'HEALTH_CHECK':                 HEALTH_CHECK,
 
-/**
- * Valida el retorno de los handlers (The Return Law).
- * @private
- */
-function _validateReturnLaw_(result, providerId, protocol) {
-  if (!result || !result.items || !result.metadata) {
-    throw createError(
-      'CONTRACT_VIOLATION',
-      `El provider "${providerId}" violó la Ley de Retorno (The Return Law) en protocolo "${protocol}".`
-    );
-  }
-}
+  // --- PERSISTENCIA (ATOM CRUD) ---
+  'ATOM_READ':                    (p) => _system_handleRead(p),
+  'ATOM_CREATE':                  (p) => _system_handleCreate(p),
+  'ATOM_UPDATE':                  (p) => _system_handleUpdate(p),
+  'ATOM_DELETE':                  (p) => _system_handleDelete(p),
+  'ATOM_EXISTS':                  (p) => _system_handleExists(p),
+  'ATOM_ALIAS_RENAME':            (p) => _system_handleAliasRename(p),
+  'ATOM_ROLLBACK':                (p) => _system_handleRollback(p),
+  'RELATION_SYNC':                (p) => _system_handleRelationSync(p),
+  'SCHEMA_FIELD_ALIAS_RENAME':    (p) => _system_handleSchemaFieldAliasRename(p),
+  'ALIAS_COLLISION_SCAN':         (p) => _system_handleAliasCollisionScan(p),
 
-/**
- * Valida que los ítems devueltos cumplan con el contrato de átomo v10.0.
- * @private
- */
-function _validateAtomContract_(items, providerId) {
-  // Las validaciones de contrato ahora viven en el SystemOrchestrator.
-}
+  // --- JURISDICCIÓN Y WORKSPACES ---
+  'SYSTEM_PIN':                   (p) => _system_handlePin(p),
+  'SYSTEM_UNPIN':                 (p) => _system_handleUnpin(p),
+  'SYSTEM_PINS_READ':             (p) => _system_handlePinsRead(p),
+  'SYSTEM_WORKSPACE_REPAIR':      (p) => _system_handleWorkspaceRepair(p),
+  'SYSTEM_WORKSPACE_DEEP_PURGE':  SYSTEM_WORKSPACE_DEEP_PURGE,
+  'SYSTEM_SHARE_CREATE':          (p) => SYSTEM_SHARE_CREATE(p),
 
-/**
- * Punto de entrada único para el despacho de protocolos.
- */
+  // --- IDENTIDAD Y CONFIGURACIÓN ---
+  'SYSTEM_KEYCHAIN_GENERATE':     SYSTEM_KEYCHAIN_GENERATE,
+  'SYSTEM_KEYCHAIN_REVOKE':       SYSTEM_KEYCHAIN_REVOKE,
+  'SYSTEM_KEYCHAIN_AUDIT':        SYSTEM_KEYCHAIN_AUDIT,
+  'SYSTEM_KEYCHAIN_SCHEMA':       SYSTEM_KEYCHAIN_SCHEMA,
+  'ACCOUNT_RESOLVE':              (p) => _system_handleAccountResolve(p),
+  'SYSTEM_CONFIG_WRITE':          SYSTEM_CONFIG_WRITE,
+  'SYSTEM_CONFIG_SCHEMA':         SYSTEM_CONFIG_SCHEMA,
+  'SYSTEM_CONFIG_DELETE':         SYSTEM_CONFIG_DELETE,
+  'SERVICE_PAIR':                 (p) => _system_handleServicePair(p),
+  'SERVICE_UNPAIR':               (p) => _system_handleServiceUnpair(p),
+
+  // --- NEXO E IDENTIDAD CRUZADA ---
+  'SYSTEM_NEXUS_HANDSHAKE_INIT':  (p) => NexusService.initiateHandshake(p.data.remote_url, p.data.alias),
+  'SYSTEM_NEXUS_HANDSHAKE_ACCEPT':(p) => NexusService.acceptHandshake(p),
+  'SYSTEM_IDENTITY_CREATE':       (p) => IdentityProvider.createProfile(p),
+  'SYSTEM_IDENTITY_READ':         (p) => IdentityProvider.getProfile(p.data.id || p.data.alias),
+  'SYSTEM_IDENTITY_VERIFY':       (p) => IdentityProvider.verifyCorporateIdentity(p.data.email),
+
+  // --- SOBERANÍA SATELITAL ---
+  'SYSTEM_SATELLITE_INITIALIZE':  SYSTEM_SATELLITE_INITIALIZE,
+  'SYSTEM_SATELLITE_DISCOVER':    (p) => _system_handleSatelliteDiscover(p),
+  'SYSTEM_SATELLITE_UPGRADE':     (p) => { throw createError('NOT_IMPLEMENTED', 'Upgrade satelital en desarrollo.'); },
+  'SYSTEM_CORE_DISCOVERY':        (p) => _system_handleCoreDiscovery(p),
+  'SYSTEM_BLUEPRINT_SYNC':        (p) => system_blueprint_sync(p),
+  'SYSTEM_SCHEMA_IGNITE':         (p) => _system_handleSchemaIgnite(p),
+  
+  // --- ANALÍTICA Y COMPUTACIÓN ---
+  'REVISIONS_LIST':               (p) => _system_handleRevisionsList(p),
+  'RESONANCE_ANALYZE':            (p) => handleCompute(p),
+  'FORMULA_EVAL':                 (p) => handleCompute(p),
+  'SYSTEM_AUDIT':                 (p) => _system_handleAudit(p),
+  
+  // --- PROTOCOLOS POLIMÓRFICOS (PROVIDER SWITCH) ---
+  'TABULAR_STREAM': (p) => {
+    if (p.provider?.startsWith('notion')) return _notion_handleTabularStream(p);
+    return _system_handleTabularStream(p);
+  },
+  'HIERARCHY_TREE': (p) => {
+    if (p.provider?.startsWith('drive')) return _drive_handleHierarchyTree(p);
+    if (p.provider?.startsWith('notion')) return _notion_handleHierarchyTree(p);
+    if (p.provider?.startsWith('calendar')) return _ucp_handleHierarchyTree(p);
+    return handleNotion(p); // Fallback
+  },
+  'MEDIA_RESOLVE': (p) => {
+    if (p.provider?.startsWith('drive')) return _drive_handleMediaResolve(p);
+    return { items: [], metadata: { status: 'ERROR', error: 'Media Resolve solo soportado en Drive.' } };
+  },
+
+  // --- AUTOMATIZACIÓN INDUSTRIAL ---
+  'INDUSTRIAL_SYNC':              (p) => _automation_handleIndustrialSync_(p),
+  'INDUSTRIAL_IGNITE':            (p) => _automation_handleIndustrialIgnite(p),
+  'INDUCTION_START':              (p) => _system_induction_start(p),
+  'INDUCTION_STATUS':             (p) => _system_induction_status(p),
+  'INDUCTION_CANCEL':             (p) => _system_induction_cancel(p),
+  'INDUCTION_DRIFT_CHECK':        (p) => _system_induction_drift_check(p),
+  
+  // --- LÓGICA Y WORKFLOWS ---
+  'WORKFLOW_EXECUTE':             (p) => handleWorkflowExecute(p),
+  'LOGIC_EXECUTE':                (p) => SYSTEM_executeLogicBridge(p),
+  'INTELLIGENCE_CHAT':            (p) => handleIntelligence(p),
+  'INTELLIGENCE_DISCOVERY':       (p) => handleIntelligence(p),
+  'SCHEMA_FIELD_OPTIONS':         (p) => _system_handleSchemaFieldOptions(p),
+  'ATOM_LIST_QUERY':              (p) => { throw createError('NOT_IMPLEMENTED', 'Query de lista en desarrollo.'); },
+
+  // --- PULSE & LEDGER ---
+  'SYSTEM_QUEUE_READ':            (p) => SYSTEM_QUEUE_READ(p),
+  'SYSTEM_REBUILD_LEDGER':        (p) => SYSTEM_REBUILD_LEDGER(p),
+  'SYSTEM_RESONANCE_CRYSTALLIZE': (p) => SYSTEM_RESONANCE_CRYSTALLIZE(p),
+  'SYSTEM_TRIGGER_HUB_GENERATE':  (p) => SYSTEM_TRIGGER_HUB_GENERATE(p),
+  'PULSE_WAKEUP':                 (p) => PulseService.wakeup(p),
+
+  // --- INGESTA PERISTÁLTICA ---
+  'EMERGENCY_INGEST_INIT':        EMERGENCY_INGEST_INIT,
+  'EMERGENCY_INGEST_CHUNK':       EMERGENCY_INGEST_CHUNK,
+  'EMERGENCY_INGEST_FINALIZE':    EMERGENCY_INGEST_FINALIZE,
+
+  // --- OTROS SERVICIOS ---
+  'SYSTEM_BATCH_EXECUTE':         SYSTEM_BATCH_EXECUTE,
+  'SEARCH_DEEP':                  (p) => handleNotion(p), 
+});
+
 function route(uqo) {
   _validateInputContract_(uqo);
-
   const protocol = (uqo.protocol || '').toUpperCase();
-  const providerId = uqo.provider;
+  logInfo(`[protocol_router] Despachando cristalización: ${protocol}`);
 
-  logInfo(`[protocol_router] Despachando: ${providerId} → ${protocol}`);
-
-  // Resolver Configuración via Registry (Agnosticismo Radical)
-  const providerConf = getProviderConf(providerId);
-  if (!providerConf) {
-    throw createError('PROVIDER_NOT_FOUND', `El provider "${providerId}" no está registrado.`);
+  const handlerFn = PROTOCOL_ROUTING_TABLE[protocol];
+  if (!handlerFn || typeof handlerFn !== 'function') {
+    logError(`[protocol_router] PROTOCOLO NO CRISTALIZADO: ${protocol}`);
+    throw createError('PROTOCOL_NOT_CRYSTALIZED', `El protocolo "${protocol}" no ha sido cristalizado.`);
   }
 
-  // Verificar Implementación guiada por el manifiesto del provider
-  const handlerFnName = providerConf.implements[protocol];
-  if (!handlerFnName) {
-    throw createError('PROTOCOL_NOT_FOUND', `El provider "${providerId}" no implementa "${protocol}".`);
-  }
-
-  // Verificar Capacidades (Valla de Seguridad v6.0)
-  if (!providerConf.capabilities[protocol]) {
-    throw createError('PROTOCOL_NOT_SUPPORTED', `Capacidad "${protocol}" no declarada para "${providerId}".`);
-  }
-
-  const handlerFn = globalThis[handlerFnName];
-  if (typeof handlerFn !== 'function') {
-    throw createError('SYSTEM_FAILURE', `Handler "${handlerFnName}" no existe.`);
-  }
-
-  let result;
-  const startTime = Date.now();
   try {
-    result = handlerFn(uqo);
-    ledger_health_report(providerId, Date.now() - startTime);
+    const result = handlerFn(uqo);
+    _validateReturnLaw_(result, 'core_router', protocol);
+    return result;
   } catch (err) {
-    logError(`[protocol_router] Fallo crítico en "${providerId}" ejecutando "${protocol}": ${err.message}`);
-    ledger_health_report(providerId, Date.now() - startTime, err.message);
-    
-    return {
-      items: [{
-        id: `err_${Date.now()}`,
-        class: 'ERROR_REPORT',
-        payload: { 
-          message: err.message, 
-          provider: providerId, 
-          protocol: protocol,
-          code: err.code || 'HANDLER_EXECUTION_FAILED'
-        }
-      }],
-      metadata: {
-        status: 'ERROR',
-        error: err.message,
-        code: err.code || 'HANDLER_EXECUTION_FAILED',
-        trace: _sanitizeTrace_(uqo)
-      }
-    };
+    const errorAtom = (err.code && err.severity) ? createErrorAtom(err.code, err.message, err.details) : createErrorAtom('SYSTEM_FAILURE', err.message, { stack: err.stack });
+    return { items: [errorAtom], metadata: { status: 'ERROR', protocol: protocol } };
   }
-
-  _validateAtomContract_(result.items, providerId); // Stub para mantener compatibilidad de firma
-
-  // Inyectar traza si falta
-  result.metadata = result.metadata || {};
-  if (!result.metadata.trace) {
-    result.metadata.trace = _sanitizeTrace_(uqo);
-  }
-  if (!result.metadata.status) result.metadata.status = 'OK';
-
-  return result;
 }
 
-function _sanitizeTrace_(uqo) {
-  return {
-    trace_id: uqo ? (uqo.trace_id || uqo.trace?.trace_id) : 'T_' + Date.now(),
-    hop_count: (uqo?.hop_count || 0) + 1,
-    source: uqo?.source || 'CORE_ROUTER'
-  };
+function _validateInputContract_(uqo) {
+  if (!uqo || typeof uqo !== 'object' || !uqo.protocol) throw createError('INVALID_INPUT', 'UQO inválido.');
+}
+
+function _validateReturnLaw_(result, providerId, protocol) {
+  if (!result || !result.items || !result.metadata) throw createError('CONTRACT_VIOLATION', `Violación de contrato en ${protocol}.`);
 }

@@ -113,12 +113,20 @@ export async function executeDirective(uqo, coreUrl, sessionSecret, shareTicket 
 
         if (result.metadata.status === 'ERROR' || result.metadata.status === 'ERROR_FLOW') {
             console.log('%c CORE_INTERNAL_ERROR: ', 'color: #f44;', result.metadata);
+            
+            // --- DHARMA DE ERRORES: Detección y Emisión ---
+            const errorAtom = result.items?.find(item => item.class === 'INDRA_ERROR');
+            if (errorAtom) {
+                window.dispatchEvent(new CustomEvent('indra-error-atom', { detail: errorAtom }));
+            }
+
             console.log('%c FULL_RESULT: ', 'color: #999;', result);
             console.groupEnd();
             
             const err = new Error(result.metadata.error || 'Unknown Core Error');
-            err.code = result.metadata.code;
-            err.metadata = result.metadata; // Adjuntamos para inspección
+            err.code = result.metadata.code || (errorAtom ? errorAtom.payload.code : 'UNKNOWN');
+            err.metadata = result.metadata;
+            err.atom = errorAtom;
             throw err;
         }
 

@@ -230,8 +230,6 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                                 </button>
                             </div>
                         </div>
-
-                        </div>
                     </div>
 
                     {/* Tree Discovery Area */}

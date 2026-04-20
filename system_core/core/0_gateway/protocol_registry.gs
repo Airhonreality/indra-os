@@ -95,6 +95,7 @@ const PROTOCOL_CONTRACTS = Object.freeze({
 
   // ── SOBERANÍA SATELITAL (v13.0) ──
   'SYSTEM_SATELLITE_INITIALIZE':  { min_state: 1, actors: ACTOR_TYPES.ALL,            dispatcher: DISPATCHERS.SYSTEM  },
+  'SYSTEM_SATELLITE_DISCOVER':    { min_state: 1, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
   'SYSTEM_SATELLITE_UPGRADE':     { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
 
   // ── RESONANCIA E INDUCCIÓN INDUSTRIAL (v10.0) ──

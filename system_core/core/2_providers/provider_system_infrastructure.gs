@@ -11,6 +11,7 @@ function ATOM_DELETE(uqo) { return _system_handleDelete(uqo); }
 function ATOM_EXISTS(uqo) { return _system_handleExists(uqo); }
 function ATOM_ALIAS_RENAME(uqo) { return _system_handleAliasRename(uqo); }
 function RELATION_SYNC(uqo)     { return _system_handleRelationSync(uqo); }
+function SYSTEM_SATELLITE_DISCOVER(uqo) { return _system_handleSatelliteDiscover(uqo); }
 
 /**
  * ARCHIVO: 2_providers/provider_system_infrastructure.gs
@@ -1517,4 +1518,69 @@ function _system_handleCoreDiscovery(uqo) {
     }],
     metadata: { status: 'OK' }
   };
+}
+
+/**
+ * SYSTEM_SATELLITE_DISCOVER: Escaneado Físico Directo (Anti-Ledger).
+ * Barre la carpeta de workspaces en busca de realidades tangibles.
+ */
+function _system_handleSatelliteDiscover(uqo) {
+    const trx = uqo.trace_id || 'DISCOVERY';
+    logInfo(`[discovery] [${trx}] Iniciando escaneo físico de territorio...`);
+    
+    try {
+        const homeRoot = _system_ensureHomeRoot();
+        const wsFolder = homeRoot.getFoldersByName(WORKSPACES_FOLDER_NAME_).hasNext() 
+            ? homeRoot.getFoldersByName(WORKSPACES_FOLDER_NAME_).next() 
+            : null;
+
+        if (!wsFolder) {
+            return { items: [], metadata: { status: 'OK', message: 'No se encontró la carpeta de workspaces.' } };
+        }
+
+        const folders = wsFolder.getFolders();
+        const discovered = [];
+
+        while (folders.hasNext()) {
+            const folder = folders.next();
+            if (folder.isTrashed()) continue;
+
+            // Buscamos el ADN (workspace.json) dentro de la carpeta
+            const files = folder.getFilesByName('workspace.json');
+            if (files.hasNext()) {
+                const file = files.next();
+                try {
+                    const doc = JSON.parse(file.getBlob().getDataAsString());
+                    discovered.push({
+                        id: file.getId(),
+                        class: 'WORKSPACE',
+                        handle: {
+                            label: folder.getName(),
+                            alias: doc.handle?.alias || folder.getName().toLowerCase(),
+                        },
+                        payload: {
+                            cell_id: folder.getId(),
+                            created_at: doc.created_at
+                        }
+                    });
+                } catch (e) {
+                    logWarn(`[discovery] ADN corrupto en carpeta: ${folder.getName()}`);
+                }
+            }
+        }
+
+        logInfo(`[discovery] Escaneo finalizado. Células encontradas: ${discovered.length}`);
+        return { 
+            items: discovered, 
+            metadata: { 
+                status: 'OK', 
+                total: discovered.length,
+                scan_timestamp: new Date().toISOString() 
+            } 
+        };
+
+    } catch (err) {
+        logError(`[discovery] FALLO CRÍTICO EN ESCANEO: ${err.message}`);
+        return { items: [], metadata: { status: 'ERROR', error: err.message } };
+    }
 }

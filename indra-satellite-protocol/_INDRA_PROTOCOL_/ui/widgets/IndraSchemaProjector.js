@@ -9,6 +9,11 @@ class IndraSchemaProjector extends HTMLElement {
         super();
         this.attachShadow({ mode: 'open' });
         this._schemas = null; 
+        this._bridge = null;
+    }
+
+    set bridge(val) {
+        this._bridge = val;
     }
 
     set schemas(data) {
@@ -22,55 +27,72 @@ class IndraSchemaProjector extends HTMLElement {
         this.shadowRoot.innerHTML = `
         <style>
             :host { display: block; font-family: inherit; }
-            .projector-container { display: flex; flex-direction: column; gap: 12px; }
-            .schema-card { 
-                background: white; 
-                border: 1px solid rgba(60, 60, 67, 0.12); 
-                border-radius: 12px; 
-                overflow: hidden; 
+            .projector-container { 
+                display: flex; 
+                flex-direction: column; 
+                gap: 10px; 
+                max-height: 450px; 
+                overflow-y: auto; 
+                padding-right: 8px;
             }
+            /* Custom Scrollbar */
+            .projector-container::-webkit-scrollbar { width: 4px; }
+            .projector-container::-webkit-scrollbar-track { background: transparent; }
+            .projector-container::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+
+            .schema-card { 
+                background: rgba(255, 255, 255, 0.7); 
+                backdrop-filter: blur(8px);
+                border: 1px solid rgba(60, 60, 67, 0.1); 
+                border-radius: 14px; 
+                overflow: hidden; 
+                transition: all 0.2s ease;
+            }
+            .schema-card:hover { border-color: #007AFF; transform: translateX(2px); }
+
             .header { 
-                background: #F8F9FA; 
-                padding: 12px; 
-                font-size: 11px; 
-                font-weight: 700; 
-                border-bottom: 1px solid rgba(60, 60, 67, 0.12);
+                background: rgba(0,0,0,0.02); 
+                padding: 10px 14px; 
+                font-size: 10px; 
+                font-weight: 800; 
+                border-bottom: 1px solid rgba(60, 60, 67, 0.08);
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
             }
             .type-badge { font-size: 8px; color: #8E8E93; background: #E8EAED; padding: 2px 6px; border-radius: 4px; }
-            .body { padding: 12px; font-size: 11px; }
-            .field-row { display: flex; justify-content: space-between; margin-bottom: 6px; color: #1C1C1E; }
-            .field-type { color: #8E8E93; font-size: 9px; }
+            .body { padding: 10px 14px; font-size: 10px; max-height: 120px; overflow-y: auto; }
+            .field-row { display: flex; justify-content: space-between; margin-bottom: 4px; color: #1C1C1E; }
+            .field-type { color: #8E8E93; font-size: 8px; font-family: 'JetBrains Mono', monospace; }
             
             .btn-action {
-                padding: 6px 12px;
-                border-radius: 8px;
-                font-size: 10px;
-                font-weight: 800;
+                padding: 5px 10px;
+                border-radius: 7px;
+                font-size: 9px;
+                font-weight: 900;
                 cursor: pointer;
                 border: none;
                 text-transform: uppercase;
                 transition: all 0.2s;
             }
-            .btn-ignite { background: #007AFF; color: white; }
-            .btn-ignite:hover { background: #0051FF; }
-            .btn-update { background: #E8EAED; color: #1C1C1E; border: 1px solid rgba(0,0,0,0.1); }
+            .btn-ignite { background: #007AFF; color: white; box-shadow: 0 4px 10px rgba(0, 122, 255, 0.2); }
+            .btn-ignite:hover { transform: translateY(-1px); }
+            .btn-update { background: white; color: #007AFF; border: 1px solid #007AFF; }
             
-            .status-indicator { font-size: 12px; margin-right: 6px; }
+            .status-indicator { font-size: 10px; margin-right: 6px; }
             .status-sync { color: #34C759; }
-            .status-local { color: #8E8E93; }
+            .status-local { color: #8E8E93; opacity: 0.5; }
 
             .igniting { opacity: 0.5; pointer-events: none; }
             
             .target-selector {
-                font-size: 10px;
-                padding: 4px;
+                font-size: 9px;
+                padding: 3px 6px;
                 border: 1px solid rgba(0,0,0,0.1);
                 border-radius: 6px;
                 background: white;
-                margin-right: 8px;
+                margin-right: 6px;
+                font-weight: 700;
             }
         </style>
         <div class="projector-container">
@@ -116,7 +138,7 @@ class IndraSchemaProjector extends HTMLElement {
     }
 
     async handleExport(schemaId) {
-        const bridge = window.IndraInstance || window.indraBridge;
+        const bridge = this._bridge;
         if (!bridge) return alert("Error: No se detectó conexión con el Bridge.");
 
         const target = this.shadowRoot.getElementById(`target-${schemaId}`).value;
@@ -125,7 +147,6 @@ class IndraSchemaProjector extends HTMLElement {
 
         try {
             console.log(`[Projector] Exportando esquema ${schemaId} a ${target}...`);
-            // El método materializeSchema sigue siendo el técnico en el bridge
             await bridge.resonanceSync.materializeSchema(schemaId, { provider: target });
             alert("Esquema exportado con éxito.");
         } catch (e) {
@@ -136,7 +157,7 @@ class IndraSchemaProjector extends HTMLElement {
     }
 
     async handleSync(schemaId) {
-        const bridge = window.IndraInstance || window.indraBridge;
+        const bridge = this._bridge;
         if (!bridge) return;
 
         const card = this.shadowRoot.getElementById(`card-${schemaId}`);

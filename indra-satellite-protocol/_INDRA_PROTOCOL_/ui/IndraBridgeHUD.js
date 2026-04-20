@@ -268,6 +268,7 @@ class IndraBridgeHUD extends HTMLElement {
         // Hidratación inmediata (Soberanía Local)
         this.shadowRoot.getElementById('keychain-ctrl').bridge = instance;
         this.shadowRoot.getElementById('workspace-ctrl').bridge = instance;
+        this.shadowRoot.getElementById('schema-projector').bridge = instance;
         
         if (instance.contract && instance.contract.schemas) {
             this.shadowRoot.getElementById('schema-projector').schemas = instance.contract.schemas;

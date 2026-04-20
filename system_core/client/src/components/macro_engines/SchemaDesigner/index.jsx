@@ -1,44 +1,45 @@
 /**
  * =============================================================================
- * ARTEFACTO: components/macro_engines/SchemaDesigner.jsx (RESTORED FROM GIT)
- * RESPONSABILIDAD: El Orquestador de la Arquitectura de Datos.
+ * ARTEFACTO: components/macro_engines/SchemaDesigner.jsx 
+ * RESPONSABILIDAD: El Orquestador de la Arquitectura de Datos (Bipartito Sincero).
  * =============================================================================
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useLexicon } from '../../../services/lexicon';
+import { useWorkspace } from '../../../context/WorkspaceContext';
+import { useSchemaAST } from './useSchemaAST';
+
+// Sub-Componentes Visuales
 import { LayersPanel } from './LayersPanel';
-import { BlueprintCanvas } from './BlueprintCanvas';
 import { DNAInspector } from './DNAInspector';
 import { SchemaIgnitionPanel } from './SchemaIgnitionPanel';
+
+// Utilidades UI
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { RenameDryRunModal } from '../../utilities/primitives';
-import { useLexicon } from '../../../services/lexicon';
 import { prepareCanonicalRename, commitCanonicalRename } from '../../../services/rename_protocol_runtime';
-import { useWorkspace } from '../../../context/WorkspaceContext';
-import { useSchemaAST } from './useSchemaAST';
 
 export function SchemaDesigner({ atom, bridge }) {
     const { updateAxiomaticIdentity } = useWorkspace();
     const t = useLexicon(bridge.protocol.lang || 'es');
     
-    // Cerebro Micelar
     const ast = useSchemaAST(atom, bridge);
     const { localAtom, setLocalAtom, fields, lastSavedRef, updateFields, pushToHistory, updateStatus } = ast;
 
     const [selectedFieldId, setSelectedFieldId] = useState(null);
-    const [activeSlot, setActiveSlot] = useState('CANVAS');
+    const [activeSlot, setActiveSlot] = useState('NAV');
     const [isSaving, setIsSaving] = useState(false);
     const [pendingRename, setPendingRename] = useState(null);
     const [isCommittingRename, setIsCommittingRename] = useState(false);
     const [renameError, setRenameError] = useState('');
-    const [previewMode, setPreviewMode] = useState(false);
     const [aliasResetNonce, setAliasResetNonce] = useState(0);
     const [showProvisionManager, setShowProvisionManager] = useState(false);
 
     const hasHydrated = useRef(false);
 
-    // ── 1. GARANTÍA DE PERSISTENCIA (ORIGINAL GIT) ──
+    // ── PERSISTENCIA ──
     const localAtomRef = useRef(localAtom);
     useEffect(() => { localAtomRef.current = localAtom; }, [localAtom]);
 
@@ -51,28 +52,21 @@ export function SchemaDesigner({ atom, bridge }) {
         };
     }, []);
 
-    // ── 2. HIDRATACIÓN Y NORMALIZACIÓN (ORIGINAL GIT) ──
-    const slugifyAlias = (v) => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
-
-    const hydrate = async () => {
-        if (hasHydrated.current && localAtom.id === atom.id) return;
-        try {
-            const res = await bridge.read({ raw: true });
-            if (res && res.payload?.fields) {
-                const seen = new Set();
-                res.payload.fields = res.payload.fields.filter(f => {
-                    if (seen.has(f.id)) return false;
-                    seen.add(f.id);
-                    return true;
-                });
-                setLocalAtom(res);
-                lastSavedRef.current = JSON.stringify(res);
-                hasHydrated.current = true;
-            }
-        } catch (err) { console.error('[SchemaDesigner] Hydrate failed:', err); }
-    };
-
-    useEffect(() => { hydrate(); }, [atom.id, bridge]);
+    // ── HIDRATACIÓN ──
+    useEffect(() => {
+        const hydrate = async () => {
+            if (hasHydrated.current && localAtom.id === atom.id) return;
+            try {
+                const res = await bridge.read({ raw: true });
+                if (res && res.payload?.fields) {
+                    setLocalAtom(res);
+                    lastSavedRef.current = JSON.stringify(res);
+                    hasHydrated.current = true;
+                }
+            } catch (err) { console.error('[SchemaDesigner] Hydrate failed:', err); }
+        };
+        hydrate();
+    }, [atom.id, bridge]);
 
     useEffect(() => {
         if (atom?.handle && JSON.stringify(atom.handle) !== JSON.stringify(localAtom.handle)) {
@@ -89,7 +83,7 @@ export function SchemaDesigner({ atom, bridge }) {
         } finally { setIsSaving(false); }
     };
 
-    // ── 3. HOTKEYS DE INGENIERÍA (ORIGINAL GIT) ──
+    // ── HOTKEYS ──
     useEffect(() => {
         const handleKeys = (e) => {
             const isInputField = ['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable;
@@ -126,6 +120,8 @@ export function SchemaDesigner({ atom, bridge }) {
         });
     };
 
+    const currentField = selectedFieldId ? findFieldById(fields, selectedFieldId) : null;
+
     return (
         <div className="macro-designer-wrapper fill" style={{
             '--indra-dynamic-accent': localAtom?.color || '#00f5d4',
@@ -139,10 +135,6 @@ export function SchemaDesigner({ atom, bridge }) {
                             <button className={`btn btn--xs ${!isLive ? 'active' : ''}`} onClick={() => updateStatus('DRAFT')} style={{ fontSize: '8px', padding: '4px 10px', background: !isLive ? 'var(--indra-dynamic-accent)' : 'transparent', color: !isLive ? 'black' : 'var(--color-text-dim)', border: 'none', fontWeight: '900', borderRadius: '4px' }}>BORRADOR</button>
                             <button className={`btn btn--xs ${isLive ? 'active' : ''}`} onClick={() => updateStatus('LIVE')} style={{ fontSize: '8px', padding: '4px 10px', background: isLive ? '#ff4655' : 'transparent', color: isLive ? 'white' : 'var(--color-text-dim)', border: 'none', fontWeight: '900', borderRadius: '4px' }}>PUBLICADO</button>
                         </div>
-                        <button className={`btn btn--xs ${previewMode ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setPreviewMode(!previewMode)} style={{ height: '32px', borderRadius: '8px' }}>
-                            <IndraIcon name={previewMode ? "EDIT" : "EYE"} size="12px" />
-                            <span style={{ marginLeft: '6px' }}>{previewMode ? t('action_edit') : t('action_preview')}</span>
-                        </button>
                         <button className="btn btn--xs btn--accent shadow-hover" onClick={handleManualSave} style={{ height: '32px', padding: '0 16px', borderRadius: '8px' }}>
                             <IndraIcon name="SAVE" size="12px" />
                             <span style={{ marginLeft: '8px' }}>{t('action_save').toUpperCase()}</span>
@@ -152,30 +144,53 @@ export function SchemaDesigner({ atom, bridge }) {
             />
 
             <div className="fill indra-engine-shell sd-shell" data-active-tab={activeSlot}>
-                <div className={`fill indra-engine-body designer-body indra-layout-tripartite ${previewMode ? 'preview-mode' : ''}`}>
-                    <div className="tripartite-side indra-container indra-slot-nav">
+                <div className="fill indra-engine-body designer-body indra-layout-bipartite">
+                    
+                    {/* COL 1: ESTRUCTURA (30% - 40%) */}
+                    <div className="bipartite-side indra-container indra-slot-nav">
                         <div className="indra-header-label">PROYECTOR_DE_ESTRUCTURA</div>
                         <LayersPanel fields={fields} selectedId={selectedFieldId} onSelect={setSelectedFieldId} onAdd={ast.addField} onRemove={ast.removeField} onMove={ast.moveField} onClone={ast.cloneField} currentAtom={localAtom} />
                     </div>
 
-                    <div className="tripartite-center indra-container indra-slot-core">
-                        <div className="indra-header-label">MAPA_DE_DATOS_VIVO</div>
-                        <BlueprintCanvas fields={fields} selectedId={selectedFieldId} onSelect={setSelectedFieldId} previewMode={previewMode} isOrphan={isOrphan} targetSiloId={localAtom.payload?.target_silo_id} targetProvider={localAtom.payload?.target_provider} onProvisionClick={() => setShowProvisionManager(true)} />
-                    </div>
+                    {/* COL 2: INSPECTOR (60% - 70%) */}
+                    <div className="bipartite-main indra-container indra-slot-insp">
+                        <div className="indra-header-label">INSPECTOR_GENÉTICO</div>
+                        
+                        {/* ── CARD DE ESTADO DE VINCULACIÓN (INYECTADA AQUÍ) ── */}
+                        <div className="infra-status-banner" style={{ 
+                            padding: 'var(--space-8)', 
+                            margin: 'var(--space-12)',
+                            background: isOrphan ? 'rgba(255, 70, 85, 0.1)' : 'rgba(0, 245, 212, 0.05)',
+                            border: `1px solid ${isOrphan ? '#ff465544' : 'var(--indra-dynamic-accent)44'}`,
+                            borderRadius: 'var(--radius-lg)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between'
+                        }}>
+                            <div className="stack" style={{ gap: '2px' }}>
+                                <span style={{ fontSize: '9px', fontWeight: '900', color: isOrphan ? '#ff4655' : 'var(--indra-dynamic-accent)' }}>
+                                    {isOrphan ? 'SIN_ALMACENAMIENTO_VINCULADO' : 'BASE_DE_DATOS_VINCULADA'}
+                                </span>
+                                <span style={{ fontSize: '8px', opacity: 0.6 }}>
+                                    {isOrphan ? 'Los datos de este esquema no persistirán en Sheets.' : `Conectado a: ${localAtom.payload?.target_silo_id || 'ID_DESCONOCIDO'}`}
+                                </span>
+                            </div>
+                            <button className={`btn btn--xs ${isOrphan ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setShowProvisionManager(true)} style={{ height: '24px', fontSize: '8px' }}>
+                                {isOrphan ? 'VINCULAR BASE DE DATOS' : 'GESTIONAR STORAGE'}
+                            </button>
+                        </div>
 
-                    <div className="tripartite-side indra-container indra-slot-insp">
-                        <div className="indra-header-label">INSPECTOR_DNA</div>
-                        <div className="fill" style={{ background: 'var(--color-bg-elevated)', overflowY: 'auto' }}>
-                            {selectedFieldId ? (
+                        <div className="fill" style={{ padding: '0 var(--space-8)', overflowY: 'auto' }}>
+                            {currentField ? (
                                 <DNAInspector
-                                    field={findFieldById(fields, selectedFieldId)} allFields={fields} bridge={bridge} aliasResetNonce={aliasResetNonce}
+                                    field={currentField} allFields={fields} bridge={bridge} aliasResetNonce={aliasResetNonce}
                                     onUpdate={async (updatedField) => {
-                                        const currentField = findFieldById(fields, selectedFieldId);
-                                        const oldAlias = String(currentField?.alias || '').trim();
+                                        const current = findFieldById(fields, selectedFieldId);
+                                        const oldAlias = String(current?.alias || '').trim();
                                         const nextAlias = String(updatedField?.alias || '').trim();
                                         const aliasChanged = !!nextAlias && nextAlias !== oldAlias;
 
-                                        if (aliasChanged && currentField?.id === updatedField?.id) {
+                                        if (aliasChanged && current?.id === updatedField?.id) {
                                             try {
                                                 const prepared = await prepareCanonicalRename({
                                                     bridge, provider: localAtom.provider || 'system', protocol: 'SCHEMA_FIELD_ALIAS_RENAME', contextId: localAtom.id, kind: 'FIELD_ALIAS',
@@ -190,25 +205,23 @@ export function SchemaDesigner({ atom, bridge }) {
                                                 }
                                             } catch (err) { setRenameError(String(err?.message || 'Error validando alias')); setAliasResetNonce(v => v + 1); return; }
                                         }
-                                        updateFields(recursiveUpdate(fields, selectedFieldId, updatedField));
+                                        ast.updateFields(recursiveUpdate(fields, selectedFieldId, updatedField));
                                     }}
                                     onReparent={(fieldId, newParentId) => {
                                         const moveNode = (list, id, targetParentId) => {
                                             let nodeToMove = null;
                                             const removeNode = (l) => l.filter(f => { if (f.id === id) { nodeToMove = f; return false; } if (f.children) f.children = removeNode(f.children); return true; });
                                             const listWithoutNode = removeNode(JSON.parse(JSON.stringify(list)));
-                                            if (!targetParentId || targetParentId === 'ROOT') return [...listWithoutNode, nodeToMove];
                                             const insertNode = (l) => l.map(f => { if (f.id === targetParentId) return { ...f, children: [...(f.children || []), nodeToMove] }; if (f.children) return { ...f, children: insertNode(f.children) }; return f; });
-                                            return insertNode(listWithoutNode);
+                                            return (!targetParentId || targetParentId === 'ROOT') ? [...listWithoutNode, nodeToMove] : insertNode(listWithoutNode);
                                         };
-                                        updateFields(moveNode(fields, fieldId, newParentId));
+                                        ast.updateFields(moveNode(fields, fieldId, newParentId));
                                     }}
                                 />
                             ) : (
-                                <div className="center fill stack" style={{ opacity: 0.3, textAlign: 'center', padding: '40px' }}>
+                                <div className="center stack" style={{ opacity: 0.3, textAlign: 'center', padding: '60px 40px' }}>
                                     <IndraIcon name="INFO" size="32px" />
-                                    <p style={{ fontSize: '10px' }}>SELECCIONA ADN PARA INSPECCIÓN</p>
-                                    {isOrphan && <button className="btn btn--xs btn--accent" onClick={() => setShowProvisionManager(true)} style={{ marginTop: '20px' }}>ESTABLECER SILO</button>}
+                                    <p style={{ fontSize: '10px', marginTop: '10px' }}>SELECCIONA UN CAMPO EN LA ESTRUCTURA PARA INSPECCIÓN</p>
                                 </div>
                             )}
                         </div>

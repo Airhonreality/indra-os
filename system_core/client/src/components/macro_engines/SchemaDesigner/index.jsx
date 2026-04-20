@@ -62,14 +62,22 @@ export function SchemaDesigner({ atom, bridge }) {
             setLinkStatus('VERIFYING');
             try {
                 // Intentamos una lectura rápida de metadatos del silo para confirmar existencia
+                console.log(`[UltraSonde] Verificando Silo: ${localAtom.payload.target_silo_id} en ${localAtom.payload.target_provider || 'drive'}`);
                 const res = await bridge.callProtocol({
                     provider: localAtom.payload.target_provider || 'drive',
                     protocol: 'ATOM_READ',
                     context_id: localAtom.payload.target_silo_id
                 });
+                
+                console.log(`[UltraSonde] Resultado Verificación:`, res.metadata?.status, res.items?.[0]?.id);
+
                 if (res.metadata?.status === 'OK') setLinkStatus('OK');
-                else setLinkStatus('BROKEN');
+                else {
+                    console.error(`[UltraSonde] Vínculo Inválido Detectado. Metadata:`, res.metadata);
+                    setLinkStatus('BROKEN');
+                }
             } catch (e) {
+                console.error(`[UltraSonde] Excepción en Verificación:`, e.message);
                 setLinkStatus('BROKEN');
             }
         };
@@ -318,6 +326,24 @@ export function SchemaDesigner({ atom, bridge }) {
                                 setLocalAtom(prev => ({ ...prev, payload: updatedPayload }));
                                 ast.updateFields(newFields);
                                 setShowProvisionManager(false);
+                            }}
+                            onComplete={async (result) => {
+                                // Verificación de Despliegue (Honestidad de Versión)
+                                const coreVersion = result.metadata?.core_patch_version || "LEGACY_PRE_IGNITION";
+                                console.log(`[UltraSonde] Core Resp Version: ${coreVersion}`);
+                                console.log(`[UltraSonde] Silo ID en Metadata: ${result.metadata?.silo_id}`);
+                                console.log(`[UltraSonde] Átomo Retornado:`, result.items?.[0]);
+                                
+                                if (coreVersion === "LEGACY_PRE_IGNITION") {
+                                    console.warn("⚠️ ALERTA: El Core está ejecutando una versión antigua.");
+                                    toastEmitter.warning("Despliegue de GAS desactualizado.");
+                                }
+
+                                await new Promise(r => setTimeout(r, 800));
+                                toastEmitter.success("Base de datos configurada y vinculada.");
+                                updateLastLog("DONE");
+                                
+                                onComplete(result.items[0]);
                             }}
                         />
                     </div>

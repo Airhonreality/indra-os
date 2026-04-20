@@ -280,9 +280,11 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers
                 // Paso 4: Registro en Workspace (Pinning)
                 addLog("📌 Registrando acceso en el panel de control...");
                 
-                // Verificación de Despliegue (Honestidad de Versión)
+                // ULTRA SONDE: Captura de Identidad Post-Ignición
                 const coreVersion = result.metadata?.core_patch_version || "LEGACY_PRE_IGNITION";
-                console.log(`[Materialization] Core Version Detectada: ${coreVersion}`);
+                console.log(`[UltraSonde] Core Version: ${coreVersion}`);
+                console.log(`[UltraSonde] Silo ID (Metadata): ${result.metadata?.silo_id}`);
+                console.log(`[UltraSonde] Items devueltos:`, result.items);
                 
                 if (coreVersion === "LEGACY_PRE_IGNITION") {
                     console.warn("⚠️ ALERTA: El Core está ejecutando una versión antigua.");

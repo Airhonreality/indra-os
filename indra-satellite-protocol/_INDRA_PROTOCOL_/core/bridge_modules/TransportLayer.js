@@ -126,7 +126,6 @@ export class TransportLayer {
             const response = await fetch(coreUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
-                credentials: 'include',
                 signal: controller.signal,
                 body: JSON.stringify(envelope)
             });

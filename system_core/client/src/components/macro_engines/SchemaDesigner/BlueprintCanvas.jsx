@@ -13,18 +13,63 @@ import React from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { DataProjector } from '../../../services/DataProjector';
 
-export function BlueprintCanvas({ fields, selectedId, onSelect, previewMode }) {
+export function BlueprintCanvas({ fields, selectedId, onSelect, previewMode, isOrphan, onProvisionClick, targetSiloId, targetProvider }) {
     return (
         <main className="fill stack" style={{
             background: 'var(--color-bg-void)',
-            padding: 'var(--space-12)',
+            padding: 'var(--space-8)',
             overflowY: 'auto',
             flex: 1,
             minHeight: 0,
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            position: 'relative'
         }}>
-            {/* Contenedor del Formulario */}
+            {/* BARRA DE ESTADO DE INFRAESTRUCTURA (Axioma de Sinceridad) */}
+            <div className="shelf--tight shadow-glow" style={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 10,
+                marginBottom: 'var(--space-6)',
+                padding: '12px 20px',
+                borderRadius: '12px',
+                background: isOrphan ? 'rgba(234, 67, 53, 0.1)' : 'rgba(0, 245, 212, 0.05)',
+                border: '1px solid',
+                borderColor: isOrphan ? 'rgba(234, 67, 53, 0.3)' : 'rgba(0, 245, 212, 0.2)',
+                justifyContent: 'space-between',
+                backdropFilter: 'blur(10px)',
+                width: '100%'
+            }}>
+                <div className="shelf--tight">
+                    <div style={{
+                        width: '8px', height: '8px', borderRadius: '50%',
+                        background: isOrphan ? 'var(--color-danger)' : 'var(--indra-dynamic-accent)',
+                        boxShadow: `0 0 10px ${isOrphan ? 'var(--color-danger)' : 'var(--indra-dynamic-accent)'}`
+                    }}></div>
+                    <span className="font-mono" style={{ fontSize: '10px', fontWeight: '900', marginLeft: '10px', color: isOrphan ? 'var(--color-danger)' : 'white' }}>
+                        {isOrphan ? 'ESTADO: ESTRUCTURA_SIN_ALMACENAMIENTO' : `ESTADO: VINCULADO_A_${targetProvider.toUpperCase()}`}
+                    </span>
+                </div>
+                
+                <button 
+                    onClick={onProvisionClick}
+                    className="btn btn--xs"
+                    style={{
+                        padding: '6px 14px',
+                        borderRadius: '6px',
+                        background: isOrphan ? 'var(--color-danger)' : 'rgba(255,255,255,0.05)',
+                        color: isOrphan ? 'white' : 'var(--indra-dynamic-accent)',
+                        border: 'none',
+                        fontSize: '9px',
+                        fontWeight: '900',
+                        cursor: 'pointer'
+                    }}
+                >
+                    {isOrphan ? 'VINCULAR BASE DE DATOS' : 'GESTIONAR ALMACÉN'}
+                </button>
+            </div>
+
+            {/* Contenedor del Formulario (Vista Previa) */}
             <div className="stack" style={{
                 maxWidth: '650px',
                 margin: '0 auto',
@@ -34,7 +79,8 @@ export function BlueprintCanvas({ fields, selectedId, onSelect, previewMode }) {
                 borderRadius: 'var(--radius-lg)',
                 border: '1px solid var(--color-border)',
                 boxShadow: 'var(--shadow-xl)',
-                minHeight: '80vh'
+                minHeight: '80vh',
+                position: 'relative'
             }}>
                 <div className="stack--tight" style={{ marginBottom: 'var(--space-8)', borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-4)' }}>
                     <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', opacity: 0.5 }}>MÓDULO DE DISEÑO // VISTA PREVIA</span>

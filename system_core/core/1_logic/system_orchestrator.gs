@@ -170,16 +170,29 @@ const SystemOrchestrator = (function() {
           // 1. Sincronización del Ledger Maestro
           ledger_sync_atom(adn, items[0].id, payload);
           
-          // 2. Sincronización de Infraestructura Celular (Micelar)
+          // 2. AXIOMA DE SOBERANÍA (v7.9): Neural Auto-Pinning
+          // Si el átomo tiene territorio (workspace), lo anclamos a la UI de inmediato.
+          const wsId = payload.workspace_id || payload.context_id;
+          if (wsId && wsId !== 'system' && wsId !== 'workspaces') {
+             logInfo(`[orchestrator] [${trx}] Neural-Link: Auto-Pinning atómico para ${wsId}`);
+             try {
+                _system_handlePin({
+                   workspace_id: wsId,
+                   data: { atom: items[0] }
+                });
+             } catch(e) { logWarn(`[orchestrator] Falló el Auto-Pinning neural: ${e.message}`); }
+          }
+
+          // 3. Sincronización de Infraestructura Celular (Micelar)
           if (adn.class === 'WORKSPACE' && adn.payload?.cell_ledger_id) {
             logInfo(`[orchestrator] Registrando núcleo celular para: ${adn.handle?.label}`);
             ledger_infra_sync(`cell_ledger_${items[0].id}`, adn.payload.cell_ledger_id, `Núcleo de ${adn.handle?.label}`);
           }
 
-          // 3. Sincronizar disparadores si es un WORKFLOW
+          // 4. Sincronizar disparadores si es un WORKFLOW
           if (adn.class === 'WORKFLOW') trigger_service_sync(items[0]);
 
-          // 4. Procesar relaciones iniciales
+          // 5. Procesar relaciones iniciales
           if (typeof _system_process_initial_relations_ === 'function') {
             _system_process_initial_relations_(adn, payload);
           }

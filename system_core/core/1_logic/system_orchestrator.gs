@@ -165,39 +165,35 @@ const SystemOrchestrator = (function() {
 
       // --- ESCENARIO DE GÉNESIS ---
       if (protocol === 'ATOM_CREATE' && items[0]) {
-          const adnRes = infra_persistence_read(items[0].id);
-          const adn = adnRes.items?.[0]; // <--- DESEMPAQUETADO CORRECTO
+          const atom = items[0]; // <--- USAMOS LA REALIDAD YA MATERIALIZADA
           
-          if (adn) {
-            // 1. Sincronización del Ledger Maestro
-            ledger_sync_atom(adn, items[0].id, payload);
-            
-            // 2. AXIOMA DE SOBERANÍA (v7.9): Neural Auto-Pinning
-            const wsId = payload.workspace_id || payload.context_id;
-            if (wsId && wsId !== 'system' && wsId !== 'workspaces') {
-               logInfo(`[orchestrator] [${trx}] Neural-Link: Auto-Pinning atómico para ${wsId}`);
-               try {
-                  _system_handlePin({
-                     workspace_id: wsId,
-                     data: { atom: adn } // <--- LE PASAMOS EL ADN REAL, NO EL WRAPPER
-                  });
-               } catch(e) { logWarn(`[orchestrator] Falló el Auto-Pinning neural: ${e.message}`); }
-            }
+          // 1. Sincronización del Ledger Maestro
+          ledger_sync_atom(atom, atom.id, payload);
+          
+          // 2. AXIOMA DE SOBERANÍA (v7.9): Neural Auto-Pinning
+          const wsId = payload.workspace_id || payload.context_id;
+          if (wsId && wsId !== 'system' && wsId !== 'workspaces') {
+             logInfo(`[orchestrator] [${trx}] Neural-Link: Auto-Pinning atómico para ${wsId}`);
+             try {
+                _system_handlePin({
+                   workspace_id: wsId,
+                   data: { atom: atom } // <--- EL ÁTOMO YA TIENE ID Y HANDLE
+                });
+             } catch(e) { logWarn(`[orchestrator] Falló el Auto-Pinning neural: ${e.message}`); }
           }
 
           // 3. Sincronización de Infraestructura Celular (Micelar)
-          const adnSafe = adn || {};
-          if (adnSafe.class === 'WORKSPACE' && adnSafe.payload?.cell_ledger_id) {
-            logInfo(`[orchestrator] Registrando núcleo celular para: ${adnSafe.handle?.label}`);
-            ledger_infra_sync(`cell_ledger_${items[0].id}`, adnSafe.payload.cell_ledger_id, `Núcleo de ${adnSafe.handle?.label}`);
+          if (atom.class === 'WORKSPACE' && atom.payload?.cell_ledger_id) {
+            logInfo(`[orchestrator] Registrando núcleo celular para: ${atom.handle?.label}`);
+            ledger_infra_sync(`cell_ledger_${atom.id}`, atom.payload.cell_ledger_id, `Núcleo de ${atom.handle?.label}`);
           }
 
           // 4. Sincronizar disparadores si es un WORKFLOW
-          if (adn.class === 'WORKFLOW') trigger_service_sync(items[0]);
+          if (atom.class === 'WORKFLOW') trigger_service_sync(atom);
 
           // 5. Procesar relaciones iniciales
           if (typeof _system_process_initial_relations_ === 'function') {
-            _system_process_initial_relations_(adn, payload);
+            _system_process_initial_relations_(atom, payload);
           }
       }
 

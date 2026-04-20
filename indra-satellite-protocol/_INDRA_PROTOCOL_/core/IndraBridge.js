@@ -73,21 +73,26 @@ class IndraBridge {
         if (this._initializing) return this._initPromise;
         this._initializing = true;
         
+        const notifyStep = (step, detail) => {
+            window.dispatchEvent(new CustomEvent("indra-handshake-step", { detail: { step, ...detail } }));
+        };
+
         this._initPromise = (async () => {
             console.log("🚀 [IndraBridge] Iniciando Ignición Síncrona...");
+            notifyStep('BRIDGE_INIT', { message: 'Iniciando Bridge...' });
             
             try {
                 // PASO 0: Carga del contrato (ADN Lógico)
+                notifyStep('LOAD_CONTRACT', { message: 'Cargando ADN Lógico...' });
                 await this.loadContract();
 
-                // Recuperar pacto desde localStorage (Soberanía Pura: Solo URL y Token)
+                // Recuperar pacto desde localStorage
                 const linkData = localStorage.getItem('INDRA_SATELLITE_LINK');
                 if (linkData) {
                     try {
                         const parsed = JSON.parse(linkData);
                         this.coreUrl = parsed.coreUrl || this.coreUrl;
                         this.satelliteToken = parsed.token || this.satelliteToken;
-                        // El workspaceId NO se recupera de disco. Es volátil.
                     } catch (e) { /* Fail silently */ }
                 }
 
@@ -95,14 +100,15 @@ class IndraBridge {
                     throw new Error("GHOST: Sin nexo configurado.");
                 }
 
-                // PASO 1: Validación de Red e Identidad (Discovery de Capacidades)
+                // PASO 1: Validación de Red e Identidad
+                notifyStep('FETCH_MANIFEST', { message: 'Solicitando Manifiesto al Core...' });
                 const statusPulse = await this.execute({ protocol: 'SYSTEM_MANIFEST', provider: 'system' });
                 this.capabilities = statusPulse.metadata || {};
                 this.allowedProtocols = this.capabilities.allowed_protocols || [];
                 
                 // PASO 2: REALIDAD SINCERA (Discovery de Territorio)
-                // Si no hay ID o si queremos ser sinceros, escaneamos.
-                const discovery = await this.execute({ protocol: 'SYSTEM_SATELLITE_DISCOVER', provider: 'system' });
+                notifyStep('DISCOVER_TERRITORY', { message: 'Explorando Territorio Físico...' });
+                const discovery = await this.execute({ protocol: 'ATOM_READ', context_id: 'workspaces', provider: 'system' });
                 this.availableWorkspaces = discovery.items || [];
 
                 // AXIOMA: Si el Core tiene una asignación primaria, la respetamos.
@@ -110,30 +116,34 @@ class IndraBridge {
                     this.activeWorkspaceId = statusPulse.metadata.primary_workspace;
                 }
 
-                // SI NO TENEMOS ID, lanzamos modo DISCOVERY para que el usuario elija
+                // SI NO TENEMOS ID, lanzamos modo DISCOVERY
                 if (!this.activeWorkspaceId) {
-                    console.log("📡 [Indra] Iniciando en modo Descubrimiento de Realidades.");
+                    notifyStep('DISCOVERY_MODE', { message: 'Modo Descubrimiento Activo.' });
                     window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
                         detail: { mode: 'DISCOVERY', items: this.availableWorkspaces } 
                     }));
                     return;
                 }
 
-                // PASO 3: Validación de Ledger Físico (Solo si el Core nos asignó algo o ya lo teníamos)
+                // PASO 3: Validación de Ledger Físico
+                notifyStep('VERIFY_STABILITY', { message: 'Verificando Estabilidad de la Realidad...' });
                 try {
                     await this.execute({ 
                         protocol: 'ATOM_EXISTS', 
                         context_id: this.activeWorkspaceId, 
                         data: { ids: [this.activeWorkspaceId] } 
                     });
+                    notifyStep('SYNC_COMPLETE', { message: 'Resonancia Estable.' });
                     window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
                 } catch (error) {
+                    notifyStep('ERROR_STABILITY', { message: 'Fallo de Estabilidad.', error: error.message });
                     window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
                         detail: { mode: 'ERROR_LEDGER', error: error.message, id: this.activeWorkspaceId } 
                     }));
                 }
 
             } catch (e) {
+                notifyStep('IGNITION_ABORTED', { message: 'Ignición Fallida.', error: e.message });
                 console.warn(`❌ [Bridge] Ignición abortada: ${e.message}`);
                 window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'GHOST', error: e.message } }));
             } finally {

@@ -1,11 +1,6 @@
 /**
  * =============================================================================
- * COMPONENTE: IndraWorkspaceSelector (v1.0)
- * RESPONSABILIDAD: Motor de Selección de Jurisdicción (Contexto).
- * 
- * Este widget permite al usuario Maestro definir sobre qué 'Veta' de datos
- * desea operar. Al cambiar de workspace, el Bridge se re-inicializa para
- * forzar una nueva cristalización de esquemas y flujos específicos.
+ * COMPONENTE: IndraWorkspaceSelector (v3.2 - FINAL STABLE)
  * =============================================================================
  */
 
@@ -21,45 +16,62 @@ class IndraWorkspaceSelector extends HTMLElement {
         this._bridge = val;
         this.fetchWorkspaces();
         
-        /**
-         * AXIOMA ISP v2.5: Resonancia vía Ventana Nativa.
-         * Escuchamos 'indra-ready' para refrescar el catálogo de contextos
-         * cada vez que el Bridge establece una conexión sólida.
-         */
-        window.addEventListener('indra-ready', () => this.fetchWorkspaces());
+        // Sincronía con los pasos del Handshake
+        window.addEventListener('indra-handshake-step', (e) => {
+            if (e.detail.step === 'DISCOVER_TERRITORY' || e.detail.step === 'SYNC_COMPLETE') {
+                this.fetchWorkspaces();
+            }
+        });
+
+        window.addEventListener('indra-resonance-sync', (e) => {
+            if (e.detail.items) {
+                this._workspaces = e.detail.items;
+                this.render();
+            }
+        });
     }
 
     async fetchWorkspaces() {
         if (!this._bridge || !this._bridge.satelliteToken) return;
-
         try {
-            // Axioma: Descubrimiento Físico Directo (Sinceridad de Territorio)
             const response = await this._bridge.execute({
-                protocol: 'SYSTEM_SATELLITE_DISCOVER',
+                protocol: 'ATOM_READ',
+                context_id: 'workspaces',
                 provider: 'system'
             });
-
             this._workspaces = response.items || [];
             this.render();
         } catch (e) {
-            console.error("[WorkspaceSelector] No se pudo obtener la lista de Workspaces:", e);
+            console.error("[WorkspaceSelector] Fallo de escaneo:", e);
         }
     }
 
     handleSelection(e) {
         const workspaceId = e.target.value;
         if (!workspaceId) return;
-
-        console.log(`[WorkspaceSelector] Cambiando contexto a: ${workspaceId}`);
-        
-        // 1. Actualizar el Bridge (Memoria RAM únicamente)
         this._bridge.activeWorkspaceId = workspaceId;
-        
-        // 2. Reiniciar el Bridge para cristalizar el nuevo contexto
-        this._bridge.init().then(() => {
-             // Notificar al HUD que todo cambió
-             window.dispatchEvent(new CustomEvent('indra:workspace_changed', { detail: { workspaceId } }));
-        });
+        this._bridge.init();
+    }
+
+    async createWorkspace() {
+        const satName = this._bridge?.contract?.satellite_name || 'Nodo';
+        const name = prompt("Nombre de la Nueva Realidad:", `${satName} Alpha 1`);
+        if (!name) return;
+
+        try {
+            const response = await this._bridge.execute({
+                protocol: 'ATOM_CREATE',
+                data: { label: name, class: 'WORKSPACE' },
+                provider: 'system'
+            });
+
+            if (response.metadata?.status === 'OK') {
+                await this.fetchWorkspaces();
+                alert(`Realidad '${name}' cristalizada.`);
+            }
+        } catch (e) {
+            console.error("[WorkspaceSelector] Error en Génesis:", e);
+        }
     }
 
     render() {
@@ -67,48 +79,81 @@ class IndraWorkspaceSelector extends HTMLElement {
         
         this.shadowRoot.innerHTML = `
             <style>
-                :host { display: block; width: 100%; }
-                .selector-container {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 6px;
+                :host { display: block; width: 100%; font-family: inherit; }
+                .selector-container { display: flex; flex-direction: column; gap: 8px; }
+                label { 
+                    font-size: 9px; 
+                    font-weight: 800; 
+                    color: #8E8E93; 
+                    text-transform: uppercase; 
+                    display: flex; 
+                    justify-content: space-between; 
+                    align-items: center;
                 }
-                label {
-                    font-size: 9px;
-                    text-transform: uppercase;
-                    letter-spacing: 0.1em;
-                    opacity: 0.6;
-                    font-weight: 700;
+                .refresh-btn { 
+                    cursor: pointer; 
+                    color: #007AFF; 
+                    text-decoration: none; 
+                    font-size: 8px; 
+                    border: 1px solid rgba(0,122,255,0.2); 
+                    background: rgba(0,122,255,0.05); 
+                    padding: 2px 6px; 
+                    border-radius: 4px;
+                    font-weight: 800;
+                }
+                .refresh-btn:hover { background: #007AFF; color: white; }
+                
+                .select-wrapper {
+                    background: white;
+                    border: 1px solid rgba(60, 60, 67, 0.12);
+                    border-radius: 12px;
+                    padding: 2px;
                 }
                 select {
-                    background: rgba(0,0,0,0.4);
-                    border: 1px solid rgba(255,255,255,0.1);
-                    color: #4285F4;
-                    padding: 8px;
-                    border-radius: 4px;
-                    font-size: 11px;
+                    background: transparent;
+                    border: none;
+                    color: #1C1C1E;
+                    padding: 10px 12px;
+                    font-size: 13px;
                     font-family: 'JetBrains Mono', monospace;
                     width: 100%;
-                    cursor: pointer;
                     outline: none;
+                    cursor: pointer;
                 }
-                select:hover { border-color: rgba(255,255,255,0.2); }
-                option { background: #1a1a1a; color: white; }
+                .btn-create {
+                    background: #34C759;
+                    color: white;
+                    border: none;
+                    padding: 14px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    font-weight: 900;
+                    cursor: pointer;
+                    text-transform: uppercase;
+                    margin-top: 8px;
+                    box-shadow: 0 4px 12px rgba(52, 199, 89, 0.2);
+                    transition: all 0.2s;
+                }
+                .btn-create:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(52, 199, 89, 0.3); }
             </style>
             <div class="selector-container">
-                <label>Contexto de Trabajo (Workspace)</label>
-                <select id="ws-select">
-                    <option value="">-- SELECCIONE WORKSPACE --</option>
-                    ${this._workspaces.length === 0 ? '<option disabled>SIN_WORKSPACES_DETECTADOS</option>' : ''}
-                    ${this._workspaces.map(ws => `
-                        <option value="${ws.id}" ${ws.id === activeId ? 'selected' : ''}>
-                            ${ws.handle?.label || ws.id}
-                        </option>
-                    `).join('')}
-                </select>
+                <label>
+                    Seleccionar Workspace
+                    <button class="refresh-btn" id="btn-force-scan">Refrescar Lista 🔄</button>
+                </label>
+                <div class="select-wrapper">
+                    <select id="ws-select">
+                        <option value="">-- ELIGE UN WORKSPACE --</option>
+                        ${this._workspaces.map(ws => `
+                            <option value="${ws.id}" ${ws.id === activeId ? 'selected' : ''}>
+                                ${ws.handle?.label || ws.id.substring(0,8)}
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
                 ${this._workspaces.length === 0 ? `
-                    <button id="btn-create-ws" style="margin-top:10px; background: #34A853; color: white; border: none; padding: 6px; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: bold;">
-                        + CREAR PRIMER WORKSPACE
+                    <button id="btn-create-ws" class="btn-create">
+                        + Crear Nuevo Workspace
                     </button>
                 ` : ''}
             </div>
@@ -119,30 +164,12 @@ class IndraWorkspaceSelector extends HTMLElement {
 
         const btnCreate = this.shadowRoot.getElementById('btn-create-ws');
         if (btnCreate) btnCreate.onclick = () => this.createWorkspace();
-    }
 
-    async createWorkspace() {
-        const name = prompt("Nombre del Nuevo Workspace (Realidad):", "Mi Veta de Oro");
-        if (!name) return;
-
-        try {
-            console.log(`[WorkspaceSelector] Materializando realidad: ${name}...`);
-            const response = await this._bridge.execute({
-                protocol: 'ATOM_CREATE',
-                data: { label: name, class: 'WORKSPACE' },
-                provider: 'system'
-            });
-
-            if (response.metadata?.status === 'OK') {
-                alert(`Realidad '${name}' cristalizada con éxito.`);
-                await this.fetchWorkspaces();
-            } else {
-                alert(`Fallo en Génesis: ${response.metadata?.error || 'Respuesta desconocida'}`);
-            }
-        } catch (e) {
-            console.error("[WorkspaceSelector] Error CRÍTICO en Génesis:", e);
-            alert("Error crítico al materializar el espacio. Revisa la consola y el estado del Núcleo.");
-        }
+        const btnScan = this.shadowRoot.getElementById('btn-force-scan');
+        if (btnScan) btnScan.onclick = () => {
+            btnScan.innerText = "BUSCANDO...";
+            this.fetchWorkspaces().then(() => btnScan.innerText = "Refrescar Lista 🔄");
+        };
     }
 }
 

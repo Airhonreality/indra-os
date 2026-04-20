@@ -6,27 +6,26 @@
     <title>Indra Satellite Protocol // Blueprint Lab</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --indra-bg: #FFFFFF;
-            --indra-accent: #1A73E8; /* Azul Google Central */
-            --indra-surface: #F8F9FA;
-            --indra-text: #3C4043;
-            --indra-border: #DADCE0;
+            --indra-bg: #F2F2F7;
+            --indra-accent: #007AFF;
+            --indra-text: #1C1C1E;
+            --indra-border: rgba(60, 60, 67, 0.12);
         }
 
         body {
-            background-color: var(--indra-surface);
+            background-color: var(--indra-bg);
             color: var(--indra-text);
             margin: 0;
-            padding: 40px;
+            padding: 40px 20px;
             font-family: 'Inter', sans-serif;
-            transition: background 0.3s ease;
+            -webkit-font-smoothing: antialiased;
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1000px;
             margin: 0 auto;
         }
 
@@ -34,46 +33,79 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
         }
 
-        h1 {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 20px;
+        .header h1 {
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            font-size: 24px;
             margin: 0;
-            color: var(--indra-accent);
-            text-transform: uppercase;
-            letter-spacing: -0.5px;
-            font-weight: 700;
+            letter-spacing: -0.04em;
         }
 
-        /* Botón de Google Auth (Capa Satélite) */
-        .btn-google {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: #fff;
-            border: 1px solid var(--indra-border);
-            padding: 8px 16px;
-            border-radius: 4px;
-            font-size: 13px;
-            font-weight: 600;
+        .ignite-badge {
+            background: var(--indra-accent);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 800;
+            border: none;
             cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
             transition: all 0.2s ease;
         }
+        .ignite-badge:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4); }
 
-        .btn-google:hover {
-            background: #f1f3f4;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        /* Pact Zone (Clean Version) */
+        .pact-zone {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            border: 1px solid var(--indra-border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .input-group { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 8px; }
+        .input-group label { font-size: 9px; font-weight: 800; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.05em; }
+        .input-group input { 
+            padding: 12px 16px; 
+            border: 1px solid var(--indra-border); 
+            border-radius: 10px; 
+            font-family: 'JetBrains Mono', monospace; 
+            font-size: 13px;
+            outline: none;
+        }
+        .input-group input:focus { border-color: var(--indra-accent); }
+
+        .btn-pact {
+            background: #34C759;
+            color: white;
+            padding: 13px 28px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 800;
+            font-size: 11px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         #log-layer {
-            margin-top: 40px;
-            border-top: 1px solid var(--indra-border);
-            padding-top: 20px;
+            margin-top: 50px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            opacity: 0.6;
+            font-size: 10px;
+            color: #8E8E93;
+            text-align: center;
+            opacity: 0.5;
         }
     </style>
 </head>
@@ -82,42 +114,32 @@
     <div class="container">
         <header class="header">
             <div>
-                <h1>Satellite Control Hub // Indra</h1>
-                <p style="font-size: 11px; opacity: 0.5; margin: 4px 0 0 0;">Protocolo de Resonancia Satelital v5.2</p>
+                <h1>INDRA CONTROL HUB</h1>
+                <p style="font-size: 11px; color: #8E8E93; margin: 4px 0 0 0; font-weight: 700; letter-spacing: 0.05em;">Panel de Gestión de Protocolo v5.2</p>
             </div>
-            <button class="btn-google" id="btn-login-google" style="padding: 10px 20px; font-size: 13px; background: var(--indra-accent); color: white; border: none; box-shadow: 0 4px 12px rgba(26, 115, 232, 0.2);">
-                <svg width="16" height="16" viewBox="0 0 18 18" style="margin-right: 10px;"><path d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.8 2.72v2.26h2.92c1.71-1.57 2.68-3.89 2.68-6.61z" fill="white" style="fill: white !important;"/><path d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.55-1.82.88-3.04.88-2.34 0-4.31-1.58-5.02-3.71H.95v2.33C2.43 15.98 5.48 18 9 18z" fill="white" style="fill: white !important;"/><path d="M3.98 10.73c-.18-.55-.28-1.13-.28-1.73s.1-1.18.28-1.73V4.94H.95C.35 6.13 0 7.52 0 9s.35 2.87.95 4.06l3.03-2.33z" fill="white" style="fill: white !important;"/><path d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.89 11.43 0 9 0 5.48 0 2.43 2.02.95 4.94l3.03 2.33C4.69 5.16 6.66 3.58 9 3.58z" fill="white" style="fill: white !important;"/></svg>
-                IGNICIÓN SOBERANA
-            </button>
+            <button class="ignite-badge" id="btn-login-google">INICIAR SESIÓN GOOGLE</button>
         </header>
 
-        <!-- Estación de Pacto Manual (Soberanía Directa) -->
-        <div id="manual-pact-zone" style="background: white; border: 1px solid var(--indra-border); padding: 24px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 250px;">
-                    <label style="display: block; font-size: 10px; font-weight: 700; color: #5f6368; text-transform: uppercase; margin-bottom: 8px;">Nodal Nexus URL (Core)</label>
-                    <input type="text" id="input-core-url" placeholder="https://script.google.com/..." style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--indra-border); border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
-                </div>
-                <div style="flex: 1; min-width: 250px;">
-                    <label style="display: block; font-size: 10px; font-weight: 700; color: #5f6368; text-transform: uppercase; margin-bottom: 8px;">Satellite Token (Access Key)</label>
-                    <input type="password" id="input-token" placeholder="Tu llave de acceso..." style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--indra-border); border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 13px;">
-                </div>
-                <div style="display: flex; align-items: flex-end;">
-                    <button id="btn-manual-link" style="background: var(--indra-accent); color: white; border: none; padding: 11px 24px; border-radius: 4px; font-weight: 600; cursor: pointer; height: 38px;">FIRMAR PACTO</button>
-                </div>
+        <!-- Configuración de Conexión -->
+        <div class="pact-zone">
+            <div class="input-group">
+                <label>URL DEL CORE (Script URL)</label>
+                <input type="text" id="input-core-url" placeholder="https://script.google.com/...">
             </div>
-            <div id="auth-status-chip" style="margin-top: 15px; font-size: 10px; font-weight: 700; display: inline-block; padding: 4px 12px; border-radius: 20px; background: #f1f3f4; color: #5f6368;">DESCONECTADO</div>
+            <div class="input-group">
+                <label>TOKEN DE ACCESO (Satellite Token)</label>
+                <input type="password" id="input-token" placeholder="Introduce tu token...">
+            </div>
+            <button class="btn-pact" id="btn-manual-link">GUARDAR CONFIGURACIÓN</button>
         </div>
 
-        <!-- Estación de Control Soberana (HUD) -->
         <indra-bridge-hud id="main-hud"></indra-bridge-hud>
 
         <div id="log-layer">
-            SATELLITE_STATUS: RESONATING
+            // ESTADO: LISTO PARA CONECTAR
         </div>
     </div>
 
-    <!-- El Único Punto de Entrada -->
     <script type="module" src="./src/main.js"></script>
 </body>
 </html>

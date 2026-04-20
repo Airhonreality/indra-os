@@ -1,9 +1,6 @@
 /**
  * =============================================================================
- * INDRA BRIDGE HUD (Sovereign Host v2.7)
- * =============================================================================
- * AXIOMA: Es un Cascarón Vacío. Su única misión es proveer el chasis (Layout)
- * y la comunicación con el Bridge. La funcionalidad reside en los WIDGETS.
+ * INDRA BRIDGE HUD (Standard UI v3.5)
  * =============================================================================
  */
 
@@ -18,223 +15,233 @@ const TEMPLATE = `
 <style>
     :host {
         display: block;
-        font-family: var(--indra-font, 'Inter', system-ui, sans-serif);
-        --accent: #2563eb;
-        --bg: #ffffff;
-        --surface: #f8fafc;
-        --text-main: #1e293b;
-        --text-dim: #64748b;
-        --border: #e2e8f0;
-        --success: #10b981;
-        --warning: #f59e0b;
-        --danger: #ef4444;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        --indra-accent: #007AFF;
+        --indra-success: #34C759;
+        --indra-warning: #FF9500;
+        --indra-danger: #FF3B30;
+        --indra-bg: rgba(255, 255, 255, 0.8);
+        --indra-surface: rgba(242, 242, 247, 0.6);
+        --indra-glass: blur(16px) saturate(180%);
+        --indra-border: rgba(60, 60, 67, 0.12);
+        --indra-text-main: #1C1C1E;
+        --indra-text-dim: #8E8E93;
     }
 
     .hud-container {
         display: flex;
         flex-direction: column;
-        background: var(--bg);
-        border: 1px solid var(--border);
-        border-radius: 12px;
+        background: var(--indra-bg);
+        backdrop-filter: var(--indra-glass);
+        -webkit-backdrop-filter: var(--indra-glass);
+        border: 1px solid var(--indra-border);
+        border-radius: 20px;
         overflow: hidden;
-        color: var(--text-main);
+        color: var(--indra-text-main);
         margin: 20px auto;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        animation: fadeIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
-    /* RESONANCE CARD (Soberanía Visible) */
-    .resonance-card {
-        background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
-        padding: 24px;
-        border-bottom: 1px solid var(--border);
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .resonance-header {
+        background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%);
+        padding: 30px;
+        border-bottom: 1px solid var(--indra-border);
         display: grid;
         grid-template-columns: 1fr auto;
-        gap: 24px;
-        align-items: center;
+        gap: 30px;
+        align-items: flex-start;
     }
 
-    .identity-box h4 { margin: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); }
-    .identity-box .name { font-size: 18px; font-weight: 700; margin: 4px 0; color: var(--accent); }
-    .identity-box .core-url { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+    .identity-box h4 { 
+        margin: 0; 
+        font-size: 10px; 
+        font-weight: 800;
+        text-transform: uppercase; 
+        letter-spacing: 0.12em; 
+        color: var(--indra-accent);
+        margin-bottom: 8px;
+    }
+    .identity-box .name { 
+        font-size: 28px; 
+        font-weight: 900; 
+        margin: 0; 
+        letter-spacing: -0.02em;
+        background: linear-gradient(90deg, var(--indra-text-main) 0%, #444 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .identity-box .core-url { 
+        font-family: 'JetBrains Mono', monospace; 
+        font-size: 11px; 
+        color: var(--indra-text-dim); 
+        margin-top: 6px;
+    }
+
+    .handshake-monitor {
+        margin-top: 20px;
+        background: rgba(0,0,0,0.03);
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        max-height: 80px;
+        overflow-y: auto;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    .handshake-step { margin-bottom: 4px; display: flex; gap: 8px; align-items: center; }
+    .handshake-step span { color: var(--indra-accent); font-weight: 700; }
+
+    .status-area { display: flex; flex-direction: column; align-items: flex-end; gap: 16px; }
 
     .status-badge {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 6px 16px;
+        gap: 10px;
+        padding: 8px 18px;
         border-radius: 99px;
-        font-size: 11px;
-        font-weight: 600;
+        font-size: 10px;
+        font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.08em;
+        background: var(--indra-surface);
     }
-    .status-badge::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .status-badge::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
     
-    .status--ghost { background: #f1f5f9; color: var(--text-dim); }
-    .status--orphan { background: #fff7ed; color: var(--warning); animation: pulse 2s infinite; }
-    .status--stable { background: #ecfdf5; color: var(--success); }
-    .status--error { background: #fef2f2; color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+    .status--ghost { color: var(--indra-text-dim); }
+    .status--orphan { color: var(--indra-warning); }
+    .status--stable { color: var(--indra-success); }
+    .status--error { color: var(--indra-danger); }
 
-    @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.5; }
-        100% { opacity: 1; }
-    }
-
-    .capabilities-list {
-        display: flex;
-        gap: 8px;
-        margin-top: 12px;
-        flex-wrap: wrap;
-    }
-    .cap-tag {
-        font-size: 9px;
-        padding: 2px 8px;
-        background: rgba(37, 99, 235, 0.05);
-        border: 1px solid rgba(37, 99, 235, 0.1);
-        color: var(--accent);
-        border-radius: 4px;
-        font-weight: 500;
-    }
-
-    .btn-master {
-        background: var(--accent);
+    .btn-indra {
+        background: var(--indra-accent);
         color: white;
         border: none;
-        padding: 10px 24px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 700;
+        padding: 14px 32px;
+        border-radius: 14px;
+        font-size: 11px;
+        font-weight: 800;
         cursor: pointer;
-        transition: transform 0.2s, filter 0.2s;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         text-transform: uppercase;
-        letter-spacing: 0.05em;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        letter-spacing: 0.08em;
+        box-shadow: 0 8px 24px rgba(0, 122, 255, 0.25);
     }
-    .btn-master:hover { filter: brightness(1.1); transform: translateY(-1px); }
-    .btn-master:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; box-shadow: none; }
-    .btn-master.stable { background: var(--success); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+    .btn-indra:hover { transform: translateY(-3px); }
+    .btn-indra.stable { background: var(--indra-success); }
 
-    /* Panel de Ajustes (Standard Settings) */
-    .settings-panel { 
-        background: #f8fafc; 
-        padding: 20px 24px; 
-        border-bottom: 1px solid var(--border); 
-        display: none; 
-        gap: 20px; 
-        animation: slideDown 0.3s ease-out;
+    .config-card {
+        background: var(--indra-surface);
+        padding: 24px 30px;
+        border-bottom: 1px solid var(--indra-border);
+        display: none;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
     }
-    .settings-panel.active { display: flex; flex-direction: column; }
+    .config-card.active { display: grid; }
+
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-group label { font-size: 9px; font-weight: 800; color: var(--indra-text-dim); text-transform: uppercase; }
+    .form-group input { 
+        padding: 12px 16px; 
+        border: 1px solid var(--indra-border); 
+        border-radius: 10px; 
+        font-size: 13px; 
+    }
+
+    .hud-body { display: grid; grid-template-columns: 350px 1fr; background: var(--indra-border); gap: 1px; }
+    .hud-body.locked { opacity: 0.1; filter: grayscale(1); pointer-events: none; }
     
-    @keyframes slideDown {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    .form-group label { font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; }
-    .form-group input { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; font-family: 'JetBrains Mono', monospace; }
-
-    .hud-body { 
-        display: grid; 
-        grid-template-columns: 320px 1fr; 
-        background: var(--border); 
-        gap: 1px;
-        transition: opacity 0.5s, filter 0.5s;
-    }
-    .hud-body.locked { opacity: 0.15; pointer-events: none; filter: grayscale(1) blur(4px); }
-    
-    .panel { background: #ffffff; padding: 24px; }
+    .panel-indra { background: rgba(255,255,255,0.8); padding: 30px; }
     .panel-title { 
         font-size: 11px; 
-        color: var(--text-dim); 
+        color: var(--indra-text-dim); 
         text-transform: uppercase; 
-        letter-spacing: 1px; 
-        font-weight: 700; 
-        margin-bottom: 20px; 
+        letter-spacing: 0.1em; 
+        font-weight: 800; 
+        margin-bottom: 24px; 
         display: flex;
         align-items: center;
         gap: 12px;
     }
-    .panel-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .panel-title::after { content: ''; flex: 1; height: 1px; background: var(--indra-border); }
 
-    .main-stage { display: flex; flex-direction: column; gap: 1px; background: var(--border); }
-    
-    /* Toolbar Refinado */
-    .toolbar { background: #fff; padding: 12px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .toolbar-tools { display: flex; gap: 16px; align-items: center; }
-    
-    .config-trigger { background: none; border: none; font-size: 14px; cursor: pointer; opacity: 0.5; transition: 0.2s; }
-    .config-trigger:hover { opacity: 1; transform: rotate(45deg); }
+    .cap-tag {
+        font-size: 9px;
+        padding: 4px 10px;
+        background: rgba(0, 122, 255, 0.1);
+        color: var(--indra-accent);
+        border-radius: 7px;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-right: 4px;
+    }
 </style>
 
 <div class="hud-container">
-    <!-- Card de Conexión Soberana -->
-    <div class="resonance-card">
+    <header class="resonance-header">
         <div class="identity-box">
-            <h4>IDENTIDAD DEL SATÉLITE</h4>
+            <h4>Perfil del Satélite</h4>
             <div class="name" id="display-sat-name">--</div>
-            <div class="core-url" id="display-core-url">Esperando configuración de nexo...</div>
+            <div class="core-url" id="display-core-url">Desconectado del Core</div>
             
-            <div class="capabilities-list" id="capabilities-manifest">
-                <!-- Se inyectan dinámicamente -->
+            <div style="margin-top:12px;" id="capabilities-manifest"></div>
+
+            <div class="handshake-monitor" id="handshake-log">
+                <div class="handshake-step"><span>[INFO]</span> Sistema cargado. Esperando conexión.</div>
             </div>
         </div>
         
-        <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 12px;">
-            <div id="master-status" class="status-badge status--ghost">DESCONECTADO</div>
-            <button class="btn-master" id="btn-master-action">Establecer Vínculo</button>
+        <div class="status-area">
+            <div id="master-status" class="status-badge status--ghost">Sin Conexión</div>
+            <button class="btn-indra" id="btn-master-action">CONECTAR AL CORE</button>
         </div>
+    </header>
+
+    <div class="toolbar-indra" style="padding: 10px 30px; border-bottom: 1px solid var(--indra-border); display:flex; justify-content:flex-end;">
+        <button id="btn-toggle-settings" style="background: none; border: none; font-size: 16px; cursor: pointer; opacity: 0.5;">⚙️ Configuración</button>
     </div>
 
-    <div class="toolbar" id="toolbar-zone">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <button class="config-trigger" id="btn-toggle-settings" title="Ajustes de Conexión">⚙️</button>
-            <span id="citizen-badge" style="font-size: 10px; font-weight: 700; color: var(--text-dim); display: none;"></span>
-        </div>
-        <div class="toolbar-tools">
-            <button class="btn-master" id="btn-export-citizenship" style="background:#475569; padding: 6px 12px; font-size: 10px; display:none;">📥 Exportar Manifiesto</button>
-        </div>
-    </div>
-
-    <!-- Panel de Ajustes -->
-    <div class="settings-panel" id="settings-panel">
+    <section class="config-card" id="settings-panel">
         <div class="form-group">
-            <label>Nombre del Satélite (Jurisdicción)</label>
-            <input type="text" id="config-sat-name" placeholder="Ej: Veta de Oro">
+            <label>ALIAS DEL NODO</label>
+            <input type="text" id="config-sat-name" placeholder="Nombre local...">
         </div>
         <div class="form-group">
-            <label>Nave Nodriza (URL de Google Apps Script)</label>
-            <input type="text" id="config-core-id" placeholder="https://script.google.com/macros/s/...">
+            <label>ID DEL CORE</label>
+            <input type="text" id="config-core-id" placeholder="ID de propietario...">
         </div>
-        <div style="font-size: 10px; color: var(--text-dim); font-style: italic;">
-            * Estos ajustes definen la intención de conexión del satélite.
-        </div>
-    </div>
+    </section>
 
-    <div class="hud-body locked" id="hud-body">
-        <div class="panel">
-            <h3 class="panel-title">Entorno</h3>
-            <indra-workspace-selector id="workspace-ctrl" style="margin-bottom:24px;"></indra-workspace-selector>
+    <main class="hud-body locked" id="hud-body">
+        <aside class="panel-indra">
+            <h3 class="panel-title">Espacio de Trabajo</h3>
+            <indra-workspace-selector id="workspace-ctrl" style="margin-bottom:30px;"></indra-workspace-selector>
+            
+            <h3 class="panel-title">Seguridad (Keychain)</h3>
             <indra-keychain-widget id="keychain-ctrl"></indra-keychain-widget>
             
-            <h3 class="panel-title" style="margin-top:32px;">Estructura de Datos</h3>
+            <h3 class="panel-title" style="margin-top:40px;">Esquemas de Datos</h3>
             <indra-schema-projector id="schema-projector"></indra-schema-projector>
-        </div>
+        </aside>
 
-        <div class="main-stage">
-            <section class="panel">
-                <h3 class="panel-title">Buscador Universal</h3>
+        <section style="display: flex; flex-direction: column; gap: 1px; background: var(--indra-border);">
+            <div class="panel-indra">
+                <h3 class="panel-title">Buscador de Átomos</h3>
                 <indra-universal-picker id="universal-picker"></indra-universal-picker>
-            </section>
+            </div>
             
-            <section class="panel" style="flex-grow: 1;">
-                <h3 class="panel-title">Workflows de Negocio</h3>
+            <div class="panel-indra" style="flex-grow: 1;">
+                <h3 class="panel-title">Flujos de Trabajo Activos</h3>
                 <indra-workflow-ribbon id="workflow-ribbon"></indra-workflow-ribbon>
-            </section>
-        </div>
-    </div>
-    <indra-param-modal id="param-portal"></indra-param-modal>
+            </div>
+        </section>
+    </main>
 </div>
 `;
 
@@ -249,6 +256,7 @@ class IndraBridgeHUD extends HTMLElement {
     connectedCallback() {
         this.render();
         window.addEventListener('indra-resonance-sync', (e) => this.handleResonanceUpdate(e.detail));
+        window.addEventListener('indra-handshake-step', (e) => this.logHandshake(e.detail));
         window.addEventListener('indra-ready', () => this.updateUI());
     }
 
@@ -257,12 +265,30 @@ class IndraBridgeHUD extends HTMLElement {
         this._bridge.onStateChange = () => this.updateUI();
         this.shadowRoot.getElementById('keychain-ctrl').bridge = instance;
         this.shadowRoot.getElementById('workspace-ctrl').bridge = instance;
-        this._configLocked = !!(this._bridge.contract?.satellite_name);
         this.updateUI();
     }
 
+    logHandshake(detail) {
+        const log = this.shadowRoot.getElementById('handshake-log');
+        if (!log) return;
+        
+        let msg = detail.message;
+        // Traducción de logs comunes
+        if (msg.includes('Cargando ADN')) msg = "Leyendo contrato local...";
+        if (msg.includes('Solicitando Manifiesto')) msg = "Obteniendo datos del Core...";
+        if (msg.includes('Explorando Territorio')) msg = "Buscando Workspaces en Drive...";
+        if (msg.includes('Modo Descubrimiento')) msg = "Listo. Selecciona un Workspace.";
+        if (msg.includes('Resonancia Estable')) msg = "Conexión exitosa.";
+
+        const step = document.createElement('div');
+        step.className = 'handshake-step';
+        step.innerHTML = `<span>[${detail.step}]</span> ${msg}`;
+        log.appendChild(step);
+        log.scrollTop = log.scrollHeight;
+    }
+
     handleResonanceUpdate(detail) {
-        this._mode = detail.mode; // Sincronizar con el modo soberano
+        this._mode = detail.mode; 
         this.updateUI();
     }
 
@@ -271,233 +297,75 @@ class IndraBridgeHUD extends HTMLElement {
 
         const body = this.shadowRoot.getElementById('hud-body');
         const status = this.shadowRoot.getElementById('master-status');
-        const citizenBadge = this.shadowRoot.getElementById('citizen-badge');
         const actionBtn = this.shadowRoot.getElementById('btn-master-action');
         const satNameDisplay = this.shadowRoot.getElementById('display-sat-name');
         const coreUrlDisplay = this.shadowRoot.getElementById('display-core-url');
         const capManifest = this.shadowRoot.getElementById('capabilities-manifest');
-        
-        const satNameInput = this.shadowRoot.getElementById('config-sat-name');
-        const coreUrlInput = this.shadowRoot.getElementById('config-core-id');
 
-        // Sincronizar Display Card
-        if (satNameDisplay) satNameDisplay.innerText = this._bridge.contract.satellite_name || 'Satélite Anónimo';
-        if (coreUrlDisplay) coreUrlDisplay.innerText = this._bridge.coreUrl || 'Sin URL de nexo';
+        satNameDisplay.innerText = this._bridge.contract?.satellite_name || 'Satélite Desconocido';
+        coreUrlDisplay.innerText = this._bridge.coreUrl || 'Sin conexión activa';
 
-        // Sincronizar Inputs (Solo si no tienen el foco)
-        if (satNameInput && this.shadowRoot.activeElement !== satNameInput) {
-            satNameInput.value = this._bridge.contract.satellite_name || '';
-        }
-        if (coreUrlInput && this.shadowRoot.activeElement !== coreUrlInput) {
-            coreUrlInput.value = this._bridge.coreUrl || '';
-        }
-
-        // --- MÁQUINA DE ESTADOS ESTÁNDAR ---
         switch (this._mode) {
             case 'GHOST':
                 status.innerText = 'Desconectado';
                 status.className = 'status-badge status--ghost';
-                actionBtn.innerText = 'Establecer Vínculo';
-                actionBtn.className = 'btn-master';
-                actionBtn.disabled = false;
-                actionBtn.onclick = () => this.handleIgnition();
+                actionBtn.innerText = 'CONECTAR AL CORE';
+                actionBtn.className = 'btn-indra';
                 body.classList.add('locked');
-                break;
-
-            case 'ORPHAN':
-                status.innerText = 'Identidad Activa';
-                status.className = 'status-badge status--orphan';
-                actionBtn.innerText = 'Vincular a Espacio';
-                actionBtn.className = 'btn-master';
-                actionBtn.disabled = false;
-                actionBtn.onclick = () => this.handleAnchorCitizenship();
-                body.classList.add('locked');
-                break;
-
-            case 'STABLE':
-                status.innerText = 'Vínculo Estable';
-                status.className = 'status-badge status--stable';
-                actionBtn.innerText = 'Sincronizado';
-                actionBtn.className = 'btn-master stable';
-                actionBtn.disabled = false;
-                actionBtn.onclick = () => this.handleDNAsync();
-                body.classList.remove('locked');
                 break;
 
             case 'DISCOVERY':
-                status.innerText = 'Explorando Territorio...';
-                status.className = 'status-badge status--pending';
-                actionBtn.innerText = 'Seleccionar Realidad';
-                actionBtn.className = 'btn-master';
-                actionBtn.disabled = false;
-                actionBtn.onclick = () => {
-                    const selector = this.shadowRoot.querySelector('indra-workspace-selector');
-                    if (selector) selector.shadowRoot.querySelector('select').focus();
-                };
-                body.classList.add('locked');
+                status.innerText = 'Buscando...';
+                status.className = 'status-badge status--orphan';
+                actionBtn.innerText = 'ELEGIR WORKSPACE';
+                actionBtn.className = 'btn-indra';
+                body.classList.remove('locked');
+                break;
+
+            case 'STABLE':
+                status.innerText = 'Conectado';
+                status.className = 'status-badge status--stable';
+                actionBtn.innerText = 'SESIÓN ACTIVA';
+                actionBtn.className = 'btn-indra stable';
+                body.classList.remove('locked');
                 break;
             
             case 'ERROR_LEDGER':
-                status.innerText = 'FALLO DE NÚCLEO';
+                status.innerText = 'Error de Enlace';
                 status.className = 'status-badge status--error';
-                actionBtn.innerText = 'ID NO ENCONTRADO';
-                actionBtn.className = 'btn-master';
-                actionBtn.disabled = false;
-                actionBtn.onclick = () => {
-                    if (confirm("El núcleo (Ledger) de este Espacio no responde. ¿Deseas purgar el anclaje local para intentar un nuevo vínculo?")) {
-                        this._bridge.activeWorkspaceId = null;
-                        this.updateUI();
-                    }
-                };
+                actionBtn.innerText = 'REINTENTAR';
+                actionBtn.className = 'btn-indra';
                 body.classList.add('locked');
                 break;
-
-            default:
-                status.innerText = 'Modo Local';
-                actionBtn.innerText = 'Reintentar';
-                actionBtn.onclick = () => this._bridge.init();
-                body.classList.remove('locked');
-                break;
         }
 
-        // Render de Capacidades (Manifiesto Honesto)
         if (capManifest) {
-            const caps = this._bridge.contract?.capabilities?.protocols || [];
-            if (caps.length > 0) {
-                capManifest.innerHTML = caps.slice(0, 5).map(c => `<span class="cap-tag">${c.replace('SYSTEM_', '')}</span>`).join('') + (caps.length > 5 ? `<span class="cap-tag">+${caps.length - 5}</span>` : '');
-            } else {
-                capManifest.innerHTML = '<span style="font-size:9px; opacity:0.3">Sin capacidades detectadas</span>';
-            }
-        }
-
-        // Mostrar ID de Espacio
-        if (this._bridge.activeWorkspaceId) {
-            citizenBadge.style.display = 'inline-block';
-            citizenBadge.innerText = `ESPACIO: ${this._bridge.activeWorkspaceId.substring(0,8)}`;
-        } else {
-            citizenBadge.style.display = 'none';
-        }
-
-        // Proyectar datos a widgets solo si no está bloqueado
-        if (!body.classList.contains('locked')) {
-            const { contract } = this._bridge;
-            console.groupCollapsed("🛂 [HUD:Aduana] Filtrando Esquemas de Negocio");
-            const filteredSchemas = contract ? (contract.schemas || []).filter(s => {
-                if (s.class === 'CONFIG_SCHEMA' || s.class === 'SYSTEM_SCHEMA') {
-                    console.log(`🚫 [Aduana] Esquema [${s.id}] bloqueado por regla: CLASE_SISTEMA`);
-                    return false;
-                }
-                const isSystemId = s.id?.startsWith('INDRA_') || s.handle?.alias?.startsWith('config_') || s.id === 'notion' || s.id === 'intelligence';
-                if (isSystemId) {
-                    console.log(`🚫 [Aduana] Esquema [${s.id}] bloqueado por regla: ID_RESERVADO_SHELL`);
-                    return false;
-                }
-                console.log(`✅ [Aduana] Esquema [${s.id}] permitido para proyección.`);
-                return true;
-            }) : null;
-            console.groupEnd();
-
-            this.shadowRoot.getElementById('schema-projector').schemas = filteredSchemas;
-            this.shadowRoot.getElementById('universal-picker').providers = contract?.capabilities?.providers || null;
-            this.shadowRoot.getElementById('workflow-ribbon').workflows = contract?.workflows || null;
-        }
-    }
-
-    handleExportCitizenship() {
-        const config = {
-            satellite_name: this._bridge.contract.satellite_name,
-            workspace_id: this._bridge.activeWorkspaceId,
-            ignitions: this._bridge.ignitions || {}
-        };
-        
-        const code = `/**
- * MANIFIESTO DE CIUDADANÍA INDRA
- * Guarda este archivo como '_INDRA_PROTOCOL_/indra_config.js' en tu repositorio.
- */
-export const INDRA_CONFIG = ${JSON.stringify(config, null, 4)};`;
-
-        console.log("--- MANIFIESTO GENERADO ---");
-        console.log(code);
-        
-        // Copiar al portapapeles si es posible
-        navigator.clipboard.writeText(code).then(() => {
-            alert("✅ Manifiesto de Ciudadanía copiado al portapapeles.\n\nGuárdalo en '_INDRA_PROTOCOL_/indra_config.js' para que tu satélite sea soberano.");
-        }).catch(() => {
-            alert("No se pudo copiar automáticamente. Revisa la consola (F12) para copiar el código.");
-        });
-    }
-
-    async handleIgnition() {
-        const btn = this.shadowRoot.getElementById('btn-master-action');
-        btn.disabled = true;
-        btn.innerText = "Conectando...";
-        try {
-            await this._bridge.ignite();
-        } catch (e) {
-            btn.disabled = false;
-            this.updateUI();
-        }
-    }
-
-    async handleAnchorCitizenship(workspaceId = null) {
-        const btn = this.shadowRoot.getElementById('btn-master-action');
-        btn.disabled = true;
-        btn.innerText = "Vinculando...";
-        try {
-            await this._bridge.anchorCitizenship(workspaceId);
-        } catch (e) {
-            alert("Error al vincular: " + e.message);
-            btn.disabled = false;
-            this.updateUI();
-        }
-    }
-
-    async handleDNAsync() {
-        const btn = this.shadowRoot.getElementById('btn-master-action');
-        btn.disabled = true;
-        btn.innerText = "Sincronizando...";
-        try {
-            await this._bridge.syncDNA();
-        } catch (e) {
-            alert("Error de sincronización: " + e.message);
-            btn.disabled = false;
-            this.updateUI();
+            const caps = this._bridge.capabilities?.protocols || [];
+            capManifest.innerHTML = caps.slice(0, 6).map(c => `<span class="cap-tag">${c.replace('SYSTEM_', '')}</span>`).join('');
         }
     }
 
     render() {
         this.shadowRoot.innerHTML = TEMPLATE;
         
-        // Toggle de Ajustes
-        const toggleBtn = this.shadowRoot.getElementById('btn-toggle-settings');
-        const settingsPanel = this.shadowRoot.getElementById('settings-panel');
-        if (toggleBtn && settingsPanel) {
-            toggleBtn.onclick = () => {
-                settingsPanel.classList.toggle('active');
-                toggleBtn.style.opacity = settingsPanel.classList.contains('active') ? "1" : "0.5";
-            };
-        }
+        this.shadowRoot.getElementById('btn-toggle-settings').onclick = () => {
+            this.shadowRoot.getElementById('settings-panel').classList.toggle('active');
+        };
 
-        // Listeners para cambios de identidad (In-memory sync)
-        const satNameInput = this.shadowRoot.getElementById('config-sat-name');
-        if (satNameInput) {
-            satNameInput.oninput = () => {
-                if (this._bridge && this._bridge.contract) {
-                    this._bridge.contract.satellite_name = satNameInput.value;
-                    this.shadowRoot.getElementById('display-sat-name').innerText = satNameInput.value;
+        this.shadowRoot.getElementById('btn-master-action').onclick = () => {
+            if (this._mode === 'GHOST') this._bridge.init();
+            else if (this._mode === 'DISCOVERY') {
+                const selector = this.shadowRoot.getElementById('workspace-ctrl');
+                if (selector && selector.shadowRoot.getElementById('ws-select')) {
+                    selector.shadowRoot.getElementById('ws-select').focus();
                 }
-            };
-        }
+            }
+        };
 
-        const coreUrlInput = this.shadowRoot.getElementById('config-core-id');
-        if (coreUrlInput) {
-            coreUrlInput.oninput = () => {
-                if (this._bridge) {
-                    this._bridge.coreUrl = coreUrlInput.value;
-                    this.shadowRoot.getElementById('display-core-url').innerText = coreUrlInput.value;
-                }
-            };
-        }
+        this.shadowRoot.getElementById('config-sat-name').oninput = (e) => {
+            if (this._bridge) this._bridge.contract.satellite_name = e.target.value;
+            this.shadowRoot.getElementById('display-sat-name').innerText = e.target.value;
+        };
     }
 }
 

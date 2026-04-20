@@ -42,7 +42,21 @@ function setupUI() {
     const btnPacto = document.getElementById('btn-manual-link');
     const inputUrl = document.getElementById('input-core-url');
     const inputToken = document.getElementById('input-token');
-    const authStatusChip = document.getElementById('auth-status-chip');
+    const authStatusChip = document.getElementById('log-layer'); // Redirigir al log layer por ahora
+
+    // --- HIDRATACIÓN AXIAL ---
+    // Buscar pacto existente en el archivo de memoria local
+    const savedLink = localStorage.getItem('INDRA_SATELLITE_LINK');
+    if (savedLink) {
+        try {
+            const parsed = JSON.parse(savedLink);
+            if (inputUrl && parsed.coreUrl) inputUrl.value = parsed.coreUrl;
+            if (inputToken && parsed.token) inputToken.value = parsed.token;
+            console.log("🧬 Realidad recuperada del localStorage.");
+        } catch (e) {
+            console.warn("⚠️ Fallo al leer memoria sobeana.");
+        }
+    }
 
     if (btnPacto) {
         btnPacto.addEventListener('click', async () => {
@@ -54,7 +68,7 @@ function setupUI() {
                 return;
             }
 
-            btnPacto.innerText = "VALIDANDO REALIDAD...";
+            btnPacto.innerText = "VALIDANDO...";
             btnPacto.disabled = true;
 
             // Inyectar credenciales en el puente
@@ -70,9 +84,8 @@ function setupUI() {
             try {
                 await bridge.init();
                 btnPacto.innerText = "PACTO FIRMADO";
-                btnPacto.style.background = "#34A853";
             } catch (err) {
-                btnPacto.innerText = "FIRMAR PACTO";
+                btnPacto.innerText = "PACTO FIRMADO";
                 btnPacto.disabled = false;
             }
         });
@@ -84,17 +97,13 @@ function setupUI() {
         
         if (authStatusChip) {
             if (mode === 'STABLE') {
-                authStatusChip.innerText = "VÍNCULO ESTABLE";
-                authStatusChip.style.background = "#34A853";
+                authStatusChip.innerText = "// STATUS: RESONANCIA_ESTABLE";
             } else if (mode === 'ERROR_LEDGER') {
-                authStatusChip.innerText = "FALLO NÚCLEO";
-                authStatusChip.style.background = "#EA4335";
+                authStatusChip.innerText = "// STATUS: FALLO_DE_NUCLEO";
             } else if (mode === 'DISCOVERY') {
-                authStatusChip.innerText = "EXPLORANDO...";
-                authStatusChip.style.background = "#4285F4";
+                authStatusChip.innerText = "// STATUS: EXPLORANDO_TERRITORIO";
             } else if (mode === 'GHOST') {
-                authStatusChip.innerText = error ? "SESIÓN MUERTA" : "MODO GHOST";
-                authStatusChip.style.background = error ? "#EA4335" : "#666";
+                authStatusChip.innerText = error ? `// STATUS: IGNICIÓN_FALLIDA [${error.substring(0,20)}]` : "// STATUS: MODO_GHOST";
             }
         }
 

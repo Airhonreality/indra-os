@@ -128,10 +128,29 @@ export class TransportLayer {
             const result = JSON.parse(rawText);
 
             if (result.metadata?.status === 'ERROR') {
-                console.error(`[Transport:RemoteError] Protocolo ${uqo.protocol} falló:`, result.metadata.error);
-                const error = new Error(result.metadata.error);
-                error.code = result.metadata.error;
-                throw error;
+                // --- DHARMA DE ERRORES: Detección Atómica ---
+                const errorAtom = result.items?.find(item => item.class === 'INDRA_ERROR');
+                
+                if (errorAtom) {
+                    console.error(`[Transport:AtomicError] Protocolo ${uqo.protocol} falló [${errorAtom.payload.code}]:`, errorAtom.payload.message);
+                    
+                    // --- EMISIÓN GLOBAL PARA EL HUD ---
+                    window.dispatchEvent(new CustomEvent('indra-error-atom', { detail: errorAtom }));
+
+                    const error = new Error(errorAtom.payload.message);
+                    error.code = errorAtom.payload.code;
+                    error.severity = errorAtom.payload.severity;
+                    error.recovery_hint = errorAtom.payload.recovery_hint;
+                    error.isAtomic = true;
+                    error.details = errorAtom.payload.details;
+                    throw error;
+                } else {
+                    // Fallback para errores no atómicos (Legacy)
+                    console.error(`[Transport:LegacyError] Protocolo ${uqo.protocol} falló:`, result.metadata.error);
+                    const error = new Error(result.metadata.error || 'Error desconocido del sistema.');
+                    error.code = 'SYSTEM_FAILURE';
+                    throw error;
+                }
             }
             return result;
         } catch (error) {

@@ -136,7 +136,7 @@ export class TransportLayer {
             const result = JSON.parse(rawText);
 
             if (result.metadata?.status === 'ERROR') {
-                logError(`[Transport:RemoteError] Protocolo ${uqo.protocol} falló:`, result.metadata.error);
+                console.error(`[Transport:RemoteError] Protocolo ${uqo.protocol} falló:`, result.metadata.error);
                 const error = new Error(result.metadata.error);
                 error.code = result.metadata.error;
                 throw error;

@@ -41,7 +41,7 @@ const PROTOCOL_CONTRACTS = Object.freeze({
 
   // ── OPERATIVA DEL NÚCLEO (Solo cuando Indra está Despierta) ──
   'ATOM_READ':                    { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
-  'ATOM_CREATE':                  { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
+  'ATOM_CREATE':                  { min_state: 1, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
   'ATOM_UPDATE':                  { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.SYSTEM  },
   'ATOM_DELETE':                  { min_state: 2, actors: ACTOR_TYPES.SOVEREIGN_ONLY, dispatcher: DISPATCHERS.SYSTEM  },
   'SEARCH_DEEP':                  { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },

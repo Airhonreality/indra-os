@@ -105,6 +105,46 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "2_providers/infra_connectivity.gs",
+    "name": "infra_connectivity",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/infra_constants.gs",
+    "name": "infra_constants",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/infra_history.gs",
+    "name": "infra_history",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/infra_identity.gs",
+    "name": "infra_identity",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/infra_persistence.gs",
+    "name": "infra_persistence",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/infra_physical_drive.gs",
+    "name": "infra_physical_drive",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/infra_resonance.gs",
+    "name": "infra_resonance",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/infra_workspaces.gs",
+    "name": "infra_workspaces",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "2_providers/infrastructure_identity.gs",
     "name": "infrastructure_identity",
     "type": "SERVER_JS"
@@ -175,11 +215,6 @@
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/provider_system_infrastructure.gs",
-    "name": "provider_system_infrastructure",
-    "type": "SERVER_JS"
-  },
-  {
     "path": "2_providers/provider_system_ledger.gs",
     "name": "provider_system_ledger",
     "type": "SERVER_JS"
@@ -197,11 +232,6 @@
   {
     "path": "2_providers/provider_system_workspace.gs",
     "name": "provider_system_workspace",
-    "type": "SERVER_JS"
-  },
-  {
-    "path": "3_api/system_stress_test.gs",
-    "name": "system_stress_test",
     "type": "SERVER_JS"
   },
   {
@@ -322,6 +352,11 @@
   {
     "path": "5_diagnostics/integrity_suite.gs",
     "name": "integrity_suite",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "5_diagnostics/protocol_resonance_sonde.gs",
+    "name": "protocol_resonance_sonde",
     "type": "SERVER_JS"
   },
   {

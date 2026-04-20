@@ -420,11 +420,6 @@
     "type": "JSON"
   },
   {
-    "path": "scratch/sonda_ignicion.gs",
-    "name": "sonda_ignicion",
-    "type": "SERVER_JS"
-  },
-  {
     "path": "seed_loader.gs",
     "name": "seed_loader",
     "type": "SERVER_JS"

@@ -20,17 +20,53 @@ El corazón del sistema (`IndraBridge.js`) coordina varias capas autónomas:
 *   **`IdentityNode.js`**: Gestión de Handshake y Ciudadanía Soberana.
 *   **`ContractCortex.js`**: El cerebro que decide qué ADN cargar (Local vs Global) en tiempo real.
 *   **`ResonanceSync.js`**: Orquestación de la Cristalización y cálculo de Drift.
+*   **`CapabilitiesResolver.js` (NUEVO)**: El Oráculo que resuelve proveedores y protocolos dinámicamente.
 
 ---
 
-## ⚡ Flujo de Desarrollo "Fricción Cero"
+## 🛠️ Guía de Desarrollo Agnóstico (Buenas Prácticas)
 
-1.  **Ignición**: Conecta tu satélite al Core desde el HUD.
-2.  **Edición en Vivo**: Modifica tus esquemas en `src/score/schemas/*.js`. 
-3.  **Resonancia**: Pulsa **ACTUALIZAR** en el HUD. El `ContractCortex` detectará tus cambios y el motor de resonancia aplicará los deltas en la materia física (Drive/Notion) sin necesidad de reiniciar nada.
+Para que un Satélite sea verdaderamente soberano, **no debe asumir nada** sobre la infraestructura física y debe ser **Reactivo** ante el estado del motor.
 
-> [!NOTE]
-> El script `sync_core.js` sigue disponible como una herramienta de **Empaquetado de Producción** para consolidar el contrato en un solo archivo antes del despliegue final.
+1.  **Chasis Primero**: Renderiza tu UI inmediatamente. No esperes al Bridge para mostrar el Chasis.
+2.  **Consulta al Oráculo**: Usa `bridge.capabilitiesOracle.getPreferredProvider('CLASE_ATOMA')`.
+3.  **Ignición en 2 Pasos**: Sigue el flujo `ATOM_CREATE` -> `SYSTEM_SCHEMA_IGNITE`.
+4.  **Estados de Carga**: Observa `bridge.status` para mostrar Skeletons mientras el motor está en `IGNITING`.
+
+---
+
+## 🏗️ Cómo usar el Bridge en tu App (Patrón onReady)
+
+```javascript
+import IndraBridge from './_INDRA_PROTOCOL_/core/IndraBridge.js';
+
+// 1. Instanciar (Se auto-ignicia si hay sesión previa)
+const bridge = new IndraBridge();
+
+// 2. Renderizar Chasis Inmediatamente
+renderChasis(); 
+
+// 3. Suscribirse a la Gasolina
+bridge.onReady((b) => {
+    console.log("🚀 Motor listo. Hidratando datos...");
+    const inventory = await b.execute({ protocol: 'TABULAR_STREAM', ... });
+    renderContent(inventory);
+});
+
+// 4. (Opcional) Reaccionar a cambios de estado
+bridge.onStateChange = (b, event, data) => {
+    console.log(`Estado: ${b.status}`); // GHOST, IGNITING, READY, ERROR
+};
+```
+
+---
+
+## 🏗️ Cómo usar el Oráculo
+
+```javascript
+// Dentro de un onReady:
+const provider = bridge.capabilitiesOracle.getPreferredProvider('DATA_SCHEMA');
+```
 
 ---
 

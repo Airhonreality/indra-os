@@ -2,6 +2,7 @@ import { TransportLayer } from './bridge_modules/TransportLayer.js';
 import { IdentityNode } from './bridge_modules/IdentityNode.js';
 import { ContractCortex } from './bridge_modules/ContractCortex.js';
 import { ResonanceSync } from './bridge_modules/ResonanceSync.js';
+import { CapabilitiesResolver } from './bridge_modules/CapabilitiesResolver.js';
 
 class IndraBridge {
     constructor(config = {}) {
@@ -11,6 +12,12 @@ class IndraBridge {
         this.activeWorkspaceId = null; 
         this.availableWorkspaces = []; // Descubrimiento físico de realidad
         this.environment = config.environment || 'PRODUCTION';
+
+        // --- ESTADO REACTIVO (NUEVO) ---
+        /** @type {'GHOST'|'IGNITING'|'READY'|'ERROR'} */
+        this.status = 'GHOST'; 
+        this._onReadyCallbacks = [];
+        this._initializing = false;
 
         // --- DATOS ADN ---
         this.contract = { satellite_name: 'Satélite Anónimo', capabilities: { protocols: [], providers: [] }, schemas: [] };
@@ -22,11 +29,59 @@ class IndraBridge {
         this.identity = new IdentityNode(this);
         this.contractCortex = new ContractCortex(this);
         this.resonanceSync = new ResonanceSync(this);
+        this.capabilitiesOracle = new CapabilitiesResolver(this);
 
         // --- SISTEMA DE EVENTOS ---
         this.pendingUIRequests = new Map();
         this._listeners = {};
         this.onStateChange = config.onStateChange || null;
+
+        // AUTO-IGNICIÓN POR INERCIA DE IDENTIDAD
+        if (config.autoInit !== false) {
+            this._checkInertia();
+        }
+    }
+
+    /**
+     * Revisa si existe un pacto previo para encender el motor en background.
+     */
+    _checkInertia() {
+        const linkData = localStorage.getItem('INDRA_SATELLITE_LINK');
+        if (linkData) {
+            console.log("🌀 [IndraBridge] Detectada inercia de identidad. Iniciando ignición autónoma...");
+            this.init().catch(() => {});
+        }
+    }
+
+    /**
+     * @dharma Patrón de Suscripción Segura.
+     * Ejecuta el callback inmediatamente si ya está READY, o lo encola.
+     */
+    onReady(callback) {
+        if (this.status === 'READY') {
+            callback(this);
+        } else {
+            this._onReadyCallbacks.push(callback);
+        }
+    }
+
+    /**
+     * Actualiza el estado y notifica a los observadores.
+     */
+    _setStatus(newStatus) {
+        if (this.status === newStatus) return;
+        this.status = newStatus;
+        console.log(`📡 [IndraBridge] Cambio de Fase: ${newStatus}`);
+        
+        if (newStatus === 'READY') {
+            const callbacks = [...this._onReadyCallbacks];
+            this._onReadyCallbacks = [];
+            callbacks.forEach(cb => {
+                try { cb(this); } catch (e) { console.error("[IndraBridge:onReady] Callback error:", e); }
+            });
+        }
+        
+        this._notify('status_change', { status: newStatus });
     }
 
     // --- RAMAS DE SOBERANÍA ---
@@ -42,6 +97,7 @@ class IndraBridge {
     clearState() {
         this.satelliteToken = null;
         this.activeWorkspaceId = null;
+        this.status = 'GHOST';
         localStorage.removeItem('INDRA_SATELLITE_LINK');
         window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'GHOST' } }));
     }
@@ -72,6 +128,7 @@ class IndraBridge {
     async init() {
         if (this._initializing) return this._initPromise;
         this._initializing = true;
+        this._setStatus('IGNITING');
         
         const notifyStep = (step, detail) => {
             window.dispatchEvent(new CustomEvent("indra-handshake-step", { detail: { step, ...detail } }));
@@ -106,6 +163,9 @@ class IndraBridge {
                 this.capabilities = statusPulse.metadata || {};
                 this.allowedProtocols = this.capabilities.allowed_protocols || [];
                 
+                // PASO 1.5: Sincronización del Oráculo de Capacidades
+                await this.capabilitiesOracle.sync();
+                
                 // PASO 2: REALIDAD SINCERA (Discovery de Territorio)
                 notifyStep('DISCOVER_TERRITORY', { message: 'Explorando Territorio Físico...' });
                 const discovery = await this.execute({ protocol: 'SYSTEM_SATELLITE_DISCOVER', provider: 'system' });
@@ -122,6 +182,7 @@ class IndraBridge {
                     window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
                         detail: { mode: 'DISCOVERY', items: this.availableWorkspaces } 
                     }));
+                    this._setStatus('READY'); // Estamos listos pero en modo descubrimiento
                     return;
                 }
 
@@ -135,17 +196,20 @@ class IndraBridge {
                     });
                     notifyStep('SYNC_COMPLETE', { message: 'Resonancia Estable.' });
                     window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
+                    this._setStatus('READY');
                 } catch (error) {
                     notifyStep('ERROR_STABILITY', { message: 'Fallo de Estabilidad.', error: error.message });
                     window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
                         detail: { mode: 'ERROR_LEDGER', error: error.message, id: this.activeWorkspaceId } 
                     }));
+                    this._setStatus('ERROR');
                 }
 
             } catch (e) {
                 notifyStep('IGNITION_ABORTED', { message: 'Ignición Fallida.', error: e.message });
                 console.warn(`❌ [Bridge] Ignición abortada: ${e.message}`);
                 window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'GHOST', error: e.message } }));
+                this._setStatus('GHOST');
             } finally {
                 this._notify('sync', { status: this.satelliteToken ? 'CONNECTED' : 'DISCONNECTED' });
                 this._initializing = false;
@@ -158,7 +222,7 @@ class IndraBridge {
     _notify(event, data) {
         if (this.onStateChange) this.onStateChange(this, event, data);
         window.dispatchEvent(new CustomEvent(`indra:${event}`, { detail: data }));
-        if (event === 'sync') window.dispatchEvent(new CustomEvent('indra-ready', { detail: data }));
+        if (event === 'sync') window.dispatchEvent(new CustomEvent('indra-ready', { detail: { ...data, bridge: this } }));
     }
 
     async runWorkflow(workflowJson, triggerData = {}) {

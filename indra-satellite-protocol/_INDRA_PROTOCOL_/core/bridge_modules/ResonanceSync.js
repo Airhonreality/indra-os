@@ -20,56 +20,80 @@ export class ResonanceSync {
         
         if (!schema) throw new Error(`SCHEMA_NOT_FOUND: ${schemaName}`);
 
-        const workspaceId = bridge.activeWorkspaceId;
-        if (!workspaceId) {
-            throw new Error("No hay un Workspace activo seleccionado.");
-        }
+        // AXIOMA: Resolución Dinámica de Capacidades (Sin Hardcode)
+        const payloadFields = this._extractFields(schema);
+        const schemaLabel = this._extractLabel(schema);
+        const schemaClass = bridge.capabilitiesOracle.getSchemaClass();
+        const preferredProvider = bridge.capabilitiesOracle.getPreferredProvider(schemaClass);
 
-        console.log(`[Sincerity:Anchor] Inyectando semilla '${schemaName}' vía SYSTEM en Workspace: ${workspaceId}...`);
+        const workspaceId = bridge.activeWorkspaceId;
+        if (!workspaceId) throw new Error("No hay un Workspace activo seleccionado.");
+
+        console.log(`[Sincerity:Anchor] Iniciando Protocolo Cooperativo para '${schemaLabel}'...`);
 
         try {
-            // 2. EJECUCIÓN DE PROTOCOLO DE SISTEMA (Inscripción en el Ledger Maestro)
-            const response = await bridge.execute({
+            // PASO 1: Persistencia del Átomo (Blueprint / Plano)
+            console.log(`[Sincerity:Anchor] Pasos 1/2: Registrando Átomo de Clase ${schemaClass} en ${preferredProvider}...`);
+            const createResponse = await bridge.execute({
                 protocol: 'ATOM_CREATE',
-                provider: 'system', // <--- ELEVACIÓN A CIUDADANO CLASE 1
+                provider: preferredProvider,
                 workspace_id: workspaceId,
                 data: {
-                    class: 'DATA_SCHEMA',
-                    name: schema.label || schemaName,
+                    class: schemaClass,
+                    name: schemaLabel,
                     handle: { 
-                        alias: schema.handle?.alias || schemaName, 
-                        label: schema.label || schemaName 
+                        alias: schema.handle?.alias || schema.id || schemaName, 
+                        label: schemaLabel 
                     },
                     payload: {
-                        fields: schema.fields || [],
-                        source: 'SATELLITE_SYNC' // Firma nativa de React
+                        fields: payloadFields,
+                        source: 'SATELLITE_SYNC'
                     }
                 }
             });
 
-            if (response.metadata?.status === 'OK') {
-                const coreAtom = response.items?.[0];
+            if (createResponse.metadata?.status !== 'OK' || !createResponse.items?.[0]) {
+                throw new Error(createResponse.metadata?.error || "Falla en registro de Átomo Base.");
+            }
+
+            const atomId = createResponse.items[0].id;
+            console.log(`[Sincerity:Anchor] Pasos 2/2: Ignitando Infraestructura Tabular para ID: ${atomId}...`);
+
+            // PASO 2: Ignición de Infraestructura (Delegación a Protocolo Especializado)
+            const igniteResponse = await bridge.execute({
+                protocol: 'SYSTEM_SCHEMA_IGNITE',
+                provider: 'system',
+                context_id: atomId,
+                data: { 
+                    target_provider: 'drive', // El Core decide dónde materializar el Silo
+                    workspace_id: workspaceId 
+                }
+            });
+
+            if (igniteResponse.metadata?.status === 'OK') {
+                const siloItem = igniteResponse.items?.[0];
                 
-                // 3. CAPTURA DE EVIDENCIA REAL
+                // CAPTURA DE EVIDENCIA FINAL (Sincronía de Doble Vínculo)
                 schema.metadata = {
-                    drive_id: coreAtom.id,
+                    drive_id: siloItem?.id || atomId, // ID de la tabla física
+                    atom_id: atomId,                 // ID del esquema lógico
                     synced_at: new Date().toLocaleString(),
                     workspace_id: workspaceId
                 };
 
-                // 4. PERSISTENCIA
+                // PERSISTENCIA LOCAL
                 bridge.ignitions = bridge.ignitions || {};
                 bridge.ignitions[schemaName] = schema.metadata;
                 localStorage.setItem('INDRA_IGNITIONS', JSON.stringify(bridge.ignitions));
                 
-                console.log(`🚀 [Sincerity] Semilla anclada y registrada en Ledger: ${schemaName} -> ID:${coreAtom.id}`);
-                return response;
+                console.log(`🚀 [Sincerity:Complete] Realidad materializada: ${schemaLabel} -> Silo:${siloItem?.id}`);
+                return igniteResponse;
             }
 
-            throw new Error(response.metadata?.error || "CORE_REJECTED_SYSTEM_SEED");
+            throw new Error(igniteResponse.metadata?.error || "CORE_REJECTED_IGNITION");
 
         } catch (e) {
-            console.error(`[Sincerity:Anchor] Error en anclaje de sistema de ${schemaName}:`, e);
+            console.error(`[Sincerity:Anchor] Error en anclaje cooperativo de ${schemaName}:`, e);
             throw e;
         }
     }
@@ -95,7 +119,7 @@ export class ResonanceSync {
                 context_id: schema.metadata.drive_id,
                 data: {
                     payload: {
-                        fields: schema.fields // El delta se aplica en el Core, pero mandamos el estado deseado de la lista
+                        fields: this._extractFields(schema)
                     }
                 }
             });
@@ -140,4 +164,23 @@ export class ResonanceSync {
 
     async materializeSchema() { console.warn("DEPRECATED: Use anchorSchema."); }
     async resonateSchema() { console.warn("DEPRECATED: Use anchorSchema."); }
+
+    /**
+     * EXTRACTORES DE DATOS (PATH SOLVERS)
+     * Resuelven la ubicación del ADN sin importar el formato del archivo local.
+     */
+    _extractFields(schema) {
+        return schema.payload?.fields      // Contrato estándar (v6.0+)
+            || schema.fields               // Contrato legacy
+            || schema.raw?.fields          // Contrato raw
+            || [];
+    }
+
+    _extractLabel(schema) {
+        return schema.name                     // Campo name en raíz (Contrato tradicional)
+            || schema.label                    // Campo label legacy
+            || schema.handle?.label            // Campo handle.label
+            || schema.handle?.alias            // Alias del handle
+            || schema.id;                      // ID técnico como último recurso
+    }
 }

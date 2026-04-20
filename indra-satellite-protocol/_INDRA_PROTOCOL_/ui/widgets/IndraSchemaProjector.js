@@ -12,6 +12,7 @@ class IndraSchemaProjector extends HTMLElement {
         this.attachShadow({ mode: 'open' });
         this._schemas = null; 
         this._bridge = null;
+        this._loadingStates = {}; // AXIOMA: Estado de Vida de Acciones
     }
 
     set bridge(val) {
@@ -163,19 +164,27 @@ class IndraSchemaProjector extends HTMLElement {
             }) || fields.length !== remoteFields.length;
         }
 
+        // Estado del botón principal
+        const syncState = this._loadingStates[s.id] || 'idle';
+        let mainBtnText = isSynced ? (hasDivergence ? 'Actualizar Core' : 'Sincronizado') : 'Exportar al Core';
+        if (syncState === 'syncing') mainBtnText = '⏳ Sincronizando...';
+        if (syncState === 'done') mainBtnText = '✅ Éxito';
+
         return `
         <div class="schema-card">
             <div class="card-header">
                 <div class="schema-identity">
                     <div class="status-indicator ${isSynced ? (hasDivergence ? 'divergent' : 'synced') : ''}"></div>
                     <div>
-                        <div class="schema-name">${(s.handle?.alias || s.id).toUpperCase()}</div>
+                        <div class="schema-name">${(s.name || s.handle?.alias || s.id).toUpperCase()}</div>
                         <div class="schema-file">${s._source?.file || 'manual_entry.js'}</div>
                     </div>
                 </div>
                 <div class="header-actions">
-                    <button class="btn-action-main ${isSynced ? 'outline' : ''}" onclick="this.getRootNode().host.handleFullSync('${s.id}')">
-                        ${isSynced ? (hasDivergence ? 'Actualizar Core' : 'Sincronizado') : 'Exportar al Core'}
+                    <button class="btn-action-main ${isSynced ? 'outline' : ''}" 
+                            ${syncState === 'syncing' ? 'disabled' : ''}
+                            onclick="this.getRootNode().host.handleFullSync('${s.id}')">
+                        ${mainBtnText}
                     </button>
                 </div>
             </div>
@@ -209,6 +218,9 @@ class IndraSchemaProjector extends HTMLElement {
 
     _renderFieldRow(schemaId, local, remote, isSynced) {
         const isDivergent = isSynced && remote && this._checkDivergence(local, remote);
+        const atomicKey = `${schemaId}_${local.id}`;
+        const atomicState = this._loadingStates[atomicKey] || 'idle';
+
         return `
             <tr class="${isDivergent ? 'divergence-row' : ''}">
                 <td>
@@ -220,7 +232,11 @@ class IndraSchemaProjector extends HTMLElement {
                 <td style="opacity:0.5; font-size:9px;">${local.mapping?.drive || '--'}</td>
                 <td class="action-cell">
                     <button class="btn-trad" onclick="this.getRootNode().host.handleAtomicPull('${schemaId}', '${local.id}')">IMPORTAR</button>
-                    <button class="btn-trad accent" onclick="this.getRootNode().host.handleAtomicPush('${schemaId}', '${local.id}')">EXPORTAR</button>
+                    <button class="btn-trad accent" 
+                            ${atomicState === 'syncing' ? 'disabled' : ''}
+                            onclick="this.getRootNode().host.handleAtomicPush('${schemaId}', '${local.id}')">
+                        ${atomicState === 'syncing' ? '...' : (atomicState === 'done' ? '✓' : 'EXPORTAR')}
+                    </button>
                 </td>
             </tr>
         `;
@@ -241,12 +257,23 @@ class IndraSchemaProjector extends HTMLElement {
     }
 
     async handleAtomicPush(schemaId, fieldId) {
+        const atomicKey = `${schemaId}_${fieldId}`;
+        this._loadingStates[atomicKey] = 'syncing';
+        this.render();
+
         const schema = this._schemas.find(s => s.id === schemaId);
-        const field = (schema.fields || schema.payload?.fields || []).find(f => f.id === fieldId);
+        const fields = schema.payload?.fields || schema.fields || [];
+        const field = fields.find(f => f.id === fieldId);
+
         try {
             await this._bridge.resonanceSync.patchSchemaField(schemaId, field);
+            this._loadingStates[atomicKey] = 'done';
+            this.render();
+            setTimeout(() => { this._loadingStates[atomicKey] = 'idle'; this.render(); }, 3000);
             this.handleRefreshRemote(schemaId);
         } catch (e) {
+            this._loadingStates[atomicKey] = 'idle';
+            this.render();
             alert("Error en Exportación: " + e.message);
         }
     }
@@ -256,10 +283,23 @@ class IndraSchemaProjector extends HTMLElement {
     }
 
     async handleFullSync(schemaId) {
+        this._loadingStates[schemaId] = 'syncing';
+        this.render();
+
         try {
             await this._bridge.resonanceSync.anchorSchema(schemaId);
+            this._loadingStates[schemaId] = 'done';
+            this.render(); // AXIOMA: Rehidratación inmediata
+
+            setTimeout(() => { 
+                this._loadingStates[schemaId] = 'idle'; 
+                this.render(); 
+            }, 3000);
+
             this.handleRefreshRemote(schemaId);
         } catch (e) {
+            this._loadingStates[schemaId] = 'idle';
+            this.render();
             alert("Fallo en Exportación Global: " + e.message);
         }
     }

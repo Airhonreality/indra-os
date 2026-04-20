@@ -109,7 +109,19 @@ function _ledger_get_target_sheet_(uqo) {
  * @param {string} driveId - El ID físico en Google Drive.
  */
 function ledger_sync_atom(atom, driveId, contextUqo) {
-  const sheet = _ledger_get_target_sheet_(contextUqo);
+  // --- AXIOMA DE AUTO-ADOPCIÓN (v7.8) ---
+  // Si el Satélite es agnóstico y no envía contexto, el Core asume la tutela
+  // y resuelve el territorio basándose en la ubicación física del archivo.
+  let resolvedUqo = contextUqo || {};
+  if (!resolvedUqo.workspace_id && !resolvedUqo.context_id) {
+    const physicalContext = _ledger_resolve_physical_context_(driveId);
+    if (physicalContext) {
+      logInfo(`[ledger] Auto-Adopción: Detectado territorio ${physicalContext} para el átomo ${driveId}`);
+      resolvedUqo.context_id = physicalContext;
+    }
+  }
+
+  const sheet = _ledger_get_target_sheet_(resolvedUqo);
   const lock = LockService.getScriptLock();
   
   try {
@@ -122,7 +134,7 @@ function ledger_sync_atom(atom, driveId, contextUqo) {
     const index = data.findIndex(row => row[1] === driveId);
 
     if (index === -1) {
-      logInfo(`[ledger] Insertando en Ledger. Clase: ${atom.class}`);
+      logInfo(`[ledger] Insertando en Ledger Celular [${resolvedUqo.context_id || 'ROOT'}]. Clase: ${atom.class}`);
       sheet.appendRow(rowData);
     } else {
       logInfo(`[ledger] Actualizando en Ledger. ID: ${driveId}`);
@@ -130,6 +142,35 @@ function ledger_sync_atom(atom, driveId, contextUqo) {
     }
   } finally {
     lock.releaseLock();
+  }
+}
+
+/**
+ * Escala la jerarquía de Drive para encontrar el Workspace contenedor.
+ * @private
+ */
+function _ledger_resolve_physical_context_(driveId) {
+  try {
+    const file = DriveApp.getFileById(driveId);
+    const parents = file.getParents();
+    if (!parents.hasNext()) return null;
+
+    const parent = parents.next();
+    const parentId = parent.getId();
+
+    // Si el padre tiene un manifiesto o un ledger local, es el contexto.
+    const manifest = parent.getFilesByName('manifest.json');
+    const legacyManifest = parent.getFilesByName('workspace.json');
+    
+    if (manifest.hasNext() || legacyManifest.hasNext()) {
+      return parentId;
+    }
+
+    // Si no es un workspace pero tiene un padre, podríamos seguir escalando (Recursión controlada)
+    // Por ahora, Indra v7.8 solo adopta en primer nivel para mantener latencia baja.
+    return null;
+  } catch (e) {
+    return null;
   }
 }
 

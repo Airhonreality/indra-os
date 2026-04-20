@@ -160,16 +160,36 @@ function MenuCard({ icon, title, desc, onClick }) {
     );
 }
 
-// 1. FLUJO: IGNITAR (CREAR NUEVA)
+// 1. FLUJO: CONFIGURACIÓN DE BASE DE DATOS (CREAR NUEVA)
 function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers, onComplete, onBack, renderHeader }) {
     const [selectedProvider, setSelectedProvider] = useState(providers[0]?.id || '');
     const [targetFolder, setTargetFolder] = useState({ id: activeWorkspaceId, title: 'Carpeta del Workspace' });
     const [showFolderSelector, setShowFolderSelector] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [progress, setProgress] = useState([]); // { label: string, status: 'PENDING'|'DONE'|'ERROR' }
+
+    const addLog = (label, status = 'PENDING') => {
+        setProgress(prev => [...prev, { label, status, id: Date.now() + Math.random() }]);
+    };
+
+    const updateLastLog = (status) => {
+        setProgress(prev => {
+            const next = [...prev];
+            if (next.length > 0) next[next.length - 1].status = status;
+            return next;
+        });
+    };
 
     const handleAction = async () => {
         setIsProcessing(true);
+        setProgress([]);
+        
         try {
+            // Paso 1: Solicitud inicial
+            addLog("📡 Iniciando solicitud de configuración en el Core...", "DONE");
+            
+            // Paso 2: Creación física
+            addLog("⚒️ Creando almacenamiento físico (Tabla/Spreadsheet)...");
             const result = await executeDirective({
                 provider: 'system',
                 protocol: 'SYSTEM_SCHEMA_IGNITE',
@@ -178,28 +198,80 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers
             }, coreUrl, sessionSecret);
 
             if (result.metadata?.status === 'OK') {
-                toastEmitter.success("Base de datos creada y vinculada.");
+                updateLastLog("DONE");
+                
+                // Paso 3: Vinculación de ID
+                addLog(`🧬 Vinculando ID de almacenamiento [${result.metadata.silo_id.substring(0,8)}...]`, "DONE");
+                
+                // Paso 4: Registro en Workspace (Pinning)
+                addLog("📌 Registrando acceso en el panel de control...");
+                // Esperamos un segundo para simular la persistencia física del Ledger si fuera necesario
+                await new Promise(r => setTimeout(r, 800));
+                
+                toastEmitter.success("Base de datos configurada y vinculada.");
+                updateLastLog("DONE");
+                
+                // Finalizamos devolviendo el ESQUEMA (result.items[0] ya es el esquema gracias al cambio en el Core)
                 onComplete(result.items[0]);
             } else {
+                updateLastLog("ERROR");
                 toastEmitter.error(result.metadata?.error || "Error en creación física.");
             }
-        } catch (e) { toastEmitter.error("Fallo crítico en el motor."); }
-        finally { setIsProcessing(false); }
+        } catch (e) { 
+            updateLastLog("ERROR");
+            toastEmitter.error("Fallo crítico en el motor de configuración."); 
+        } finally { 
+            setIsProcessing(false); 
+        }
     };
+
+    if (isProcessing) {
+        return (
+            <div className="nexus-path fill stack">
+                {renderHeader("PROGRESO DE CONFIGURACIÓN", "Procesando materialización física del esquema.")}
+                <div className="nexus-content fill stack--loose" style={{ padding: '24px' }}>
+                    <div className="progress-log stack--tight" style={{ 
+                        background: 'rgba(0,0,0,0.2)', 
+                        padding: '20px', 
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255,255,255,0.05)',
+                        minHeight: '200px'
+                    }}>
+                        {progress.map((p) => (
+                            <div key={p.id} className="shelf--tight" style={{ 
+                                padding: '8px 0', 
+                                borderBottom: '1px solid rgba(255,255,255,0.03)',
+                                opacity: p.status === 'PENDING' ? 0.5 : 1
+                            }}>
+                                <span style={{ 
+                                    color: p.status === 'DONE' ? 'var(--color-success)' : p.status === 'ERROR' ? 'var(--color-danger)' : 'white',
+                                    fontSize: '12px'
+                                }}>
+                                    {p.status === 'DONE' ? '✓' : p.status === 'ERROR' ? '✕' : '●'}
+                                </span>
+                                <span className="font-mono" style={{ fontSize: '11px', marginLeft: '10px' }}>{p.label.toUpperCase()}</span>
+                            </div>
+                        ))}
+                        {isProcessing && <div className="indra-spin" style={{ width: '12px', height: '12px', marginTop: '15px' }}></div>}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="nexus-path fill stack">
-            {renderHeader("CREAR NUEVA BASE DE DATOS", "Generación de materia física desde el diseño.")}
+            {renderHeader("CREAR NUEO ALMACENAMIENTO", "Generación de tabla física desde el diseño del esquema.")}
             <div className="nexus-content fill stack--loose" style={{ padding: '24px' }}>
                 <div className="stack--tight">
-                    <label className="font-mono" style={{ fontSize: '9px', opacity: 0.5 }}>MOTOR_DESTINO</label>
+                    <label className="font-mono" style={{ fontSize: '9px', opacity: 0.5 }}>MOTOR_DE_BASE_DE_DATOS</label>
                     <select value={selectedProvider} onChange={e => setSelectedProvider(e.target.value)} className="indra-select">
                         {providers.map(p => <option key={p.id} value={p.id}>{p.id.toUpperCase()}</option>)}
                     </select>
                 </div>
 
                 <div className="location-picker stack--tight" onClick={() => setShowFolderSelector(true)} style={{ padding: '16px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.1)', cursor: 'pointer' }}>
-                    <label className="font-mono" style={{ fontSize: '9px', opacity: 0.5 }}>UBICACIÓN_DESTINO</label>
+                    <label className="font-mono" style={{ fontSize: '9px', opacity: 0.5 }}>UBICACIÓN_EN_DRIVE</label>
                     <div className="shelf--tight" style={{ marginTop: '4px' }}>
                         <IndraIcon name="FOLDER" size="14px" />
                         <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{targetFolder.title}</span>
@@ -209,7 +281,7 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers
                 <div style={{ flex: 1 }} />
                 
                 <button className="btn btn--accent" onClick={handleAction} disabled={isProcessing} style={{ height: '50px', borderRadius: '12px' }}>
-                    {isProcessing ? "CREANDO..." : "INICIAR CREACIÓN FÍSICA"}
+                    INICIAR CONFIGURACIÓN FÍSICA
                 </button>
             </div>
 

@@ -95,6 +95,7 @@ export class DataProjector {
         
         const theme = CLASS_THEMES[atomClass] || defaultTheme;
         const color = atom.color || theme.color;
+        const hostTitle = atom.handle?.label || atom.label || atom.id || atom.provider || (isService ? atom.provider_base : null) || '[DEUDA_IDENTIDAD]';
 
         return {
             id: atom.id,
@@ -103,8 +104,14 @@ export class DataProjector {
 
             // Proyección de Identidad (Sinceridad Radical ADR-008)
             // Se elimina SIN_NOMBRE. Si no hay identidad, hay una DEUDA DE IDENTIDAD que debe ser visible.
-            title: atom.handle?.label || atom.label || atom.id || atom.provider || (isService ? atom.provider_base : null) || '[DEUDA_IDENTIDAD]',
+            title: hostTitle,
             subtitle: `${atomClass} // ${atom.provider || atom.id || '??'}`,
+
+            // AXIOMA DE INFRAESTRUCTURA: Preservamos el handle original para protocolos como SYSTEM_PIN
+            handle: atom.handle || { 
+                label: hostTitle,
+                alias: atom.alias || atom.id
+            },
 
             // Proyeccion Visual
             theme: {

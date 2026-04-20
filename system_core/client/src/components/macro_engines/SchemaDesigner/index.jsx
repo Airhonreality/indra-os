@@ -169,10 +169,10 @@ export function SchemaDesigner({ atom, bridge }) {
                                 <div className="stack" style={{ gap: '4px' }}>
                                     <div className="shelf--tight">
                                         <div style={{ padding: '4px 8px', borderRadius: '4px', background: isOrphan ? '#ff4655' : 'var(--indra-dynamic-accent)', color: 'black', fontSize: '8px', fontWeight: '900' }}>
-                                            {isOrphan ? 'HUÉRFANO' : 'VINCULADO'}
+                                            {isOrphan ? 'DESCONECTADO' : 'CONECTADO'}
                                         </div>
                                         <span style={{ fontSize: '11px', fontWeight: 'bold' }}>
-                                            {isOrphan ? 'SIN ALMACENAMIENTO FÍSICO' : `CONECTADO A ${localAtom.payload?.target_provider?.toUpperCase()}`}
+                                            {isOrphan ? 'SIN ALMACENAMIENTO FÍSICO' : `VINCULADO A ${localAtom.payload?.target_provider?.toUpperCase()}`}
                                         </span>
                                     </div>
                                     <span style={{ fontSize: '9px', opacity: 0.5, fontFamily: 'var(--font-mono)' }}>
@@ -180,7 +180,7 @@ export function SchemaDesigner({ atom, bridge }) {
                                     </span>
                                 </div>
                                 <button className={`btn btn--xs ${isOrphan ? 'btn--accent' : 'btn--ghost shadow-glow'}`} onClick={() => setShowProvisionManager(true)} style={{ height: '28px', padding: '0 12px', fontSize: '9px' }}>
-                                    {isOrphan ? 'CONFIGURAR STORAGE' : 'GESTIONAR CONEXIÓN'}
+                                    {isOrphan ? 'CONFIGURAR ALMACENAMIENTO' : 'GESTIONAR CONEXIÓN'}
                                 </button>
                             </div>
 

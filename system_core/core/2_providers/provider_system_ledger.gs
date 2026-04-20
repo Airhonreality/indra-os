@@ -361,10 +361,12 @@ function ledger_initialize_cell(folderId, label) {
 /**
  * PROTOCOLO DE RECONSTRUCCIÓN (EL BOTÓN ROJO)
  * Escanea recursivamente la carpeta de Indra en Drive y repuebla el Ledger.
+ * SOPORTA CONTEXTO: Si recibe context_id, reconstruye el ledger de esa célula.
  * @returns {Object} Resumen de la reconstrucción.
  */
-function SYSTEM_REBUILD_LEDGER() {
-  const items = [ledger_rebuild_from_drive_internal_()]; 
+function SYSTEM_REBUILD_LEDGER(uqo) {
+  const contextId = uqo?.workspace_id || uqo?.context_id;
+  const items = [ledger_rebuild_from_drive_internal_(contextId)]; 
   return { items, metadata: { status: 'OK' } };
 }
 
@@ -372,24 +374,34 @@ function SYSTEM_REBUILD_LEDGER() {
  * Reconstruye el Ledger Maestro a partir de la realidad física de Drive (RESCATE).
  * @private
  */
-function ledger_rebuild_from_drive_internal_() {
-  logInfo('☢️ INICIANDO RECONSTRUCCIÓN TOTAL DEL LEDGER (MODO BATCH)...');
+function ledger_rebuild_from_drive_internal_(contextId = null) {
+  logInfo(`☢️ INICIANDO RECONSTRUCCIÓN TOTAL DEL LEDGER (MODO BATCH) - CONTEXTO: ${contextId || 'ROOT'}...`);
   
-  const homeRoot = _system_ensureHomeRoot();
+  // Localizar el núcleo objetivo
+  let targetFolder = null;
+  if (contextId) {
+    try {
+        targetFolder = DriveApp.getFolderById(contextId);
+    } catch(e) {
+        logWarn(`[rebuild] Contexto ${contextId} no accesible físicamente. Usando ROOT.`);
+    }
+  }
+  
+  const homeRoot = targetFolder || _system_ensureHomeRoot();
   const rows = [];
   
   // Función recursiva para recolectar todo antes de tocar la Sheet
   function collectFiles(folder) {
-    const files = folder.getFiles(); // Escanear todo (el parser validará contenido)
+    const files = folder.getFiles(); 
     while (files.hasNext()) {
       const f = files.next();
-      if (f.getName().endsWith('.json')) {
+      if (f.getName().endsWith('.json') && f.getName() !== 'manifest.json') {
         try {
           const content = JSON.parse(f.getBlob().getDataAsString());
-          if (content.class) rows.push(_ledger_build_row_(content, f.getId()));
-        } catch (e) {
-          // Ignoramos silenciosamente archivos sin alma de átomo
-        }
+          if (content.class && content.class !== 'WORKSPACE') {
+              rows.push(_ledger_build_row_(content, f.getId()));
+          }
+        } catch (e) { }
       }
     }
     const subfolders = folder.getFolders();
@@ -399,20 +411,21 @@ function ledger_rebuild_from_drive_internal_() {
   collectFiles(homeRoot);
   logInfo(`[ledger] Datos recolectados en memoria: ${rows.length} átomos. Volcando al Ledger...`);
 
-  if (rows.length === 0) return { status: 'OK', total_rebuilt: 0 };
+  if (rows.length === 0 && !contextId) return { status: 'OK', total_rebuilt: 0 };
 
-  // OPERACIÓN PERISTÁLTICA (ADR-043 Industrial): Escribir mucho, pedir turno una sola vez.
-  const sheet = _ledger_get_sheet_(true); // allowMissing=true para reconstrucción pura
+  // OPERACIÓN PERISTÁLTICA
+  const sheet = contextId ? _ledger_get_target_sheet_({ workspace_id: contextId }) : _ledger_get_sheet_(true);
   const lock = LockService.getScriptLock();
   
   try {
-    if (!lock.tryLock(30000)) throw new Error('REBUILD_LOCK_TIMEOUT: No se pudo obtener control del Ledger.');
+    if (!lock.tryLock(30000)) throw new Error('REBUILD_LOCK_TIMEOUT');
     
-    // Limpiar y Volcar (SetValues es O(1) en Google Sheets API interna)
     const lastRow = sheet.getLastRow();
     if (lastRow > 1) sheet.getRange(2, 1, lastRow - 1, MASTER_LEDGER_COLUMNS.length).clearContent();
     
-    sheet.getRange(2, 1, rows.length, MASTER_LEDGER_COLUMNS.length).setValues(rows);
+    if (rows.length > 0) {
+        sheet.getRange(2, 1, rows.length, MASTER_LEDGER_COLUMNS.length).setValues(rows);
+    }
     
   } finally {
     lock.releaseLock();

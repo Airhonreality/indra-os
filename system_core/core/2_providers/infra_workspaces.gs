@@ -71,7 +71,8 @@ function _system_handleSatelliteDiscover(uqo) {
 }
 
 /**
- * SYSTEM_SCHEMA_IGNITE: Protocolo de Ignición de Infraestructura.
+ * SYSTEM_SCHEMA_IGNITE: Protocolo de Configuración de Base de Datos.
+ * Crea el almacenamiento físico y vincula el ID resultante al esquema original.
  */
 function _system_handleSchemaIgnite(uqo) {
   if (!uqo || !uqo.context_id) throw createError('INVALID_INPUT', 'SYSTEM_SCHEMA_IGNITE requiere context_id.');
@@ -80,6 +81,7 @@ function _system_handleSchemaIgnite(uqo) {
   const folderId = uqo.data?.target_folder_id || null;
   const traceId = _system_buildTraceId_('SYSTEM_SCHEMA_IGNITE', schemaId);
 
+  // 1. Validar existencia del esquema
   const schemaAtomRes = _system_readAtom(schemaId, uqo.provider);
   const schemaAtom = schemaAtomRes.items?.[0];
   if (!schemaAtom || schemaAtom.class !== DATA_SCHEMA_CLASS_) {
@@ -87,8 +89,9 @@ function _system_handleSchemaIgnite(uqo) {
   }
 
   const fields = schemaAtom.payload?.fields || [];
-  if (fields.length === 0) throw createError('INVALID_STATE', 'El esquema no tiene campos.', { trace_id: traceId });
+  if (fields.length === 0) throw createError('INVALID_STATE', 'El esquema no tiene campos para materializar.', { trace_id: traceId });
 
+  // 2. Crear Almacenamiento Físico (Tabla/Spreadsheet)
   const createResult = route({
     provider: targetProvider,
     protocol: 'ATOM_CREATE',
@@ -101,17 +104,33 @@ function _system_handleSchemaIgnite(uqo) {
   });
   
   if (createResult.metadata?.status !== 'OK' || !createResult.items?.[0]) {
-    throw createError('GENESIS_FAILED', `La ignición falló en ${targetProvider}.`, { trace_id: traceId });
+    throw createError('GENESIS_FAILED', `La creación física falló en ${targetProvider}.`, { trace_id: traceId });
   }
 
   const siloAtom = createResult.items[0];
+
+  // 3. VINCULACIÓN TÉCNICA (Trazabilidad Lineal)
+  // Actualizamos el esquema original para que "conozca" su destino físico.
+  const patchResult = _system_handlePatch({
+    provider: uqo.provider,
+    context_id: schemaId,
+    data: {
+      payload: {
+        target_silo_id: siloAtom.id,
+        target_provider: targetProvider,
+        ignited_at: new Date().toISOString()
+      }
+    }
+  });
+
   return {
-    items: [siloAtom],
+    items: patchResult.items, // Devolvemos el ESQUEMA ACTUALIZADO
     metadata: {
       status: 'OK',
       trace_id: traceId,
       silo_id: siloAtom.id,
-      target_provider: targetProvider
+      target_provider: targetProvider,
+      message: 'Base de datos configurada y vinculada exitosamente.'
     }
   };
 }

@@ -13,7 +13,7 @@ import { useSchemaAST } from './useSchemaAST';
 // Sub-Componentes Visuales
 import { LayersPanel } from './LayersPanel';
 import { DNAInspector } from './DNAInspector';
-import { SchemaIgnitionPanel } from './SchemaIgnitionPanel';
+import { SchemaNexusControl } from './SchemaNexusControl';
 
 // Utilidades UI
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
@@ -98,7 +98,7 @@ export function SchemaDesigner({ atom, bridge }) {
         return () => window.removeEventListener('keydown', handleKeys);
     }, [selectedFieldId, localAtom]);
 
-    const isOrphan = !localAtom.payload?.target_silo_id;
+    const isOrphan = !localAtom.payload?.target_silo_id && !localAtom.payload?.silo_id && !localAtom.payload?.bridge_id;
     const isLive = localAtom.payload?.status === 'LIVE';
 
     const findFieldById = (list, id) => {
@@ -156,28 +156,55 @@ export function SchemaDesigner({ atom, bridge }) {
                     <div className="bipartite-main indra-container indra-slot-insp">
                         <div className="indra-header-label">INSPECTOR_GENÉTICO</div>
                         
-                        {/* ── CARD DE ESTADO DE VINCULACIÓN (INYECTADA AQUÍ) ── */}
-                        <div className="infra-status-banner" style={{ 
-                            padding: 'var(--space-8)', 
-                            margin: 'var(--space-12)',
-                            background: isOrphan ? 'rgba(255, 70, 85, 0.1)' : 'rgba(0, 245, 212, 0.05)',
-                            border: `1px solid ${isOrphan ? '#ff465544' : 'var(--indra-dynamic-accent)44'}`,
-                            borderRadius: 'var(--radius-lg)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between'
+                        {/* ── BANNER DE ESTADO Y METADATA ENRIQUECIDA ── */}
+                        <div className="infra-status-banner stack" style={{ 
+                            padding: '16px', 
+                            margin: '12px',
+                            background: isOrphan ? 'rgba(255, 70, 85, 0.08)' : 'rgba(0, 245, 212, 0.04)',
+                            border: `1px solid ${isOrphan ? '#ff465533' : 'var(--indra-dynamic-accent)22'}`,
+                            borderRadius: '12px',
+                            gap: '12px'
                         }}>
-                            <div className="stack" style={{ gap: '2px' }}>
-                                <span style={{ fontSize: '9px', fontWeight: '900', color: isOrphan ? '#ff4655' : 'var(--indra-dynamic-accent)' }}>
-                                    {isOrphan ? 'SIN_ALMACENAMIENTO_VINCULADO' : 'BASE_DE_DATOS_VINCULADA'}
-                                </span>
-                                <span style={{ fontSize: '8px', opacity: 0.6 }}>
-                                    {isOrphan ? 'Los datos de este esquema no persistirán en Sheets.' : `Conectado a: ${localAtom.payload?.target_silo_id || 'ID_DESCONOCIDO'}`}
-                                </span>
+                            <div className="shelf--loose" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div className="stack" style={{ gap: '4px' }}>
+                                    <div className="shelf--tight">
+                                        <div style={{ padding: '4px 8px', borderRadius: '4px', background: isOrphan ? '#ff4655' : 'var(--indra-dynamic-accent)', color: 'black', fontSize: '8px', fontWeight: '900' }}>
+                                            {isOrphan ? 'HUÉRFANO' : 'VINCULADO'}
+                                        </div>
+                                        <span style={{ fontSize: '11px', fontWeight: 'bold' }}>
+                                            {isOrphan ? 'SIN ALMACENAMIENTO FÍSICO' : `CONECTADO A ${localAtom.payload?.target_provider?.toUpperCase()}`}
+                                        </span>
+                                    </div>
+                                    <span style={{ fontSize: '9px', opacity: 0.5, fontFamily: 'var(--font-mono)' }}>
+                                        ID_FÍSICO: {localAtom.payload?.target_silo_id || (isOrphan ? 'NONE' : 'ID_PENDIENTE')}
+                                    </span>
+                                </div>
+                                <button className={`btn btn--xs ${isOrphan ? 'btn--accent' : 'btn--ghost shadow-glow'}`} onClick={() => setShowProvisionManager(true)} style={{ height: '28px', padding: '0 12px', fontSize: '9px' }}>
+                                    {isOrphan ? 'CONFIGURAR STORAGE' : 'GESTIONAR CONEXIÓN'}
+                                </button>
                             </div>
-                            <button className={`btn btn--xs ${isOrphan ? 'btn--accent' : 'btn--ghost'}`} onClick={() => setShowProvisionManager(true)} style={{ height: '24px', fontSize: '8px' }}>
-                                {isOrphan ? 'VINCULAR BASE DE DATOS' : 'GESTIONAR STORAGE'}
-                            </button>
+
+                            <div className="grid-metadata" style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(3, 1fr)', 
+                                gap: '15px', 
+                                paddingTop: '12px', 
+                                borderTop: '1px solid rgba(255,255,255,0.05)' 
+                            }}>
+                                <MetaField label="CREACIÓN" value={new Date(localAtom.created_at || Date.now()).toLocaleDateString()} />
+                                <MetaField label="ÚLTIMA MOD" value={new Date(localAtom.updated_at || Date.now()).toLocaleDateString()} />
+                                <MetaField label="PROVEEDOR" value={localAtom.provider?.toUpperCase()} />
+                                
+                                {localAtom.payload?.origin_silo_id && (
+                                    <MetaField 
+                                        label="ORIGEN (DNA)" 
+                                        value={`${localAtom.payload.origin_provider?.toUpperCase()}:${localAtom.payload.origin_silo_id.substring(0,8)}...`} 
+                                        highlight 
+                                    />
+                                )}
+                                <MetaField label="VERSION" value={localAtom.version || 'v1.0.0'} />
+                                <MetaField label="CLASE" value={localAtom.class} />
+                            </div>
                         </div>
 
                         <div className="fill" style={{ padding: '0 var(--space-8)', overflowY: 'auto' }}>
@@ -231,9 +258,24 @@ export function SchemaDesigner({ atom, bridge }) {
 
             {showProvisionManager && (
                 <div className="indra-overlay center">
-                    <div className="slot-large shadow-glow" style={{ width: '500px', background: 'var(--color-bg-void)', position: 'relative' }}>
-                        <button onClick={() => setShowProvisionManager(false)} className="btn btn--xs" style={{ position: 'absolute', top: '10px', right: '10px' }}>✕</button>
-                        <SchemaIgnitionPanel atom={localAtom} bridge={bridge} onIgnited={(u) => { setLocalAtom(u); pushToHistory(u); lastSavedRef.current = JSON.stringify(u); setShowProvisionManager(false); }} />
+                    <div className="slot-large shadow-glow" style={{ width: '600px', height: '480px', background: 'var(--color-bg-void)', position: 'relative', borderRadius: '16px', overflow: 'hidden' }}>
+                        <button onClick={() => setShowProvisionManager(false)} className="btn btn--xs" style={{ position: 'absolute', top: '15px', right: '15px', zIndex: 10 }}>✕</button>
+                        <SchemaNexusControl 
+                            atom={localAtom} 
+                            bridge={bridge} 
+                            onUpdate={(u) => { setLocalAtom(u); pushToHistory(u); lastSavedRef.current = JSON.stringify(u); setShowProvisionManager(false); }}
+                            onFieldsImported={(newFields, metadata) => {
+                                const updatedPayload = {
+                                    ...localAtom.payload,
+                                    origin_silo_id: metadata?.origin_silo_id,
+                                    origin_provider: metadata?.origin_provider,
+                                    imported_at: new Date().toISOString()
+                                };
+                                setLocalAtom(prev => ({ ...prev, payload: updatedPayload }));
+                                ast.updateFields(newFields);
+                                setShowProvisionManager(false);
+                            }}
+                        />
                     </div>
                 </div>
             )}
@@ -249,6 +291,24 @@ export function SchemaDesigner({ atom, bridge }) {
                     lastSavedRef.current = JSON.stringify(syncedAtom); setPendingRename(null);
                 } catch (err) { setRenameError(String(err?.message)); } finally { setIsCommittingRename(false); }
             }} />
+        </div>
+    );
+}
+
+function MetaField({ label, value, highlight }) {
+    return (
+        <div className="stack--none">
+            <span style={{ fontSize: '7px', fontWeight: '900', opacity: 0.4, letterSpacing: '0.05em' }}>{label}</span>
+            <div style={{ 
+                fontSize: '9px', 
+                fontWeight: highlight ? '900' : 'bold', 
+                color: highlight ? 'var(--indra-dynamic-accent)' : 'white',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+            }}>
+                {value || '---'}
+            </div>
         </div>
     );
 }

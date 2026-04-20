@@ -84,7 +84,16 @@ function induction_orchestrateCrystallization_(uqo) {
     _system_induction_writeTicket_(ticket);
     
     let schemaFields = [];
-    if (data.mode === 'IN_PLACE_IGNITION' || dna?.class === 'DATA_SCHEMA') {
+    let schemaAtom = null;
+
+    if (data.mode === 'IN_PLACE_IGNITION' && uqo.context_id) {
+      // MODO: IN-PLACE. Usamos el esquema existente.
+      logInfo(`[induction:engine] 💉 Modo IN_PLACE detectado. Usando esquema: ${uqo.context_id}`);
+      const schemaRead = route({ provider: 'system', protocol: 'ATOM_READ', context_id: uqo.context_id });
+      schemaAtom = schemaRead.items?.[0];
+      if (!schemaAtom) throw createError('NOT_FOUND', 'Esquema original no encontrado para ignición in-situ.');
+      schemaFields = schemaAtom.payload?.fields || [];
+    } else if (dna?.class === 'DATA_SCHEMA') {
       schemaFields = dna.payload?.fields || [];
     } else {
       const stream = _system_induction_collectStream_(uqo, dna);
@@ -94,17 +103,20 @@ function induction_orchestrateCrystallization_(uqo) {
 
     if (schemaFields.length === 0) throw createError('CONTRACT_VIOLATION', 'ADN estéril: No se encontraron campos para materializar.');
 
-    const schemaCreate = route({
-      provider: 'system',
-      protocol: 'ATOM_CREATE',
-      data: {
-        class: 'DATA_SCHEMA',
-        handle: { label: `Schema for ${dna?.handle?.label || dna?.id || 'Materialization'}` },
-        payload: { fields: schemaFields }
-      }
-    });
-
-    const schemaAtom = schemaCreate.items?.[0];
+    if (!schemaAtom) {
+      // Solo creamos si no estamos en modo IN_PLACE
+      const schemaCreate = route({
+        provider: 'system',
+        protocol: 'ATOM_CREATE',
+        data: {
+          class: 'DATA_SCHEMA',
+          handle: { label: `Schema for ${dna?.handle?.label || dna?.id || 'Materialization'}` },
+          payload: { fields: schemaFields }
+        }
+      });
+      schemaAtom = schemaCreate.items?.[0];
+    }
+    
     if (!schemaAtom) throw createError('SYSTEM_FAILURE', 'Error al cristalizar el ADN (Schema).');
 
     // --- FASE 2: MATERIALIZACIÓN FÍSICA (La Materia) ---

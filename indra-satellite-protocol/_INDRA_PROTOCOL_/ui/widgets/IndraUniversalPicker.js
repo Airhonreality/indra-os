@@ -7,7 +7,7 @@
  * =============================================================================
  */
 
-class IndraUniversalPicker extends HTMLElement {
+export class IndraUniversalPicker extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });

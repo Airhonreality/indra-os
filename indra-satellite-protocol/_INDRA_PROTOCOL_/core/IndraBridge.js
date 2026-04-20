@@ -114,12 +114,30 @@ class IndraBridge {
     
     async execute(uqo, options) { 
         if (this.allowedProtocols.length > 0 && !this.allowedProtocols.includes(uqo.protocol)) {
-            if (uqo.protocol !== 'SYSTEM_MANIFEST' && uqo.protocol !== 'SYSTEM_RESONANCE_CRYSTALLIZE') {
+            if (!['SYSTEM_MANIFEST', 'SYSTEM_RESONANCE_CRYSTALLIZE', 'SYSTEM_REBUILD_LEDGER'].includes(uqo.protocol)) {
                 console.error(`[IndraBridge:Aduana] El protocolo '${uqo.protocol}' no está permitido.`);
                 throw new Error("PROTOCOL_NOT_ALLOWED_BY_GATEWAY");
             }
         }
-        return await this.transport.execute(uqo, options); 
+        
+        try {
+            const response = await this.transport.execute(uqo, options);
+            return response;
+        } catch (error) {
+            // AXIOMA DE AUTO-SANACIÓN: Si el error sugiere un Rebuild, lo intentamos.
+            if (error.message.includes('SYSTEM_REBUILD_LEDGER') && uqo.protocol !== 'SYSTEM_REBUILD_LEDGER') {
+                console.warn("🛡️ [Self-Healing] Detectada inconsistencia en Ledger. Intentando reconstrucción automática...");
+                try {
+                    await this.transport.execute({ protocol: 'SYSTEM_REBUILD_LEDGER', provider: 'system' });
+                    console.log("✅ [Self-Healing] Ledger reconstruido. Reintentando operación original...");
+                    return await this.transport.execute(uqo, options);
+                } catch (rebuildErr) {
+                    console.error("❌ [Self-Healing] Falló la reconstrucción automática:", rebuildErr);
+                    throw error; // Lanzamos el error original si la sanación falla
+                }
+            }
+            throw error;
+        }
     }
 
     /**

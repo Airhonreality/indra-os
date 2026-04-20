@@ -32,29 +32,40 @@ function infra_identity_resolve(rawId, expectedType = 'FILE') {
         let resource;
         try {
             resource = DriveApp.getFileById(atomId);
+            const mime = resource.getMimeType();
+            
+            // Si es un archivo pero NO es JSON, y es una carpeta disfrazada (raro en GAS)
+            if (mime === MimeType.FOLDER) return _resolveFolderToManifest(resource);
+            
+            if (resource.isTrashed()) throw new Error('TRASHED');
+            return resource;
         } catch(e) {
-            // Podría ser una carpeta? Google Drive API a veces lanza error al pedir File con ID de Folder.
-            resource = DriveApp.getFolderById(atomId);
-        }
-
-        const mime = resource.getMimeType();
-        if (mime === MimeType.FOLDER) {
-            logInfo(`[infra:ident] Detectado puntero de Carpeta. Resolviendo a manifest.json...`);
-            const files = resource.getFilesByName('manifest.json');
-            if (files.hasNext()) {
-                return files.next();
+            // Si getFileById falla, probamos si es una carpeta
+            try {
+                const folder = DriveApp.getFolderById(atomId);
+                return _resolveFolderToManifest(folder);
+            } catch(f) {
+                logError(`[infra:ident] Recurso ${atomId} no existe o es inaccesible.`);
+                throw createError('NOT_FOUND', `ID de recurso no válido: ${atomId}`);
             }
-            throw createError('SOVEREIGN_VIOLATION', `La ubicación ${atomId} no contiene un 'manifest.json' válido.`);
         }
-
-        if (resource.isTrashed()) throw new Error('TRASHED');
-        return resource;
-
     } catch (e) {
         if (e.code) throw e; 
-        logError(`[infra:ident] Error en resolución de ${atomId}: ${e.message}`);
-        throw createError('NOT_FOUND', `ID de recurso no válido o inaccesible: ${atomId} (Esperado: ${expectedType})`);
+        throw e;
     }
+}
+
+/**
+ * Auxiliar para localizar el manifest dentro de una carpeta.
+ * @private
+ */
+function _resolveFolderToManifest(folder) {
+    logInfo(`[infra:ident] Resolviendo carpeta '${folder.getName()}' a su manifest.json...`);
+    const files = folder.getFilesByName('manifest.json');
+    if (files.hasNext()) return files.next();
+    
+    // Si no hay manifest, es una violación de soberanía
+    throw createError('SOVEREIGN_VIOLATION', `La carpeta '${folder.getName()}' no es una Célula de Indra válida (Falta manifest.json).`);
 }
 
 /**

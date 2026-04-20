@@ -56,13 +56,10 @@ class IndraSchemaProjector extends HTMLElement {
             .projector-container { 
                 display: flex; 
                 flex-direction: column; 
-                gap: 16px; 
-                padding: 10px 20px 30px 20px;
-                max-height: calc(100vh - 150px);
-                overflow-y: auto; 
+                gap: 12px; 
+                padding: 10px 0px 40px 0px;
+                height: auto;
             }
-            .projector-container::-webkit-scrollbar { width: 6px; }
-            .projector-container::-webkit-scrollbar-thumb { background: var(--indra-border); border-radius: 10px; }
 
             .schema-card { 
                 background: white;

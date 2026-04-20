@@ -1,6 +1,6 @@
 /**
  * =============================================================================
- * INDRA RESONANCE SYNC (Orchestrator v5.0 - SINCERITY EDITION)
+ * INDRA RESONANCE SYNC (Orchestrator v5.1 - CLASS ONE CITIZEN)
  * =============================================================================
  */
 
@@ -10,9 +10,9 @@ export class ResonanceSync {
     }
 
     /**
-     * PROTOCOLO DE ANCLAJE (THE PURE SEED)
-     * Sincroniza el ADN local (JS/JSON) con el territorio del Workspace.
-     * Crea o actualiza un archivo .json nativo que React puede consumir.
+     * PROTOCOLO DE ANCLAJE (THE PURE SEED - SYSTEM EDITION)
+     * Sincroniza el ADN local con el Core usando el proveedor de SISTEMA.
+     * Esto asegura que el átomo se registre en el LEDGER y sea visible para React.
      */
     async anchorSchema(schemaName) {
         const { bridge } = this;
@@ -20,58 +20,60 @@ export class ResonanceSync {
         
         if (!schema) throw new Error(`SCHEMA_NOT_FOUND: ${schemaName}`);
 
-        // 1. LOCALIZACIÓN TERRITORIAL
-        const activeWS = bridge.availableWorkspaces.find(w => w.id === bridge.activeWorkspaceId);
-        const folderId = activeWS?.payload?.artifacts_folder_id;
-
-        if (!folderId) {
-            throw new Error("No se detectó una carpeta de /artifacts en el Workspace activo. El anclaje es imposible.");
+        const workspaceId = bridge.activeWorkspaceId;
+        if (!workspaceId) {
+            throw new Error("No hay un Workspace activo seleccionado.");
         }
 
-        console.log(`[Sincerity:Anchor] Inyectando semilla '${schemaName}' en artifacts (${folderId})...`);
+        console.log(`[Sincerity:Anchor] Inyectando semilla '${schemaName}' vía SYSTEM en Workspace: ${workspaceId}...`);
 
         try {
-            // 2. EJECUCIÓN DE PROTOCOLO PURO (ATOM_CREATE de clase DATA_SCHEMA)
+            // 2. EJECUCIÓN DE PROTOCOLO DE SISTEMA (Inscripción en el Ledger Maestro)
             const response = await bridge.execute({
                 protocol: 'ATOM_CREATE',
-                provider: 'drive',
-                context_id: folderId,
+                provider: 'system', // <--- ELEVACIÓN A CIUDADANO CLASE 1
+                workspace_id: workspaceId,
                 data: {
-                    ...schema,
-                    class: 'DATA_SCHEMA'
+                    class: 'DATA_SCHEMA',
+                    name: schema.label || schemaName,
+                    handle: { 
+                        alias: schema.handle?.alias || schemaName, 
+                        label: schema.label || schemaName 
+                    },
+                    payload: {
+                        fields: schema.fields || [],
+                        source: 'SATELLITE_SYNC' // Firma nativa de React
+                    }
                 }
             });
 
             if (response.metadata?.status === 'OK') {
                 const coreAtom = response.items?.[0];
                 
-                // 3. CAPTURA DE EVIDENCIA REAL (Sin inventos)
+                // 3. CAPTURA DE EVIDENCIA REAL
                 schema.metadata = {
                     drive_id: coreAtom.id,
                     synced_at: new Date().toLocaleString(),
-                    artifacts_folder: folderId
+                    workspace_id: workspaceId
                 };
 
-                // 4. PERSISTENCIA DE SOBERANÍA (LocalStorage para la sesión)
+                // 4. PERSISTENCIA
                 bridge.ignitions = bridge.ignitions || {};
                 bridge.ignitions[schemaName] = schema.metadata;
                 localStorage.setItem('INDRA_IGNITIONS', JSON.stringify(bridge.ignitions));
                 
-                console.log(`🚀 [Sincerity] Semilla anclada: ${schemaName} -> Drive:${coreAtom.id}`);
+                console.log(`🚀 [Sincerity] Semilla anclada y registrada en Ledger: ${schemaName} -> ID:${coreAtom.id}`);
                 return response;
             }
 
-            throw new Error(response.metadata?.error || "CORE_REJECTED_SEED");
+            throw new Error(response.metadata?.error || "CORE_REJECTED_SYSTEM_SEED");
 
         } catch (e) {
-            console.error(`[Sincerity:Anchor] Error en anclaje de ${schemaName}:`, e);
+            console.error(`[Sincerity:Anchor] Error en anclaje de sistema de ${schemaName}:`, e);
             throw e;
         }
     }
 
-    /**
-     * RAMA A: Anclaje de Vínculo Celular
-     */
     async anchorCitizenship(workspaceId = null) {
         const { bridge } = this;
         try {
@@ -97,7 +99,6 @@ export class ResonanceSync {
         }
     }
 
-    // El resto de métodos industriales quedan depreciados en favor del Anclaje de Semillas
-    async materializeSchema() { console.warn("DEPRECATED: Use anchorSchema for Sincerity Protocol."); }
-    async resonateSchema() { console.warn("DEPRECATED: Use anchorSchema for Sincerity Protocol."); }
+    async materializeSchema() { console.warn("DEPRECATED: Use anchorSchema."); }
+    async resonateSchema() { console.warn("DEPRECATED: Use anchorSchema."); }
 }

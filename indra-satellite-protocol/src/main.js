@@ -1,140 +1,120 @@
 /**
  * =============================================================================
- * MAIN SATELLITE ENTRY POINT (Decoupled Nexus v3.3)
+ * MAIN SATELLITE ENTRY POINT (Sovereign Ignition v3.5)
  * =============================================================================
  */
 import IndraBridge from '../_INDRA_PROTOCOL_/core/IndraBridge.js';
 import '../_INDRA_PROTOCOL_/ui/IndraBridgeHUD.js';
 
-async function ignite() {
-    console.log("🚀 Ignición Axial...");
+let bridge;
 
-    // 1. Inicializar el motor consolidado
-    const bridge = new IndraBridge();
+/**
+ * Dharma: El motor no arranca si la realidad está rota.
+ */
+async function startEngine() {
+    console.log("🚀 Ignición Axial Iniciada...");
+    const authStatusChip = document.getElementById('auth-status-chip');
 
-    // 2. Inicialización Automática
-    await bridge.init();
+    try {
+        // 1. Inicializar el motor
+        if (!bridge) bridge = new IndraBridge();
 
-    // 3. Emparejamiento Directo con el HUD
-    const hud = document.getElementById('main-hud');
-    if (hud) hud.bridge = bridge;
+        // 2. Vincular con el HUD (Sincronía UI)
+        const hud = document.getElementById('main-hud');
+        if (hud) hud.bridge = bridge;
 
-    // 2. Elementos de la Interfaz
-    const btnLogin = document.getElementById('btn-login-google');
-    const btnManualLink = document.getElementById('btn-manual-link');
-    const inputCoreUrl = document.getElementById('input-core-url');
+        // 3. Ejecutar Protocolo Semilla (Validación Síncrona)
+        await bridge.init();
+
+    } catch (error) {
+        console.error("🚨 Fallo de Ignición:", error.message);
+        if (authStatusChip) {
+            authStatusChip.innerText = "FALLO SISTÉMICO";
+            authStatusChip.style.background = "#EA4335";
+        }
+    }
+}
+
+/**
+ * Inicialización de Listeners y UI
+ */
+function setupUI() {
+    const btnPacto = document.getElementById('btn-manual-link');
+    const inputUrl = document.getElementById('input-core-url');
     const inputToken = document.getElementById('input-token');
     const authStatusChip = document.getElementById('auth-status-chip');
 
-    // AUTO-RELLENAR: Si hay pacto previo, mostrarlo en pantalla
-    if (bridge.coreUrl && bridge.coreUrl.includes("github.io")) {
-        // AUTO-HEALING: Purgar localStorage si se infectó con la URL estática de GitHub
-        console.warn("⚠️ URL venenosa detectada en LocalStorage. Purgando y Reiniciando motor...");
-        localStorage.removeItem('INDRA_SATELLITE_LINK');
-        bridge.coreUrl = null;
-        if (inputCoreUrl) inputCoreUrl.value = '';
-    } else if (bridge.coreUrl) {
-        if (inputCoreUrl) inputCoreUrl.value = bridge.coreUrl;
-    }
+    if (btnPacto) {
+        btnPacto.addEventListener('click', async () => {
+            const url = inputUrl.value?.trim();
+            const token = inputToken.value?.trim();
 
-    if (bridge.satelliteToken) {
-        if (inputToken) inputToken.value = bridge.satelliteToken;
-    } else {
-        // AXIOMA DE INICIO: Token Maestro Real (ADR-041)
-        if (inputToken) inputToken.value = "indra_satellite_omega";
-    }
+            if (!url || !token) {
+                alert("Se requiere URL y Token para firmar el pacto.");
+                return;
+            }
 
-    // 3. EVENTO: Ignición Automática (Google / Resonance)
-    if (btnLogin) {
-      btnLogin.addEventListener('click', async () => {
-          try {
-              console.log("🚀 Solicitando ignición...");
-              await bridge.ignite();
-          } catch (error) {
-              console.error("❌ Fallo en ignición:", error);
-              alert("Resonancia fallida. Prueba el Pacto Manual.");
-          }
-      });
-    }
+            btnPacto.innerText = "VALIDANDO REALIDAD...";
+            btnPacto.disabled = true;
 
-    // 4. EVENTO: Pacto Manual (Direct Link - CANON ISP v2.5)
-    if (btnManualLink) {
-      btnManualLink.addEventListener('click', async () => {
-          const url = inputCoreUrl?.value?.trim();
-          const token = inputToken?.value?.trim();
-
-        if (!url || !token) {
-            alert("Se requiere URL y Token para firmar el pacto.");
-            return;
-        }
-
-        try {
-            btnManualLink.innerText = "FIRMANDO...";
-            btnManualLink.disabled = true;
-            
-            // 1. Escribir directamente en la memoria operativa
+            // Inyectar credenciales en el puente
             bridge.coreUrl = url;
             bridge.satelliteToken = token;
-            
-            // 2. Persistir en el Almacenamiento Soberano
+
+            // Persistencia del Pacto
             localStorage.setItem('INDRA_SATELLITE_LINK', JSON.stringify({
                 coreUrl: url,
                 token: token,
                 workspaceId: bridge.activeWorkspaceId
             }));
-            
-            // 3. Re-ignición forzada del Motor
-            await bridge.init();
-            
-            btnManualLink.innerText = "PACTO FIRMADO";
-            btnManualLink.style.background = "#34A853";
-        } catch (error) {
-            console.error("❌ Error en pacto manual:", error);
-            alert("Error al vincular: " + error.message);
-            btnManualLink.innerText = "REINTENTAR";
-            btnManualLink.disabled = false;
-        }
-      });
+
+            try {
+                await bridge.init();
+                btnPacto.innerText = "PACTO FIRMADO";
+                btnPacto.style.background = "#34A853";
+            } catch (err) {
+                btnPacto.innerText = "FIRMAR PACTO";
+                btnPacto.disabled = false;
+            }
+        });
     }
 
-    // 5. ESCUCHA: Actualizar UI cuando cambie el estado del Bridge (ISP v2.5 Canon)
-    window.addEventListener('indra-ready', (e) => {
-        const data = e.detail || {};
-        if (data.status === 'CONNECTED' || bridge.status === 'CONNECTED') {
-            authStatusChip.innerText = "CONECTADO";
-            authStatusChip.style.background = "#34A853";
-            authStatusChip.style.color = "white";
-        }
-    });
-
+    // Escuchas de Eventos de Resonancia
     window.addEventListener('indra-resonance-sync', (e) => {
-        const mode = e.detail?.mode;
-        const error = e.detail?.error;
+        const { mode, error } = e.detail || {};
         
-        if (mode === 'GHOST') {
-            authStatusChip.innerText = error ? "ESTADO: SESIÓN MUERTA" : "ESTADO: GHOST";
-            authStatusChip.style.background = error ? "#EA4335" : "#666";
+        if (authStatusChip) {
+            if (mode === 'STABLE') {
+                authStatusChip.innerText = "VÍNCULO ESTABLE";
+                authStatusChip.style.background = "#34A853";
+            } else if (mode === 'ERROR_LEDGER') {
+                authStatusChip.innerText = "FALLO NÚCLEO";
+                authStatusChip.style.background = "#EA4335";
+            } else if (mode === 'GHOST') {
+                authStatusChip.innerText = error ? "SESIÓN MUERTA" : "MODO GHOST";
+                authStatusChip.style.background = error ? "#EA4335" : "#666";
+            }
         }
-        if (mode === 'OFFLINE') {
-            authStatusChip.innerText = "ESTADO: OFFLINE";
-            authStatusChip.style.background = "#FBBC05";
-        }
+
         if (error) {
-            console.error("🚨 Error de Resonancia detectado:", error);
-            const errorBanner = document.createElement('div');
-            errorBanner.style = "position: fixed; bottom: 20px; left: 20px; background: #EA4335; color: white; padding: 10px 20px; border-radius: 8px; font-family: monospace; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideIn 0.3s ease-out;";
-            errorBanner.innerText = `⚠️ INDRA: ${error}`;
-            document.body.appendChild(errorBanner);
-            setTimeout(() => errorBanner.remove(), 5000);
+            showErrorBanner(error);
         }
     });
 }
 
-ignite().catch(err => {
-    console.error("❌ ERROR EN IGNICIÓN:", err);
-    const chip = document.getElementById('auth-status-chip');
-    if (chip) {
-        chip.innerText = "FALLO DE IGNICIÓN";
-        chip.style.background = "#EA4335";
-    }
-});
+function showErrorBanner(msg) {
+    const existing = document.getElementById('indra-error-banner');
+    if (existing) existing.remove();
+
+    const banner = document.createElement('div');
+    banner.id = 'indra-error-banner';
+    banner.style = "position: fixed; bottom: 20px; left: 20px; background: #EA4335; color: white; padding: 10px 20px; border-radius: 8px; font-family: monospace; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3);";
+    banner.innerText = `⚠️ INDRA: ${msg}`;
+    document.body.appendChild(banner);
+    setTimeout(() => banner.remove(), 5000);
+}
+
+// Arranque Maestro
+bridge = new IndraBridge();
+setupUI();
+startEngine();

@@ -73,6 +73,7 @@ const TEMPLATE = `
     .status--ghost { background: #f1f5f9; color: var(--text-dim); }
     .status--orphan { background: #fff7ed; color: var(--warning); animation: pulse 2s infinite; }
     .status--stable { background: #ecfdf5; color: var(--success); }
+    .status--error { background: #fef2f2; color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
 
     @keyframes pulse {
         0% { opacity: 1; }
@@ -321,6 +322,21 @@ class IndraBridgeHUD extends HTMLElement {
                 actionBtn.disabled = false;
                 actionBtn.onclick = () => this.handleDNAsync();
                 body.classList.remove('locked');
+                break;
+            
+            case 'ERROR_LEDGER':
+                status.innerText = 'FALLO DE NÚCLEO';
+                status.className = 'status-badge status--error';
+                actionBtn.innerText = 'ID NO ENCONTRADO';
+                actionBtn.className = 'btn-master';
+                actionBtn.disabled = false;
+                actionBtn.onclick = () => {
+                    if (confirm("El núcleo (Ledger) de este Espacio no responde. ¿Deseas purgar el anclaje local para intentar un nuevo vínculo?")) {
+                        this._bridge.activeWorkspaceId = null;
+                        this.updateUI();
+                    }
+                };
+                body.classList.add('locked');
                 break;
 
             default:

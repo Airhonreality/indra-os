@@ -1,11 +1,3 @@
-/**
- * =============================================================================
- * INDRA TRANSPORT LAYER (Agnostic Node)
- * =============================================================================
- * Responsibilidad: Gestión ferrosa de peticiones, colas y retries.
- * =============================================================================
- */
-
 const RETRIABLE_CODES = ['LOCK_TIMEOUT', 'GATEWAY_TIMEOUT', 'NETWORK_ERROR'];
 
 export class TransportLayer {

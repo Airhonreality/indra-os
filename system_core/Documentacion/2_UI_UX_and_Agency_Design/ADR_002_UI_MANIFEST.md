@@ -26,6 +26,9 @@ Queda prohibido el uso de estilos inline para estados lógicos. La interactivida
 ### P6 — Proyección Axiomática y Mapeo Semántico
 Los Macro-Motores (Engines) no deben contener lógica de renderizado específica para tipos de datos. Se utiliza un **ComponentMapper** que vincula el `type` (o `semantic_type`) del átomo con un **Widget especializado**. Esto garantiza que la UI sea una proyección dinámica del esquema y no un formulario estático cableado.
 
+### P7 — Axioma de la Honestidad (Sinceridad Material)
+El sistema nunca debe ocultar el origen ni la naturaleza de un átomo. La UI debe proyectar siempre el vínculo físico y el contexto de pertenencia actual (Ej: "PINS + {ID_WORKSPACE} + {ALIAS_WORKSPACE}"), evitando etiquetas poéticas o abstracciones que enmascaren la realidad técnica de la ubicación de los datos. La transparencia es la base de la confianza sistémica.
+
 ---
 
 ## 2. ÁRBOL DE ARTEFACTOS

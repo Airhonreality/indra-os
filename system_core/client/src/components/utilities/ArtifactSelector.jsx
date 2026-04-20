@@ -24,7 +24,6 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
     const { services: manifest = [], coreUrl, sessionSecret, lang } = useAppState();
     const t = useLexicon(lang);
 
-    const [browserMode, setBrowserMode] = useState('PINS'); // 'PINS' | 'REALITY'
     const [treeData, setTreeData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -40,60 +39,60 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
         atomClass: filter.class || null 
     });
 
-    // ── GÉNESIS DEL ÁRBOL EXPANSIBLE ──
-    useEffect(() => {
-        if (browserMode === 'PINS') {
-            const projected = (catalogAtoms || []).map(a => ({
-                ...DataProjector.projectArtifact(a),
-                raw: a,
-                isLeaf: true
-            }));
+    // ── GÉNESIS DEL ÁRBOL UNIFICADO (Axioma de Honestidad) ──
+    const { workspaces, activeWorkspaceId } = useAppState();
 
-            // Agrupar por Clase si hay muchas
-            const groups = [...new Set(projected.map(p => p.class))];
-            if (groups.length > 1 && !activeClassFilter) {
-                const groupedData = groups.map(cls => ({
-                    id: `group.${cls}`,
-                    label: cls.toUpperCase(),
-                    icon: 'FOLDER',
-                    children: projected.filter(p => p.class === cls).map(p => ({
-                        id: p.id,
-                        label: p.title,
-                        icon: p.theme.icon,
-                        isLeaf: true,
-                        raw: p.raw,
-                        class: p.class
-                    }))
-                }));
-                setTreeData(groupedData);
-            } else {
-                setTreeData(projected.map(p => ({
-                    id: p.id,
-                    label: p.title,
-                    icon: p.theme.icon,
-                    isLeaf: true,
-                    raw: p.raw,
-                    class: p.class
-                })));
-            }
-        } else {
-            // MODO REALIDAD (Servicios)
-            const projected = manifest
-                .filter(item => !item.raw?.needs_setup)
-                .map(item => {
-                    const projection = DataProjector.projectArtifact(item);
-                    return {
-                        id: projection.id,
-                        label: projection.title,
-                        icon: projection.theme.icon,
-                        isLeaf: !projection.capabilities.raw.includes('HIERARCHY_TREE'),
-                        raw: item,
-                        provider: item.provider || item.id
-                    };
-                });
-            setTreeData(projected);
-        }
-    }, [browserMode, catalogAtoms, manifest, activeClassFilter]);
+    useEffect(() => {
+        const activeWS = workspaces.find(w => w.id === activeWorkspaceId);
+        const wsLabel = activeWS?.handle?.label || 'WORKSPACE_ANONYMOUS';
+        const wsIdDisplay = activeWorkspaceId ? activeWorkspaceId.substring(0, 8).toUpperCase() : 'UNK';
+
+        // 1. Proyectar PINS (Átomos anclados)
+        const projectedPins = (catalogAtoms || []).map(a => ({
+            ...DataProjector.projectArtifact(a),
+            raw: a,
+            isLeaf: true
+        })).map(p => ({
+            id: p.id,
+            label: p.title,
+            icon: p.theme.icon,
+            isLeaf: true,
+            raw: p.raw,
+            class: p.class
+        }));
+
+        const pinsRoot = {
+            id: 'root.pins',
+            label: `PINS + ${wsIdDisplay} + ${wsLabel.toUpperCase()}`,
+            icon: 'PIN',
+            children: projectedPins,
+            isExpanded: true
+        };
+
+        // 2. Proyectar REALIDAD (Servicios del Core)
+        const projectedServices = manifest
+            .filter(item => !item.raw?.needs_setup)
+            .map(item => {
+                const projection = DataProjector.projectArtifact(item);
+                return {
+                    id: projection.id,
+                    label: projection.title,
+                    icon: projection.theme.icon,
+                    isLeaf: !projection.capabilities.raw.includes('HIERARCHY_TREE'),
+                    raw: item,
+                    provider: item.provider || item.id
+                };
+            });
+
+        const realityRoot = {
+            id: 'root.reality',
+            label: 'REALITY / SERVICIOS',
+            icon: 'COSMOS',
+            children: projectedServices
+        };
+
+        setTreeData([pinsRoot, realityRoot]);
+    }, [catalogAtoms, manifest, workspaces, activeWorkspaceId]);
 
     // ── NAVEGACIÓN ASÍNCRONA (Axioma de Exploración de Mundos) ──
     const handleExpandBranch = async (node) => {
@@ -180,7 +179,12 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                 />
                 
                 <div className="stack--none fill" style={{ marginLeft: '8px' }}>
-                    <span className="font-mono" style={{ fontSize: '12px', fontWeight: isLeaf ? 'bold' : 'normal' }}>
+                    <span className="font-mono" style={{ 
+                        fontSize: depth === 0 ? '10px' : '12px', 
+                        fontWeight: (isLeaf || depth === 0) ? 'bold' : 'normal',
+                        opacity: depth === 0 ? 0.5 : 1,
+                        letterSpacing: depth === 0 ? '0.1em' : 'normal'
+                    }}>
                         {node.label}
                     </span>
                 </div>
@@ -227,23 +231,6 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
                             </div>
                         </div>
 
-                        <div className="spread" style={{ marginTop: 'var(--space-2)' }}>
-                            <div className="shelf--tight glass" style={{ padding: '3px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-bg-void)' }}>
-                                <button 
-                                    className={`btn btn--xs`} 
-                                    onClick={() => setBrowserMode('PINS')}
-                                    style={{ fontSize: '9px', padding: '4px 12px', borderRadius: '6px', border: 'none', background: browserMode === 'PINS' ? 'var(--color-accent)' : 'transparent', color: browserMode === 'PINS' ? 'var(--color-text-inverse)' : 'var(--color-text-primary)' }}
-                                >
-                                    PINS
-                                </button>
-                                <button 
-                                    className={`btn btn--xs`} 
-                                    onClick={() => setBrowserMode('REALITY')}
-                                    style={{ fontSize: '9px', padding: '4px 12px', borderRadius: '6px', border: 'none', background: browserMode === 'REALITY' ? 'var(--color-accent)' : 'transparent', color: browserMode === 'REALITY' ? 'var(--color-text-inverse)' : 'var(--color-text-primary)' }}
-                                >
-                                    SERVICIOS
-                                </button>
-                            </div>
                         </div>
                     </div>
 

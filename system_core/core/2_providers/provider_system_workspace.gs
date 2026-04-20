@@ -109,7 +109,23 @@ function _system_handlePinsRead(uqo) {
             let enhancedPin = { ...pin };
             
             // Reconciliación de Handle (Label)
-            const physicalLabel = lMeta ? lMeta.label : pin.handle?.label;
+            let physicalLabel = lMeta ? lMeta.label : pin.handle?.label;
+            
+            // --- SOCIAL HEALING (v7.9.7) ---
+            // Si el nombre es un ID técnico (largo y feo), hacemos un esfuerzo extra por ver el ADN real.
+            const isTechnical = (physicalLabel === pin.id) || (physicalLabel && physicalLabel.length > 20 && !physicalLabel.includes(' '));
+            if (isTechnical) {
+              try {
+                const dnaFile = DriveApp.getFileById(pin.id);
+                const dna = JSON.parse(dnaFile.getBlob().getDataAsString());
+                if (dna.handle?.label && dna.handle.label !== physicalLabel) {
+                  logInfo(`[homeostasis] Sanando alma de átomo: ${pin.id} -> ${dna.handle.label}`);
+                  physicalLabel = dna.handle.label;
+                  // Opcional: Esto auto-corregirá el Ledger en el siguiente sync
+                }
+              } catch(e) { /* Si no es accesible, mantenemos la etiqueta técnica */ }
+            }
+
             if (pin.handle?.label !== physicalLabel) {
                 needsWorkspaceSync = true;
                 enhancedPin.handle = { ...pin.handle, label: physicalLabel };

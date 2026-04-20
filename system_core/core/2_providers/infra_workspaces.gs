@@ -103,11 +103,17 @@ function _system_handleSchemaIgnite(uqo) {
     }
   });
   
+  console.log("[INFRA_ULTRA_SONDE] Respuesta Silo: " + JSON.stringify(createResult));
+
   if (createResult.metadata?.status !== 'OK' || !createResult.items?.[0]) {
     throw createError('GENESIS_FAILED', `La creación física falló en ${targetProvider}.`, { trace_id: traceId });
   }
 
   const siloAtom = createResult.items[0];
+  const siloId = siloAtom.id;
+  const physicalId = siloAtom.payload?.physical_id || siloId;
+  
+  console.log("[INFRA_ULTRA_SONDE] ID Detectado: " + siloId + " | Physical: " + physicalId);
   logInfo(`[ignite] Almacenamiento físico creado: ${siloAtom.id} (${siloAtom.class})`);
 
   // 3. VINCULACIÓN TÉCNICA (Trazabilidad Lineal)
@@ -118,17 +124,18 @@ function _system_handleSchemaIgnite(uqo) {
     context_id: schemaId,
     data: {
       payload: {
-        target_silo_id: siloAtom.id,
+        target_silo_id: physicalId,
         target_provider: targetProvider,
         ignited_at: new Date().toISOString()
       },
       metadata: { // Inyectamos metadatos de sincronización
-        last_materialization: siloAtom.id,
+        last_materialization: siloId,
         materialization_status: 'OK'
       }
     }
   });
 
+  console.log("[INFRA_ULTRA_SONDE] Esquema Parcheado. Payload Target: " + patchResult.items[0].payload.target_silo_id);
   logInfo(`[ignite] Vinculación completada. Items devueltos: ${patchResult.items.length}. Clase del primero: ${patchResult.items[0]?.class}`);
 
   return {
@@ -136,9 +143,9 @@ function _system_handleSchemaIgnite(uqo) {
     metadata: {
       status: 'OK',
       trace_id: traceId,
-      silo_id: siloAtom.id,
+      silo_id: physicalId,
       target_provider: targetProvider,
-      core_patch_version: 'v10.1-IGNITION-FIX', // Marca de verificación
+      core_patch_version: 'v10.1-ULTRA-SONDE',
       message: 'Base de datos configurada y vinculada exitosamente.'
     }
   };

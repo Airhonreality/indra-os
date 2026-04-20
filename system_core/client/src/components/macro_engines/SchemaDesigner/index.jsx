@@ -175,9 +175,22 @@ export function SchemaDesigner({ atom, bridge }) {
                                             {isOrphan ? 'SIN ALMACENAMIENTO FÍSICO' : `VINCULADO A ${localAtom.payload?.target_provider?.toUpperCase()}`}
                                         </span>
                                     </div>
-                                    <span style={{ fontSize: '9px', opacity: 0.5, fontFamily: 'var(--font-mono)' }}>
-                                        ID_FÍSICO: {localAtom.payload?.target_silo_id || (isOrphan ? 'NONE' : 'ID_PENDIENTE')}
-                                    </span>
+                                    <div className="shelf--tight" style={{ fontSize: '9px', opacity: 0.5, fontFamily: 'var(--font-mono)' }}>
+                                        <span>ID_FÍSICO:</span>
+                                        {localAtom.payload?.target_silo_id ? (
+                                            <a 
+                                                href={`https://docs.google.com/spreadsheets/d/${localAtom.payload.target_silo_id}/edit`} 
+                                                target="_blank" 
+                                                rel="noreferrer"
+                                                className="hover-accent"
+                                                style={{ color: 'var(--indra-dynamic-accent)', textDecoration: 'underline' }}
+                                            >
+                                                {localAtom.payload.target_silo_id}
+                                            </a>
+                                        ) : (
+                                            <span>{isOrphan ? 'NONE' : 'ID_PENDIENTE'}</span>
+                                        )}
+                                    </div>
                                 </div>
                                 <button className={`btn btn--xs ${isOrphan ? 'btn--accent' : 'btn--ghost shadow-glow'}`} onClick={() => setShowProvisionManager(true)} style={{ height: '28px', padding: '0 12px', fontSize: '9px' }}>
                                     {isOrphan ? 'CONFIGURAR ALMACENAMIENTO' : 'GESTIONAR CONEXIÓN'}

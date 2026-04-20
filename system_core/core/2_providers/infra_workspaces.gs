@@ -40,7 +40,9 @@ function _system_handleSatelliteDiscover(uqo) {
                             alias: doc.handle?.alias || folder.getName().toLowerCase(),
                         },
                         payload: {
-                            cell_id: folder.getId(),
+                            cell_folder_id: folder.getId(),
+                            artifacts_folder_id: doc.payload?.artifacts_folder_id,
+                            cell_ledger_id: doc.payload?.cell_ledger_id,
                             created_at: doc.created_at
                         }
                     });

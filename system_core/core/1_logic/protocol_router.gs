@@ -11,11 +11,31 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
   'HEALTH_CHECK':                 HEALTH_CHECK,
 
   // --- PERSISTENCIA (ATOM CRUD) ---
-  'ATOM_READ':                    (p) => _system_handleRead(p),
-  'ATOM_CREATE':                  (p) => _system_handleCreate(p),
-  'ATOM_UPDATE':                  (p) => _system_handleUpdate(p),
-  'ATOM_PATCH':                   (p) => _system_handlePatch(p),
-  'ATOM_DELETE':                  (p) => _system_handleDelete(p),
+  'ATOM_READ': (p) => {
+    if (p.provider?.startsWith('sheets')) return handleSheets(p);
+    if (p.provider?.startsWith('notion')) return handleNotion(p);
+    return _system_handleRead(p);
+  },
+  'ATOM_CREATE': (p) => {
+    if (p.provider?.startsWith('sheets')) return handleSheets(p);
+    if (p.provider?.startsWith('notion')) return handleNotion(p);
+    return _system_handleCreate(p);
+  },
+  'ATOM_UPDATE': (p) => {
+    if (p.provider?.startsWith('sheets')) return handleSheets(p);
+    if (p.provider?.startsWith('notion')) return handleNotion(p);
+    return _system_handleUpdate(p);
+  },
+  'ATOM_PATCH': (p) => {
+    if (p.provider?.startsWith('sheets')) return handleSheets(p);
+    if (p.provider?.startsWith('notion')) return handleNotion(p);
+    return _system_handlePatch(p);
+  },
+  'ATOM_DELETE': (p) => {
+    if (p.provider?.startsWith('sheets')) return handleSheets(p);
+    if (p.provider?.startsWith('notion')) return handleNotion(p);
+    return _system_handleDelete(p);
+  },
   'ATOM_EXISTS':                  (p) => _system_handleExists(p),
   'ATOM_ALIAS_RENAME':            (p) => _system_handleAliasRename(p),
   'ATOM_ROLLBACK':                (p) => _system_handleRollback(p),

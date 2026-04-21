@@ -89,22 +89,34 @@ function _sheets_handleAtomCreate(uqo) {
   const file = DriveApp.getFileById(ssId);
   logInfo(`[IDENTITY_AUDIT] sheets:ATOM_CREATE -> ID: ${ssId} (Len: ${ssId.length}) | Mime: ${file.getMimeType()}`);
   
-  // 2. POSICIONAMIENTO (Mover a la carpeta de destino o raíz de Indra)
+  // 2. POSICIONAMIENTO (Axioma del Ledger)
   const destFolderId = uqo.context_id || 'ROOT';
-  const destFolder = (destFolderId === 'ROOT') ? DriveApp.getRootFolder() : DriveApp.getFolderById(destFolderId);
-  destFolder.addFile(file);
-  DriveApp.getRootFolder().removeFile(file);
+  logInfo(`[GPS_TRACE] Moviendo Silo a destino: ${destFolderId}`);
+  
+  if (destFolderId !== 'ROOT') {
+    try {
+      const folder = DriveApp.getFolderById(destFolderId);
+      DriveApp.getFileById(ssId).moveTo(folder);
+      logInfo(`[GPS_SUCCESS] Silo materializado en membrana: ${folder.getName()}`);
+    } catch (e) {
+      logError(`[GPS_FATAL] Error de posicionamiento para ${destFolderId}`, e);
+      throw createError('STORAGE_POSITIONING_FAILED', `No se pudo mover el silo al destino indicado: ${e.message}`);
+    }
+  }
 
-  // 3. IMPRESIÓN DE ADN (Cabeceras)
+  // 3. IMPRESIÓN DE ADN (Cabeceras con Formato Ledger)
   if (fields.length > 0) {
     const sheet = ss.getSheets()[0];
-    const headers = fields.map(f => (typeof f === 'object' ? (f.label || f.alias || f.id) : f));
-    const range = sheet.getRange(1, 1, 1, headers.length);
+    const headers = fields.map(f => {
+      if (typeof f === 'string') return f;
+      return f.handle?.label || f.label || f.alias || f.id;
+    });
     
+    const range = sheet.getRange(1, 1, 1, headers.length);
     range.setValues([headers]);
     sheet.setFrozenRows(1);
     
-    // Estética Premium (Axioma de la Belleza Técnica)
+    // Estética de Precisión Indra
     range.setFontWeight("bold")
          .setBackground("#1a1a1a")
          .setFontColor("#ffffff")

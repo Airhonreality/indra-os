@@ -92,16 +92,21 @@ function _system_handleSchemaIgnite(uqo) {
   if (fields.length === 0) throw createError('INVALID_STATE', 'El esquema no tiene campos para materializar.', { trace_id: traceId });
 
   // 2. Crear Almacenamiento Físico (Tabla/Spreadsheet)
+  logInfo(`[ROUTING_TRACE] Despachando Ignición a motor: ${targetProvider}`);
+  
   const createResult = route({
     provider: targetProvider,
     protocol: 'ATOM_CREATE',
+    context_id: folderId,
     data: {
       class: 'TABULAR',
-      name: schemaAtom.handle?.label || 'Nueva Tabla',
-      fields: fields,
-      context_id: folderId
+      handle: schemaAtom.handle,
+      fields: fields, // El ADN del esquema
+      payload: { schema_id: schemaId }
     }
   });
+
+  logInfo(`[ROUTING_TRACE] Resultado de motor ${targetProvider}: ID=${createResult.items?.[0]?.id} (Len: ${createResult.items?.[0]?.id?.length})`);
   
   console.log("[INFRA_ULTRA_SONDE] Respuesta Silo: " + JSON.stringify(createResult));
 
@@ -143,7 +148,7 @@ function _system_handleSchemaIgnite(uqo) {
       silo_id: physicalId,
       silo_url: siloUrl,
       target_provider: targetProvider,
-      core_patch_version: 'v10.2-IDENTITY-FIX',
+      core_patch_version: 'v10.3-HARD-VERIFY',
       message: 'Base de datos configurada y vinculada exitosamente.'
     }
   };

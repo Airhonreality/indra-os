@@ -7,7 +7,7 @@
  * =============================================================================
  */
 
-const CORE_VERSION = "v7.0-MEMBRANE-ACTIVE";
+const CORE_VERSION = "v10.4-SINCERITY";
 
 function doGet(e) {
   const currentState = SystemStateManager.getState();
@@ -15,7 +15,8 @@ function doGet(e) {
     metadata: { 
       status: SystemStateManager.getLabel(currentState), 
       timestamp: new Date().toISOString(),
-      core_version: CORE_VERSION
+      core_version: CORE_VERSION,
+      message: "Indra Core Sentinel active."
     } 
   });
 }
@@ -24,44 +25,16 @@ function doGet(e) {
  * Receptor universal de mensajes UQO.
  */
 function doPost(e) {
-  // --- 0. REFLEJO INCONDICIONAL (Fricción Cero) ---
-  // Respondemos al ping de salud antes de cualquier lógica pesada para evitar bloqueos de Google.
-  try {
-    const rawContents = e.postData.contents;
-    if (rawContents && rawContents.indexOf('HEALTH_CHECK') !== -1) {
-      return ContentService.createTextOutput(JSON.stringify({
-        metadata: { status: 'ONLINE', message: 'Indra Heartbeat active.', core_version: CORE_VERSION }
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-  } catch (f) { /* Silent fail for robustness */ }
-
-  // ─── SONDA DE INTERCEPCIÓN (Diagnóstico de Soberanía) ───
-  if (e.postData.contents && e.postData.contents.indexOf('"protocol":"TOKEN"') !== -1) {
-    try {
-      const payload = JSON.parse(e.postData.contents);
-      const auth = AuthService.authorize(payload, { actors: ['SOVEREIGN', 'SATELLITE', 'GUEST', 'UNIDENTIFIED'] });
-      return ContentService.createTextOutput(JSON.stringify({
-        items: [auth],
-        metadata: { 
-          status: 'PROBE_SUCCESS', 
-          system_state: SystemStateManager.getLabel(SystemStateManager.getState()),
-          ledger_id: PropertiesService.getScriptProperties().getProperty('SYS_MOUNT_ROOT_ID') || 'EMPTY'
-        }
-      })).setMimeType(ContentService.MimeType.JSON);
-    } catch (err) {
-      return ContentService.createTextOutput(JSON.stringify({ metadata: { status: 'ERROR', error: err.message } })).setMimeType(ContentService.MimeType.JSON);
-    }
-  }
-
-  Watchdog.start();
+  const t0 = new Date().getTime();
+  let traceId = 'TRX-' + Math.random().toString(36).substring(2, 9).toUpperCase();
   
   try {
-    // 1. ANALÍTICA DEL VECTOR
-    const payload = JSON.parse(e.postData.contents);
-    const traceId = 'TRX-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+    const rawContents = e.postData.contents;
+    const payload = JSON.parse(rawContents);
     payload.trace_id = traceId;
-    
-    logInfo(`[gateway] 📥 ENTRADA: [${traceId}] ${payload.protocol} via ${payload.provider}`);
+
+    // AXIOMA DE SINCERIDAD: Logueo de entrada cruda para detectar mutaciones en tránsito
+    logInfo(`[GATEWAY_DOPPLER] 📥 [${traceId}] Protocol: ${payload.protocol} | Provider: ${payload.provider} | Target: ${payload.data?.target_provider || 'N/A'}`);
 
     const pulseResponse = pulse_router_intercept(e); // Bloqueo preventivo de pulso
     if (pulseResponse) return pulseResponse;

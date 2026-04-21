@@ -96,15 +96,5 @@ function PROBE_STRESS_IGNITE_MASTER() {
     });
     console.log("✨ Sistema limpio. Sin rastro de entropía.");
   }
-  console.log("\n================================================================================");
-  console.log("📊 RESUMEN DE TELEMETRÍA INDUSTRIAL");
-  console.log("================================================================================");
-  const totalDuration = probeResults.reduce((acc, r) => acc + r.duration, 0);
-  const avgDuration = (totalDuration / probeResults.length).toFixed(2);
-  const successRate = (probeResults.filter(r => r.status === 'SUCCESS').length / ITERATIONS) * 100;
-
-  console.log(`⚡ Tiempo Promedio de Ignición: ${avgDuration}ms`);
-  console.log(`📈 Tasa de Éxito de Cristalización: ${successRate}%`);
-  console.log(`🧱 Carga Total de Datos Procesada: ${probeResults.reduce((acc, r) => acc + (r.mappingCount || 0), 0)} ADN_FIELDS`);
   console.log("================================================================================");
 }

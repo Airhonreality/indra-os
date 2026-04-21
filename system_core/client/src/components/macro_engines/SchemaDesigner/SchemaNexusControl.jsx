@@ -11,6 +11,7 @@ import { IndraIcon } from '../../utilities/IndraIcons';
 import { useAppState } from '../../../state/app_state';
 import { executeDirective } from '../../../services/directive_executor';
 import { toastEmitter } from '../../../services/toastEmitter';
+// AXIOMA §12.1: Sincronización Estructural Verificada. Contrato: metadata.schema.fields
 import { SiloFractalExplorer } from '../../utilities/SiloFractalExplorer';
 import ArtifactSelector from '../../utilities/ArtifactSelector';
 import { FieldMapper } from '../BridgeDesigner/FieldMapper';

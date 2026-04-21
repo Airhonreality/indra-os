@@ -126,6 +126,20 @@ function _system_handleSchemaIgnite(uqo) {
     logWarn(`[CRITICAL] ID sospechoso (posible contenedor): ${physicalId}. La Sheet debería tener 44 caracteres.`);
   }
 
+  // --- AXIOMA: ESPACIO DE MATERIA PERIFÉRICA (ADN -> BLOBS) ---
+  const hasMedia = fields.some(f => ['media', 'file', 'image', 'INDRA_MEDIA'].includes(f.type?.toLowerCase()));
+  let mediaSiloId = null;
+  if (hasMedia && folderId) {
+      try {
+          const parentFolder = DriveApp.getFolderById(folderId);
+          const mediaFolder = parentFolder.createFolder(`[MEDIA] ${schemaAtom.handle?.label || schemaId}`);
+          mediaSiloId = mediaFolder.getId();
+          logInfo(`[IDENTITY_TRACE] Carpeta Periférica MEDIA materializada: ${mediaSiloId}`);
+      } catch (e) {
+          logWarn(`[CRITICAL] Fallo crear carpeta Media: ${e.message}`);
+      }
+  }
+
   // 4. VINCULACIÓN TÉCNICA (Trazabilidad Lineal)
   // Actualizamos el esquema original para que "conozca" su destino físico.
   const patchResult = _system_handlePatch({
@@ -136,6 +150,7 @@ function _system_handleSchemaIgnite(uqo) {
         ...schemaAtom.payload,
         target_silo_id: physicalId,
         target_provider: targetProvider,
+        media_silo_id: mediaSiloId,
         ignited_at: new Date().toISOString()
       }
     }

@@ -340,41 +340,51 @@ function _notion_handleTabularStream(uqo, apiKey) {
   try {
     const dbId = uqo.context_id;
     const query = uqo.query || {};
-    const cursor = query.cursor;
     const providerId = uqo.provider;
+    const limit = query.limit || null;
 
     const dbMeta = _notion_notionRequest(`/databases/${dbId}`, { method: 'GET', apiKey });
     const schema = dbMeta.properties || {};
     const dbName = _notion_extractNotionTitle(dbMeta.title);
 
-    const queryPayload = { page_size: 50 };
-    if (cursor) queryPayload.start_cursor = cursor;
-    if (query.filter) queryPayload.filter = query.filter;
-    // Traducir sorts del formato UQO canónico (ASC/DESC) al formato nativo de Notion
-    if (query.sorts && query.sorts.length > 0) {
-      queryPayload.sorts = _notion_translateSorts(query.sorts);
+    let allRows = [];
+    let hasMore = true;
+    let nextCursor = query.cursor || undefined;
+
+    // --- AXIOMA DE PERSISTENCIA TOTAL: Paginación Automática ---
+    while (hasMore) {
+        const pagePayload = { page_size: limit && limit < 100 ? limit : 100 };
+        if (nextCursor) pagePayload.start_cursor = nextCursor;
+        if (query.filter) pagePayload.filter = query.filter;
+        if (query.sorts && query.sorts.length > 0) {
+            pagePayload.sorts = _notion_translateSorts(query.sorts);
+        }
+
+        const response = _notion_notionRequest(`/databases/${dbId}/query`, {
+            method: 'POST',
+            payload: pagePayload,
+            apiKey,
+        });
+
+        const pageResults = response.results || [];
+        allRows = allRows.concat(pageResults);
+        
+        hasMore = response.has_more && (!limit || allRows.length < limit);
+        nextCursor = response.next_cursor;
+
+        if (limit && allRows.length >= limit) {
+            allRows = allRows.slice(0, limit);
+            break;
+        }
+        
+        // Anti-bloqueo preventivo
+        if (allRows.length > 10000) {
+             logWarn(`[provider_notion] Safety Break: Se han detectado más de 10,000 filas. Deteniendo stream para evitar timeout.`);
+             break;
+        }
     }
 
-    const pagePayload = { page_size: 50 };
-    if (cursor) pagePayload.start_cursor = cursor;
-    if (query.filter) pagePayload.filter = query.filter;
-    if (query.sorts && query.sorts.length > 0) {
-      pagePayload.sorts = _notion_translateSorts(query.sorts);
-    }
-
-    logInfo(`[provider_notion] TABULAR_STREAM: Query Payload: ${JSON.stringify(pagePayload)}`);
-
-    const response = _notion_notionRequest(`/databases/${dbId}/query`, {
-      method: 'POST',
-      payload: pagePayload,
-      apiKey,
-    });
-
-    const rows = response.results || [];
-    const hasMore = response.has_more || false;
-    const nextCursor = response.next_cursor || null;
-
-    const rawItems = rows.map(page => _notion_rowToAtom(page, dbId, dbName, providerId));
+    const rawItems = allRows.map(page => _notion_rowToAtom(page, dbId, dbName, providerId));
     const fields = _notion_schemaToFields(schema);
 
     logInfo(`[provider_notion] TABULAR_STREAM: DB Metadata Schema Properties: ${Object.keys(schema).join(', ')}`);

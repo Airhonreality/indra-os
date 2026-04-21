@@ -56,6 +56,7 @@ function CONF_DRIVE() {
       SEARCH_DEEP: { sync: 'BLOCKING', purge: 'NONE' },
       TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE' },
       MEDIA_RESOLVE: { sync: 'BLOCKING', purge: 'NONE' },
+      MEDIA_UPLOAD: { sync: 'BLOCKING', purge: 'NONE' },
       TRANSFER_HANDSHAKE: { sync: 'BLOCKING', purge: 'NONE' }
     },
     protocol_meta: {
@@ -146,6 +147,7 @@ function handleDrive(uqo) {
   if (protocol === 'SEARCH_DEEP')    return _drive_handleSearchDeep(uqo);
   if (protocol === 'TRANSFER_HANDSHAKE') return _drive_handleTransferHandshake(uqo);
   if (protocol === 'MEDIA_RESOLVE')   return _drive_handleMediaResolve(uqo);
+  if (protocol === 'MEDIA_UPLOAD')    return _drive_handleMediaUpload(uqo);
 
   const err = createError('PROTOCOL_NOT_FOUND',
     `El Silo "Drive" no soporta el protocolo: "${protocol}".`

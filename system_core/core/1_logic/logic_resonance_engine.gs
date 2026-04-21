@@ -33,8 +33,22 @@ function _resonance_analyze(uqo) {
   
   if (!bridge) throw createError('NOT_FOUND', `Bridge ${bridgeId} no encontrado para análisis.`);
 
-  // 2. Calcular Deriva e Inteligencia (Cero Efectos Secundarios)
-  const report = _resonance_calculateDrift(bridge, satPayload, siloPayload);
+  // --- AXIOMA: DESCUBRIMIENTO DEL ESPACIO DE MATERIA (MEDIA SILO) ---
+  const targetSchemaId = bridge.payload?.targets?.[0];
+  let mediaSiloId = null;
+  if (targetSchemaId) {
+     try {
+       const schemaRes = route({ provider: 'system', protocol: 'ATOM_READ', context_id: targetSchemaId });
+       if (schemaRes.items?.[0]) {
+          mediaSiloId = schemaRes.items[0].payload?.media_silo_id;
+       }
+     } catch (e) {
+       logWarn(`[resonance:engine] No se pudo leer el esquema destino para resolver media_silo_id: ${e.message}`);
+     }
+  }
+
+  // 2. Calcular Deriva e Inteligencia (Cero Efectos Secundarios Físicos en filas, solo materialización media temporal previa)
+  const report = _resonance_calculateDrift(bridge, satPayload, siloPayload, mediaSiloId);
 
   return {
     items: [],
@@ -51,9 +65,10 @@ function _resonance_analyze(uqo) {
  * @param {Object} bridge Átomo de clase BRIDGE.
  * @param {Object} satPayload Datos enviados por el Satélite.
  * @param {Object} siloPayload Datos actuales leídos del Silo físico.
+ * @param {string} [mediaSiloId] ID de la carpeta contenedora de Media.
  * @return {Object} Reporte de resonancia con lista de acciones (Upsert/Delete).
  */
-function _resonance_calculateDrift(bridge, satPayload, siloPayload) {
+function _resonance_calculateDrift(bridge, satPayload, siloPayload, mediaSiloId) {
   logInfo(`[resonance:engine] Iniciando Drift Check para Bridge: ${bridge.id}`);
   
   const policy = bridge.payload.policy || { conflict_strategy: 'SATELLITE_WINS' };
@@ -81,12 +96,23 @@ function _resonance_calculateDrift(bridge, satPayload, siloPayload) {
   const siloItems = siloPayload.items || [];
   
   const siloMap = new Map();
-  siloItems.forEach(item => siloMap.set(String(item.id), item));
+  siloItems.forEach(item => {
+      // Si la trazabilidad está activa, el destino sabe cuál es la genética del origen.
+      let originForcedKey = policy.strict_traceability ? (item._origin_id || (item.payload && item.payload['_origin_id'])) : null;
+      let finalKey = originForcedKey || item.id;
+      siloMap.set(String(finalKey), item);
+  });
 
   satItems.forEach(satItem => {
     const siloItem = siloMap.get(String(satItem.id));
-    const physicalData = _resonance_mapToPhysical(satItem, mapping, bridge.id);
+    const physicalData = _resonance_mapToPhysical(satItem, mapping, bridge.id, mediaSiloId);
     
+    // --- DICTAMEN: AXIOMA DE IDENTIDAD MULTICANAL ---
+    if (policy.strict_traceability) {
+        physicalData['_origin_id'] = String(satItem.id);
+        physicalData['_origin_provider'] = bridge.payload?.source_provider || 'notion';
+    }
+
     if (!siloItem) {
       // 🟢 CASO: NUEVA MATERIA
       results.actions.push({
@@ -119,9 +145,9 @@ function _resonance_calculateDrift(bridge, satPayload, siloPayload) {
 
 /**
  * Traduce un AtomoIndra a un objeto físico basado en el mapeo del Bridge.
- * Soporta Mapeos Agnósticos y Transformaciones Dinámicas.
+ * Soporta Mapeos Agnósticos, Transformaciones Dinámicas e Intercepción Media.
  */
-function _resonance_mapToPhysical(atom, mapping, bridge_id) {
+function _resonance_mapToPhysical(atom, mapping, bridge_id, mediaSiloId) {
   const physical = {};
   const dataContainer = atom.payload || atom; // Flexibilidad para proveedores que aplanan (Sheets/Notion)
   
@@ -141,6 +167,58 @@ function _resonance_mapToPhysical(atom, mapping, bridge_id) {
     // 🎭 APLICAR TRANSFORMACIONES (Si existen)
     if (value !== undefined) {
       value = _resonance_applyTransformations(value, config, bridge_id);
+      
+      // --- INTERCEPTOR DE MATERIALIZACIÓN MEDIA (ADR-023) ---
+      if (Array.isArray(value)) {
+        value = value.map(v => {
+           if (v && v.type === 'INDRA_MEDIA') {
+              if (v.canonical_url && mediaSiloId) {
+                 logInfo(`[resonance:media] INDRA_MEDIA detectado. Cristalizando BLOB a Carpeta...`);
+                 try {
+                     const uploadRes = route({
+                         provider: 'drive',
+                         protocol: 'MEDIA_UPLOAD',
+                         context_id: mediaSiloId,
+                         data: { url: v.canonical_url, name: v.alt || `asset_${Date.now()}` }
+                     });
+                     if (uploadRes.metadata?.status === 'OK') {
+                         return uploadRes.metadata.url; // Retornamos PermaLink!
+                     }
+                 } catch(e) {
+                     logWarn(`[resonance:media] Fallo de materialización Blob: ${e.message}`);
+                 }
+              }
+              // Caso agnóstico: conservamos su URL canónica plana
+              return v.canonical_url || JSON.stringify(v);
+           }
+           return v;
+        });
+        
+        // Un array puro de strings se colapsa en comma-separated-values para Sheets
+        if (value.length > 0 && (typeof value[0] === 'string' || value[0] == null)) {
+            value = value.join(', ');
+        }
+      } else if (value && value.type === 'INDRA_MEDIA') {
+          if (value.canonical_url && mediaSiloId) {
+              logInfo(`[resonance:media] INDRA_MEDIA (Root) detectado. Cristalizando BLOB...`);
+              try {
+                  const uploadRes = route({
+                      provider: 'drive',
+                      protocol: 'MEDIA_UPLOAD',
+                      context_id: mediaSiloId,
+                      data: { url: value.canonical_url, name: value.alt || `asset_${Date.now()}` }
+                  });
+                  if (uploadRes.metadata?.status === 'OK') {
+                      value = uploadRes.metadata.url;
+                  }
+              } catch(e) {
+                  logWarn(`[resonance:media] Fallo materialización Blob: ${e.message}`);
+              }
+          } else {
+              value = value.canonical_url || JSON.stringify(value);
+          }
+      }
+
       physical[fieldId] = value;
     }
   });

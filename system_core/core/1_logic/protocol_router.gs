@@ -73,6 +73,10 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
   'INDUSTRIAL_SYNC':              (p) => _automation_handleIndustrialSync_(p),
   'INDUSTRIAL_IGNITE':            (p) => _automation_handleIndustrialIgnite(p),
   'INDUCTION_START':              (p) => _system_induction_start(p),
+  'INDUCTION_PULSE':              (p) => _peristaltic_handlePulse(p),
+  'MEDIA_INGEST_START':           (p) => peristaltic_service_init(p),
+  'MEDIA_INGEST_PULSE':           (p) => peristaltic_service_chunk(p),
+  'MEDIA_INGEST_FINALIZE':        (p) => peristaltic_service_finalize(p),
   'INDUCTION_STATUS':             (p) => _system_induction_status(p),
   'INDUCTION_CANCEL':             (p) => _system_induction_cancel(p),
   'INDUCTION_DRIFT_CHECK':        (p) => _system_induction_drift_check(p),
@@ -92,10 +96,15 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
   'SYSTEM_TRIGGER_HUB_GENERATE':  (p) => SYSTEM_TRIGGER_HUB_GENERATE(p),
   'PULSE_WAKEUP':                 (p) => PulseService.wakeup(p),
 
-  // --- INGESTA PERISTÁLTICA ---
-  'EMERGENCY_INGEST_INIT':        EMERGENCY_INGEST_INIT,
-  'EMERGENCY_INGEST_CHUNK':       EMERGENCY_INGEST_CHUNK,
-  'EMERGENCY_INGEST_FINALIZE':    EMERGENCY_INGEST_FINALIZE,
+  // --- INGESTA PERISTÁLTICA DE MEDIA (BINARIA) ---
+  'MEDIA_INGEST_START':           (p) => peristaltic_service_init(p),
+  'MEDIA_INGEST_PULSE':           (p) => peristaltic_service_chunk(p),
+  'MEDIA_INGEST_FINALIZE':        (p) => peristaltic_service_finalize(p),
+  
+  // --- LEGACY COMPATIBILITY ---
+  'EMERGENCY_INGEST_INIT':        (p) => peristaltic_service_init(p),
+  'EMERGENCY_INGEST_CHUNK':       (p) => peristaltic_service_chunk(p),
+  'EMERGENCY_INGEST_FINALIZE':    (p) => peristaltic_service_finalize(p),
 
   // --- OTROS SERVICIOS ---
   'SYSTEM_BATCH_EXECUTE':         SYSTEM_BATCH_EXECUTE,
@@ -104,6 +113,31 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
 
 function route(uqo) {
   _validateInputContract_(uqo);
+
+  // --- AXIOMA DE DIRECCIONALIDAD VIRTUAL (VIRTUAL TABLE ROUTING) ---
+  // Si el satélite envía un schema_id, el Core baja al hiperespacio, busca el ADN magnético del Schema,
+  // extrae su identidad física (Silo ID y Provider) y muta el pulso de forma transparente.
+  if (uqo.schema_id && uqo.context_id) {
+     const schemaAlias = String(uqo.schema_id).trim().toLowerCase();
+     try {
+       // Búsqueda Cuántica en el Índice de Drive (O(1))
+       const files = DriveApp.searchFiles(`fullText contains '"alias":"${schemaAlias}"' and trashed = false`);
+       while (files.hasNext()) {
+           const file = files.next();
+           const doc = JSON.parse(file.getBlob().getDataAsString());
+           
+           if (doc.class === 'DATA_SCHEMA' && (doc.handle?.alias || '').toLowerCase() === schemaAlias) {
+               if (doc.payload && doc.payload.target_silo_id) {
+                   // MUTACIÓN GENÉTICA DEL PULSO
+                   uqo.provider = doc.payload.target_provider || 'sheets';
+                   uqo.context_id = doc.payload.target_silo_id;
+                   delete uqo.schema_id; // Consumido para evitar loops
+                   break;
+               }
+           }
+       }
+     } catch (e) {}
+  }
   
   const protocol = (uqo.protocol || '').toUpperCase();
   logInfo(`[protocol_router] Despachando cristalización: ${protocol}`);

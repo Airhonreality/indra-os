@@ -28,7 +28,11 @@ function CONF_AUTOMATION() {
     capabilities: {
       'INDUSTRIAL_SYNC': { description: 'Sincronización de materia física.', handler: '_automation_handleIndustrialSync_' },
       'INDUSTRIAL_IGNITE': { description: 'Génesis de materia desde ADN.', handler: '_automation_handleIndustrialIgnite' },
-      'INDUCTION_START': { description: 'Inicio de ticket de inducción.', handler: '_system_induction_start' },
+      'INDUCTION_START': { description: 'Inicio de ticket de inducción (Soporta Peristalsis).', handler: '_system_induction_start' },
+      'INDUCTION_PULSE': { description: 'Ejecución de un micro-salto de ingesta industrial.', handler: '_peristaltic_handlePulse' },
+      'MEDIA_INGEST_START': { description: 'Inicia sesión de subida binaria fragmentada.', handler: 'peristaltic_service_init' },
+      'MEDIA_INGEST_PULSE': { description: 'Envía fragmento (chunk) de materia binaria.', handler: 'peristaltic_service_chunk' },
+      'MEDIA_INGEST_FINALIZE': { description: 'Ensambla y cristaliza el binario final.', handler: 'peristaltic_service_finalize' },
       'INDUCTION_STATUS': { description: 'Consulta el estado de una cristalización.', handler: '_system_induction_status' },
       'INDUCTION_CANCEL': { description: 'Cancela un proceso de génesis.', handler: '_system_induction_cancel' },
       'SYSTEM_SCHEMA_IGNITE': { description: 'Legacy Ignición Alias (Audit Compatibility).', handler: '_automation_handleIndustrialIgnite' }

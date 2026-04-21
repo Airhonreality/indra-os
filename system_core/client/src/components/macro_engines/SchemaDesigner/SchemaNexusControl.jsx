@@ -265,11 +265,14 @@ function PathIgnite({ atom, bridge, activeWorkspaceId, onComplete, renderHeader 
     });
     const [showFolderSelector, setShowFolderSelector] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [strictTraceability, setStrictTraceability] = useState(true);
+    const [progress, setProgress] = useState(0); // Axioma de Peristalsis
+    const [mapping, setMapping] = useState({});
     const [isResolving, setIsResolving] = useState(false);
-    const [progress, setProgress] = useState([]);
+    const [logs, setLogs] = useState([]);
 
     const addLog = (label, status = 'PENDING') => {
-        setProgress(prev => [...prev, { label, status, id: Date.now() + Math.random() }]);
+        setLogs(prev => [...prev, { label, status, id: Date.now() + Math.random() }]);
     };
 
     // BAUTIZADOR DE SILOS: Resolución de nombre real de la carpeta activa
@@ -607,6 +610,7 @@ function PathHydrate({ atom, bridge, onBack, renderHeader }) {
     const [mapping, setMapping] = useState({});
     const [isProcessing, setIsProcessing] = useState(false);
     const [sourceOptions, setSourceOptions] = useState([]);
+    const [strictTraceability, setStrictTraceability] = useState(true);
 
     // Efecto de Hidratación de Origen
     useEffect(() => {
@@ -654,18 +658,13 @@ function PathHydrate({ atom, bridge, onBack, renderHeader }) {
 
     const handleExecute = async () => {
         setIsProcessing(true);
+        setProgress(0);
         try {
-            // --- TRANSLATION LAYER: f1 -> sku ---
-            // Las columnas físicas en Sheets nacen del 'alias' o 'label' del field.
-            // Si el UI envía 'f1', Sheets es ciego. Debemos traducir el mapeo 
-            // a los alias canónicos para que BATCH_UPDATE las encuentre matemáticamente.
             const translatedMapping = {};
             Object.entries(mapping).forEach(([key, val]) => {
-                if (key.endsWith('_label')) return; // Filtramos meta-datos basura visual
+                if (key.endsWith('_label')) return;
                 const fieldDef = atom.payload?.fields?.find(f => f.id === key);
                 if (fieldDef) {
-                    // Sheets crea sus columnas basado en el LABEL, ¡no en el alias! 
-                    // Por tanto pasamos el Label exacto para que el Backend lo identifique.
                     const physicalKey = fieldDef.handle?.label || fieldDef.label || fieldDef.handle?.alias || fieldDef.alias || fieldDef.id;
                     translatedMapping[physicalKey] = val;
                 } else {
@@ -673,35 +672,29 @@ function PathHydrate({ atom, bridge, onBack, renderHeader }) {
                 }
             });
 
-            const result = await bridge.execute({
-                provider: 'automation',
-                protocol: 'INDUSTRIAL_SYNC',
-                data: {
-                    source_id: source.id,
-                    source_provider: source.provider || 'notion',
-                    silo_id: atom.payload?.target_silo_id,
-                    target_provider: atom.payload?.target_provider || 'sheets',
-                    bridge_atom: {
-                        id: 'adhoc-bridge',
-                        class: 'BRIDGE',
-                        payload: {
-                            mappings: { [atom.payload?.target_silo_id || 'unlinked']: translatedMapping },
-                            targets: [atom.payload?.target_silo_id || 'unlinked'],
-                            target_provider: atom.payload?.target_provider || 'sheets',
-                            policy: { conflict_strategy: 'MERGE' }
-                        }
-                    }
-                }
+            // --- AXIOMA DE SINCERIDAD INDUSTRIAL (v15.0) ---
+            // Usamos el método universal del Bridge para manejar la fragmentación
+            // de forma transparente, resiliente y auditada.
+            await bridge.synergize({
+                source: { id: source.id, provider: source.provider || 'notion' },
+                target: { id: atom.payload?.target_silo_id, provider: atom.payload?.target_provider || 'sheets' },
+                mapping: translatedMapping,
+                policy: { 
+                    conflict_strategy: 'MERGE', 
+                    strict_traceability: strictTraceability 
+                },
+                onProgress: (p) => setProgress(p.percent)
             });
 
-            if (result.metadata?.status === 'OK') {
-                toastEmitter.success("Ingesta industrial completada.");
-                onBack();
-            }
+            toastEmitter.success("Ingesta industrial completada.");
+            onBack();
+            
         } catch (e) {
-            toastEmitter.error("Fallo en la ejecución del Bridge.");
+            console.error("❌ [Nexus] Fallo Peristáltico:", e);
+            toastEmitter.error("Fallo en la transferencia: " + e.message);
         } finally {
             setIsProcessing(false);
+            setProgress(0);
         }
     };
 
@@ -733,12 +726,38 @@ function PathHydrate({ atom, bridge, onBack, renderHeader }) {
                         onUpdateMapping={setMapping}
                         onUpdateConfig={() => {}}
                     />
+                    
+                    <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <div style={{ fontSize: '13px', fontWeight: '500', color: '#fff' }}>Habilitar Relacionalidad (Trazabilidad Transversal)</div>
+                            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginTop: '4px', maxWidth: '350px' }}>Inyecta silenciosamente el UUID original y la firma del proveedor destino para mantener la conectividad genética a través de todo Indra OS.</div>
+                        </div>
+                        <div 
+                            className={`toggle-switch ${strictTraceability ? 'active' : ''}`}
+                            onClick={() => setStrictTraceability(!strictTraceability)}
+                            style={{
+                                width: '40px', height: '22px', borderRadius: '12px',
+                                background: strictTraceability ? '#00ffc8' : 'rgba(255,255,255,0.1)',
+                                position: 'relative', cursor: 'pointer', transition: '0.3s'
+                            }}
+                        >
+                            <div style={{
+                                width: '18px', height: '18px', background: '#fff', borderRadius: '50%',
+                                position: 'absolute', top: '2px', left: strictTraceability ? '20px' : '2px', transition: '0.3s'
+                            }} />
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div className="nexus-footer shelf--tight" style={{ padding: '20px', background: 'rgba(255,255,255,0.02)' }}>
-                <button className="btn btn--ghost" onClick={() => setSource(null)} style={{ flex: 1 }}>CAMBIAR ORIGEN</button>
+            <div className="nexus-footer shelf--tight" style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', position: 'relative' }}>
+                {isProcessing && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '3px', background: 'rgba(255,255,255,0.05)' }}>
+                        <div style={{ width: `${progress}%`, height: '100%', background: '#00ffc8', transition: '0.3s' }} />
+                    </div>
+                )}
+                <button className="btn btn--ghost" onClick={() => setSource(null)} style={{ flex: 1 }} disabled={isProcessing}>CAMBIAR ORIGEN</button>
                 <button className="btn btn--accent" onClick={handleExecute} disabled={isProcessing || Object.keys(mapping).length === 0} style={{ flex: 2 }}>
-                    {isProcessing ? "INGESTANDO..." : "EJECUTAR TRANSFERENCIA"}
+                    {isProcessing ? `INGESTANDO ${progress}%` : "EJECUTAR TRANSFERENCIA"}
                 </button>
             </div>
         </div>

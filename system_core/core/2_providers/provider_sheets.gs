@@ -117,14 +117,21 @@ function _sheets_handleAtomCreate(uqo) {
   // 3. IMPRESIÓN DE ADN (Cabeceras con Formato Ledger)
   if (fields.length > 0) {
     const sheet = ss.getSheets()[0];
-    const headers = fields.map(f => {
-      if (typeof f === 'string') return f;
-      return f.handle?.label || f.label || f.alias || f.id;
+    
+    // AXIOMA DE IDENTIDAD INMUTABLE: Todo Silo Sheets debe iniciar con su columna mágica soberana y sus trazadores universales
+    const headers = ['_indra_id', '_origin_id', '_origin_provider']; 
+    
+    fields.forEach(f => {
+      const h = typeof f === 'string' ? f : (f.handle?.label || f.label || f.alias || f.id);
+      if (!headers.includes(h)) headers.push(h); // Prevenir dobles inyecciones si el usuario lo mandó
     });
     
     const range = sheet.getRange(1, 1, 1, headers.length);
     range.setValues([headers]);
     sheet.setFrozenRows(1);
+    
+    // Ocultamos las 3 Columnas Técnicas para proteger la pureza estética del Humano
+    sheet.hideColumns(1, 3);
     
     // Estética de Precisión Indra (Tokens Sincronizados)
     range.setFontWeight("bold")
@@ -204,7 +211,7 @@ function _sheets_handleAtomUpdate(uqo) {
 }
 
 /**
- * BATCH_UPDATE: Escribe o actualiza celdas masivamente (Inserción Rápida).
+ * BATCH_UPDATE: Escribe o actualiza celdas masivamente (Inserción y UPSERT Real).
  */
 function _sheets_handleBatchUpdate(uqo) {
   const ssId = uqo.data?.silo_id || uqo.context_id;
@@ -216,61 +223,93 @@ function _sheets_handleBatchUpdate(uqo) {
   const ss = SpreadsheetApp.openById(ssId);
   const sheet = ss.getSheets()[0];
   
+  const lastRow = sheet.getLastRow();
   const lastCol = Math.max(1, sheet.getLastColumn());
-  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  const headerMap = {};
   
+  // AXIOMA DE SOSTENIBILIDAD RELACIONAL: Descargamos la cuadrícula entera para Merge sin pisotear campos adyacentes
+  const fullGrid = lastRow > 0 ? sheet.getRange(1, 1, lastRow, lastCol).getValues() : [];
+  const headers = fullGrid.length > 0 ? fullGrid[0] : sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  
+  const headerMap = {};
   headers.forEach((h, idx) => { 
     if (h) headerMap[_system_slugify_(h)] = idx + 1; 
   });
 
+  const existingIds = {};
+  if (lastRow > 1 && headerMap['_indra_id']) {
+     const idColIdx = headerMap['_indra_id'] - 1;
+     fullGrid.forEach((row, idx) => {
+         if (idx === 0) return; // Skip headers
+         if (row[idColIdx] && String(row[idColIdx]).trim() !== '') {
+             existingIds[String(row[idColIdx])] = idx; // Guardamos el índice local de la cuadrícula
+         }
+     });
+  }
+
   const rowsToAppend = [];
   const orphans = new Set();
+  let updatedCount = 0;
   
   actions.forEach(action => {
     if (action.type === 'CREATE' || action.type === 'UPDATE') {
       const flatData = action.data || {};
-      const rowArr = new Array(headers.length).fill('');
+      const targetId = String(action.id || '');
+      
+      let isUpdate = targetId && existingIds[targetId] !== undefined;
+      const rowArr = isUpdate ? [...fullGrid[existingIds[targetId]]] : new Array(headers.length).fill('');
       let mappedInThisRow = 0;
       
-      // La primera columna siempre podría ser el ID del sistema para trazabilidad (si existe en las cabeceras)
-      if (headerMap['id']) rowArr[headerMap['id'] - 1] = action.id;
+      // Inyección o preservación del ID Soberano
+      if (headerMap['_indra_id'] && targetId) {
+          rowArr[headerMap['_indra_id'] - 1] = targetId;
+      }
+      // Retro-compatibilidad si el dev dejó el 'id'
+      if (headerMap['id'] && targetId) {
+          rowArr[headerMap['id'] - 1] = targetId;
+      }
 
       Object.entries(flatData).forEach(([key, val]) => {
         const colIdx = headerMap[key] || headerMap[_system_slugify_(key)];
         if (colIdx) {
+          if (colIdx === headerMap['_indra_id']) return; // Protegido
           rowArr[colIdx - 1] = val !== null && val !== undefined ? String(val) : '';
           mappedInThisRow++;
         } else {
-           orphans.add(key); // Acusamos recibo astronómico de las variables fantasma
+           orphans.add(key); 
         }
       });
       
-      // Protector Anti-Vacío: Solo apendizar fila si realmente mapeamos algo
-      if (mappedInThisRow > 0) {
-          rowsToAppend.push(rowArr);
+      if (mappedInThisRow > 0 || isUpdate) {
+          if (isUpdate) {
+              const rIdxLocal = existingIds[targetId];
+              fullGrid[rIdxLocal] = rowArr; // Reemplazamos en el array virtual
+              // Aplicamos el parche directamente a esa fila individual para evitar subir toda la matriz gigante
+              sheet.getRange(rIdxLocal + 1, 1, 1, rowArr.length).setValues([rowArr]);
+              updatedCount++;
+          } else {
+              rowsToAppend.push(rowArr);
+          }
       }
     }
   });
 
-  if (rowsToAppend.length === 0 && actions.length > 0) {
+  if (rowsToAppend.length === 0 && actions.length > 0 && updatedCount === 0) {
       if (orphans.size === 0) {
-          logError(`[provider_sheets] DATOS ORIGEN VACÍOS: Las filas calculadas por el motor vinieron sin propiedades. El mapeo está pidiendo variables que no existen en Notion.`);
-          throw createError('EMPTY_DATA_ORIGIN', `Falló el volcado por un Mapeo Incompatible: los campos solicitados de Notion vinieron como UNDEFINED.`);
+          logError(`[provider_sheets] DATOS ORIGEN VACÍOS.`);
+          throw createError('EMPTY_DATA_ORIGIN', `Falló el volcado por Mapeo Incompatible: los campos solicitados vinieron como UNDEFINED.`);
       } else {
           logError(`[provider_sheets] FALLO TOTAL DE TRADUCCIÓN. Columnas ignoradas: ${Array.from(orphans).join(', ')}`);
-          throw createError('MAPPING_FAILED', `Inyección Masiva cancelada: El destino físico no tiene ninguna de estas columnas: [${Array.from(orphans).join(', ')}]`);
+          throw createError('MAPPING_FAILED', `Destino físico no tiene ningun campo: [${Array.from(orphans).join(', ')}]`);
       }
   } else if (orphans.size > 0) {
-      logWarn(`[provider_sheets] ALERTA DE MAPEO: Ciertas propiedades han sido ignoradas porque no existen en Sheets: [${Array.from(orphans).join(', ')}]`);
+      logWarn(`[provider_sheets] ALERTA: Campos ignorados porque no existen en Sheets: [${Array.from(orphans).join(', ')}]`);
   }
 
   if (rowsToAppend.length > 0) {
     sheet.getRange(sheet.getLastRow() + 1, 1, rowsToAppend.length, rowsToAppend[0].length).setValues(rowsToAppend);
-    logInfo(`[provider_sheets] BATCH_UPDATE: Volcadas ${rowsToAppend.length} filas en SS_ID ${ssId}`);
   }
 
-  return { items: [], metadata: { status: 'OK', records_mutated: rowsToAppend.length } };
+  return { items: [], metadata: { status: 'OK', records_mutated: updatedCount + rowsToAppend.length, _action_counts: { updated: updatedCount, created: rowsToAppend.length } } };
 }
 
 /**

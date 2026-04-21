@@ -36,7 +36,6 @@ export function SchemaDesigner({ atom, bridge }) {
     const [isCommittingRename, setIsCommittingRename] = useState(false);
     const [renameError, setRenameError] = useState('');
     const [aliasResetNonce, setAliasResetNonce] = useState(0);
-    const [showProvisionManager, setShowProvisionManager] = useState(false);
     const [linkStatus, setLinkStatus] = useState('OK'); // OK, BROKEN, VERIFYING
     const hasHydrated = useRef(false);
 
@@ -232,9 +231,11 @@ export function SchemaDesigner({ atom, bridge }) {
                                         )}
                                     </div>
                                 </div>
-                                <button className={`btn btn--xs ${isOrphan ? 'btn--accent' : 'btn--ghost shadow-glow'}`} onClick={() => setShowProvisionManager(true)} style={{ height: '28px', padding: '0 12px', fontSize: '9px' }}>
-                                    {isOrphan ? 'CONFIGURAR ALMACENAMIENTO' : 'GESTIONAR CONEXIÓN'}
-                                </button>
+                                {currentField && (
+                                    <button className={`btn btn--xs ${isOrphan ? 'btn--accent' : 'btn--ghost shadow-glow'}`} onClick={() => setSelectedFieldId(null)} style={{ height: '28px', padding: '0 12px', fontSize: '9px' }}>
+                                        {isOrphan ? 'CONFIGURAR ALMACENAMIENTO' : 'GESTIONAR CONEXIÓN'}
+                                    </button>
+                                )}
                             </div>
 
                             <div className="grid-metadata" style={{ 
@@ -299,57 +300,38 @@ export function SchemaDesigner({ atom, bridge }) {
                                     }}
                                 />
                             ) : (
-                                <div className="center stack" style={{ opacity: 0.3, textAlign: 'center', padding: '60px 40px' }}>
-                                    <IndraIcon name="INFO" size="32px" />
-                                    <p style={{ fontSize: '10px', marginTop: '10px' }}>SELECCIONA UN CAMPO EN LA ESTRUCTURA PARA INSPECCIÓN</p>
+                                <div className="fill nexus-inline-container" style={{ padding: '0 4px 16px 4px' }}>
+                                    <SchemaNexusControl 
+                                        atom={localAtom} 
+                                        bridge={bridge} 
+                                        onUpdate={(u) => { setLocalAtom(u); pushToHistory(u); lastSavedRef.current = JSON.stringify(u); }}
+                                        onFieldsImported={(newFields, metadata) => {
+                                            const updatedPayload = {
+                                                ...localAtom.payload,
+                                                origin_silo_id: metadata?.origin_silo_id,
+                                                origin_provider: metadata?.origin_provider,
+                                                imported_at: new Date().toISOString()
+                                            };
+                                            setLocalAtom(prev => ({ ...prev, payload: updatedPayload }));
+                                            ast.updateFields(newFields);
+                                        }}
+                                        onComplete={async (result) => {
+                                            const coreVersion = result.metadata?.core_patch_version || "LEGACY_PRE_IGNITION";
+                                            if (coreVersion === "LEGACY_PRE_IGNITION") {
+                                                console.warn("⚠️ ALERTA: El Core está ejecutando una versión antigua.");
+                                                toastEmitter.warning("Despliegue de GAS desactualizado.");
+                                            }
+            
+                                            await new Promise(r => setTimeout(r, 800));
+                                            toastEmitter.success("Base de datos configurada y vinculada.");
+                                        }}
+                                    />
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
             </div>
-
-            {showProvisionManager && (
-                <div className="indra-overlay center">
-                    <div className="slot-large shadow-glow" style={{ width: '600px', height: '480px', background: 'var(--color-bg-void)', position: 'relative', borderRadius: '16px', overflow: 'hidden' }}>
-                        <button onClick={() => setShowProvisionManager(false)} className="btn btn--xs" style={{ position: 'absolute', top: '15px', right: '15px', zIndex: 10 }}>✕</button>
-                        <SchemaNexusControl 
-                            atom={localAtom} 
-                            bridge={bridge} 
-                            onUpdate={(u) => { setLocalAtom(u); pushToHistory(u); lastSavedRef.current = JSON.stringify(u); setShowProvisionManager(false); }}
-                            onFieldsImported={(newFields, metadata) => {
-                                const updatedPayload = {
-                                    ...localAtom.payload,
-                                    origin_silo_id: metadata?.origin_silo_id,
-                                    origin_provider: metadata?.origin_provider,
-                                    imported_at: new Date().toISOString()
-                                };
-                                setLocalAtom(prev => ({ ...prev, payload: updatedPayload }));
-                                ast.updateFields(newFields);
-                                setShowProvisionManager(false);
-                            }}
-                            onComplete={async (result) => {
-                                // Verificación de Despliegue (Honestidad de Versión)
-                                const coreVersion = result.metadata?.core_patch_version || "LEGACY_PRE_IGNITION";
-                                console.log(`[UltraSonde] Core Resp Version: ${coreVersion}`);
-                                console.log(`[UltraSonde] Silo ID en Metadata: ${result.metadata?.silo_id}`);
-                                console.log(`[UltraSonde] Átomo Retornado:`, result.items?.[0]);
-                                
-                                if (coreVersion === "LEGACY_PRE_IGNITION") {
-                                    console.warn("⚠️ ALERTA: El Core está ejecutando una versión antigua.");
-                                    toastEmitter.warning("Despliegue de GAS desactualizado.");
-                                }
-
-                                await new Promise(r => setTimeout(r, 800));
-                                toastEmitter.success("Base de datos configurada y vinculada.");
-                                updateLastLog("DONE");
-                                
-                                onComplete(result.items[0]);
-                            }}
-                        />
-                    </div>
-                </div>
-            )}
 
             <RenameDryRunModal pendingRename={pendingRename} isCommitting={isCommittingRename} error={renameError} onCancel={() => { setPendingRename(null); setRenameError(''); setAliasResetNonce(v => v + 1); }} onConfirm={async () => {
                 if (!pendingRename) return;

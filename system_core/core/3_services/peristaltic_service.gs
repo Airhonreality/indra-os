@@ -98,3 +98,127 @@ function _peristaltic_getTempFolder() {
   if (folders.hasNext()) return folders.next();
   return homeRoot.createFolder(PERISTALTIC_TEMP_FOLDER_);
 }
+
+// ─── GESTIÓN DE SESIONES DE TRANSFERENCIA (INDUSTRIAL) ─────────────────────────
+
+/**
+ * Crea un Ticket de Ingesta Persistente.
+ * Se guarda como un Átomo de clase SYSTEM_TICKET para auditoría y resiliencia.
+ */
+function _peristaltic_createPersistentTicket(uqo) {
+    const data = uqo.data || {};
+    const ticketId = `ticket_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    
+    const ticketAtom = {
+        id: ticketId,
+        class: 'SYSTEM_TICKET',
+        handle: {
+            ns: 'com.indra.system.peristalsis',
+            alias: ticketId,
+            label: `Ingesta: ${data.source_provider || 'unknown'} -> ${data.target_provider || 'unknown'}`
+        },
+        payload: {
+            status: 'INITIALIZING',
+            progress: 0,
+            cursor: 0,
+            total_expected: data.total_expected || 0,
+            chunk_size: data.chunk_size || 100,
+            source: data.source || {},
+            target: data.target || {},
+            history: [{ timestamp: new Date().toISOString(), event: 'LOG_GENESIS' }]
+        }
+    };
+
+    // Persistimos físicamente en el Ledger de Sistema
+    const createRes = route({
+        provider: 'system',
+        protocol: 'ATOM_CREATE',
+        data: ticketAtom
+    });
+
+    return createRes.items?.[0] || ticketAtom;
+}
+
+/**
+ * INDUCTION_PULSE: Ejecuta un micro-salto de ingesta.
+ * Es el corazón rítmico del sistema industrial.
+ */
+function _peristaltic_handlePulse(uqo) {
+    const ticketId = uqo.data?.ticket_id;
+    if (!ticketId) throw createError('INVALID_INPUT', 'Se requiere ticket_id para el pulso.');
+
+    // 1. HIDRATACIÓN DEL ESTADO
+    const readRes = route({ provider: 'system', protocol: 'ATOM_READ', context_id: ticketId });
+    const ticket = readRes.items?.[0];
+    if (!ticket) throw createError('NOT_FOUND', 'Ticket de ingesta no encontrado o expirado.');
+
+    if (ticket.payload.status === 'COMPLETED') return { items: [ticket], metadata: { status: 'OK', msg: 'Ya completado.' } };
+
+    const { cursor, chunk_size, source, target } = ticket.payload;
+
+    try {
+        // 2. EXTRACCIÓN (Source)
+        const sourceRes = route({
+            provider: source.provider,
+            protocol: 'TABULAR_STREAM',
+            context_id: source.id,
+            query: { 
+                cursor: ticket.payload.next_source_cursor || null,
+                limit: chunk_size 
+            }
+        });
+
+        const items = sourceRes.items || [];
+        if (items.length === 0) {
+            ticket.payload.status = 'COMPLETED';
+            ticket.payload.progress = 1;
+        } else {
+            // 3. CRISTALIZACIÓN (Target)
+            const syncRes = route({
+                provider: 'automation',
+                protocol: 'INDUSTRIAL_SYNC',
+                data: {
+                    target_provider: target.provider,
+                    silo_id: target.id,
+                    sat_payload: { items },
+                    source_provider: source.provider,
+                    source_id: source.id
+                }
+            });
+
+            // 4. ACTUALIZACIÓN DE CURSOR
+            ticket.payload.cursor += items.length;
+            ticket.payload.next_source_cursor = sourceRes.metadata?.next_cursor;
+            ticket.payload.status = sourceRes.metadata?.has_more ? 'IN_PROGRESS' : 'COMPLETED';
+            
+            if (ticket.payload.total_expected > 0) {
+                ticket.payload.progress = Math.min(0.99, ticket.payload.cursor / ticket.payload.total_expected);
+            }
+        }
+
+        if (ticket.payload.status === 'COMPLETED') ticket.payload.progress = 1;
+
+        // 5. PERSISTENCIA DEL AVANCE
+        route({
+            provider: 'system',
+            protocol: 'ATOM_PATCH',
+            context_id: ticketId,
+            data: { payload: ticket.payload }
+        });
+
+        return { 
+            items: [ticket], 
+            metadata: { 
+                status: 'OK', 
+                progress: ticket.payload.progress,
+                pulse_count: items.length 
+            } 
+        };
+
+    } catch (e) {
+        ticket.payload.status = 'ERROR';
+        ticket.payload.last_error = e.message;
+        route({ provider: 'system', protocol: 'ATOM_PATCH', context_id: ticketId, data: { payload: ticket.payload } });
+        throw e;
+    }
+}

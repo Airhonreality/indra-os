@@ -64,6 +64,20 @@ function induction_orchestrateCrystallization_(uqo) {
   const targetProvider = data.target_provider || 'drive';
   const publishImmediately = !!data.publish_immediately;
 
+  // --- AXIOMA DE PERISTALSIS: Modo Ingesta Irreversible ---
+  if (data.mode === 'PERISTALTIC' || data.peristaltic) {
+      logInfo(`[induction:engine] 🌊 Modo PERISTÁLTICO detectado. Generando Ticket Persistente.`);
+      const ticket = _peristaltic_createPersistentTicket(uqo);
+      return { 
+          items: [ticket], 
+          metadata: { 
+              status: 'OK', 
+              mode: 'PERISTALTIC', 
+              ticket_id: ticket.id 
+          } 
+      };
+  }
+
   const ticket = {
     ticket_id: _system_induction_generateTicketId_(),
     status: 'IN_PROGRESS',

@@ -75,7 +75,16 @@ function _ledger_get_target_sheet_(uqo) {
   if (!cellLedgerId) {
       logInfo(`[ledger] [${trx}] JIT: Intentando auto-adopción física para ${wsId}...`);
       try {
-          const folder = DriveApp.getFolderById(wsId);
+          // AXIOMA DE RESOLUCIÓN (v11.0): Si wsId es de un archivo (Legacy), escalar a carpeta
+          let folder;
+          try {
+              folder = DriveApp.getFolderById(wsId);
+          } catch (e) {
+              const file = DriveApp.getFileById(wsId);
+              folder = file.getParents().next();
+              logWarn(`[ledger] [${trx}] ID LEGACY DETECTADO. Escalando ${wsId} -> ${folder.getId()}`);
+          }
+
           // AXIOMA: manifest.json es la ÚNICA fuente de verdad celular (v5.1)
           const manifestFile = folder.getFilesByName('manifest.json');
           if (manifestFile.hasNext()) {
@@ -88,7 +97,7 @@ function _ledger_get_target_sheet_(uqo) {
               }
           }
       } catch (e) {
-          logWarn(`[ledger] [${trx}] Fallo en auto-adopción física: ${e.message}`);
+          logWarn(`[ledger] [${trx}] Fallo en auto-adopción física de ${wsId}: ${e.message}`);
       }
   }
 

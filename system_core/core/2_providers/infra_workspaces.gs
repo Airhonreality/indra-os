@@ -33,7 +33,7 @@ function _system_handleSatelliteDiscover(uqo) {
                 try {
                     const doc = JSON.parse(file.getBlob().getDataAsString());
                     discovered.push({
-                        id: file.getId(),
+                        id: folder.getId(), // AXIOMA DE IDENTIDAD (v11.0): El Workspace ES la carpeta.
                         class: 'WORKSPACE',
                         handle: {
                             label: folder.getName(),
@@ -41,6 +41,7 @@ function _system_handleSatelliteDiscover(uqo) {
                         },
                         payload: {
                             cell_folder_id: folder.getId(),
+                            manifest_file_id: file.getId(), // El JSON es ahora un metadato secundario
                             artifacts_folder_id: doc.payload?.artifacts_folder_id || doc.membrane?.artifacts_folder_id,
                             cell_ledger_id: doc.payload?.cell_ledger_id || doc.membrane?.ledger_id,
                             created_at: doc.created_at

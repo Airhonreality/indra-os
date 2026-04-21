@@ -116,14 +116,19 @@ function _sheets_handleAtomCreate(uqo) {
     range.setValues([headers]);
     sheet.setFrozenRows(1);
     
-    // Estética de Precisión Indra
+    // Estética de Precisión Indra (Tokens Sincronizados)
     range.setFontWeight("bold")
-         .setBackground("#1a1a1a")
+         .setBackground("#050505") // Negro profundo Indra
          .setFontColor("#ffffff")
-         .setFontFamily("Inter, Roboto, sans-serif")
-         .setHorizontalAlignment("center");
+         .setFontFamily("Outfit, Inter, Roboto, sans-serif")
+         .setHorizontalAlignment("center")
+         .setVerticalAlignment("middle");
+    
+    // Inyección de Acento Soberano (Borde Inferior Neon)
+    range.setBorder(null, null, true, null, null, null, "#00ffc8", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
     
     sheet.autoResizeColumns(1, headers.length);
+    sheet.setRowHeight(1, 32); // Mayor holgura para legibilidad
   }
 
   const atom = {

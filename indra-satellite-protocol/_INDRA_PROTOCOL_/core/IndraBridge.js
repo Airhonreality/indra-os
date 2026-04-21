@@ -30,6 +30,9 @@ class IndraBridge {
         this.contractCortex = new ContractCortex(this);
         this.resonanceSync = new ResonanceSync(this);
         this.capabilitiesOracle = new CapabilitiesResolver(this);
+        
+        // --- VAULT SOBERANO (NUEVO) ---
+        this.vault = null; // Se inicializa en init()
 
         // --- SISTEMA DE EVENTOS ---
         this.pendingUIRequests = new Map();
@@ -142,9 +145,10 @@ class IndraBridge {
 
     /**
      * @dharma Ignición Síncrona (Axioma de Sinceridad).
+     * Evolucionada v5.5 para soportar Soberanía Local (T=0).
      */
-    async init() {
-        if (this._initializing) return this._initPromise;
+    async init(options = { use_cache: true }) {
+        if (this._initializing && !options.force) return this._initPromise;
         this._initializing = true;
         this._setStatus('IGNITING');
         
@@ -153,17 +157,31 @@ class IndraBridge {
         };
 
         this._initPromise = (async () => {
-            console.log("🚀 [IndraBridge] Iniciando Ignición Síncrona...");
+            console.log("🚀 [IndraBridge] Iniciando Ignición Axial...");
             notifyStep('BRIDGE_INIT', { message: 'Iniciando Bridge...' });
             
             try {
-                // PASO 0: Carga del contrato (ADN Lógico)
-                notifyStep('LOAD_CONTRACT', { message: 'Cargando ADN Lógico...' });
-                await this.loadContract();
+                // --- FASE 1: IGNICIÓN FRÍA (T=0 / SOBERANÍA) ---
+                notifyStep('LOAD_LOCAL_ADN', { message: 'Cargando ADN desde Memoria Estructural...' });
+                const localDNA = await this.contractCortex.load({ use_cache: options.use_cache });
+                
+                // Inicializar Vault si no existe y tenemos componentes que lo requieran
+                if (!this.vault) {
+                    const { AgnosticVault } = await import('../../src/score/logic/AgnosticVault.js');
+                    this.vault = new AgnosticVault(this);
+                }
 
-                // Recuperar pacto desde localStorage
+                if (localDNA && (localDNA.schemas?.length > 0 || localDNA.workflows?.length > 0)) {
+                    console.log("🟢 [Bridge] Modo SOBERANO activado. Notificando LOCAL_READY.");
+                    this._setStatus('READY'); // Permitimos que la UI proceda
+                    window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'LOCAL_READY' } }));
+                }
+
+                // --- FASE 2: IGNICIÓN CALIENTE (FONDO / RESONANCIA) ---
+                
+                // Recuperar pacto desde localStorage (si no se pasó por constructor)
                 const linkData = localStorage.getItem('INDRA_SATELLITE_LINK');
-                if (linkData) {
+                if (linkData && !this.satelliteToken) {
                     try {
                         const parsed = JSON.parse(linkData);
                         this.coreUrl = parsed.coreUrl || this.coreUrl;
@@ -172,62 +190,57 @@ class IndraBridge {
                 }
 
                 if (!this.coreUrl || !this.satelliteToken) {
-                    throw new Error("GHOST: Sin nexo configurado.");
+                    console.warn("⚠️ [Bridge] Ignición Caliente en espera: Sin nexo configurado.");
+                    if (this.status !== 'READY') this._setStatus('GHOST');
+                    return;
                 }
 
-                // PASO 1: Validación de Red e Identidad
-                notifyStep('FETCH_MANIFEST', { message: 'Solicitando Manifiesto al Core...' });
+                notifyStep('FETCH_MANIFEST', { message: 'Sincronizando con el Core...' });
                 const statusPulse = await this.execute({ protocol: 'SYSTEM_MANIFEST', provider: 'system' });
                 this.capabilities = statusPulse.metadata || {};
                 this.allowedProtocols = this.capabilities.allowed_protocols || [];
                 
-                // PASO 1.5: Sincronización del Oráculo de Capacidades
                 await this.capabilitiesOracle.sync();
                 
-                // PASO 2: REALIDAD SINCERA (Discovery de Territorio)
-                notifyStep('DISCOVER_TERRITORY', { message: 'Explorando Territorio Físico...' });
+                notifyStep('DISCOVER_TERRITORY', { message: 'Validando Consistencia Global...' });
                 const discovery = await this.execute({ protocol: 'SYSTEM_SATELLITE_DISCOVER', provider: 'system' });
                 this.availableWorkspaces = discovery.items || [];
 
-                // AXIOMA: Si el Core tiene una asignación primaria, la respetamos.
                 if (statusPulse.metadata?.primary_workspace) {
                     this.activeWorkspaceId = statusPulse.metadata.primary_workspace;
                 }
 
-                // SI NO TENEMOS ID, lanzamos modo DISCOVERY
                 if (!this.activeWorkspaceId) {
-                    notifyStep('DISCOVERY_MODE', { message: 'Modo Descubrimiento Activo.' });
                     window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
                         detail: { mode: 'DISCOVERY', items: this.availableWorkspaces } 
                     }));
-                    this._setStatus('READY'); // Estamos listos pero en modo descubrimiento
+                    if (this.status !== 'READY') this._setStatus('READY');
                     return;
                 }
 
-                // PASO 3: Validación de Ledger Físico
-                notifyStep('VERIFY_STABILITY', { message: 'Verificando Estabilidad de la Realidad...' });
+                // Validación de Ledger Físico y Sincronía Final
                 try {
                     await this.execute({ 
                         protocol: 'ATOM_EXISTS', 
                         context_id: this.activeWorkspaceId, 
                         data: { ids: [this.activeWorkspaceId] } 
                     });
-                    notifyStep('SYNC_COMPLETE', { message: 'Resonancia Estable.' });
+                    
+                    console.log("✨ [Bridge] Resonancia Total Consolidada.");
                     window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
                     this._setStatus('READY');
+                    
+                    // Notificar a los componentes que la "verdad global" ha llegado
+                    window.dispatchEvent(new CustomEvent("indra-core-synced", { detail: { timestamp: Date.now() } }));
+
                 } catch (error) {
-                    notifyStep('ERROR_STABILITY', { message: 'Fallo de Estabilidad.', error: error.message });
-                    window.dispatchEvent(new CustomEvent("indra-resonance-sync", { 
-                        detail: { mode: 'ERROR_LEDGER', error: error.message, id: this.activeWorkspaceId } 
-                    }));
-                    this._setStatus('ERROR');
+                    console.error("❌ [Bridge] Fallo de Estabilidad Global:", error.message);
+                    if (this.status !== 'READY') this._setStatus('ERROR');
                 }
 
             } catch (e) {
-                notifyStep('IGNITION_ABORTED', { message: 'Ignición Fallida.', error: e.message });
-                console.warn(`❌ [Bridge] Ignición abortada: ${e.message}`);
-                window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'GHOST', error: e.message } }));
-                this._setStatus('GHOST');
+                console.warn(`❌ [Bridge] Fallo en Ignición Caliente: ${e.message}`);
+                if (this.status !== 'READY') this._setStatus('GHOST');
             } finally {
                 this._notify('sync', { status: this.satelliteToken ? 'CONNECTED' : 'DISCONNECTED' });
                 this._initializing = false;

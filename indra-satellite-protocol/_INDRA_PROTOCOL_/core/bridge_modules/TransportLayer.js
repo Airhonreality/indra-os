@@ -1,4 +1,5 @@
 const RETRIABLE_CODES = ['LOCK_TIMEOUT', 'GATEWAY_TIMEOUT', 'NETWORK_ERROR'];
+const MUTATION_PROTOCOLS = ['ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 'SCHEMA_MUTATE', 'SYSTEM_IGNITE_SCHEMA'];
 
 export class TransportLayer {
     constructor(bridge) {
@@ -13,6 +14,13 @@ export class TransportLayer {
         this.consecutiveFailures = 0;
         this.FAILURE_THRESHOLD = 3;
         this.CIRCUIT_REST_TIME_MS = 30000;
+
+        // --- BUFFER DE INTENCIONES (SOBERANÍA) ---
+        this.mutationQueue = this._loadMutationQueue();
+        this._isSyncing = false;
+        
+        // Iniciar orquestador de fondo
+        setInterval(() => this.processMutationQueue(), 15000); // Intento cada 15s
     }
 
     purgeQueue() {
@@ -30,6 +38,13 @@ export class TransportLayer {
         // --- INTERCEPCIÓN DE PROTOCOLO DE INTERFAZ (SHELL MADRE) ---
         if (uqo.protocol === 'UI_INVOKE') {
             return this._invokeUI(uqo);
+        }
+
+        // --- BUFFER DE INTENCIONES: Escritura No-Bloqueante ---
+        // Si es una mutación y estamos fuera de línea o el bridge aún no está listo:
+        if (MUTATION_PROTOCOLS.includes(uqo.protocol) && 
+            (this.bridge.status !== 'READY' || this.circuitStatus === 'OPEN' || options.background)) {
+            return this._enqueueMutation(uqo);
         }
 
         const maxRetries = options.maxRetries ?? 3;
@@ -175,5 +190,99 @@ export class TransportLayer {
                 payload: uqo
             }, "*");
         });
+    }
+
+    // --- LÓGICA DE SOBERANÍA (ENCOLADO Y SINCRONÍA) ---
+
+    async _enqueueMutation(uqo) {
+        const mutationId = `mut_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const mutationEntry = {
+            id: mutationId,
+            uqo: uqo,
+            timestamp: Date.now(),
+            attempts: 0
+        };
+
+        this.mutationQueue.push(mutationEntry);
+        this._saveMutationQueue();
+
+        console.log(`📥 [Transport:Soberanía] Intención encolada: ${uqo.protocol} [${mutationId}]`);
+
+        // Notificar al Vault si existe para una "Resonancia Fantasma" (UI inmediata)
+        if (this.bridge.vault) {
+            // Creamos un átomo virtual para que la UI no espere
+            const virtualAtom = {
+                id: mutationId,
+                handle: uqo.data?.handle || { label: 'Sincronizando...' },
+                class: uqo.data?.class || 'GHOST_ATOM',
+                sync_pending: true,
+                payload: uqo.data?.payload || {}
+            };
+            this.bridge.vault.commit(virtualAtom.id, virtualAtom);
+        }
+
+        // Retornamos éxito inmediato (Axioma de Cero Latencia)
+        return {
+            items: [{ id: mutationId, sync_pending: true }],
+            metadata: { status: 'QUEUED', mutation_id: mutationId }
+        };
+    }
+
+    async processMutationQueue() {
+        if (this._isSyncing || this.mutationQueue.length === 0) return;
+        if (this.bridge.status !== 'READY' || this.circuitStatus === 'OPEN') return;
+
+        this._isSyncing = true;
+        console.log(`🔄 [Transport:Resonancia] Procesando ${this.mutationQueue.length} intenciones pendientes...`);
+
+        const entry = this.mutationQueue[0]; // Procesar de uno en uno para mantener orden causal
+        
+        try {
+            const result = await this._executeWithRetry(entry.uqo, 1);
+            
+            // Éxito: Eliminar de la cola persistente
+            this.mutationQueue.shift();
+            this._saveMutationQueue();
+            
+            console.log(`✅ [Transport:Resonancia] Sincronización exitosa: ${entry.uqo.protocol}`);
+
+            // Actualizar Vault con la realidad física (Core) si corresponde
+            if (this.bridge.vault && result.items?.[0]) {
+                const realAtom = result.items[0];
+                this.bridge.vault.commit(realAtom.id, realAtom);
+                // Si el ID era virtual, podríamos necesitar un mapeo, pero por ahora simplificamos.
+            }
+
+        } catch (error) {
+            entry.attempts++;
+            console.warn(`⚠️ [Transport:Resonancia] Reintento fallido para ${entry.id}. Intento: ${entry.attempts}`);
+            
+            if (entry.attempts > 10) {
+                console.error(`💥 [Transport:Resonancia] Abortando intención ${entry.id} tras muchos fallos.`);
+                this.mutationQueue.shift();
+                this._saveMutationQueue();
+            }
+        } finally {
+            this._isSyncing = false;
+            // Si quedan más, procesar en el próximo intervalo o recursivamente con delay pequeño
+            if (this.mutationQueue.length > 0) setTimeout(() => this.processMutationQueue(), 1000);
+        }
+    }
+
+    _saveMutationQueue() {
+        try {
+            localStorage.setItem('INDRA_MUTATION_QUEUE', JSON.stringify(this.mutationQueue));
+        } catch (e) {
+            console.error("[Transport] Error persistiendo cola de mutaciones.");
+        }
+    }
+
+    _loadMutationQueue() {
+        try {
+            const saved = localStorage.getItem('INDRA_MUTATION_QUEUE');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
     }
 }

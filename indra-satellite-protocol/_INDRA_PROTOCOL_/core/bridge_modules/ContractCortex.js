@@ -15,9 +15,25 @@ export class ContractCortex {
      * @dharma Carga el contrato y la configuración vía Módulos JS Dinámicos y Resonancia en Vivo.
      * v5.0: Capacidad de sincronización directa con el Core si el contrato local falla.
      */
-    async load() {
+    async load(options = {}) {
         const base = window.location.origin;
         const protocolPath = '/_INDRA_PROTOCOL_';
+
+        // 0. SOBERANÍA T=0: Recuperar de Memoria Estructural (Caché local)
+        let contract = { schemas: [], workflows: [] };
+        if (options.use_cache !== false) {
+            try {
+                const raw = localStorage.getItem('INDRA_DNA_SNAPSHOT');
+                if (raw) {
+                    contract = JSON.parse(raw);
+                    console.log("🏛️ [Cortex] ADN recuperado de Memoria Estructural (T=0).");
+                    // Inyectar inmediatamente para que el Bridge pueda pasar a READY_LOCAL
+                    this.bridge.contract = contract;
+                }
+            } catch (e) {
+                console.warn("[Cortex] Fallo al leer Memoria Estructural.");
+            }
+        }
         
         try {
             // 1. Cargar Configuración de Ciudadanía (Identidad)
@@ -30,7 +46,6 @@ export class ContractCortex {
             }
 
             // 2. Cargar Contrato Maestro (Snapshot o Live)
-            let contract = { schemas: [], workflows: [] };
             let usedLiveSync = false;
 
             try {
@@ -98,6 +113,9 @@ export class ContractCortex {
                 });
             }
 
+            // 5. Persistencia para la próxima ignición
+            this.saveSnapshot(contract);
+
             return contract;
         } catch (e) {
             console.error('❌ [Cortex:Error] Colapso en carga de ADN:', e);
@@ -114,5 +132,18 @@ export class ContractCortex {
             hash = hash & hash;
         }
         return `chk_${Math.abs(hash).toString(36)}`;
+    }
+
+    /**
+     * Persiste el contrato actual para permitir ignición T=0.
+     */
+    saveSnapshot(contract) {
+        if (!contract || (!contract.schemas?.length && !contract.workflows?.length)) return;
+        try {
+            localStorage.setItem('INDRA_DNA_SNAPSHOT', JSON.stringify(contract));
+            console.log("💾 [Cortex] Memoria Estructural actualizada.");
+        } catch (e) {
+            console.error("[Cortex] Error persistiendo ADN:", e);
+        }
     }
 }

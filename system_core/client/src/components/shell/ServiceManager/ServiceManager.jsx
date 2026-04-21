@@ -182,6 +182,12 @@ export function ServiceManager({ onClose, filter: propFilter }) {
                                     <span className="text-hint">Ingrese credenciales para autorizar el túnel.</span>
                                 </div>
                             </div>
+                            <button className="btn btn--ghost" onClick={() => setSelectedService(null)}>
+                                <IndraIcon name="CLOSE" />
+                            </button>
+                        </header>
+
+                        <div className="center fill stack" style={{ maxWidth: '400px', margin: '0 auto', gap: 'var(--space-8)', padding: '40px 0' }}>
                             {pairingStatus !== 'SUCCESS' && (
                                 <div className="stack" style={{ gap: 'var(--space-6)', width: '100%' }}>
                                     {/* Campo Universal: Nombre de la Conexión */}

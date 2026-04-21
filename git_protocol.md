@@ -37,4 +37,13 @@ Al realizar cambios en `provider_system_ledger.gs` o en componentes que consumen
 Si encuentras bloques `catch(e) { /* ignore */ }`, es un diseño deliberado para evitar interrupciones en el flujo de "Handshake Micelar" durante fallos de red menores que el sistema está preparado para reintentar.
 
 ---
+## 6. LEYES PARA AGENTES AI (ANTIGRAVITY)
+
+Como entidad de asistencia codificante, el Agente debe seguir estas leyes para garantizar la estabilidad del sistema:
+
+1. **Axioma del Balance Visual:** Antes de proponer un `replace_file_content` sobre JSX, el Agente debe realizar un conteo mental de apertura y cierre de etiquetas. Ningún componente debe quedar con un `header`, `div` o `section` huérfano.
+2. **Purificación Preventiva:** Antes de cada `git push`, el Agente TIENE la obligación de intentar correr `npx eslint` sobre los archivos modificados. El desconocimiento del error no exime de la responsabilidad del fallo en el build.
+3. **Sinceridad de Commit:** Si un build falla en producción por culpa del Agente, el commit de reparación debe ser explícito: `fix: [Agent Correction] Sintaxis JSX restaurada`.
+
+---
 *Independencia, Sinceridad, Soberanía.*

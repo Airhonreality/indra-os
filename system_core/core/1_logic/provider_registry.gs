@@ -46,7 +46,7 @@ const SILO_MANIFEST_PREFIX = 'CONF_';
  */
 function _scanProviders() {
   const configs = [];
-  const knownPrefixes = ['CONF_SYSTEM', 'CONF_DRIVE', 'CONF_NOTION', 'CONF_EMAIL', 'CONF_LLM', 'CONF_INTELLIGENCE', 'CONF_AUTOMATION', 'CONF_COMPUTE'];
+  const knownPrefixes = ['CONF_SYSTEM', 'CONF_DRIVE', 'CONF_SHEETS', 'CONF_NOTION', 'CONF_EMAIL', 'CONF_LLM', 'CONF_INTELLIGENCE', 'CONF_AUTOMATION', 'CONF_COMPUTE'];
 
   const scope = globalThis || this;
 
@@ -93,7 +93,7 @@ function _scanProviders() {
 
   // FALLBACK ABSOLUTO (v4.91): Si el sistema no aparece, lo inyectamos por fuerza bruta.
   // Es Vital para superar la opacidad de Google en modo WebApp.
-  const coreIds = ['system', 'automation', 'compute', 'drive', 'notion', 'intelligence', 'calendar_universal', 'pipeline'];
+  const coreIds = ['system', 'automation', 'compute', 'drive', 'sheets', 'notion', 'intelligence', 'calendar_universal', 'pipeline'];
   
   coreIds.forEach(id => {
     if (!configs.find(c => c.id === id)) {

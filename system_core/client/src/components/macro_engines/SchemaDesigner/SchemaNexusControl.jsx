@@ -28,62 +28,73 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
     );
 
     const renderHeader = (title, subtitle) => (
-        <div className="nexus-header shelf--loose" style={{ padding: '20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <button className="btn btn--xs btn--ghost" onClick={() => setCurrentPath('MENU')} style={{ width: '32px', height: '32px', borderRadius: '50%' }}>
-                <IndraIcon name="BACK" size="14px" />
+        <div className="nexus-header shelf--loose" style={{ 
+            padding: '16px 20px', 
+            background: 'rgba(255,255,255,0.02)',
+            borderBottom: '1px solid rgba(255,255,255,0.05)',
+            borderTopLeftRadius: '12px',
+            borderTopRightRadius: '12px'
+        }}>
+            <button className="btn btn--xs btn--ghost" onClick={() => setCurrentPath('MENU')} style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)' }}>
+                <IndraIcon name="BACK" size="12px" />
             </button>
             <div className="stack--none">
-                <h2 style={{ fontSize: '14px', fontWeight: '900', color: 'var(--indra-dynamic-accent)' }}>{title}</h2>
-                <span style={{ fontSize: '10px', opacity: 0.5 }}>{subtitle}</span>
+                <h2 className="font-mono" style={{ fontSize: '11px', fontWeight: '900', color: 'var(--indra-dynamic-accent)', letterSpacing: '0.1em' }}>{title}</h2>
+                <span style={{ fontSize: '9px', opacity: 0.4, textTransform: 'uppercase' }}>{subtitle}</span>
             </div>
         </div>
     );
 
     if (currentPath === 'MENU') {
         return (
-            <div className="nexus-menu fill stack" style={{ padding: '24px', background: 'var(--color-bg-void)', borderRadius: '12px' }}>
-                <div className="stack--none" style={{ marginBottom: '24px' }}>
-                    <h1 style={{ fontSize: '18px', fontWeight: '900', letterSpacing: '-0.02em' }}>GESTIÓN DE ALMACENAMIENTO</h1>
-                    <p style={{ fontSize: '11px', opacity: 0.5 }}>Seleccione cómo desea conectar este esquema con el mundo físico.</p>
+            <div className="nexus-menu fill stack" style={{ padding: '24px', background: '#0a0a0a', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="stack--none" style={{ marginBottom: '32px' }}>
+                    <div className="shelf--tight" style={{ opacity: 0.3, marginBottom: '8px' }}>
+                        <IndraIcon name="VAULT" size="12px" />
+                        <span className="font-mono" style={{ fontSize: '9px', letterSpacing: '0.2em' }}>PHYSICAL_LINK_COMMAND</span>
+                    </div>
+                    <h1 style={{ fontSize: '20px', fontWeight: '300', letterSpacing: '-0.03em', color: 'white' }}>Gestión de Almacenamiento</h1>
                 </div>
 
                 <div className="nexus-grid" style={{ 
                     display: 'grid', 
                     gridTemplateColumns: '1fr 1fr', 
-                    gap: '12px',
+                    gap: '10px',
                     flex: 1
                 }}>
                     <MenuCard 
                         icon="VAULT" 
                         title="Crear Nueva" 
-                        desc="Generar una nueva tabla física desde cero." 
+                        desc="Generar tabla física desde cero." 
                         onClick={() => setCurrentPath('IGNITE')} 
                     />
                     <MenuCard 
                         icon="SEARCH" 
                         title="Importar ADN" 
-                        desc="Traer campos de una tabla existente al diseño." 
+                        desc="Extraer campos de origen." 
                         onClick={() => setCurrentPath('IMPORT_DNA')} 
                     />
                     <MenuCard 
                         icon="RELATION" 
-                        title="Vincular Existente" 
-                        desc="Conectar este diseño a una tabla física activa." 
+                        title="Vincular" 
+                        desc="Conectar a tabla activa." 
                         onClick={() => setCurrentPath('LINK')} 
                     />
                     <MenuCard 
                         icon="SYNC" 
-                        title="Transferir Datos" 
-                        desc="Mover registros entre tablas mediante mapeo." 
+                        title="Transferir" 
+                        desc="Mover registros vía mapeo." 
                         onClick={() => setCurrentPath('HYDRATE')} 
                     />
-                    <MenuCard 
-                        icon="DELETE" 
-                        title="Desvincular ID" 
-                        desc="Eliminar el vínculo físico actual (ID Fantasma)." 
-                        onClick={() => setCurrentPath('UNLINK')} 
-                        danger
-                    />
+                    <div style={{ gridColumn: 'span 2', marginTop: '12px' }}>
+                        <MenuCard 
+                            icon="DELETE" 
+                            title="Desvincular ID" 
+                            desc="Eliminar el vínculo físico actual (ID Fantasma)." 
+                            onClick={() => setCurrentPath('UNLINK')} 
+                            danger
+                        />
+                    </div>
                 </div>
             </div>
         );
@@ -165,7 +176,6 @@ function PathUnlink({ atom, coreUrl, sessionSecret, onComplete, onBack, renderHe
     const handleUnlink = async () => {
         setIsProcessing(true);
         try {
-            // Unlink es un PATCH que limpia los campos de destino
             const result = await executeDirective({
                 provider: 'system',
                 protocol: 'ATOM_UPDATE',
@@ -181,33 +191,44 @@ function PathUnlink({ atom, coreUrl, sessionSecret, onComplete, onBack, renderHe
             }, coreUrl, sessionSecret);
 
             if (result.metadata?.status === 'OK') {
-                toastEmitter.success("Vínculo eliminado. El esquema es ahora un diseño puro.");
+                toastEmitter.success("Vínculo eliminado.");
                 onComplete(result.items[0]);
             } else {
                 toastEmitter.error("Error al desvincular.");
             }
-        } catch (e) { toastEmitter.error("Fallo crítico en el protocolo de desvinculación."); }
+        } catch (e) { toastEmitter.error("Fallo crítico en el protocolo."); }
         finally { setIsProcessing(false); }
     };
 
     return (
-        <div className="nexus-path fill stack">
-            {renderHeader("DESVINCULAR ALMACENAMIENTO", "Paso de recuperación: el ID actual será olvidado.")}
-            <div className="nexus-content fill center stack--loose" style={{ padding: '24px' }}>
-                <div style={{ textAlign: 'center', color: '#ff4655' }}>
-                    <IndraIcon name="DELETE" size="48px" />
-                    <p style={{ fontSize: '11px', marginTop: '12px', maxWidth: '240px', color: 'white', opacity: 0.8 }}>
-                        ¿Seguro que desea eliminar el vínculo con el ID <strong>{atom.payload?.target_silo_id}</strong>?
-                    </p>
-                    <p style={{ fontSize: '9px', opacity: 0.5, marginTop: '8px' }}>
-                        Esto no borrará el archivo en Drive, solo hará que Indra lo "olvide" para permitir una nueva configuración.
+        <div className="nexus-path fill stack" style={{ background: '#0a0a0a' }}>
+            {renderHeader("MANTENIMIENTO", "Recuperación de identidad del esquema.")}
+            <div className="nexus-content fill center stack--loose" style={{ padding: '32px' }}>
+                <div className="unlink-card stack" style={{ 
+                    padding: '24px', 
+                    background: 'rgba(255, 70, 85, 0.03)', 
+                    border: '1px solid rgba(255, 70, 85, 0.1)',
+                    borderRadius: '16px',
+                    textAlign: 'center'
+                }}>
+                    <IndraIcon name="DELETE" size="32px" color="#ff4655" />
+                    <div className="stack--tight">
+                        <h4 style={{ fontSize: '14px', fontWeight: 'bold' }}>Desvincular Almacenamiento</h4>
+                        <p className="font-mono" style={{ fontSize: '10px', opacity: 0.6, background: 'rgba(255,255,255,0.05)', padding: '6px', borderRadius: '4px' }}>
+                            {atom.payload?.target_silo_id}
+                        </p>
+                    </div>
+                    <p style={{ fontSize: '11px', opacity: 0.4, maxWidth: '280px', margin: '0 auto' }}>
+                        Esta acción purgará los metadatos de conexión facilitando una re-configuración limpia. Los archivos físicos no serán eliminados.
                     </p>
                 </div>
                 
-                <button className="btn btn--danger" onClick={handleUnlink} disabled={isProcessing} style={{ height: '50px', width: '100%', borderRadius: '12px' }}>
-                    {isProcessing ? "DESVINCULANDO..." : "CONFIRMAR DESVINCULACIÓN"}
-                </button>
-                <button className="btn btn--xs btn--ghost" onClick={onBack}>CANCELAR</button>
+                <div className="shelf--tight" style={{ width: '100%', marginTop: 'auto' }}>
+                    <button className="btn btn--ghost" onClick={onBack} style={{ flex: 1 }}>CANCELAR</button>
+                    <button className="btn btn--danger" onClick={handleUnlink} disabled={isProcessing} style={{ flex: 2, height: '44px', borderRadius: '8px' }}>
+                        {isProcessing ? "PROCESANDO..." : "CONFIRMAR ACCIÓN"}
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -216,20 +237,28 @@ function PathUnlink({ atom, coreUrl, sessionSecret, onComplete, onBack, renderHe
 function MenuCard({ icon, title, desc, onClick, danger }) {
     return (
         <div className="nexus-card glass-hover" onClick={onClick} style={{
-            padding: '20px',
-            borderRadius: '16px',
-            background: danger ? 'rgba(255, 70, 85, 0.05)' : 'rgba(255,255,255,0.02)',
-            border: `1px solid ${danger ? '#ff465533' : 'rgba(255,255,255,0.05)'}`,
+            padding: '16px',
+            borderRadius: '12px',
+            background: danger ? 'rgba(255, 70, 85, 0.03)' : 'rgba(255,255,255,0.01)',
+            border: `1px solid ${danger ? 'rgba(255, 70, 85, 0.1)' : 'rgba(255,255,255,0.05)'}`,
             cursor: 'pointer',
             display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            transition: 'all 0.2s ease'
+            alignItems: 'center',
+            gap: '16px',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         }}>
-            <IndraIcon name={icon} size="24px" color={danger ? '#ff4655' : "var(--indra-dynamic-accent)"} />
+            <div className="card-icon center" style={{ 
+                width: '40px', 
+                height: '40px', 
+                borderRadius: '10px', 
+                background: danger ? 'rgba(255, 70, 85, 0.1)' : 'rgba(255,255,255,0.03)',
+                flexShrink: 0
+            }}>
+                <IndraIcon name={icon} size="18px" color={danger ? '#ff4655' : "var(--indra-dynamic-accent)"} />
+            </div>
             <div className="stack--none">
-                <h3 style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '4px', color: danger ? '#ff4655' : 'white' }}>{title.toUpperCase()}</h3>
-                <p style={{ fontSize: '10px', opacity: 0.4, lineHeight: '1.4' }}>{desc}</p>
+                <h3 style={{ fontSize: '12px', fontWeight: '600', color: danger ? '#ff4655' : 'white', letterSpacing: '-0.01em' }}>{title.toUpperCase()}</h3>
+                <p style={{ fontSize: '10px', opacity: 0.3 }}>{desc}</p>
             </div>
         </div>
     );
@@ -237,8 +266,7 @@ function MenuCard({ icon, title, desc, onClick, danger }) {
 
 // 1. FLUJO: CONFIGURACIÓN DE BASE DE DATOS (CREAR NUEVA)
 function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers, onComplete, onBack, renderHeader }) {
-    const [selectedProvider, setSelectedProvider] = useState(providers[0]?.id || '');
-    const [targetFolder, setTargetFolder] = useState({ id: activeWorkspaceId, title: 'Carpeta del Workspace' });
+    const [targetFolder, setTargetFolder] = useState({ id: activeWorkspaceId, title: 'Carpeta del Workspace', provider: 'drive' });
     const [showFolderSelector, setShowFolderSelector] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState([]); // { label: string, status: 'PENDING'|'DONE'|'ERROR' }
@@ -265,11 +293,14 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers
             
             // Paso 2: Creación física
             addLog("⚒️ Creando almacenamiento físico (Tabla/Spreadsheet)...");
+            // Inferencia de Motor via Contexto (Axioma de Identidad Fractal)
+            const inferredProvider = targetFolder.provider === 'drive' ? 'sheets' : (targetFolder.provider || 'sheets');
+            
             const result = await executeDirective({
                 provider: 'system',
                 protocol: 'SYSTEM_SCHEMA_IGNITE',
                 context_id: atom.id,
-                data: { target_provider: selectedProvider, parent_id: targetFolder.id }
+                data: { target_provider: inferredProvider, parent_id: targetFolder.id }
             }, coreUrl, sessionSecret);
             if (result.metadata?.status === 'OK') {
                 updateLastLog("DONE");
@@ -344,28 +375,40 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers
     }
 
     return (
-        <div className="nexus-path fill stack">
-            {renderHeader("CREAR NUEO ALMACENAMIENTO", "Generación de tabla física desde el diseño del esquema.")}
-            <div className="nexus-content fill stack--loose" style={{ padding: '24px' }}>
-                <div className="stack--tight">
-                    <label className="font-mono" style={{ fontSize: '9px', opacity: 0.5 }}>MOTOR_DE_BASE_DE_DATOS</label>
-                    <select value={selectedProvider} onChange={e => setSelectedProvider(e.target.value)} className="indra-select">
-                        {providers.map(p => <option key={p.id} value={p.id}>{p.id.toUpperCase()}</option>)}
-                    </select>
-                </div>
-
-                <div className="location-picker stack--tight" onClick={() => setShowFolderSelector(true)} style={{ padding: '16px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.1)', cursor: 'pointer' }}>
-                    <label className="font-mono" style={{ fontSize: '9px', opacity: 0.5 }}>UBICACIÓN_EN_DRIVE</label>
-                    <div className="shelf--tight" style={{ marginTop: '4px' }}>
-                        <IndraIcon name="FOLDER" size="14px" />
-                        <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{targetFolder.title}</span>
+        <div className="nexus-path fill stack" style={{ background: '#0a0a0a' }}>
+            {renderHeader("IGNICIÓN FÍSICA", "Configuración de motor y destino del silo.")}
+            <div className="nexus-content fill stack--loose" style={{ padding: '32px' }}>
+                <div className="setup-grid stack--loose">
+                    <div className="location-picker stack--tight" onClick={() => setShowFolderSelector(true)} style={{ 
+                        padding: '24px', 
+                        borderRadius: '16px', 
+                        background: 'rgba(255,255,255,0.02)', 
+                        border: '1px dashed rgba(255,255,255,0.1)', 
+                        cursor: 'pointer',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        textAlign: 'center'
+                    }}>
+                        <label className="font-mono" style={{ fontSize: '9px', opacity: 0.4, letterSpacing: '0.2em', display: 'block', marginBottom: '12px' }}>DESTINO_DE_MATERIALIZACIÓN</label>
+                        <div className="stack--tight center">
+                            <div className="center" style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', marginBottom: '8px' }}>
+                                <IndraIcon name={targetFolder.provider === 'drive' ? 'FOLDER' : 'VAULT'} size="20px" color="var(--indra-dynamic-accent)" />
+                            </div>
+                            <span style={{ fontSize: '14px', fontWeight: '600', color: 'white' }}>{targetFolder.title}</span>
+                            <span className="font-mono" style={{ fontSize: '9px', opacity: 0.3 }}>PROVIDER: {targetFolder.provider?.toUpperCase()}</span>
+                        </div>
                     </div>
                 </div>
 
                 <div style={{ flex: 1 }} />
                 
-                <button className="btn btn--accent" onClick={handleAction} disabled={isProcessing} style={{ height: '50px', borderRadius: '12px' }}>
-                    INICIAR CONFIGURACIÓN FÍSICA
+                <button className="btn btn--accent shelf--tight center" onClick={handleAction} disabled={isProcessing} style={{ 
+                    height: '48px', 
+                    borderRadius: '12px', 
+                    width: '100%',
+                    boxShadow: '0 4px 20px rgba(0, 255, 200, 0.1)'
+                }}>
+                    <IndraIcon name="VAULT" size="14px" />
+                    <span style={{ fontWeight: 'bold', fontSize: '12px', letterSpacing: '0.05em' }}>INICIAR MATERIALIZACIÓN FÍSICA</span>
                 </button>
             </div>
 
@@ -373,7 +416,7 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers
                 <ArtifactSelector 
                     title="SELECCIONAR CARPETA" 
                     filter={{ class: 'FOLDER' }} 
-                    onSelect={f => { setTargetFolder({ id: f.id, title: f.handle?.label || f.id }); setShowFolderSelector(false); }}
+                    onSelect={f => { setTargetFolder({ id: f.id, title: f.handle?.label || f.id, provider: f.provider || 'drive' }); setShowFolderSelector(false); }}
                     onCancel={() => setShowFolderSelector(false)}
                 />
             )}

@@ -139,7 +139,6 @@ function handleDrive(uqo) {
 
   if (protocol === 'HIERARCHY_TREE') return _drive_handleHierarchyTree(uqo);
   if (protocol === 'ATOM_READ')      return _drive_handleAtomRead(uqo);
-  if (protocol === 'TABULAR_STREAM') return _drive_handleTabularStream(uqo);
   if (protocol === 'ATOM_CREATE')    return _drive_handleAtomCreate(uqo);
   if (protocol === 'ATOM_UPDATE')    return _drive_handleAtomUpdate(uqo);
   if (protocol === 'BATCH_UPDATE')   return _drive_handleBatchUpdate(uqo);
@@ -333,33 +332,8 @@ function _drive_handleAtomCreate(uqo) {
       atom = _drive_fileToAtom(newFile, uqo.provider, false);
       logInfo(`[provider_drive] Archivo generado: "${label}" (${mimeType}) en "${parentFolder.getName()}"`);
     } else if (source.class === 'TABULAR') {
-      // ── MODO TABULAR: Crear Google Sheet con cabeceras (Hito de Impresión de Backend)
-      const ss = SpreadsheetApp.create(label.trim());
-      const file = DriveApp.getFileById(ss.getId());
-      
-      // Mover a la carpeta destino
-      parentFolder.addFile(file);
-      DriveApp.getRootFolder().removeFile(file);
-
-      // Inyectar cabeceras si existen (fields)
-      // AXIOMA: Soporte para 'Dynamic Tables' (Hito Futuro: API Sheets v4 para Tablas Oficiales)
-      const fields = source.fields || source.payload?.fields || [];
-      if (Array.isArray(fields) && fields.length > 0) {
-        const sheet = ss.getSheets()[0];
-        const headers = fields.map(f => (typeof f === 'object' ? (f.label || f.alias || f.id) : f));
-        
-        // Formateo Premium de la fila de cabecera
-        const range = sheet.getRange(1, 1, 1, headers.length);
-        range.setValues([headers]);
-        sheet.setFrozenRows(1);
-        range.setFontWeight("bold").setBackground("#f3f4f6").setFontFamily("Inter, Roboto, sans-serif");
-        
-        logInfo(`[provider_drive] Tabular "PREMIUM" configurado con ${headers.length} columnas.`);
-      }
-
-      atom = _drive_fileToAtom(file, uqo.provider, true);
-      logInfo(`[provider_drive] Hoja de cálculo generada: "${label}" en "${parentFolder.getName()}"`);
-      logInfo(`[IDENTITY_TRACE] URL Real: ${file.getUrl()} | ID: ${file.getId()}`);
+      // ── DELEGACIÓN: El motor de Sheets ahora es el responsable de esto.
+      throw createError('SOVEREIGN_VIOLATION', 'Para crear tablas use el provider "sheets". Drive ya no gestiona materia prima tabular nativa.');
     } else if (source.class === 'DATA_SCHEMA') {
       // ── MODO SEMILLA: Crear archivo JSON de esquema puro (Axioma de Sinceridad)
       const fileName = `${label.trim()}.json`;
@@ -673,67 +647,8 @@ function _drive_extractCursor(foldersIter, filesIter) {
 }
 
 /**
- * TABULAR_STREAM: Transforma una Google Sheet en un flujo de átomos.
- * context_id = ID de la Google Sheet.
- * @private
+ * TABULAR_STREAM: [ELIMINADO] Delegado al motor de Sheets soberano.
  */
-function _drive_handleTabularStream(uqo) {
-  try {
-    const fileId = uqo.context_id;
-    const ss = SpreadsheetApp.openById(fileId);
-    const sheet = ss.getSheets()[0]; // Tomamos la primera pestaña por defecto
-    const data = sheet.getDataRange().getValues();
-    const headers = data.shift() || [];
-    const fields = headers.map(h => ({
-      id: _system_slugify_(h),
-      handle: { ns: 'com.drive.field', alias: _system_slugify_(h), label: h },
-      type: 'STRING'
-    }));
-
-    const items = data.map((row, idx) => {
-      const rowObj = {};
-      headers.forEach((h, i) => { rowObj[_system_slugify_(h)] = row[i]; });
-      return {
-        ...rowObj,
-        id: `${fileId}_row_${idx}`,
-        handle: { ns: 'com.drive.row', alias: `row_${idx}`, label: `Fila ${idx + 1}` },
-        class: 'TABULAR'
-      };
-    });
-
-    return {
-      items,
-      metadata: {
-        status: 'OK',
-        schema: { fields },
-        context: { file_id: fileId, sheet_name: sheet.getName() }
-      }
-    };
-  } catch (err) {
-    logError('[provider_drive] Error en TABULAR_STREAM.', err);
-    return { items: [], metadata: { status: 'ERROR', error: err.message } };
-  }
-}
-
-/**
- * Inspecciona una Google Sheet para extraer sus cabeceras como campos.
- * @private
- */
-function _drive_spreadsheetToFields(file) {
-  const ss = SpreadsheetApp.openById(file.getId());
-  const sheet = ss.getSheets()[0];
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  
-  return headers.filter(h => !!h).map(h => ({
-    id: _system_slugify_(h),
-    handle: {
-      ns: 'com.drive.schema.field',
-      alias: _system_slugify_(h),
-      label: String(h)
-    },
-    type: 'STRING' // Default para Drive, ya que no hay metadata rica
-  }));
-}
 
 // =============================================================================
 // ADR-024: UNIVERSAL MEDIA RESOLVER

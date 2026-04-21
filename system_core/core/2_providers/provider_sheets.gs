@@ -87,6 +87,7 @@ function _sheets_handleAtomCreate(uqo) {
   const ss = SpreadsheetApp.create(label.trim());
   const ssId = ss.getId();
   const file = DriveApp.getFileById(ssId);
+  logInfo(`[IDENTITY_AUDIT] sheets:ATOM_CREATE -> ID: ${ssId} (Len: ${ssId.length}) | Mime: ${file.getMimeType()}`);
   
   // 2. POSICIONAMIENTO (Mover a la carpeta de destino o raíz de Indra)
   const destFolderId = uqo.context_id || 'ROOT';

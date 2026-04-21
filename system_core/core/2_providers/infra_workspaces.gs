@@ -111,6 +111,11 @@ function _system_handleSchemaIgnite(uqo) {
 
   const siloAtom = createResult.items[0];
   const siloId = siloAtom.id;
+  
+  // 1. GÉNESIS FÍSICA
+  const file = DriveApp.getFileById(siloId);
+  logInfo(`[IDENTITY_AUDIT] Nacimiento Silo: ${siloId} (Len: ${siloId.length}) | Mime: ${file.getMimeType()}`);
+  
   const physicalId = siloAtom.payload?.physical_id || siloId;
   
   console.log("[INFRA_ULTRA_SONDE] ID Detectado: " + siloId + " | Physical: " + physicalId);

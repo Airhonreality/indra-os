@@ -20,8 +20,6 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
     
     // Estados compartidos
     const services = useAppState(s => s.services || []);
-    const coreUrl = useAppState(s => s.coreUrl);
-    const sessionSecret = useAppState(s => s.sessionSecret);
     const activeWorkspaceId = useAppState(s => s.activeWorkspaceId);
 
 
@@ -104,8 +102,6 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
             <PathIgnite 
                 atom={atom} 
                 bridge={bridge}
-                coreUrl={coreUrl} 
-                sessionSecret={sessionSecret} 
                 activeWorkspaceId={activeWorkspaceId}
                 onComplete={onUpdate}
                 renderHeader={renderHeader}
@@ -117,8 +113,6 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
         return (
             <PathImportDNA 
                 bridge={bridge}
-                coreUrl={coreUrl} 
-                sessionSecret={sessionSecret} 
                 onComplete={onFieldsImported}
                 onBack={() => setCurrentPath('MENU')}
                 renderHeader={renderHeader}
@@ -143,8 +137,6 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
             <PathHydrate 
                 atom={atom}
                 bridge={bridge}
-                coreUrl={coreUrl} 
-                sessionSecret={sessionSecret} 
                 onBack={() => setCurrentPath('MENU')}
                 renderHeader={renderHeader}
             />
@@ -155,8 +147,7 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
         return (
             <PathUnlink 
                 atom={atom}
-                coreUrl={coreUrl} 
-                sessionSecret={sessionSecret} 
+                bridge={bridge}
                 onComplete={onUpdate}
                 onBack={() => setCurrentPath('MENU')}
                 renderHeader={renderHeader}
@@ -303,7 +294,7 @@ function PathIgnite({ atom, bridge, activeWorkspaceId, onComplete, renderHeader 
             .catch(() => {})
             .finally(() => setIsResolving(false));
         }
-    }, [activeWorkspaceId, coreUrl, sessionSecret, targetFolder.id]);
+    }, [activeWorkspaceId, bridge, targetFolder.id]);
 
     const updateLastLog = (status) => {
         setProgress(prev => {
@@ -694,8 +685,7 @@ function PathHydrate({ atom, bridge, onBack, renderHeader }) {
                 {renderHeader("TRANSFERIR DATOS", "Seleccionar silo de origen para hidratación.")}
                 <div className="nexus-content fill center" style={{ padding: '24px' }}>
                     <SiloFractalExplorer 
-                        coreUrl={coreUrl} 
-                        sessionSecret={sessionSecret} 
+                        bridge={bridge}
                         onSelect={setSource} 
                     />
                 </div>

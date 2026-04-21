@@ -7,15 +7,27 @@
  */
 
 function PROBE_STRESS_IGNITE_MASTER() {
-  const TEST_SOURCE_ID = '18db5567-ba71-81eb-beec-eb3357b54863'; // Notion Catalog
   const TEST_TARGET_PROVIDER = 'sheets';
-  const ITERATIONS = 3; // Nivel de estrés (Gas tiene límites de tiempo)
+  const ITERATIONS = 2; // Reducido para mayor agilidad en el test
+
+  console.log("🚀 [PROBE:OMEGA] Iniciando Test de Estrés con Autodescubrimiento...");
+  console.log("--------------------------------------------------------------------------------");
+
+  // --- FASE 0: DESCUBRIMIENTO DE ADN ---
+  console.log("🔍 [PROBE:DISCOVERY] Buscando ADN compatible en el registro...");
+  const registry = route({ provider: 'system', protocol: 'ATOM_LIST_QUERY' });
+  const notionAtom = (registry.items || []).find(a => a.provider === 'notion' || a.class === 'TABULAR');
+
+  if (!notionAtom) {
+    console.error("🚨 [ABORT] No se encontró ningún Átomo de Notion en el Registro para testear.");
+    return;
+  }
+
+  const TEST_SOURCE_ID = notionAtom.id;
+  console.log(`✅ [PROBE:DISCOVERY] ADN localizado: [${notionAtom.handle?.label}] (ID: ${TEST_SOURCE_ID})`);
 
   const probeResults = [];
-  const debris = []; // Almacén de basura espacial para purga final
-  
-  console.log("🚀 [PROBE:OMEGA] Iniciando Test de Estrés Ferroviario (Notion -> Core -> Sheets)");
-  console.log("--------------------------------------------------------------------------------");
+  const debris = []; 
 
   for (let i = 1; i <= ITERATIONS; i++) {
     const iterationStart = Date.now();

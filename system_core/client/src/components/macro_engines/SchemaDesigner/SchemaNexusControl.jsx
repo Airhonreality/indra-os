@@ -657,14 +657,22 @@ function PathHydrate({ atom, bridge, onBack, renderHeader }) {
         try {
             const result = await bridge.execute({
                 provider: 'automation',
-                protocol: 'INDUSTRIAL_IGNITE',
+                protocol: 'INDUSTRIAL_SYNC',
                 data: {
                     source_id: source.id,
                     source_provider: source.provider || 'notion',
-                    target_id: atom.payload?.target_silo_id,
+                    silo_id: atom.payload?.target_silo_id,
                     target_provider: atom.payload?.target_provider || 'sheets',
-                    mapping: mapping,
-                    mode: 'OVERWRITE'
+                    bridge_atom: {
+                        id: 'adhoc-bridge',
+                        class: 'BRIDGE',
+                        payload: {
+                            mappings: { [atom.payload?.target_silo_id || 'unlinked']: mapping },
+                            targets: [atom.payload?.target_silo_id || 'unlinked'],
+                            target_provider: atom.payload?.target_provider || 'sheets',
+                            policy: { conflict_strategy: 'MERGE' }
+                        }
+                    }
                 }
             });
 

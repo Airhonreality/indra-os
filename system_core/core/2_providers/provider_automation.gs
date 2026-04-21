@@ -76,16 +76,36 @@ function handleAutomation(uqo) {
  * Orquestación de Resonancia Industrial (v1.0)
  */
 function _automation_handleIndustrialSync_(uqo) {
-  const { bridge_id, silo_id, target_provider, sat_payload, silo_payload, dry_run } = uqo.data || {};
+  const { 
+    bridge_id, bridge_atom, silo_id, target_provider, 
+    sat_payload: provided_sat, silo_payload, dry_run, 
+    source_id, source_provider 
+  } = uqo.data || {};
 
-  logInfo(`[automation:sync] 🔄 Iniciando Sincronización Industrial. Bridge: ${bridge_id}`);
+  logInfo(`[automation:sync] 🔄 Iniciando Sincronización Industrial. Bridge: ${bridge_id || 'AD-HOC'}`);
+
+  let sat_payload = provided_sat;
+  
+  if (!sat_payload && source_id) {
+    logInfo(`[automation:sync] 📡 Extrayendo payload fresco desde source: ${source_id}...`);
+    const readSource = route({ 
+       provider: source_provider || 'notion', 
+       protocol: 'ATOM_READ', 
+       context_id: source_id 
+    });
+    if (readSource.metadata?.status !== 'OK' && readSource.metadata?.status !== 'SUCCESS') {
+       throw createError('SOURCE_READ_FAILED', `Fallo al extraer registros del source ${source_id}. Error: ${readSource.metadata?.error}`);
+    }
+    sat_payload = { items: readSource.items || [] };
+    logInfo(`[automation:sync] 🧬 Extraídos ${sat_payload.items.length} items soberanos del origen.`);
+  }
 
   // 1. ANÁLISIS PURO (Inteligencia)
   const analysis = route({
     provider: 'compute', // El motor de resonancia suele estar en el dominio de lógica/compute
     protocol: 'RESONANCE_ANALYZE',
     context_id: bridge_id,
-    data: { sat_payload, silo_payload }
+    data: { sat_payload, silo_payload, bridge_atom }
   });
 
   if (analysis.metadata.status !== 'OK') return analysis;
@@ -95,7 +115,7 @@ function _automation_handleIndustrialSync_(uqo) {
   if (resonanceReport.actions.length > 0 && !dry_run) {
     logInfo(`[automation:sync] 🧱 Materializando ${resonanceReport.actions.length} acciones en ${target_provider}...`);
     const updateRes = route({
-      provider: target_provider,
+      provider: target_provider || 'sheets',
       protocol: 'BATCH_UPDATE',
       data: {
         silo_id: silo_id,

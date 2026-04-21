@@ -345,6 +345,16 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "5_diagnostics/PROBE_SILO_GPS.gs",
+    "name": "PROBE_SILO_GPS",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "5_diagnostics/PROBE_SYNC_HYDRATION.gs",
+    "name": "PROBE_SYNC_HYDRATION",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "5_diagnostics/auth_trigger.gs",
     "name": "auth_trigger",
     "type": "SERVER_JS"

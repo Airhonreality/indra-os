@@ -664,7 +664,9 @@ function PathHydrate({ atom, bridge, onBack, renderHeader }) {
                 if (key.endsWith('_label')) return; // Filtramos meta-datos basura visual
                 const fieldDef = atom.payload?.fields?.find(f => f.id === key);
                 if (fieldDef) {
-                    const physicalKey = fieldDef.handle?.alias || fieldDef.alias || fieldDef.id;
+                    // Sheets crea sus columnas basado en el LABEL, ¡no en el alias! 
+                    // Por tanto pasamos el Label exacto para que el Backend lo identifique.
+                    const physicalKey = fieldDef.handle?.label || fieldDef.label || fieldDef.handle?.alias || fieldDef.alias || fieldDef.id;
                     translatedMapping[physicalKey] = val;
                 } else {
                     translatedMapping[key] = val;

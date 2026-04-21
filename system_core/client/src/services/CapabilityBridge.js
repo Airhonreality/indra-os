@@ -43,6 +43,7 @@ export class DesignerBridge {
         try {
             // AXIOMA: Construcción Determinista. El motor pierde el voto sobre su ID y Clase.
             return await this.request({
+                provider: this.atom.provider || 'system',
                 protocol: 'ATOM_UPDATE',
                 context_id: contextId,
                 data: { 
@@ -62,6 +63,7 @@ export class DesignerBridge {
      */
     async read(options = {}) {
         const result = await this.request({
+            provider: this.atom.provider || 'system',
             protocol: 'ATOM_READ',
             context_id: this.atom.id
         });

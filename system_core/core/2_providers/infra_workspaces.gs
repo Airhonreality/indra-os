@@ -109,39 +109,31 @@ function _system_handleSchemaIgnite(uqo) {
     throw createError('GENESIS_FAILED', `La creación física falló en ${targetProvider}.`, { trace_id: traceId });
   }
 
-  const siloAtom = createResult.items[0];
-  const siloId = siloAtom.id;
-  
-  // 1. GÉNESIS FÍSICA
-  const file = DriveApp.getFileById(siloId);
-  logInfo(`[IDENTITY_AUDIT] Nacimiento Silo: ${siloId} (Len: ${siloId.length}) | Mime: ${file.getMimeType()}`);
-  
-  const physicalId = siloAtom.payload?.physical_id || siloId;
-  
-  console.log("[INFRA_ULTRA_SONDE] ID Detectado: " + siloId + " | Physical: " + physicalId);
-  logInfo(`[ignite] Almacenamiento físico creado: ${siloAtom.id} (${siloAtom.class})`);
+  // 3. Extracción de Identidad Física Real (Axioma de Sinceridad)
+  // Siempre priorizar metadata.physical_id devuelto por el motor (sheets/notion)
+  const physicalId = createResult.metadata?.physical_id || createResult.items[0].id;
+  const siloUrl = createResult.metadata?.silo_url || createResult.items[0].raw?.url;
 
-  // 3. VINCULACIÓN TÉCNICA (Trazabilidad Lineal)
+  logInfo(`[IDENTITY_TRACE] Identidad materializada: ${physicalId} (Len: ${physicalId.length})`);
+  
+  if (physicalId.length < 40) {
+    logWarn(`[CRITICAL] ID sospechoso (posible contenedor): ${physicalId}. La Sheet debería tener 44 caracteres.`);
+  }
+
+  // 4. VINCULACIÓN TÉCNICA (Trazabilidad Lineal)
   // Actualizamos el esquema original para que "conozca" su destino físico.
-  logInfo(`[ignite] Vinculando a esquema origen: ${schemaId} (Clase: ${schemaAtom.class})`);
   const patchResult = _system_handlePatch({
-    provider: uqo.provider,
+    provider: 'system', // Siempre vía sistema
     context_id: schemaId,
     data: {
       payload: {
+        ...schemaAtom.payload,
         target_silo_id: physicalId,
         target_provider: targetProvider,
         ignited_at: new Date().toISOString()
-      },
-      metadata: { // Inyectamos metadatos de sincronización
-        last_materialization: siloId,
-        materialization_status: 'OK'
       }
     }
   });
-
-  console.log("[INFRA_ULTRA_SONDE] Esquema Parcheado. Payload Target: " + patchResult.items[0].payload.target_silo_id);
-  logInfo(`[ignite] Vinculación completada. Items devueltos: ${patchResult.items.length}. Clase del primero: ${patchResult.items[0]?.class}`);
 
   return {
     items: patchResult.items, // Devolvemos el ESQUEMA ACTUALIZADO
@@ -149,9 +141,9 @@ function _system_handleSchemaIgnite(uqo) {
       status: 'OK',
       trace_id: traceId,
       silo_id: physicalId,
-      silo_url: createResult.metadata?.silo_url,
+      silo_url: siloUrl,
       target_provider: targetProvider,
-      core_patch_version: 'v10.1-ULTRA-SONDE',
+      core_patch_version: 'v10.2-IDENTITY-FIX',
       message: 'Base de datos configurada y vinculada exitosamente.'
     }
   };

@@ -128,7 +128,8 @@ function _sheets_handleAtomCreate(uqo) {
     metadata: { 
       status: 'OK', 
       silo_url: ss.getUrl(),
-      physical_id: ssId
+      physical_id: ssId, // Crucial: Exportar el ID real de 44 chars
+      mimetype: 'application/vnd.google-apps.spreadsheet'
     } 
   };
 }

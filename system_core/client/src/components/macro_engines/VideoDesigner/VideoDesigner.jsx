@@ -16,8 +16,6 @@ import { InspectorSidebar } from './components/InspectorSidebar';
 import { KineticTimeline } from './components/KineticTimeline';
 import { RealityStreamer } from './components/RealityStreamer';
 import ArtifactSelector from '../../utilities/ArtifactSelector';
-import { executeDirective } from '../../../services/directive_executor';
-import { useAppState } from '../../../state/app_state';
 
 import './VideoDesigner.css';
 
@@ -32,7 +30,6 @@ import './VideoDesigner.css';
 export function VideoDesigner({ atom, bridge }) {
     const t = useLexicon();
     const { updateAxiomaticIdentity } = useWorkspace();
-    const { coreUrl, sessionSecret } = useAppState();
     const {
         currentTime,
         isPlaying,
@@ -141,11 +138,11 @@ export function VideoDesigner({ atom, bridge }) {
                     // Purgar también remota si es un activo del silo
                     try {
                         console.log(`[VideoDesigner] Purga remota sincronizada: ${remoteId}`);
-                        await executeDirective({
+                        await bridge.execute({
                             provider: remoteProvider,
                             protocol: 'ATOM_DELETE',
                             context_id: remoteId
-                        }, coreUrl, sessionSecret);
+                        });
                     } catch (err) {
                         console.error("[VideoDesigner] Error en purga remota:", err);
                     }
@@ -179,11 +176,11 @@ export function VideoDesigner({ atom, bridge }) {
         try {
             console.log("[VideoDesigner] Importando desde Silo:", artifact);
             // 1. Leer el átomo del Silo (Drive) para obtener el Blob/Data
-            const result = await executeDirective({
+            const result = await bridge.execute({
                 provider: artifact.provider,
                 protocol: 'ATOM_READ',
-                id: artifact.id
-            }, coreUrl, sessionSecret);
+                context_id: artifact.id  // context_id is preferred over id
+            }, { vaultKey: `silo_asset_${artifact.id}` });
 
             if (result && result.payload) {
                 // 2. Convertir payload a Blob si no lo es (Depende del provider)

@@ -10,10 +10,8 @@
  * =============================================================================
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
-import { executeDirective } from '../../../services/directive_executor';
-import { useAppState } from '../../../state/app_state';
 
 /**
  * ResonanceMatrix — Visualización geométrica de ráfagas.
@@ -53,10 +51,7 @@ const PRESETS = [
     { label: 'REPAIR WORKSPACE', uqo: { provider: 'system', protocol: 'SYSTEM_WORKSPACE_REPAIR' } },
 ];
 
-export function UQOEditor() {
-    const coreUrl = useAppState(s => s.coreUrl);
-    const sessionSecret = useAppState(s => s.sessionSecret);
-
+export function UQOEditor({ bridge }) {
     const [mode, setMode] = useState('dev'); // 'dev' | 'quick'
     const [rawJson, setRawJson] = useState('{\n  "provider": "system",\n  "protocol": "SYSTEM_MANIFEST"\n}');
     const [isValid, setIsValid] = useState(true);
@@ -95,7 +90,7 @@ export function UQOEditor() {
 
     // Ejecución de la directiva o suite
     const handlePulse = async () => {
-        if (!isValid || isPulsing) return;
+        if (!isValid || isPulsing || !bridge) return;
         
         try {
             const data = JSON.parse(rawJson);
@@ -104,11 +99,11 @@ export function UQOEditor() {
             // Si es un array, es una suite (ráfaga)
             if (Array.isArray(data)) {
                 for (const uqo of data) {
-                    await executeDirective(uqo, coreUrl, sessionSecret);
+                    await bridge.execute(uqo);
                 }
             } else {
                 // Ejecución única normal
-                await executeDirective(data, coreUrl, sessionSecret);
+                await bridge.execute(data);
             }
             
         } catch (err) {
@@ -120,7 +115,7 @@ export function UQOEditor() {
 
     // Ejecución de Smoke Test (JS dinámico)
     const runSmokeTest = async () => {
-        if (selectedSmokeIdx < 0 || isPulsing) return;
+        if (selectedSmokeIdx < 0 || isPulsing || !bridge) return;
         
         setIsPulsing(true);
         const test = smokeTests[selectedSmokeIdx];
@@ -130,16 +125,16 @@ export function UQOEditor() {
         
         try {
             // Evaluamos el código pasando el contexto de conexión y una función de logueo
-            const scriptFunc = new Function('context', 'sendDirective', `
+            const scriptFunc = new Function('bridge', 'sendDirective', `
                 return (async () => {
                     ${test.code}
                 })();
             `);
             
-            // Pasamos executeDirective directamente para que cada paso genere su propia traza real en el Roster
+            // Pasamos bridge y bridge.execute directamente para que cada paso genere su propia traza real
             const result = await scriptFunc(
-                { coreUrl, sessionSecret }, 
-                (uqo) => executeDirective(uqo, coreUrl, sessionSecret)
+                bridge, 
+                (uqo) => bridge.execute(uqo)
             );
             
             console.log('🏁 RESULTADO SMOKE:', result);
@@ -258,7 +253,7 @@ export function UQOEditor() {
                 <button 
                     className="pulse-button" 
                     onClick={handlePulse}
-                    disabled={!isValid || isPulsing || !coreUrl}
+                    disabled={!isValid || isPulsing || !bridge}
                     data-pulsing={isPulsing}
                 >
                     <div className="pulse-button__glitch"></div>

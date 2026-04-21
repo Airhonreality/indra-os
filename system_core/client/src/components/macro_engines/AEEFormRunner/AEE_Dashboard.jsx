@@ -16,14 +16,10 @@ import { ResultPanel } from './ResultPanel';
 import { AEEConfigPanel } from './AEEConfigPanel';
 import { IndraMacroHeader } from '../../utilities/IndraMacroHeader';
 import { IndraIcon } from '../../utilities/IndraIcons';
-import { executeDirective } from '../../../services/directive_executor';
 import { useAppState } from '../../../state/app_state';
 import './AEEFormRunner.css';
 
 export function AEEDashboard({ atom, bridge }) {
-    const coreUrl = useAppState(s => s.coreUrl);
-    const sessionSecret = useAppState(s => s.sessionSecret);
-
     const [liveConfig, setLiveConfig] = React.useState({});
 
     // Mimetismo: Creamos un átomo fantasma (preview) que fusiona la DB con los cambios en vivo del inspector
@@ -51,7 +47,7 @@ export function AEEDashboard({ atom, bridge }) {
         error,
         executeLogic,
         reset
-    } = useAEESession(previewAtom);
+    } = useAEESession(previewAtom, bridge);
 
     const isConfigured = !!previewAtom?.payload?.schema_id;
     const isDirty = (
@@ -74,13 +70,10 @@ export function AEEDashboard({ atom, bridge }) {
 
     // Función Canónica: GUARDAR
     const handleSave = async () => {
-        if (!isDirty || !isConfigured) return;
+        if (!isDirty || !isConfigured || !bridge) return;
         
-        // AXIOMA: Delegamos la persistencia al Bridge Agnóstico.
-        // Esto garantiza que si el Alias cambió, el Bridge use la dirección correcta.
         try {
-            await bridge.save(previewAtom.payload);
-            // La resonancia global se encarga de refrescar el átomo.
+            await bridge.save(previewAtom);
         } catch (err) {
             console.error('[AEE] Fallo de persistencia axiomática:', err);
         }
@@ -88,10 +81,10 @@ export function AEEDashboard({ atom, bridge }) {
 
     // Función Canónica: PUBLICAR
     const handlePublish = async () => {
-        if (!isConfigured) return;
+        if (!isConfigured || !bridge) return;
         setIsPublishing(true);
         try {
-            const res = await executeDirective({
+            const res = await bridge.execute({
                 provider: 'system',
                 protocol: 'SYSTEM_SHARE_CREATE',
                 data: {
@@ -99,13 +92,13 @@ export function AEEDashboard({ atom, bridge }) {
                     artifact_class: atom.class,
                     auth_mode: 'public'
                 }
-            }, coreUrl, sessionSecret);
+            });
 
             if (res.metadata?.status === 'OK' && res.items?.[0]) {
                 const ticketId = res.items[0].ticket_id;
-                const url = `${window.location.origin}${window.location.pathname}?u=${encodeURIComponent(coreUrl)}&id=${ticketId}`;
+                // Obtenemos coreUrl del bridge si es necesario para el link
+                const url = `${window.location.origin}${window.location.pathname}?u=${encodeURIComponent(bridge.coreUrl)}&id=${ticketId}`;
                 await navigator.clipboard.writeText(url);
-                // toastEmitter.success('¡Link público generado y copiado!');
                 alert("Enlace público copiado: " + url);
             }
         } catch (err) {
@@ -123,14 +116,14 @@ export function AEEDashboard({ atom, bridge }) {
 
     React.useEffect(() => {
         const checkDrift = async () => {
-            if (!previewAtom?.id || previewAtom?.class !== 'DATA_SCHEMA') return;
+            if (!previewAtom?.id || !bridge) return;
             setDriftState({ status: 'CHECKING', message: 'Verificando evolución del origen...', details: null });
             try {
-                const result = await executeDirective({
+                const result = await bridge.execute({
                     provider: 'system',
                     protocol: 'INDUCTION_DRIFT_CHECK',
                     context_id: previewAtom.id
-                }, coreUrl, sessionSecret);
+                });
 
                 if (result.metadata?.status !== 'OK') throw new Error(result.metadata?.error || 'DRIFT_CHECK_FAILED');
                 if (result.metadata?.drift_detected) {
@@ -301,6 +294,7 @@ export function AEEDashboard({ atom, bridge }) {
                 <AEEConfigPanel
                     atom={previewAtom}
                     onConfigChange={setLiveConfig}
+                    bridge={bridge}
                 />
 
                 {/* LIENZO DE MANIFESTACIÓN (70%) */}

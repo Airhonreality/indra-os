@@ -125,12 +125,27 @@ function _automation_handleIndustrialSync_(uqo) {
  */
 function _automation_handleIndustrialIgnite(uqo) {
   const data = uqo.data || {};
-  const blueprint = data.blueprint || data.source_artifact;
+  
+  // --- FASE DE RESOLUCIÓN SOBERANA (Axioma de Suh) ---
+  // Si la UI solo envía IDs, el Provider es responsable de la hidratación.
+  
+  // 1. Resolución de ADN (Source)
+  if (data.source_id && !data.source_artifact && !data.blueprint) {
+    logInfo(`[automation:resolver] Hidratando ADN desde ID: ${data.source_id}`);
+    const res = route({ provider: 'system', protocol: 'ATOM_READ', context_id: data.source_id });
+    if (res.items && res.items[0]) {
+      uqo.data.source_artifact = res.items[0];
+    } else {
+      throw createError('NOT_FOUND', `No se pudo resolver el ADN de origen: ${data.source_id}`);
+    }
+  }
 
-  if (!data.target_provider) throw createError('INVALID_INTENTION', 'INDUSTRIAL_IGNITE requiere target_provider.');
-  if (!blueprint)           throw createError('INVALID_INTENTION', 'INDUSTRIAL_IGNITE requiere blueprint (DNA).');
+  const blueprint = uqo.data.blueprint || uqo.data.source_artifact;
 
-  logInfo(`[automation:pine] Delegando Ignición al Motor de Cristalización Universal.`);
+  if (!uqo.data.target_provider) throw createError('INVALID_INTENTION', 'INDUSTRIAL_IGNITE requiere target_provider.');
+  if (!blueprint)               throw createError('INVALID_INTENTION', 'INDUSTRIAL_IGNITE requiere blueprint (DNA) o source_id válido.');
+
+  logInfo(`[automation:pine] Ignición Industrial orquestada con éxito. ADN Resuelto.`);
 
   // AXIOMA: Ignición Industrial es un alias del Motor de Cristalización Universal
   return induction_orchestrateCrystallization_(uqo);

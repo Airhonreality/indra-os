@@ -9,20 +9,20 @@
 import React, { useState, useEffect } from 'react';
 import { IndraFractalTree } from './IndraFractalTree';
 import { IndraIcon } from './IndraIcons';
-import { executeDirective } from '../../services/directive_executor';
 
-export function SiloFractalExplorer({ coreUrl, sessionSecret, onSelect, filterClass = 'FOLDER' }) {
+export function SiloFractalExplorer({ bridge, onSelect, filterClass = 'FOLDER' }) {
     const [silos, setSilos] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
     // 1. CARGA INICIAL: Obtener Silos Disponibles (Drive, Notion, etc.)
     useEffect(() => {
         const fetchSilos = async () => {
+            if (!bridge) return;
             try {
-                const res = await executeDirective({
+                const res = await bridge.execute({
                     provider: 'system',
                     protocol: 'SYSTEM_MANIFEST'
-                }, coreUrl, sessionSecret);
+                });
                 
                 const providers = (res.items || []).filter(p => p.capabilities?.HIERARCHY_TREE);
                 
@@ -46,19 +46,20 @@ export function SiloFractalExplorer({ coreUrl, sessionSecret, onSelect, filterCl
             }
         };
         fetchSilos();
-    }, []);
+    }, [bridge]);
 
     // 2. RESONANCIA DE RAMA: Cargar hijos vía HIERARCHY_TREE
     const handleExpand = async (node) => {
+        if (!bridge) return;
         if (node.children && node.children.length > 0) return;
 
         try {
-            const res = await executeDirective({
+            const res = await bridge.execute({
                 provider: node.provider || 'drive',
                 account_id: node.account_id,
                 protocol: 'HIERARCHY_TREE',
                 context_id: node.isRootSilo ? (node.handle?.entry_point || 'ROOT') : node.id
-            }, coreUrl, sessionSecret);
+            }, { vaultKey: `tree_${node.id}` }); // Cachear estructura de carpetas en el Vault
 
             const children = (res.items || []).map(item => ({
                 ...item,

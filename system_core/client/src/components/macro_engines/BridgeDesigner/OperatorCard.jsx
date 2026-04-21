@@ -20,14 +20,15 @@ import { ExpressionConfig } from './OperatorTypes/ExpressionConfig';
 import { FilterConfig } from './OperatorTypes/FilterConfig';
 import { LookupConfig } from './OperatorTypes/LookupConfig';
 
-export function OperatorCard({ op, onUpdate, onRemove, options }) {
+export function OperatorCard({ op, onUpdate, onRemove, options, bridge }) {
 
     const renderConfig = () => {
         const props = {
             config: op.config,
             onUpdate: (cfg) => onUpdate({ ...op, config: cfg }),
             options,
-            opId: op.id
+            opId: op.id,
+            bridge
         };
 
         switch (op.type) {

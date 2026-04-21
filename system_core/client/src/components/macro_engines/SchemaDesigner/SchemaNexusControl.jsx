@@ -170,7 +170,7 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
 // --- SUB-COMPONENTES DE APOYO ---
 
 // 5. FLUJO: DESVINCULAR (REPARACIÓN TÉCNICA)
-function PathUnlink({ atom, bridge, coreUrl, sessionSecret, onComplete, onBack, renderHeader }) {
+function PathUnlink({ atom, bridge, onComplete, onBack, renderHeader }) {
     const [isProcessing, setIsProcessing] = useState(false);
 
     const handleUnlink = async () => {
@@ -265,7 +265,7 @@ function MenuCard({ icon, title, desc, onClick, danger }) {
 }
 
 // 1. FLUJO: CONFIGURACIÓN DE BASE DE DATOS (CREAR NUEVA)
-function PathIgnite({ atom, bridge, coreUrl, sessionSecret, activeWorkspaceId, onComplete, renderHeader }) {
+function PathIgnite({ atom, bridge, activeWorkspaceId, onComplete, renderHeader }) {
     const [targetFolder, setTargetFolder] = useState({ 
         id: activeWorkspaceId, 
         title: activeWorkspaceId ? `ID: ${activeWorkspaceId.substring(0,10)}...` : 'SELECCIONAR DESTINO', 
@@ -475,8 +475,7 @@ function PathIgnite({ atom, bridge, coreUrl, sessionSecret, activeWorkspaceId, o
                         </div>
                         <div style={{ padding: '20px' }}>
                             <SiloFractalExplorer 
-                                coreUrl={coreUrl}
-                                sessionSecret={sessionSecret}
+                                bridge={bridge}
                                 onSelect={f => { 
                                     setTargetFolder({ 
                                         id: f.id, 
@@ -499,7 +498,7 @@ function PathIgnite({ atom, bridge, coreUrl, sessionSecret, activeWorkspaceId, o
 }
 
 // 2. FLUJO: IMPORTAR ADN (ESTRUCTURA)
-function PathImportDNA({ bridge, coreUrl, sessionSecret, onComplete, renderHeader }) {
+function PathImportDNA({ bridge, onComplete, renderHeader }) {
     const [showSelector, setShowSelector] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -554,6 +553,7 @@ function PathImportDNA({ bridge, coreUrl, sessionSecret, onComplete, renderHeade
             {showSelector && (
                 <ArtifactSelector 
                     title="SELECCIONAR TABLA ORIGEN" 
+                    bridge={bridge}
                     onSelect={handleFileSelect}
                     onCancel={() => setShowSelector(false)}
                 />
@@ -611,7 +611,7 @@ function PathLink({ atom, bridge, onComplete, renderHeader }) {
 }
 
 // 4. FLUJO: HIDRATACIÓN INDUSTRIAL (TRANSFERENCIA SOBERANA)
-function PathHydrate({ atom, bridge, coreUrl, sessionSecret, onBack, renderHeader }) {
+function PathHydrate({ atom, bridge, onBack, renderHeader }) {
     const [source, setSource] = useState(null); // { id, provider, handle }
     const [mapping, setMapping] = useState({});
     const [isProcessing, setIsProcessing] = useState(false);
@@ -620,15 +620,33 @@ function PathHydrate({ atom, bridge, coreUrl, sessionSecret, onBack, renderHeade
     // Efecto de Hidratación de Origen
     useEffect(() => {
         if (source && bridge) {
-            console.log("🌀 [PathHydrate] Solicitando resonancia de origen vía Bridge...");
+            const vaultKey = `source_schema_${source.id}`;
+            
+            // 1. Intentar recuperar desde la Cripta (Resonancia Instantánea)
+            const cachedFields = bridge.vault.get(vaultKey);
+            if (cachedFields) {
+                console.log("💎 [PathHydrate] Esquema recuperado desde el Vault.");
+                const options = cachedFields.map(h => ({
+                    value: h.id || h.key,
+                    label: h.label || h.key,
+                    type: 'SOURCE'
+                }));
+                setSourceOptions(options);
+            }
+
+            // 2. Sincronizar con la Red (Actualización Silenciosa)
+            console.log("🌀 [PathHydrate] Refrescando resonancia de origen vía Bridge...");
             bridge.execute({
                 provider: source.provider || 'notion',
                 protocol: 'TABULAR_STREAM',
                 context_id: source.id,
                 data: { limit: 1 } // Solo headers
-            }, { vaultKey: `source_schema_${source.id}` }).then(res => {
+            }, { 
+                vaultKey: vaultKey,
+                vaultStrategy: 'SCHEMA' // Guardamos los fields del metadata, no los items
+            }).then(res => {
                 if (res.metadata?.schema?.fields) {
-                    console.log(`✅ [PathHydrate] Estructura detectada: ${res.metadata.schema.fields.length} campos.`);
+                    console.log(`✅ [PathHydrate] Estructura actualizada: ${res.metadata.schema.fields.length} campos.`);
                     const options = res.metadata.schema.fields.map(h => ({
                         value: h.id || h.key,
                         label: h.label || h.key,

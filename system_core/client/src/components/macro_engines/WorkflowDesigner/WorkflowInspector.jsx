@@ -5,8 +5,6 @@ import ArtifactSelector from '../../utilities/ArtifactSelector';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { IndraMicroHeader } from '../../utilities/IndraMicroHeader';
 import { IndraActionTrigger } from '../../utilities/IndraActionTrigger';
-import { executeDirective } from '../../../services/directive_executor';
-import { useAppState } from '../../../state/app_state';
 
 /**
  * =============================================================================
@@ -20,14 +18,8 @@ import { useAtomCatalog } from '../../../hooks/useAtomCatalog';
 
 export function WorkflowInspector() {
     const { 
-        providers: PROVIDER_DICT, 
-        protocolsByProvider: PROTOCOL_DICT, 
-        getFieldsForProtocol, 
-        isLoading: isLoadingDiscovery 
-    } = useProtocolDiscovery();
-
-    const { 
         workflow, 
+        bridge, // Inyectamos el bridge desde el contexto
         selectedStationId, 
         setSelectedStationId, 
         updateStation, 
@@ -35,8 +27,16 @@ export function WorkflowInspector() {
         removeStation, 
         removeTrigger 
     } = useWorkflow();
+
+    const { 
+        providers: PROVIDER_DICT, 
+        protocolsByProvider: PROTOCOL_DICT, 
+        getFieldsForProtocol, 
+        isLoading: isLoadingDiscovery 
+    } = useProtocolDiscovery(bridge);
     
-    const { coreUrl, sessionSecret, pins } = useAppState();
+    // ── PERSISTENCIA REACTIVA ──
+    // Eliminamos coreUrl/sessionSecret: el bridge ya los contiene encapsulados.
 
     // --- CATÁLOGO DE ESQUEMAS (CONTRATOS) ---
     const { 
@@ -66,19 +66,18 @@ export function WorkflowInspector() {
         setExpandedSchemaId(null);
     }, [selectedStationId]);
 
-    // AXIOMA DE HIDRATACIÓN DINÁMICA DE GATILLO
     useEffect(() => {
         const targetTrigger = workflow.payload?.trigger;
         const schemaId = targetTrigger?.source_id || targetTrigger?.schema_id;
 
-        if (schemaId && (!targetTrigger.fields || targetTrigger.fields.length === 0)) {
+        if (schemaId && bridge && (!targetTrigger.fields || targetTrigger.fields.length === 0)) {
             const hydrateTriggerFields = async () => {
                 try {
-                    const result = await executeDirective({
+                    const result = await bridge.execute({
                         provider: 'system',
                         protocol: 'ATOM_READ',
                         context_id: schemaId
-                    }, coreUrl, sessionSecret);
+                    }, { vaultKey: `schema_fields_${schemaId}` });
                     
                     if (result.items && result.items[0]) {
                         const schemaAtom = result.items[0];
@@ -91,7 +90,7 @@ export function WorkflowInspector() {
             };
             hydrateTriggerFields();
         }
-    }, [workflow.payload?.trigger?.source_id, workflow.payload?.trigger?.schema_id, coreUrl, sessionSecret]);
+    }, [workflow.payload?.trigger?.source_id, workflow.payload?.trigger?.schema_id, bridge]);
 
     // =========================================================================
     // AXIOMA: HIDRATACIÓN DE ESTACIÓN (HERENCIA DE ADN)
@@ -109,11 +108,11 @@ export function WorkflowInspector() {
 
         const hydrateStationFields = async () => {
             try {
-                const result = await executeDirective({
+                const result = await bridge.execute({
                     provider: 'system',
                     protocol: 'ATOM_READ',
                     context_id: templateId
-                }, coreUrl, sessionSecret);
+                }, { vaultKey: `schema_fields_${templateId}` });
                 
                 if (result.items && result.items[0]) {
                     const docAtom = result.items[0];
@@ -121,7 +120,7 @@ export function WorkflowInspector() {
                     
                     if (sources.length > 0) {
                         const schemaResults = await Promise.all(sources.map(sid => 
-                            executeDirective({ provider: 'system', protocol: 'ATOM_READ', context_id: sid }, coreUrl, sessionSecret)
+                            bridge.execute({ provider: 'system', protocol: 'ATOM_READ', context_id: sid }, { vaultKey: `schema_fields_${sid}` })
                         ));
                         
                         const allFields = schemaResults.flatMap(r => r.items?.[0]?.payload?.fields || []);
@@ -153,7 +152,7 @@ export function WorkflowInspector() {
             }
         };
         hydrateStationFields();
-    }, [selectedStationId, station?.mapping?.context_id?.value, coreUrl, sessionSecret]);
+    }, [selectedStationId, station?.mapping?.context_id?.value, bridge]);
 
 
     if (!station && !trigger) return null;

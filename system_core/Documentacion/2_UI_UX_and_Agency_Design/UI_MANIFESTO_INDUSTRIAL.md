@@ -15,6 +15,7 @@ Para que un código visual sea aceptado en INDRA, **NO** debe contener los sigui
 3.  **PROHIBIDO: Hardcoding de Colores.** No se permiten valores Hex, RGB o nombres de colores CSS. Se deben usar estrictamente los tokens: `var(--color-...)` o `var(--indra-dynamic-...)`.
 4.  **PROHIBIDO: Datos Ficticios.** No se permite inventar campos como `_inputs` o `linkedTo`. El sistema debe mapear relaciones basadas en el contrato real: `payload.sources` y `_origin`.
 5.  **PROHIBIDO: Hardcoding de Tipos en Motores.** Ningún Macro-Motor (AEE, Designer) debe contener lógica de renderizado específica (`switch/case`) para tipos de datos (inputs, fechas, imágenes). Se DEBE delegar el renderizado a un **ComponentMapper** y a **Widgets especializados**.
+6.  **PROHIBIDO: Fuga de Infraestructura.** Ningún componente visual (Layout, Card, Widget) tiene permitido recibir `coreUrl` o `sessionSecret` vía props. Estos secretos están restringidos a la capa del **Bridge**.
 
 ---
 
@@ -29,7 +30,25 @@ Un componente de INDRA es una **Cáscara Visual Agnóstica**. Su única función
 
 ---
 
-## 🧬 3. CONTRATOS TÉCNICOS (Determinismo)
+## 🛸 3. LEY DE LA MEMBRANA (Agnostic Bridge)
+
+La comunicación entre niveles debe ser **Mediadora, no Directa**.
+
+1.  **Independencia de Red**: Los componentes invocan servicios mediante `bridge.execute(uqo)`. La UI no sabe dónde vive el Core, solo sabe qué desea pedirle.
+2.  **Cripta de Datos (Vault)**: Toda información estructural recuperada (esquemas, árboles de archivos) debe pasar por el `AgnosticVault`. El componente primero consulta la cripta y solo después solicita a la red (Resonancia Silenciosa).
+
+---
+
+## 🧬 4. AXIOMA DEL AUTODIBUJADO (Schema Forms)
+
+La creación de interfaces de configuración (Modals de Setup, Nexus Control) no debe ser artesanal.
+
+*   **Proyección del Contrato**: La UI se genera automáticamente recorriendo el objeto `metadata.schema.fields` entregado por el Core.
+*   **Nexus Control**: El mapeo de propiedades (ej: vincular campos de Notion a columnas de Sheets) es dinámico. Si el Core añade un campo al esquema, la UI **debe dibujarlo automáticamente** sin intervención de código React.
+
+---
+
+## 🏛️ 5. CONTRATOS TÉCNICOS (Determinismo)
 
 Cualquier arquitectura de UI nueva debe cumplir con el esquema definido en:  
 [ui_contracts.json](./ui_contracts.json)
@@ -41,15 +60,13 @@ Cualquier arquitectura de UI nueva debe cumplir con el esquema definido en:
 
 ---
 
-## 🛠️ 4. PROTOCOLO DE AUDITORÍA PARA AGENTES
-
-Antes de sugerir o implementar un cambio en la UI, todo agente DEBE realizar este checklist:
+## 🛠️ 6. PROTOCOLO DE AUDITORÍA PARA AGENTES
 
 1.  [ ] ¿Mi componente delega la opacidad de carga al CSS global?
-2.  [ ] ¿He eliminado todo rastro de estilos inline para estados lógicos?
-3.  [ ] ¿Mi motor utiliza un `ComponentMapper` en lugar de un `switch` de tipos?
-4.  [ ] ¿He implementado la "Aduana" (validación) en el widget de entrada?
-5.  [ ] ¿Estoy usando `sources` en lugar de campos inventados para las relaciones?
-6.  [ ] ¿He envuelto mis tarjetas en un orquestador que inyecte `data-resonance`?
+2.  [ ] ¿He eliminado todo rastro de secretos de infraestructura (`coreUrl`, `secret`) de mis props?
+3.  [ ] ¿Estoy usando el **Bridge** para despachar directivas?
+4.  [ ] ¿Mi formulario se autoconstruye iterando sobre el `schema.fields`?
+5.  [ ] ¿He implementado la "Aduana" (validación) en el widget de entrada?
+6.  [ ] ¿Estoy consultando el `AgnosticVault` antes de disparar un fetch innecesario?
 
 **Si cualquiera de estos puntos es "NO", la implementación es ARTESANAL y será rechazada.**

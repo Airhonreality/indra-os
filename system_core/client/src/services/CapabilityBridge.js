@@ -12,13 +12,13 @@ import { MetaComposer } from './MetaComposer';
 import { AgnosticVault } from '../../public/indra-satellite-protocol/src/score/logic/AgnosticVault.js';
 
 export class DesignerBridge {
-    constructor(atom, shellActions, protocolData) {
+    constructor(atom, shellActions, protocolData, existingVault = null) {
         this.atom = atom;
         this.shell = shellActions; // { close: fn }
         this.protocol = protocolData; // { url, secret, lang }
         
-        // --- SOBERANÍA REACTIVA ---
-        this.vault = new AgnosticVault(this);
+        // --- SOBERANÍA REACTIVA COMPARTIDA ---
+        this.vault = existingVault || new AgnosticVault(this);
     }
 
     /**
@@ -99,20 +99,40 @@ export class DesignerBridge {
 
     /**
      * Ejecutar una directiva arbitraria contra el Core.
+     * AXIOMA DE FALLO RUIDOSO: Si no hay proveedor, el puente se niega a cruzar.
      */
     async request(directive, options = {}) {
-        // AXIOMA: Construcción Determinista.
-        const response = await executeDirective(
-            { provider: 'system', ...directive },
-            this.protocol.url,
-            this.protocol.secret
-        );
-
-        // Resonancia reactiva mínima para compatibilidad con AgnosticVault (si se implementa)
-        if (options.vaultKey && this.vault) {
-            this.vault.commit(options.vaultKey, response.items);
+        if (!directive.provider) {
+            throw new Error(`[Bridge:IdentityViolation] El UQO debe declarar un proveedor.`);
         }
 
-        return response;
+        try {
+            const response = await executeDirective(
+                directive, 
+                this.protocol.url,
+                this.protocol.secret
+            );
+
+            // RESONANCIA REACTIVA INTELIGENTE
+            if (options.vaultKey && this.vault && response.metadata?.status === 'OK') {
+                // Si la estrategia es SCHEMA, guardamos los metadatos. Si es DATA (default), los items.
+                const dataToCommit = options.vaultStrategy === 'SCHEMA' 
+                    ? response.metadata.schema?.fields 
+                    : response.items;
+
+                if (dataToCommit) {
+                    this.vault.commit(options.vaultKey, dataToCommit);
+                }
+            }
+
+            return response;
+        } catch (error) {
+            console.error(`[Bridge:PulseFailure] Error en directiva ${directive.protocol}:`, error);
+            // Devolver objeto de error estandarizado para no romper la UI
+            return { 
+                items: [], 
+                metadata: { status: 'ERROR', error: error.message, code: 'BRIDGE_EXECUTION_FAILED' } 
+            };
+        }
     }
 }

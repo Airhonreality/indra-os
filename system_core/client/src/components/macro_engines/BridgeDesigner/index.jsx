@@ -100,7 +100,7 @@ export function BridgeDesigner({ atom, bridge }) {
         setTestResult(null);
         try {
             // AXIOMA DE DETERMINISMO: Enviamos el puente efímero para probar sin guardar
-            const result = await bridge.request({
+            const result = await bridge.execute({
                 protocol: 'LOGIC_EXECUTE',
                 context_id: localAtom.id,
                 data: {
@@ -539,6 +539,7 @@ export function BridgeDesigner({ atom, bridge }) {
                                                 onUpdate={(updated) => updateOperator(index, updated)}
                                                 onRemove={() => removeOperator(op.id)}
                                                 options={getOptionsFor(index)}
+                                                bridge={bridge}
                                             />
                                         ))}
                                     </div>

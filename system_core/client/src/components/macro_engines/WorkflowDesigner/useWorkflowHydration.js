@@ -10,16 +10,21 @@
  */
 import { useState, useEffect } from 'react';
 import { useAppState } from '../../../state/app_state';
-import { executeDirective } from '../../../services/directive_executor';
-
-export function useWorkflowHydration(workflow) {
-    const { coreUrl, sessionSecret } = useAppState();
-    const [integrityMap, setIntegrityMap] = useState({}); // { id: boolean }
+export function useWorkflowHydration(workflow, bridge) {
+    const [integrityMap, setIntegrityMap] = useState(() => {
+        // T=0: Intentar cargar resonancia previa del Vault
+        if (bridge?.vault && workflow?.id) {
+            return bridge.vault.read(`workflow_integrity_${workflow.id}`) || {};
+        }
+        return {};
+    });
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const verifyDependencies = async () => {
-            // 1. Recolectar todas las dependencias (IDs de Schemas y Bridges)
+            if (!bridge) return;
+
+            // 1. Recolectar todas las dependencias
             const depIds = new Set();
             const triggerSourceId = workflow.payload?.trigger?.source_id || workflow.payload?.trigger?.source?.id;
             if (triggerSourceId) depIds.add(triggerSourceId);
@@ -36,15 +41,14 @@ export function useWorkflowHydration(workflow) {
             }
 
             try {
-                // 2. Usar el nuevo protocolo ATOM_EXISTS (Portal de Sinceridad)
-                const result = await executeDirective({
+                // 2. Ejecución Soberana via Bridge
+                const result = await bridge.execute({
                     provider: 'system',
                     protocol: 'ATOM_EXISTS',
                     data: { ids: Array.from(depIds) }
-                }, coreUrl, sessionSecret);
+                }, { vaultKey: `workflow_integrity_${workflow.id}` });
 
                 const map = {};
-                // PROBE_SIGNAL: los ítems de ATOM_EXISTS tienen { type: 'PROBE', status, ref_id }
                 (result.items || []).forEach(item => {
                     if (item.type === 'PROBE') {
                         map[item.ref_id] = item.status === 'EXISTS';
@@ -58,8 +62,8 @@ export function useWorkflowHydration(workflow) {
             }
         };
 
-        if (workflow?.id) verifyDependencies();
-    }, [workflow.id, (workflow.payload?.stations?.length || 0), coreUrl, sessionSecret]);
+        if (workflow?.id && bridge) verifyDependencies();
+    }, [workflow.id, (workflow.payload?.stations?.length || 0), bridge]);
 
     return { integrityMap, isLoading };
 }

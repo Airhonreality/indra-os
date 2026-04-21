@@ -6,7 +6,6 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { executeDirective } from '../../../../services/directive_executor';
 import { useAppState } from '../../../../state/app_state';
 import { useWorkflowHydration } from '../useWorkflowHydration';
 
@@ -76,7 +75,7 @@ export function WorkflowProvider({ children, initialData = {}, bridge }) {
     });
 
     const [isSaving, setIsSaving] = useState(false);
-    const { isLoading, integrityMap } = useWorkflowHydration(workflow);
+    const { isLoading, integrityMap } = useWorkflowHydration(workflow, bridge);
     const [selectedStationId, setSelectedStationId] = useState(null);
 
     const saveWorkflow = useCallback(async () => {
@@ -190,6 +189,7 @@ export function WorkflowProvider({ children, initialData = {}, bridge }) {
     return (
         <WorkflowContext.Provider value={{
             workflow,
+            bridge, // ← Exponemos el bridge para sub-componentes (Soberanía Angular)
             addStation,
             removeStation,
             updateStation,

@@ -10,7 +10,6 @@ import { useLexicon } from '../../../services/lexicon';
 import { useWorkspace } from '../../../context/WorkspaceContext';
 import { useSchemaAST } from './useSchemaAST';
 import { useAppState } from '../../../state/app_state';
-import { executeDirective } from '../../../services/directive_executor';
 
 // Sub-Componentes Visuales
 import { LayersPanel } from './LayersPanel';
@@ -25,8 +24,6 @@ import { prepareCanonicalRename, commitCanonicalRename } from '../../../services
 
 export function SchemaDesigner({ atom, bridge }) {
     const { updateAxiomaticIdentity } = useWorkspace();
-    const coreUrl = useAppState(s => s.coreUrl);
-    const sessionSecret = useAppState(s => s.sessionSecret);
     const t = useLexicon(bridge.protocol.lang || 'es');
     
     const ast = useSchemaAST(atom, bridge);
@@ -67,11 +64,11 @@ export function SchemaDesigner({ atom, bridge }) {
             try {
                 // Intentamos una lectura rápida de metadatos del silo para confirmar existencia
                 console.log(`[UltraSonde] Verificando Silo: ${localAtom.payload.target_silo_id} en ${localAtom.payload.target_provider || 'drive'}`);
-                const res = await executeDirective({
+                const res = await bridge.execute({
                     provider: localAtom.payload.target_provider || 'drive',
                     protocol: 'ATOM_READ',
                     context_id: localAtom.payload.target_silo_id
-                }, coreUrl, sessionSecret);
+                });
                 
                 console.log(`[UltraSonde] Resultado Verificación:`, res.metadata?.status, res.items?.[0]?.id);
 

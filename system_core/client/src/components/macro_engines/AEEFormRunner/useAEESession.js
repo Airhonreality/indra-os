@@ -13,15 +13,19 @@
 
 import { useState, useEffect } from 'react';
 import { useAppState } from '../../../state/app_state';
-import { executeDirective } from '../../../services/directive_executor';
 import { DataProjector } from '../../../services/DataProjector';
 
-export function useAEESession(atom) {
-    const coreUrl = useAppState(s => s.coreUrl);
-    const sessionSecret = useAppState(s => s.sessionSecret);
+export function useAEESession(atom, bridge) {
     const pins = useAppState(s => s.pins);
 
-    const [resolvedSchema, setResolvedSchema] = useState(null);
+    const [resolvedSchema, setResolvedSchema] = useState(() => {
+        // T=0: Intentar resonancia del Vault
+        const schemaId = atom?.payload?.schema_id;
+        if (bridge?.vault && schemaId) {
+            return bridge.vault.read(`schema_resolved_${schemaId}`);
+        }
+        return null;
+    });
     const [isLoadingSchema, setIsLoadingSchema] = useState(false);
 
     const [formData, setFormData] = useState({});
@@ -30,29 +34,26 @@ export function useAEESession(atom) {
     const [error, setError] = useState(null);
 
     const schemaId = atom?.payload?.schema_id;
-    // Compatibilidad: executor_id (nuevo) o bridge_id (legacy)
     const executorId = atom?.payload?.executor_id || atom?.payload?.bridge_id;
     const executorType = atom?.payload?.executor_type || 'BRIDGE';
 
     // ── RESOLUCIÓN DEL SCHEMA VINCULADO ──
-    // Si el AEE tiene un schema_id en su payload, lo hidrata desde el Core o los pins en cache.
     useEffect(() => {
-        if (!schemaId) {
+        if (!schemaId || !bridge) {
             setResolvedSchema(null);
             return;
         }
 
-        // Primero buscar en los pins locales (evita round-trip al Core)
         const cachedPin = pins.find(p => p.id === schemaId);
 
         const hydrateSchema = async () => {
             setIsLoadingSchema(true);
             try {
-                const result = await executeDirective({
+                const result = await bridge.execute({
                     provider: 'system',
                     protocol: 'ATOM_READ',
                     context_id: schemaId
-                }, coreUrl, sessionSecret);
+                }, { vaultKey: `schema_resolved_${schemaId}` });
 
                 const fullSchema = result.items?.[0];
                 if (fullSchema) {
@@ -67,20 +68,19 @@ export function useAEESession(atom) {
             }
         };
 
-        // Si tenemos el pin cacheado con payload, usarlo. Si no, ir al Core.
         if (cachedPin?.payload?.fields) {
             setResolvedSchema(cachedPin);
         } else {
             hydrateSchema();
         }
-    }, [schemaId, coreUrl, sessionSecret]);
+    }, [schemaId, bridge]);
 
     const updateField = (key, value) => {
         setFormData(prev => ({ ...prev, [key]: value }));
     };
 
     const executeLogic = async () => {
-        if (status === 'EXECUTING') return;
+        if (status === 'EXECUTING' || !bridge) return;
         if (!executorId) {
             setError('NO_EXECUTOR_CONFIGURED: Este ejecutor no tiene un Bridge ni Workflow vinculado.');
             setStatus('ERROR');
@@ -91,19 +91,17 @@ export function useAEESession(atom) {
         setError(null);
 
         try {
-            // AXIOMA: El AEE no sabe qué hace el ejecutor.
-            // Solo sabe el protocolo que corresponde a su tipo.
             const protocol = executorType === 'WORKFLOW' ? 'WORKFLOW_EXECUTE' : 'LOGIC_EXECUTE';
             const provider = executorType === 'WORKFLOW' ? 'system' : 'pipeline';
 
-            const response = await executeDirective({
+            const response = await bridge.execute({
                 provider,
                 protocol,
                 context_id: executorId,
                 payload: formData
-            }, coreUrl, sessionSecret);
+            });
 
-            if (response.metadata?.status === 'OK') {
+            if (response.metadata?.status === 'OK' || response.metadata?.result === 'OK') {
                 setResult(response.payload || response.items || response.metadata?.result);
                 setStatus('SUCCESS');
             } else {

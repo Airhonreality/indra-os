@@ -12,7 +12,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAppState } from '../../state/app_state.js';
 import { useLexicon } from '../../services/lexicon.js';
-import { executeDirective } from '../../services/directive_executor.js';
 import { DataProjector } from '../../services/DataProjector.js';
 import { IndraIcon } from './IndraIcons.jsx';
 import { ResonanceTuningPanel } from '../dashboard/ResonanceTuningPanel.jsx';
@@ -20,8 +19,8 @@ import { toastEmitter } from '../../services/toastEmitter.js';
 import { useAtomCatalog } from '../../hooks/useAtomCatalog.js';
 import { IndraFractalTree } from './IndraFractalTree.jsx';
 
-export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect, onCancel, filter = {} }) {
-    const { services: manifest = [], coreUrl, sessionSecret, lang } = useAppState();
+export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', bridge, onSelect, onCancel, filter = {} }) {
+    const { services: manifest = [], lang } = useAppState();
     const t = useLexicon(lang);
 
     const [treeData, setTreeData] = useState([]);
@@ -96,15 +95,15 @@ export default function ArtifactSelector({ title = 'EXPLORE_ARTIFACTS', onSelect
 
     // ── NAVEGACIÓN ASÍNCRONA (Axioma de Exploración de Mundos) ──
     const handleExpandBranch = async (node) => {
-        if (!coreUrl || !sessionSecret) return;
+        if (!bridge) return;
 
         try {
             const effectiveProvider = node.provider || node.raw?.provider || 'system';
-            const result = await executeDirective({
+            const result = await bridge.execute({
                 provider: effectiveProvider,
                 protocol: 'HIERARCHY_TREE',
                 context_id: node.id === effectiveProvider ? null : node.id
-            }, coreUrl, sessionSecret);
+            }, { vaultKey: `tree_${node.id}` });
 
             const rawItems = result.items || [];
             node.children = rawItems.map(item => {

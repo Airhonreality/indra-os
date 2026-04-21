@@ -6,8 +6,6 @@
  */
 
 import { useState, useCallback } from 'react';
-import { executeDirective } from '../../../services/directive_executor';
-import { useAppState } from '../../../state/app_state';
 
 function buildExecutionSteps(workflow) {
     const stations = workflow?.payload?.stations || [];
@@ -86,10 +84,7 @@ function validateExecutionReadiness(workflow) {
     }
 }
 
-export function useWorkflowExecution(workflow) {
-    const coreUrl = useAppState(s => s.coreUrl);
-    const sessionSecret = useAppState(s => s.sessionSecret);
-
+export function useWorkflowExecution(workflow, bridge) {
     const [status, setStatus] = useState('IDLE'); // IDLE, RUNNING, FINISHED, ERROR
     const [traceLogs, setTraceLogs] = useState([]);
     const [currentStepId, setCurrentStepId] = useState(null);
@@ -102,6 +97,7 @@ export function useWorkflowExecution(workflow) {
     };
 
     const runTrace = useCallback(async (inputData = {}) => {
+        if (!bridge) return;
         setStatus('RUNNING');
         setTraceLogs([]);
         addLog('INIT_PIPELINE: Sincronizando con el CORE...', 'OK');
@@ -120,7 +116,7 @@ export function useWorkflowExecution(workflow) {
             addLog(`TRIGGER_AUTH: Validando origen [${workflowSpec.trigger?.type || 'MANUAL'}]`, 'OK');
             addLog(`WORKFLOW_EXECUTE: Enviando ${workflowSpec.steps.length} steps al Core.`, 'INFO');
 
-            const response = await executeDirective({
+            const response = await bridge.execute({
                 provider: 'system',
                 protocol: 'WORKFLOW_EXECUTE',
                 data: {
@@ -128,7 +124,7 @@ export function useWorkflowExecution(workflow) {
                     workflow_id: workflow.id,
                     trigger_data: inputData
                 }
-            }, coreUrl, sessionSecret);
+            });
 
             const execution = response?.metadata?.execution;
             if (!execution) {

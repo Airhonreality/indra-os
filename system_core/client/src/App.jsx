@@ -27,11 +27,12 @@ import './styles/ui_invoke.css';
  * Componente dedicado a la renderización del Nivel 3 (Macro Engine).
  * Encapsula sus propios hooks para evitar violar las reglas de React en el orquestador.
  */
-function EngineViewport({ activeArtifact, closeArtifact, coreUrl, sessionSecret, lang, registerSync, finishSync }) {
-    const Engine = registry.get(activeArtifact.class);
+function EngineViewport({ activeArtifact, closeArtifact, lang, registerSync, finishSync }) {
+    const { bridge: globalBridge, vault: globalVault } = useProtocol();
     const isSyncing = !!useAppState(s => s.pendingSyncs[activeArtifact.id]);
+    const Engine = registry.get(activeArtifact.class);
     
-    // El puente se instancia una vez por ciclo de vida del EngineView
+    // El puente se instancia una vez por Engine, pero HEREDA la cripta global
     const bridge = React.useMemo(() => new DesignerBridge(
         activeArtifact,
         { 
@@ -39,8 +40,9 @@ function EngineViewport({ activeArtifact, closeArtifact, coreUrl, sessionSecret,
             onSyncStart: (id) => registerSync(id),
             onSyncEnd: (id) => finishSync(id)
         },
-        { url: coreUrl, secret: sessionSecret, lang: lang || 'es' }
-    ), [activeArtifact, closeArtifact, coreUrl, sessionSecret, lang, registerSync, finishSync]);
+        globalBridge.protocol, // Reutilizar parámetros de conexión del global
+        globalVault           // <--- RESONANCIA COMPARTIDA
+    ), [activeArtifact, closeArtifact, globalBridge, globalVault, registerSync, finishSync]);
 
     if (!Engine) {
         return (
@@ -133,7 +135,7 @@ function EngineViewport({ activeArtifact, closeArtifact, coreUrl, sessionSecret,
  * InvokePortal
  * Componente que proyecta un motor React sobre el satélite.
  */
-function InvokePortal({ activeArtifact, closeArtifact, coreUrl, sessionSecret, lang, registerSync, finishSync }) {
+function InvokePortal({ activeArtifact, closeArtifact, lang, registerSync, finishSync }) {
     if (!activeArtifact?._invoke_id) return null;
 
     return (
@@ -153,8 +155,6 @@ function InvokePortal({ activeArtifact, closeArtifact, coreUrl, sessionSecret, l
                     <EngineViewport 
                         activeArtifact={activeArtifact}
                         closeArtifact={closeArtifact}
-                        coreUrl={coreUrl}
-                        sessionSecret={sessionSecret}
                         lang={lang}
                         registerSync={registerSync}
                         finishSync={finishSync}
@@ -220,8 +220,6 @@ function IndraAppContent() {
                 <InvokePortal 
                     activeArtifact={activeArtifact}
                     closeArtifact={closeArtifact}
-                    coreUrl={coreUrl}
-                    sessionSecret={sessionSecret}
                     lang={lang}
                     registerSync={registerSync}
                     finishSync={finishSync}
@@ -263,8 +261,6 @@ function IndraAppContent() {
                 <EngineViewport 
                     activeArtifact={activeArtifact}
                     closeArtifact={closeArtifact}
-                    coreUrl={coreUrl}
-                    sessionSecret={sessionSecret}
                     lang={lang}
                     registerSync={registerSync}
                     finishSync={finishSync}

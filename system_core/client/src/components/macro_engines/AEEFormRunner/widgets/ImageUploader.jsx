@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { IndraIcon } from '../../../utilities/IndraIcons';
-import { executeDirective } from '../../../../services/directive_executor';
 import { useIndraResource } from '../../../../hooks/useIndraResource';
 
 /**
@@ -14,7 +13,7 @@ import { useIndraResource } from '../../../../hooks/useIndraResource';
  * El valor que emite siempre es un objeto INDRA_MEDIA o null.
  * El Bridge o Workflow downstream decide qué hacer con él.
  */
-export function ImageUploader({ field, value, onChange, disabled }) {
+export function ImageUploader({ field, value, onChange, disabled, bridge }) {
     const config = field.config || {};
     const [mode, setMode] = useState('UPLOAD'); // 'UPLOAD' | 'DRIVE_ID' | 'URL'
     const [textInput, setTextInput] = useState('');
@@ -48,10 +47,16 @@ export function ImageUploader({ field, value, onChange, disabled }) {
         reader.onload = async (e) => {
             try {
                 const base64Data = e.target.result;
-                const response = await executeDirective('system', 'RESOURCE_INGEST', undefined, {
-                    base64: base64Data,
-                    mimeType: file.type,
-                    fileName: file.name
+                if (!bridge) throw new Error('Bridge not available');
+
+                const response = await bridge.execute({
+                    provider: 'system',
+                    protocol: 'RESOURCE_INGEST',
+                    data: {
+                        base64: base64Data,
+                        mimeType: file.type,
+                        fileName: file.name
+                    }
                 });
 
                 if (response.metadata?.status === 'OK' && response.metadata?.grid) {

@@ -15,8 +15,6 @@
 import React, { useState, useEffect } from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { useLexicon } from '../../../services/lexicon';
-import { executeDirective } from '../../../services/directive_executor';
-import { useAppState } from '../../../state/app_state';
 
 /**
  * PulseMonitor: El tablero de seguimiento de la Red de Pulsos.
@@ -25,22 +23,16 @@ import { useAppState } from '../../../state/app_state';
  */
 export function PulseMonitor({ workflowId, bridge }) {
     const t = useLexicon();
-    const coreUrl = useAppState(s => s.coreUrl);
-    const sessionSecret = useAppState(s => s.sessionSecret);
     const [pulses, setPulses] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchQueue = async () => {
+        if (!bridge) return;
         try {
-            const response = typeof bridge?.execute === 'function'
-                ? await bridge.execute({
-                    protocol: 'SYSTEM_QUEUE_READ',
-                    provider: 'system'
-                })
-                : await executeDirective({
-                    protocol: 'SYSTEM_QUEUE_READ',
-                    provider: 'system'
-                }, coreUrl, sessionSecret);
+            const response = await bridge.execute({
+                protocol: 'SYSTEM_QUEUE_READ',
+                provider: 'system'
+            });
             
             // Si workflowId existe, filtramos solo los de este workflow
             let items = response.items || [];
@@ -64,7 +56,7 @@ export function PulseMonitor({ workflowId, bridge }) {
         fetchQueue();
         const interval = setInterval(fetchQueue, 5000); // Polling cada 5s
         return () => clearInterval(interval);
-    }, [workflowId, coreUrl, sessionSecret]);
+    }, [workflowId, bridge]);
 
     const getStatusTheme = (status) => {
         switch (status) {

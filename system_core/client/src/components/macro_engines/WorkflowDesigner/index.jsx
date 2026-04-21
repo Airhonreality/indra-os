@@ -34,7 +34,7 @@ function WorkflowDesignerContent({ bridge }) {
 
     const [showSandbox, setShowSandbox] = useState(false);
     const [activeTab, setActiveTab] = useState('FLOW'); // NAV | FLOW | IO
-    const { status, traceLogs, runTrace, currentStepId } = useWorkflowExecution(workflow);
+    const { status, traceLogs, runTrace, currentStepId } = useWorkflowExecution(workflow, bridge);
 
     if (isLoading && !workflow) {
         return (

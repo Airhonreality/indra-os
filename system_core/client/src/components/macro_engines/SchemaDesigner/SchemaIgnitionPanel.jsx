@@ -9,16 +9,12 @@
 import React, { useState, useEffect } from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { useAppState } from '../../../state/app_state';
-import { executeDirective } from '../../../services/directive_executor';
 import { toastEmitter } from '../../../services/toastEmitter';
 import ArtifactSelector from '../../utilities/ArtifactSelector';
 
 export function SchemaIgnitionPanel({ atom, bridge, onIgnited }) {
     const services = useAppState(s => s.services || []);
-    const coreUrl = useAppState(s => s.coreUrl);
-    const sessionSecret = useAppState(s => s.sessionSecret);
     const activeWorkspaceId = useAppState(s => s.activeWorkspaceId);
-
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedProviderId, setSelectedProviderId] = useState('');
     const [targetFolder, setTargetFolder] = useState({ 
@@ -48,7 +44,7 @@ export function SchemaIgnitionPanel({ atom, bridge, onIgnited }) {
         setIsProcessing(true);
         
         try {
-            const result = await executeDirective({
+            const result = await bridge.execute({
                 provider: 'system',
                 protocol: 'SYSTEM_SCHEMA_IGNITE',
                 context_id: atom.id,
@@ -57,7 +53,7 @@ export function SchemaIgnitionPanel({ atom, bridge, onIgnited }) {
                     target_provider: selectedProviderId,
                     parent_id: targetFolder.id
                 }
-            }, coreUrl, sessionSecret);
+            });
 
             if (result.metadata?.status === 'OK' && result.items?.[0]) {
                 toastEmitter.success("Estructura materializada con éxito.");

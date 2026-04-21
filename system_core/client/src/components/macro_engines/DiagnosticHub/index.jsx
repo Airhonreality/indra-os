@@ -19,7 +19,7 @@ import './DiagnosticHub.css';
  * DiagnosticHub Engine
  * Implementa el Layout Tripartito Estándar (Col I: Historial | Col II: Acción | Col III: Inspección)
  */
-export function DiagnosticHub({ artifact }) {
+export function DiagnosticHub({ atom, bridge }) {
     const { 
         traces, 
         selectedTrace, 
@@ -42,7 +42,7 @@ export function DiagnosticHub({ artifact }) {
             />
 
             {/* Columna II: Reality Console (Punto de Inyección) */}
-            <UQOEditor />
+            <UQOEditor bridge={bridge} />
 
             {/* Columna III: Trace Inspector (Desglose Técnico) */}
             <TraceInspector trace={selectedTrace} />

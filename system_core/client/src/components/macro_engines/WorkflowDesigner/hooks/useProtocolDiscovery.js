@@ -6,13 +6,8 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { executeDirective } from '../../../../services/directive_executor';
-import { useAppState } from '../../../../state/app_state';
 
-export function useProtocolDiscovery() {
-    const coreUrl = useAppState(s => s.coreUrl);
-    const sessionSecret = useAppState(s => s.sessionSecret);
-    
+export function useProtocolDiscovery(bridge) {
     const [discovery, setDiscovery] = useState({
         providers: [],
         protocolsByProvider: {},
@@ -21,13 +16,16 @@ export function useProtocolDiscovery() {
     });
 
     useEffect(() => {
+        if (!bridge) return;
+
         const fetchProtocols = async () => {
             try {
                 // Invocamos el Manifiesto del Core (Ley de Sinceridad)
-                const response = await executeDirective({
+                // Usamos vaultKey para que el catálogo de protocolos sea instantáneo (T=0)
+                const response = await bridge.execute({
                     provider: 'system',
                     protocol: 'SYSTEM_MANIFEST'
-                }, coreUrl, sessionSecret);
+                }, { vaultKey: 'system_core_manifest' });
 
                 // El Core retorna items aunque el status sea 'NEEDS_SETUP' (algunos silos sin cuenta).
                 // Aceptamos cualquier respuesta con items válidos según el Return Law.
@@ -96,10 +94,8 @@ export function useProtocolDiscovery() {
             }
         };
 
-        if (coreUrl && sessionSecret) {
-            fetchProtocols();
-        }
-    }, [coreUrl, sessionSecret]);
+        fetchProtocols();
+    }, [bridge]);
 
     // Cache canónico de campos (opcional si el core no envía meta)
     const PROTOCOL_FIELDS_FALLBACK = {

@@ -3,10 +3,9 @@ import { MappingSelect } from '../MappingSelect';
 import ArtifactSelector from '../../../utilities/ArtifactSelector';
 import { IndraIcon } from '../../../utilities/IndraIcons';
 import { useAppState } from '../../../../state/app_state';
-import { executeDirective } from '../../../../services/directive_executor';
 
-export function ResolverConfig({ config, onUpdate, options = [] }) {
-    const { coreUrl, sessionSecret, pins, services } = useAppState();
+export function ResolverConfig({ config, onUpdate, options = [], bridge }) {
+    const { pins, services } = useAppState();
     const [showSelector, setShowSelector] = useState(false);
     const [fields, setFields] = useState([]);
     const [loadingSchema, setLoadingSchema] = useState(false);
@@ -28,6 +27,7 @@ export function ResolverConfig({ config, onUpdate, options = [] }) {
     };
 
     const fetchSiloSchema = async (siloId) => {
+        if (!bridge) return;
         setLoadingSchema(true);
         try {
             const provider = getProviderForId(siloId);
@@ -38,11 +38,11 @@ export function ResolverConfig({ config, onUpdate, options = [] }) {
 
             if (isLocal) {
                 try {
-                    result = await executeDirective({
+                    result = await bridge.execute({
                         provider: provider,
                         protocol: 'ATOM_READ',
                         context_id: siloId
-                    }, coreUrl, sessionSecret);
+                    }, { vaultKey: `schema_fields_${siloId}` });
                 } catch (e) {
                     console.warn(`[ResolverConfig] ATOM_READ falló, reintentando con STREAM...`);
                 }
@@ -50,11 +50,11 @@ export function ResolverConfig({ config, onUpdate, options = [] }) {
 
             // DETERMINISMO DINÁMICO (TABULAR_STREAM)
             if (!result || !result.payload?.fields) {
-                result = await executeDirective({
+                result = await bridge.execute({
                     provider: provider,
                     protocol: 'TABULAR_STREAM',
                     context_id: siloId
-                }, coreUrl, sessionSecret);
+                }, { vaultKey: `schema_fields_${siloId}` });
             }
 
             const fields = result.payload?.fields || [];

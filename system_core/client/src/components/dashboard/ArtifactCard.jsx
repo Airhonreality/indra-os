@@ -14,12 +14,13 @@ import { IndraIcon } from '../utilities/IndraIcons';
 import { IndraActionTrigger } from '../utilities/IndraActionTrigger';
 import { Badge } from '../utilities/primitives';
 import { useAppState } from '../../state/app_state';
-import { executeDirective } from '../../services/directive_executor';
+import { useProtocol } from '../../context/ProtocolContext';
 import { DataProjector } from '../../services/DataProjector';
 import './ArtifactCard.css';
 
 export function ArtifactCard({ atom }) {
-    const { openArtifact, unpinAtom, deleteArtifact, coreUrl, sessionSecret, pendingSyncs } = useAppState();
+    const { bridge } = useProtocol();
+    const { openArtifact, deleteArtifact, pendingSyncs } = useAppState();
     const isSyncing = !!pendingSyncs[atom.id];
 
     // 1. Proyectar el Átomo (Agnosticismo Axiomático)
@@ -36,15 +37,16 @@ export function ArtifactCard({ atom }) {
     };
 
     const handleAction = async (protocol) => {
+        if (!bridge) return;
         try {
             if (protocol === 'ATOM_DELETE') {
                 await deleteArtifact(projection.id, projection.provider);
             } else {
-                await executeDirective({
+                await bridge.execute({
                     provider: projection.provider,
                     protocol: protocol,
                     context_id: projection.id
-                }, coreUrl, sessionSecret);
+                });
             }
         } catch (err) {
             console.error('[Card] Action failed:', err);
@@ -53,8 +55,9 @@ export function ArtifactCard({ atom }) {
 
     const handleShare = async (e) => {
         e.stopPropagation();
+        if (!bridge) return;
         try {
-            const res = await executeDirective({
+            const res = await bridge.execute({
                 provider: 'system',
                 protocol: 'SYSTEM_SHARE_CREATE',
                 data: {
@@ -62,12 +65,12 @@ export function ArtifactCard({ atom }) {
                     artifact_class: projection.class,
                     auth_mode: 'public'
                 }
-            }, coreUrl, sessionSecret);
+            });
 
             if (res.metadata?.status === 'OK' && res.items?.[0]) {
                 const ticketId = res.items[0].ticket_id;
                 // Construct public URL
-                const publicUrl = `${window.location.origin}${window.location.pathname}#/run?u=${encodeURIComponent(coreUrl)}&id=${ticketId}`;
+                const publicUrl = `${window.location.origin}${window.location.pathname}#/run?u=${encodeURIComponent(bridge.protocol.url)}&id=${ticketId}`;
                 await navigator.clipboard.writeText(publicUrl);
                 alert(`✅ Enlace público copiado al portapapeles:\n\n${publicUrl}`);
             } else {
@@ -80,13 +83,14 @@ export function ArtifactCard({ atom }) {
 
     const handlePublish = async (e) => {
         e.stopPropagation();
+        if (!bridge) return;
         try {
-            const res = await executeDirective({
+            const res = await bridge.execute({
                 provider: 'system',
                 protocol: 'SYSTEM_BLUEPRINT_SYNC',
                 context_id: projection.id,
                 data: { action: 'PUBLISH' }
-            }, coreUrl, sessionSecret);
+            });
 
             if (res.metadata?.status === 'OK') {
                 alert(`✅ Blueprint publicado en el Vault:\n${res.metadata.message}`);
@@ -100,12 +104,13 @@ export function ArtifactCard({ atom }) {
 
     const handleCrystallize = async (e) => {
         e.stopPropagation();
+        if (!bridge) return;
         try {
-            const res = await executeDirective({
+            const res = await bridge.execute({
                 provider: 'system',
                 protocol: 'SYSTEM_RESONANCE_CRYSTALLIZE',
                 context_id: projection.id
-            }, coreUrl, sessionSecret);
+            });
 
             if (res.metadata?.status === 'OK') {
                 alert(`✅ Átomo cristalizado exitosamente. Recargando resonancia...`);

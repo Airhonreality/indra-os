@@ -18,7 +18,6 @@
 import React from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { useAppState } from '../../../state/app_state';
-import { executeDirective } from '../../../services/directive_executor';
 import { toastEmitter } from '../../../services/toastEmitter';
 import { SchemaMicroExplorer } from '../../utilities/SchemaMicroExplorer';
 import { AEEGraphicPanel } from './AEEGraphicPanel';
@@ -98,7 +97,7 @@ function AccordionSection({ title, id, current, onToggle, children, icon }) {
     );
 }
 
-export function AEEConfigPanel({ atom, onConfigChange, publicUrl }) {
+export function AEEConfigPanel({ atom, onConfigChange, publicUrl, bridge }) {
     const pins = useAppState(s => s.pins);
     const [activeSection, setActiveSection] = React.useState('DATA');
 
@@ -133,7 +132,7 @@ export function AEEConfigPanel({ atom, onConfigChange, publicUrl }) {
 
     const handleFileUpload = async (event) => {
         const file = event.target.files?.[0];
-        if (!file) return;
+        if (!file || !bridge) return;
 
         try {
             setIsUploading(true);
@@ -143,10 +142,14 @@ export function AEEConfigPanel({ atom, onConfigChange, publicUrl }) {
             reader.onload = async (e) => {
                 try {
                     const base64Data = e.target.result;
-                    const response = await executeDirective('system', 'RESOURCE_INGEST', undefined, {
-                        base64: base64Data,
-                        mimeType: file.type,
-                        fileName: file.name
+                    const response = await bridge.execute({
+                        provider: 'system',
+                        protocol: 'RESOURCE_INGEST',
+                        data: {
+                            base64: base64Data,
+                            mimeType: file.type,
+                            fileName: file.name
+                        }
                     });
 
                     if (response.metadata?.status === 'OK' && response.metadata?.grid) {

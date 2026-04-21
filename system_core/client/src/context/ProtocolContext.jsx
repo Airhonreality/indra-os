@@ -1,16 +1,14 @@
 import React, { createContext, useContext } from 'react';
 import { useAppState } from '../state/app_state';
-import { executeDirective } from '../services/directive_executor';
+import { DesignerBridge } from '../services/CapabilityBridge';
+import { AgnosticVault } from '../../public/indra-satellite-protocol/src/score/logic/AgnosticVault.js';
 
 const ProtocolContext = createContext();
 
-/**
- * ProtocolProvider (Capa de Infraestructura)
- * Gestiona la conexión de red y la identidad contra el Core.
- */
 export function ProtocolProvider({ children }) {
     const coreUrl = useAppState(s => s.coreUrl);
     const sessionSecret = useAppState(s => s.sessionSecret);
+    const lang = useAppState(s => s.lang);
     const isConnected = useAppState(s => s.isConnected);
     const isConnecting = useAppState(s => s.isConnecting);
     const error = useAppState(s => s.error);
@@ -19,19 +17,19 @@ export function ProtocolProvider({ children }) {
     const clearError = useAppState(s => s.clearError);
     const bootstrap = useAppState(s => s.bootstrap);
 
-    /**
-     * execute: Disparador universal de protocolos (UQO)
-     * Abstrae la URL y el Secreto para los componentes.
-     */
-    const execute = async (uqo) => {
-        // Si no se especifica provider, asumimos 'system' por defecto (Core)
-        const payload = { provider: 'system', ...uqo };
-        return await executeDirective(payload, coreUrl, sessionSecret);
-    };
+    // --- INSTANCIACIÓN DE SOBERANÍA GLOBAL ---
+    const bridge = React.useMemo(() => {
+        if (!coreUrl || !sessionSecret) return null;
+        return new DesignerBridge(
+            { id: 'SYSTEM_GLOBAL' }, // Átomo virtual para operaciones globales
+            { close: () => {} },
+            { url: coreUrl, secret: sessionSecret, lang: lang || 'es' }
+        );
+    }, [coreUrl, sessionSecret, lang]);
 
     const value = {
-        coreUrl,
-        sessionSecret,
+        bridge, // <--- Único punto de entrada recomendado
+        vault: bridge?.vault,
         isConnected,
         isConnecting,
         error,
@@ -39,7 +37,11 @@ export function ProtocolProvider({ children }) {
         disconnect,
         clearError,
         bootstrap,
-        execute // <--- El Motor de Soberanía
+        
+        // DEPRECATED: Usar el bridge.
+        coreUrl, 
+        sessionSecret,
+        execute: (uqo) => bridge?.execute(uqo)
     };
 
     return (

@@ -22,18 +22,35 @@ Bajo la **TGS**, el Cliente actúa como la **Membrana Sensorial**. Su función n
 ## 3. Componentes Críticos
 
 ### 🛸 `indra-satellite-protocol` (ISP)
-Este es un **Submódulo Git** soberano. Es el motor de comunicación universal que utiliza `IndraBridge.js` para hablar con el Core a través del protocolo MCEP.
+Este es un **Submódulo Git** soberano. Es el motor de comunicación universal. 
+**IMPORTANTE:** La comunicación con el Core debe realizarse EXCLUSIVAMENTE a través del objeto `bridge` (instancia de `DesignerBridge`). 
+- Consulta el [ADR_042: Agnostic Bridge Protocol](../Documentacion/3_System_Protocols_and_Auth/ADR_042_AGNOSTIC_ISP_BRIDGE.md) para la especificación completa.
 
 ### 🎭 Agency Chassis
 Módulos de UI diseñados bajo el **ADR_016** (Composición Tríptica 28/44/28). Se encargan de la transición entre los estados de Potencia, Agencia y Manifestación.
 
 ---
 
-## 4. Restricciones de Desarrollo
+## 4. Desarrollo Soberano (Quickstart)
 
-1.  **Aislamiento de Lógica:** El cliente nunca debe realizar lógica de negocio pesada. Si hay que calcular algo, se envía un `BRIDGE_EXECUTE` al Core.
-2.  **Sinceridad Visual:** Si un átomo está en estado de carga en el Core (`pendingSyncs`), la UI debe reflejarlo mediante el pulso de resonancia (`data-resonance="active"`), prohibiéndose los estados de carga locales que no correspondan a la realidad del Ledger.
-3.  **Zero Config:** El cliente debe ser capaz de autodescubrir el Core mediante el handshake de identidad inicial.
+### ¿Cómo hablar con el Core?
+```javascript
+// NO USAR: executeDirective(...) ❌
+// USAR: bridge.execute(uqo, options) ✅
+
+const res = await bridge.execute({
+    provider: 'drive',
+    protocol: 'ATOM_READ',
+    context_id: 'my_id'
+});
+```
+
+---
+
+## 5. Restricciones de Seguridad
+1.  **Aislamiento de Lógica:** El cliente nunca debe realizar lógica de negocio pesada.
+2.  **Sinceridad Visual:** El pulso de resonancia (`data-resonance="active"`) es obligatorio durante la sincronización.
+3.  **Encapsulación de Secretos:** Jamás pases el `sessionSecret` como prop. El Bridge se encarga de la identidad.
 
 ---
 

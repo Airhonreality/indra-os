@@ -3,7 +3,6 @@ import { IndraIcon } from '../utilities/IndraIcons';
 import { useAppState } from '../../state/app_state';
 import { DataProjector } from '../../services/DataProjector';
 import { useLexicon } from '../../services/lexicon';
-import { executeDirective } from '../../services/directive_executor';
 import { toastEmitter } from '../../services/toastEmitter';
 import { registry } from '../../services/EngineRegistry';
 import { ArtifactCard } from './ArtifactCard';

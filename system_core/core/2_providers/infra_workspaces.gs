@@ -79,7 +79,7 @@ function _system_handleSchemaIgnite(uqo) {
   if (!uqo || !uqo.context_id) throw createError('INVALID_INPUT', 'SYSTEM_SCHEMA_IGNITE requiere context_id.');
   const schemaId = uqo.context_id;
   const targetProvider = uqo.data?.target_provider || 'sheets';
-  const folderId = uqo.data?.target_folder_id || null;
+  const folderId = uqo.data?.parent_id || uqo.data?.target_folder_id || null;
   const traceId = _system_buildTraceId_('SYSTEM_SCHEMA_IGNITE', schemaId);
 
   // 1. Validar existencia del esquema

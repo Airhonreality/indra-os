@@ -64,7 +64,8 @@ function CONF_NOTION() {
       SYSTEM_CONNECTION_TEST: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleNotion' },
       ACCOUNT_RESOLVE: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleNotion' },
       ATOM_DECOMPOSE: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleNotion' },
-      MEDIA_UPLOAD: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleNotion' }
+      MEDIA_UPLOAD: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleNotion' },
+      SCHEMA_FIELD_OPTIONS: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleNotion' }
     },
     protocol_meta: {
       HIERARCHY_TREE: { label: 'Conectando con Notion', help: 'Escaneando páginas y bases de datos en la raíz.' },
@@ -127,6 +128,7 @@ function handleNotion(uqo) {
   if (protocol === 'SCHEMA_MUTATE') return _notion_handleSchemaMutate(uqo, apiKey);
   if (protocol === 'ATOM_DECOMPOSE') return _notion_handleAtomDecompose(uqo, apiKey);
   if (protocol === 'MEDIA_UPLOAD') return _notion_handleMediaUpload(uqo, apiKey);
+  if (protocol === 'SCHEMA_FIELD_OPTIONS') return _notion_handleSchemaFieldOptions(uqo, apiKey);
 
   const err = createError('PROTOCOL_NOT_FOUND',
     `Provider "notion" no soporta el protocolo: "${protocol}".`
@@ -910,6 +912,7 @@ function _notion_schemaToFields(notionSchema) {
 
     return {
       id: key,
+      key: key, // Alias para compatibilidad con selectores de UI
       handle: {
         ns: 'com.notion.schema.field',
         alias: _system_slugify_(key) || 'notion_field',
@@ -1408,6 +1411,33 @@ function _notion_handleMediaUpload(uqo, apiKey) {
     };
   } catch (e) {
     logError(`[provider_notion] Fallo en MEDIA_UPLOAD: ${e.message}`);
+    return { items: [], metadata: { status: 'ERROR', error: e.message } };
+  }
+}
+
+/**
+ * SCHEMA_FIELD_OPTIONS: Recupera la estructura de campos (schema) de una Database.
+ * AXIOMA §3.2: El sistema debe ver antes de poder mapear.
+ * @private
+ */
+function _notion_handleSchemaFieldOptions(uqo, apiKey) {
+  const dbId = uqo.context_id;
+  if (!dbId) throw createError('INVALID_INPUT', 'SCHEMA_FIELD_OPTIONS requiere context_id.');
+
+  try {
+    const dbMeta = _notion_notionRequest(`/databases/${dbId}`, { method: 'GET', apiKey });
+    const fields = _notion_schemaToFields(dbMeta.properties || {});
+
+    return {
+      items: fields,
+      metadata: { 
+        status: 'OK', 
+        schema: { fields },
+        source_name: _notion_extractNotionTitle(dbMeta.title)
+      }
+    };
+  } catch (e) {
+    logError(`[provider_notion] Fallo en SCHEMA_FIELD_OPTIONS: ${e.message}`);
     return { items: [], metadata: { status: 'ERROR', error: e.message } };
   }
 }

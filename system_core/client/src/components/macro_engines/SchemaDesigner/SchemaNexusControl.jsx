@@ -511,9 +511,9 @@ function PathImportDNA({ coreUrl, sessionSecret, onComplete, renderHeader }) {
                 data: { limit: 1 } // Solo queremos las cabeceras
             }, coreUrl, sessionSecret);
 
-            if (result.metadata?.headers) {
+            if (result.metadata?.schema?.fields) {
                 // Transformar cabeceras en campos de SchemaDesigner
-                const newFields = result.metadata.headers.map(h => ({
+                const newFields = result.metadata.schema.fields.map(h => ({
                     id: h.id || h.key,
                     alias: h.key,
                     label: h.label || h.key,
@@ -623,8 +623,8 @@ function PathHydrate({ atom, coreUrl, sessionSecret, onBack, renderHeader }) {
                 context_id: source.id,
                 data: { limit: 1 } // Solo headers
             }, coreUrl, sessionSecret).then(res => {
-                if (res.metadata?.headers) {
-                    const options = res.metadata.headers.map(h => ({
+                if (res.metadata?.schema?.fields) {
+                    const options = res.metadata.schema.fields.map(h => ({
                         value: h.id || h.key,
                         label: h.label || h.key
                     }));

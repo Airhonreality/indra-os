@@ -9,7 +9,6 @@
 import React, { useState, useEffect } from 'react';
 import { IndraIcon } from '../../utilities/IndraIcons';
 import { useAppState } from '../../../state/app_state';
-import { executeDirective } from '../../../services/directive_executor';
 import { toastEmitter } from '../../../services/toastEmitter';
 // AXIOMA §12.1: Sincronización Estructural Verificada. Contrato: metadata.schema.fields
 import { SiloFractalExplorer } from '../../utilities/SiloFractalExplorer';
@@ -104,6 +103,7 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
         return (
             <PathIgnite 
                 atom={atom} 
+                bridge={bridge}
                 coreUrl={coreUrl} 
                 sessionSecret={sessionSecret} 
                 activeWorkspaceId={activeWorkspaceId}
@@ -116,6 +116,7 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
     if (currentPath === 'IMPORT_DNA') {
         return (
             <PathImportDNA 
+                bridge={bridge}
                 coreUrl={coreUrl} 
                 sessionSecret={sessionSecret} 
                 onComplete={onFieldsImported}
@@ -141,6 +142,7 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
         return (
             <PathHydrate 
                 atom={atom}
+                bridge={bridge}
                 coreUrl={coreUrl} 
                 sessionSecret={sessionSecret} 
                 onBack={() => setCurrentPath('MENU')}
@@ -168,13 +170,13 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
 // --- SUB-COMPONENTES DE APOYO ---
 
 // 5. FLUJO: DESVINCULAR (REPARACIÓN TÉCNICA)
-function PathUnlink({ atom, coreUrl, sessionSecret, onComplete, onBack, renderHeader }) {
+function PathUnlink({ atom, bridge, coreUrl, sessionSecret, onComplete, onBack, renderHeader }) {
     const [isProcessing, setIsProcessing] = useState(false);
 
     const handleUnlink = async () => {
         setIsProcessing(true);
         try {
-            const result = await executeDirective({
+            const result = await bridge.execute({
                 provider: 'system',
                 protocol: 'ATOM_UPDATE',
                 context_id: atom.id,
@@ -186,7 +188,7 @@ function PathUnlink({ atom, coreUrl, sessionSecret, onComplete, onBack, renderHe
                         ignited_at: null
                     }
                 }
-            }, coreUrl, sessionSecret);
+            });
 
             if (result.metadata?.status === 'OK') {
                 toastEmitter.success("Vínculo eliminado.");
@@ -263,7 +265,7 @@ function MenuCard({ icon, title, desc, onClick, danger }) {
 }
 
 // 1. FLUJO: CONFIGURACIÓN DE BASE DE DATOS (CREAR NUEVA)
-function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, onComplete, renderHeader }) {
+function PathIgnite({ atom, bridge, coreUrl, sessionSecret, activeWorkspaceId, onComplete, renderHeader }) {
     const [targetFolder, setTargetFolder] = useState({ 
         id: activeWorkspaceId, 
         title: activeWorkspaceId ? `ID: ${activeWorkspaceId.substring(0,10)}...` : 'SELECCIONAR DESTINO', 
@@ -283,11 +285,11 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, onComplet
     useEffect(() => {
         if (activeWorkspaceId && targetFolder.id === activeWorkspaceId) {
             setIsResolving(true);
-            executeDirective({
+            bridge.execute({
                 provider: 'drive',
                 protocol: 'ATOM_READ',
                 context_id: activeWorkspaceId
-            }, coreUrl, sessionSecret).then(res => {
+            }).then(res => {
                 if (res.items?.[0]) {
                     const resolvedAtom = res.items[0];
                     setTargetFolder(prev => ({ 
@@ -324,12 +326,12 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, onComplet
             // Inferencia de Motor via Contexto (Axioma de Identidad Fractal)
             const inferredProvider = targetFolder.provider === 'drive' ? 'sheets' : (targetFolder.provider || 'sheets');
             
-            const result = await executeDirective({
+            const result = await bridge.execute({
                 provider: 'system',
                 protocol: 'SYSTEM_SCHEMA_IGNITE',
                 context_id: atom.id,
                 data: { target_provider: inferredProvider, parent_id: targetFolder.id }
-            }, coreUrl, sessionSecret);
+            });
             if (result.metadata?.status === 'OK') {
                 updateLastLog("DONE");
                 
@@ -497,7 +499,7 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, onComplet
 }
 
 // 2. FLUJO: IMPORTAR ADN (ESTRUCTURA)
-function PathImportDNA({ coreUrl, sessionSecret, onComplete, renderHeader }) {
+function PathImportDNA({ bridge, coreUrl, sessionSecret, onComplete, renderHeader }) {
     const [showSelector, setShowSelector] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -505,12 +507,12 @@ function PathImportDNA({ coreUrl, sessionSecret, onComplete, renderHeader }) {
         setIsProcessing(true);
         setShowSelector(false);
         try {
-            const result = await executeDirective({
+            const result = await bridge.execute({
                 provider: file.provider || 'drive',
                 protocol: 'TABULAR_STREAM',
                 context_id: file.id,
                 data: { limit: 1 } // Solo queremos las cabeceras
-            }, coreUrl, sessionSecret);
+            });
 
             if (result.metadata?.schema?.fields) {
                 // Transformar cabeceras en campos de SchemaDesigner
@@ -609,7 +611,7 @@ function PathLink({ atom, bridge, onComplete, renderHeader }) {
 }
 
 // 4. FLUJO: HIDRATACIÓN INDUSTRIAL (TRANSFERENCIA SOBERANA)
-function PathHydrate({ atom, coreUrl, sessionSecret, onBack, renderHeader }) {
+function PathHydrate({ atom, bridge, coreUrl, sessionSecret, onBack, renderHeader }) {
     const [source, setSource] = useState(null); // { id, provider, handle }
     const [mapping, setMapping] = useState({});
     const [isProcessing, setIsProcessing] = useState(false);
@@ -617,28 +619,34 @@ function PathHydrate({ atom, coreUrl, sessionSecret, onBack, renderHeader }) {
 
     // Efecto de Hidratación de Origen
     useEffect(() => {
-        if (source) {
-            executeDirective({
+        if (source && bridge) {
+            console.log("🌀 [PathHydrate] Solicitando resonancia de origen vía Bridge...");
+            bridge.execute({
                 provider: source.provider || 'notion',
                 protocol: 'TABULAR_STREAM',
                 context_id: source.id,
                 data: { limit: 1 } // Solo headers
-            }, coreUrl, sessionSecret).then(res => {
+            }, { vaultKey: `source_schema_${source.id}` }).then(res => {
                 if (res.metadata?.schema?.fields) {
+                    console.log(`✅ [PathHydrate] Estructura detectada: ${res.metadata.schema.fields.length} campos.`);
                     const options = res.metadata.schema.fields.map(h => ({
                         value: h.id || h.key,
-                        label: h.label || h.key
+                        label: h.label || h.key,
+                        type: 'SOURCE'
                     }));
                     setSourceOptions(options);
                 }
-            }).catch(e => toastEmitter.error("No se pudo leer la estructura del origen."));
+            }).catch(e => {
+                console.error("❌ [PathHydrate] Error al leer estructura:", e);
+                toastEmitter.error("No se pudo leer la estructura del origen.");
+            });
         }
-    }, [source, coreUrl, sessionSecret]);
+    }, [source, bridge]);
 
     const handleExecute = async () => {
         setIsProcessing(true);
         try {
-            const result = await executeDirective({
+            const result = await bridge.execute({
                 provider: 'automation',
                 protocol: 'INDUSTRIAL_IGNITE',
                 data: {
@@ -649,7 +657,7 @@ function PathHydrate({ atom, coreUrl, sessionSecret, onBack, renderHeader }) {
                     mapping: mapping,
                     mode: 'OVERWRITE'
                 }
-            }, coreUrl, sessionSecret);
+            });
 
             if (result.metadata?.status === 'OK') {
                 toastEmitter.success("Ingesta industrial completada.");

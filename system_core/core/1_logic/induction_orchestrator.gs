@@ -127,10 +127,12 @@ function induction_orchestrateCrystallization_(uqo) {
     const physicalCreate = route({
       provider: targetProvider,
       protocol: 'ATOM_CREATE',
+      context_id: data.parent_id,
       data: {
         class: 'TABULAR',
         handle: { label: dna?.handle?.label || dna?.id || 'Indra Silo' },
         fields: schemaFields,
+        parent_id: data.parent_id,
         intent: 'MATERIALIZE_SOVEREIGN'
       }
     });

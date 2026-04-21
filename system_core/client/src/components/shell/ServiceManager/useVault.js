@@ -29,8 +29,8 @@ export function useVault() {
             const result = await executeDirective({
                 provider: 'system',
                 protocol: 'SERVICE_PAIR',
-                payload: {
-                    id: serviceId,
+                context_id: serviceId, // AXIOMA DE SINCERIDAD: El ID del servicio es el CONTEXTO.
+                data: {
                     secrets: credentials // El backend cifra esto en la Bóveda (Vault)
                 }
             }, coreUrl, sessionSecret);
@@ -57,7 +57,7 @@ export function useVault() {
             await executeDirective({
                 provider: 'system',
                 protocol: 'SERVICE_UNPAIR',
-                payload: { id: serviceId }
+                context_id: serviceId
             }, coreUrl, sessionSecret);
             await hydrateManifest();
         } catch (err) {

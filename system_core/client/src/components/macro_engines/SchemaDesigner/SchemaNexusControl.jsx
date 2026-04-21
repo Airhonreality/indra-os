@@ -266,14 +266,42 @@ function MenuCard({ icon, title, desc, onClick, danger }) {
 
 // 1. FLUJO: CONFIGURACIÓN DE BASE DE DATOS (CREAR NUEVA)
 function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers, onComplete, onBack, renderHeader }) {
-    const [targetFolder, setTargetFolder] = useState({ id: activeWorkspaceId, title: 'Carpeta del Workspace', provider: 'drive' });
+    const [targetFolder, setTargetFolder] = useState({ 
+        id: activeWorkspaceId, 
+        title: activeWorkspaceId ? `ID: ${activeWorkspaceId.substring(0,10)}...` : 'SELECCIONAR DESTINO', 
+        provider: 'drive',
+        role: 'Carpeta del Workspace'
+    });
     const [showFolderSelector, setShowFolderSelector] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [progress, setProgress] = useState([]); // { label: string, status: 'PENDING'|'DONE'|'ERROR' }
+    const [isResolving, setIsResolving] = useState(false);
+    const [progress, setProgress] = useState([]);
 
     const addLog = (label, status = 'PENDING') => {
         setProgress(prev => [...prev, { label, status, id: Date.now() + Math.random() }]);
     };
+
+    // BAUTIZADOR DE SILOS: Resolución de nombre real de la carpeta activa
+    useEffect(() => {
+        if (activeWorkspaceId && targetFolder.id === activeWorkspaceId) {
+            setIsResolving(true);
+            executeDirective({
+                provider: 'drive',
+                protocol: 'ATOM_READ',
+                context_id: activeWorkspaceId
+            }, coreUrl, sessionSecret).then(res => {
+                if (res.items?.[0]) {
+                    setTargetFolder(prev => ({ 
+                        ...prev, 
+                        title: res.items[0].handle?.label || activeWorkspaceId,
+                        role: 'Carpeta del Workspace'
+                    }));
+                }
+            })
+            .catch(() => {})
+            .finally(() => setIsResolving(false));
+        }
+    }, [activeWorkspaceId]);
 
     const updateLastLog = (status) => {
         setProgress(prev => {
@@ -390,11 +418,26 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers
                     }}>
                         <label className="font-mono" style={{ fontSize: '9px', opacity: 0.4, letterSpacing: '0.2em', display: 'block', marginBottom: '12px' }}>DESTINO_DE_MATERIALIZACIÓN</label>
                         <div className="stack--tight center">
-                            <div className="center" style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', marginBottom: '8px' }}>
+                            <div className="center" style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', marginBottom: '8px', position: 'relative' }}>
                                 <IndraIcon name={targetFolder.provider === 'drive' ? 'FOLDER' : 'VAULT'} size="20px" color="var(--indra-dynamic-accent)" />
+                                {isResolving && (
+                                    <div className="indra-spin" style={{ 
+                                        position: 'absolute', 
+                                        width: '56px', 
+                                        height: '56px', 
+                                        border: '1px solid var(--indra-dynamic-accent)',
+                                        borderTopColor: 'transparent',
+                                        borderRadius: '50%',
+                                        opacity: 0.3
+                                    }} />
+                                )}
                             </div>
                             <span style={{ fontSize: '14px', fontWeight: '600', color: 'white' }}>{targetFolder.title}</span>
-                            <span className="font-mono" style={{ fontSize: '9px', opacity: 0.3 }}>PROVIDER: {targetFolder.provider?.toUpperCase()}</span>
+                            <div className="shelf--tight" style={{ opacity: 0.3 }}>
+                                <span className="font-mono" style={{ fontSize: '9px' }}>{targetFolder.role?.toUpperCase()}</span>
+                                <span className="font-mono" style={{ fontSize: '9px' }}>|</span>
+                                <span className="font-mono" style={{ fontSize: '9px' }}>{targetFolder.provider?.toUpperCase()}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -416,7 +459,15 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers
                 <ArtifactSelector 
                     title="SELECCIONAR CARPETA" 
                     filter={{ class: 'FOLDER' }} 
-                    onSelect={f => { setTargetFolder({ id: f.id, title: f.handle?.label || f.id, provider: f.provider || 'drive' }); setShowFolderSelector(false); }}
+                    onSelect={f => { 
+                        setTargetFolder({ 
+                            id: f.id, 
+                            title: f.handle?.label || f.id, 
+                            provider: f.provider || 'drive',
+                            role: 'Carpeta Seleccionada'
+                        }); 
+                        setShowFolderSelector(false); 
+                    }}
                     onCancel={() => setShowFolderSelector(false)}
                 />
             )}

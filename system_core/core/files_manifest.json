@@ -340,6 +340,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "5_diagnostics/PROBE_INDUSTRIAL_STRESS_IGNITION.gs",
+    "name": "PROBE_INDUSTRIAL_STRESS_IGNITION",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "5_diagnostics/auth_trigger.gs",
     "name": "auth_trigger",
     "type": "SERVER_JS"

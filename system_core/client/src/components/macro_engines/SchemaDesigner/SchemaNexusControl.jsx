@@ -655,6 +655,22 @@ function PathHydrate({ atom, bridge, onBack, renderHeader }) {
     const handleExecute = async () => {
         setIsProcessing(true);
         try {
+            // --- TRANSLATION LAYER: f1 -> sku ---
+            // Las columnas físicas en Sheets nacen del 'alias' o 'label' del field.
+            // Si el UI envía 'f1', Sheets es ciego. Debemos traducir el mapeo 
+            // a los alias canónicos para que BATCH_UPDATE las encuentre matemáticamente.
+            const translatedMapping = {};
+            Object.entries(mapping).forEach(([key, val]) => {
+                if (key.endsWith('_label')) return; // Filtramos meta-datos basura visual
+                const fieldDef = atom.payload?.fields?.find(f => f.id === key);
+                if (fieldDef) {
+                    const physicalKey = fieldDef.handle?.alias || fieldDef.alias || fieldDef.id;
+                    translatedMapping[physicalKey] = val;
+                } else {
+                    translatedMapping[key] = val;
+                }
+            });
+
             const result = await bridge.execute({
                 provider: 'automation',
                 protocol: 'INDUSTRIAL_SYNC',
@@ -667,7 +683,7 @@ function PathHydrate({ atom, bridge, onBack, renderHeader }) {
                         id: 'adhoc-bridge',
                         class: 'BRIDGE',
                         payload: {
-                            mappings: { [atom.payload?.target_silo_id || 'unlinked']: mapping },
+                            mappings: { [atom.payload?.target_silo_id || 'unlinked']: translatedMapping },
                             targets: [atom.payload?.target_silo_id || 'unlinked'],
                             target_provider: atom.payload?.target_provider || 'sheets',
                             policy: { conflict_strategy: 'MERGE' }

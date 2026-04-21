@@ -20,7 +20,12 @@ function CONF_SHEETS() {
       ATOM_READ: { sync: 'BLOCKING' },
       ATOM_CREATE: { sync: 'BLOCKING' },
       ATOM_UPDATE: { sync: 'BLOCKING' },
-      TABULAR_STREAM: { sync: 'BLOCKING' }
+      TABULAR_STREAM: { sync: 'BLOCKING' },
+      BATCH_UPDATE: { sync: 'BLOCKING' },
+      ATOM_DELETE: { sync: 'BLOCKING' },
+      SCHEMA_MUTATE: { sync: 'BLOCKING' },
+      SEARCH_DEEP: { sync: 'BLOCKING' },
+      SCHEMA_FIELD_OPTIONS: { sync: 'BLOCKING' }
     }
   });
 }
@@ -37,6 +42,11 @@ function handleSheets(uqo) {
     if (protocol === 'ATOM_CREATE')    return _sheets_handleAtomCreate(uqo);
     if (protocol === 'TABULAR_STREAM') return _sheets_handleTabularStream(uqo);
     if (protocol === 'ATOM_UPDATE')    return _sheets_handleAtomUpdate(uqo);
+    if (protocol === 'BATCH_UPDATE')   return _sheets_handleBatchUpdate(uqo);
+    if (protocol === 'ATOM_DELETE')    return _sheets_handleAtomDelete(uqo);
+    if (protocol === 'SCHEMA_MUTATE')  return _sheets_handleSchemaMutate(uqo);
+    if (protocol === 'SEARCH_DEEP')    return _sheets_handleSearchDeep(uqo);
+    if (protocol === 'SCHEMA_FIELD_OPTIONS') return _sheets_handleSchemaFieldOptions(uqo);
     
     throw createError('PROTOCOL_NOT_FOUND', `Sheets no soporta: ${protocol}`);
   } catch (err) {
@@ -191,4 +201,155 @@ function _sheets_handleAtomUpdate(uqo) {
   // Aquí se podrían añadir protocolos de parcheo de celdas específicos
   
   return { items: [_sheets_handleAtomRead(uqo).items[0]], metadata: { status: 'OK' } };
+}
+
+/**
+ * BATCH_UPDATE: Escribe o actualiza celdas masivamente (Inserción Rápida).
+ */
+function _sheets_handleBatchUpdate(uqo) {
+  const ssId = uqo.data?.silo_id || uqo.context_id;
+  const actions = uqo.data?.actions || [];
+  
+  if (!ssId) throw createError('INVALID_INPUT', 'BATCH_UPDATE requiere silo_id o context_id.');
+  if (actions.length === 0) return { items: [], metadata: { status: 'OK', records_mutated: 0 } };
+
+  const ss = SpreadsheetApp.openById(ssId);
+  const sheet = ss.getSheets()[0];
+  
+  const lastCol = Math.max(1, sheet.getLastColumn());
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const headerMap = {};
+  
+  headers.forEach((h, idx) => { 
+    if (h) headerMap[_system_slugify_(h)] = idx + 1; 
+  });
+
+  const rowsToAppend = [];
+  const orphans = new Set();
+  
+  actions.forEach(action => {
+    if (action.type === 'CREATE' || action.type === 'UPDATE') {
+      const flatData = action.data || {};
+      const rowArr = new Array(headers.length).fill('');
+      let mappedInThisRow = 0;
+      
+      // La primera columna siempre podría ser el ID del sistema para trazabilidad (si existe en las cabeceras)
+      if (headerMap['id']) rowArr[headerMap['id'] - 1] = action.id;
+
+      Object.entries(flatData).forEach(([key, val]) => {
+        const colIdx = headerMap[key] || headerMap[_system_slugify_(key)];
+        if (colIdx) {
+          rowArr[colIdx - 1] = val !== null && val !== undefined ? String(val) : '';
+          mappedInThisRow++;
+        } else {
+           orphans.add(key); // Acusamos recibo astronómico de las variables fantasma
+        }
+      });
+      
+      // Protector Anti-Vacío: Solo apendizar fila si realmente mapeamos algo
+      if (mappedInThisRow > 0) {
+          rowsToAppend.push(rowArr);
+      }
+    }
+  });
+
+  if (rowsToAppend.length === 0 && actions.length > 0) {
+      if (orphans.size === 0) {
+          logError(`[provider_sheets] DATOS ORIGEN VACÍOS: Las filas calculadas por el motor vinieron sin propiedades. El mapeo está pidiendo variables que no existen en Notion.`);
+          throw createError('EMPTY_DATA_ORIGIN', `Falló el volcado por un Mapeo Incompatible: los campos solicitados de Notion vinieron como UNDEFINED.`);
+      } else {
+          logError(`[provider_sheets] FALLO TOTAL DE TRADUCCIÓN. Columnas ignoradas: ${Array.from(orphans).join(', ')}`);
+          throw createError('MAPPING_FAILED', `Inyección Masiva cancelada: El destino físico no tiene ninguna de estas columnas: [${Array.from(orphans).join(', ')}]`);
+      }
+  } else if (orphans.size > 0) {
+      logWarn(`[provider_sheets] ALERTA DE MAPEO: Ciertas propiedades han sido ignoradas porque no existen en Sheets: [${Array.from(orphans).join(', ')}]`);
+  }
+
+  if (rowsToAppend.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, rowsToAppend.length, rowsToAppend[0].length).setValues(rowsToAppend);
+    logInfo(`[provider_sheets] BATCH_UPDATE: Volcadas ${rowsToAppend.length} filas en SS_ID ${ssId}`);
+  }
+
+  return { items: [], metadata: { status: 'OK', records_mutated: rowsToAppend.length } };
+}
+
+/**
+ * ATOM_DELETE: Archiva el Silo (Mueve a Papelera de Drive).
+ */
+function _sheets_handleAtomDelete(uqo) {
+  const ssId = uqo.context_id;
+  if (!ssId) throw createError('INVALID_INPUT', 'ATOM_DELETE requiere context_id.');
+  try {
+    DriveApp.getFileById(ssId).setTrashed(true);
+    return { items: [], metadata: { status: 'OK' } };
+  } catch (e) {
+    throw createError('SYSTEM_FAILURE', 'No se pudo eliminar el silo.');
+  }
+}
+
+/**
+ * SCHEMA_MUTATE: Añade nuevas columnas físicas a la Sheet.
+ */
+function _sheets_handleSchemaMutate(uqo) {
+  const ssId = uqo.context_id;
+  const data = uqo.data || {};
+  const ss = SpreadsheetApp.openById(ssId);
+  const sheet = ss.getSheets()[0];
+  
+  if (data.action === 'ADD_FIELD') {
+    const newFieldLabel = data.field?.handle?.label || data.field?.id || 'Nueva Columna';
+    const lastCol = Math.max(1, sheet.getLastColumn());
+    sheet.getRange(1, lastCol + 1).setValue(newFieldLabel)
+         .setFontWeight("bold")
+         .setBackground("#050505")
+         .setFontColor("#ffffff");
+    sheet.autoResizeColumn(lastCol + 1);
+  }
+  
+  return { items: [_sheets_handleAtomRead(uqo).items[0]], metadata: { status: 'OK' } };
+}
+
+/**
+ * SEARCH_DEEP: Busca un término transversalmente en la hoja.
+ */
+function _sheets_handleSearchDeep(uqo) {
+  const ssId = uqo.context_id;
+  const query = uqo.query?.text || uqo.data?.query;
+  if (!ssId || !query) return { items: [], metadata: { status: 'OK' } };
+
+  const ss = SpreadsheetApp.openById(ssId);
+  const sheet = ss.getSheets()[0];
+  const textFinder = sheet.createTextFinder(query).matchCase(false);
+  const matches = textFinder.findAll();
+  
+  const rowsFound = new Set();
+  matches.forEach(m => rowsFound.add(m.getRow()));
+  
+  return { items: [], metadata: { status: 'OK', records_found: rowsFound.size } };
+}
+
+/**
+ * SCHEMA_FIELD_OPTIONS: Detecta Menús Desplegables (Data Validation).
+ */
+function _sheets_handleSchemaFieldOptions(uqo) {
+  const ssId = uqo.context_id;
+  const fieldId = uqo.data?.field_id;
+  const ss = SpreadsheetApp.openById(ssId);
+  const sheet = ss.getSheets()[0];
+  const headers = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
+  
+  let colIndex = -1;
+  headers.forEach((h, idx) => {
+    if (_system_slugify_(h) === fieldId) colIndex = idx + 1;
+  });
+  
+  if (colIndex === -1) return { items: [], metadata: { status: 'OK', options: [] } };
+  
+  const rule = sheet.getRange(2, colIndex).getDataValidation();
+  let options = [];
+  if (rule && rule.getCriteriaType() === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) {
+    options = rule.getCriteriaValues()[0] || [];
+  }
+  
+  return { items: [], metadata: { status: 'OK', options: options.map(o => ({ value: o, label: o })) } };
 }

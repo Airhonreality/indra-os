@@ -90,7 +90,7 @@ function _automation_handleIndustrialSync_(uqo) {
     logInfo(`[automation:sync] 📡 Extrayendo payload fresco desde source: ${source_id}...`);
     const readSource = route({ 
        provider: source_provider || 'notion', 
-       protocol: 'ATOM_READ', 
+       protocol: 'TABULAR_STREAM', 
        context_id: source_id 
     });
     if (readSource.metadata?.status !== 'OK' && readSource.metadata?.status !== 'SUCCESS') {

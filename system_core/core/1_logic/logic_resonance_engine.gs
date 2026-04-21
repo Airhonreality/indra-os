@@ -123,6 +123,7 @@ function _resonance_calculateDrift(bridge, satPayload, siloPayload) {
  */
 function _resonance_mapToPhysical(atom, mapping, bridge_id) {
   const physical = {};
+  const dataContainer = atom.payload || atom; // Flexibilidad para proveedores que aplanan (Sheets/Notion)
   
   Object.entries(mapping).forEach(([fieldId, mapConfig]) => {
     let value = null;
@@ -131,10 +132,10 @@ function _resonance_mapToPhysical(atom, mapping, bridge_id) {
     // AXIOMA DE COMPATIBILIDAD: Soportar tanto mapeo simple (string) como complejo (object)
     if (typeof mapConfig === 'string') {
       const fieldAlias = mapConfig.replace('source.', '');
-      value = atom.payload[fieldAlias] !== undefined ? atom.payload[fieldAlias] : atom.payload[fieldId];
+      value = dataContainer[fieldAlias] !== undefined ? dataContainer[fieldAlias] : dataContainer[fieldId];
       config = { sat: fieldAlias };
     } else {
-      value = atom.payload[config.sat] !== undefined ? atom.payload[config.sat] : atom.payload[fieldId];
+      value = dataContainer[config.sat] !== undefined ? dataContainer[config.sat] : dataContainer[fieldId];
     }
 
     // 🎭 APLICAR TRANSFORMACIONES (Si existen)

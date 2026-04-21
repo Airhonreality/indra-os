@@ -21,7 +21,7 @@ export function useVault() {
     /**
      * Sincroniza una credencial con el Vault del GAS.
      */
-    const pairService = async (serviceId, credentials) => {
+    const pairService = async (serviceId, credentials, options = {}) => {
         setPairingStatus('PAIRING');
         setPairingError(null);
 
@@ -29,9 +29,11 @@ export function useVault() {
             const result = await executeDirective({
                 provider: 'system',
                 protocol: 'SERVICE_PAIR',
-                context_id: serviceId, // AXIOMA DE SINCERIDAD: El ID del servicio es el CONTEXTO.
+                context_id: serviceId, 
                 data: {
-                    secrets: credentials // El backend cifra esto en la Bóveda (Vault)
+                    secrets: credentials,
+                    account_id: options.accountId || 'default',
+                    label: options.label || `Conexión ${serviceId}`
                 }
             }, coreUrl, sessionSecret);
 

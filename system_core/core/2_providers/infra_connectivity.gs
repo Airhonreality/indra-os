@@ -13,13 +13,14 @@ function _system_handleServicePair(uqo) {
 
   logInfo(`[connectivity] Emparejando servicio: ${serviceId}`);
   
-  // AXIOMA: El emparejamiento implica persistir el estado de enlace en el Ledger/Config.
-  PropertiesService.getScriptProperties().setProperty(`SVC_PAIR_${serviceId}`, JSON.stringify({
-    paired_at: new Date().toISOString(),
-    config: data.config || {}
-  }));
+  // AXIOMA DE SINCERIDAD: Usar el motor oficial de cuentas para que sea detectable por SYSTEM_MANIFEST.
+  const accountId = data.account_id || 'default';
+  const label = data.label || `Conexión ${serviceId}`;
+  
+  // Guardamos las credenciales (payload completo) en la bóveda oficial.
+  storeProviderAccount(serviceId, accountId, JSON.stringify(data.secrets || {}), label);
 
-  return { items: [], metadata: { status: 'OK', service_paired: serviceId } };
+  return { items: [], metadata: { status: 'OK', service_paired: serviceId, account_id: accountId } };
 }
 
 /**

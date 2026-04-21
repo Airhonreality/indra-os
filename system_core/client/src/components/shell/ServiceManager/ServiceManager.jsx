@@ -34,12 +34,18 @@ export function ServiceManager({ onClose, filter: propFilter }) {
     const services = (rawServices || []).map(s => DataProjector.projectService(s));
 
     const [selectedService, setSelectedService] = useState(null);
-    const [apiKey, setApiKey] = useState('');
+    const [formData, setFormData] = useState({});
+    const [label, setLabel] = useState('');
 
     const handlePair = async () => {
-        if (!selectedService || !apiKey) return;
-        await pairService(selectedService.id, { api_key: apiKey });
-        setApiKey('');
+        if (!selectedService) return;
+        await pairService(selectedService.id, formData, { label });
+        setFormData({});
+        setLabel('');
+    };
+
+    const handleFieldChange = (id, value) => {
+        setFormData(prev => ({ ...prev, [id]: value }));
     };
 
     return (
@@ -176,37 +182,52 @@ export function ServiceManager({ onClose, filter: propFilter }) {
                                     <span className="text-hint">Ingrese credenciales para autorizar el túnel.</span>
                                 </div>
                             </div>
-                            <button className="btn btn--ghost" onClick={() => setSelectedService(null)}>
-                                <IndraIcon name="CLOSE" />
-                            </button>
-                        </header>
+                            {pairingStatus !== 'SUCCESS' && (
+                                <div className="stack" style={{ gap: 'var(--space-6)', width: '100%' }}>
+                                    {/* Campo Universal: Nombre de la Conexión */}
+                                    <div className="stack field-box slot-small">
+                                        <label className="util-label">NOMBRE DE LA CONEXIÓN</label>
+                                        <input
+                                            className="input-base"
+                                            type="text"
+                                            value={label}
+                                            onChange={(e) => setLabel(e.target.value)}
+                                            placeholder="Ej: Notion Personal, Empresa..."
+                                        />
+                                    </div>
 
-                        <div className="center fill stack" style={{ maxWidth: '400px', margin: '0 auto', gap: 'var(--space-8)' }}>
-                            <div className="stack field-box slot-small">
-                                <label className="util-label">{t('ui_provider_secret')}</label>
-                                <input
-                                    className="input-base"
-                                    type="password"
-                                    value={apiKey}
-                                    onChange={(e) => setApiKey(e.target.value)}
-                                    placeholder="••••••••••••••••••••••••"
-                                    autoFocus
-                                />
-                                <span className="text-hint" style={{ fontSize: '9px', marginTop: '4px' }}>
-                                    {t('ui_vault_notice')}
-                                </span>
-                            </div>
+                                    {/* Campos Dinámicos Inducidos por el ADN del Proveedor */}
+                                    {(selectedService.raw?.config_schema || [
+                                        { id: 'api_key', label: t('ui_provider_secret'), type: 'password' }
+                                    ]).map(field => (
+                                        <div key={field.id} className="stack field-box slot-small">
+                                            <label className="util-label">{field.label.toUpperCase()}</label>
+                                            <input
+                                                className="input-base"
+                                                type={field.type || 'text'}
+                                                value={formData[field.id] || ''}
+                                                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                                                placeholder={field.placeholder || "••••••••••••••••••••••••"}
+                                            />
+                                        </div>
+                                    ))}
 
-                            <div className="spread full">
-                                <button className="btn btn--ghost" onClick={() => setSelectedService(null)}>{t('action_cancel')}</button>
-                                <button
-                                    className={`btn btn--accent ${pairingStatus === 'PAIRING' ? 'active' : ''}`}
-                                    onClick={handlePair}
-                                    disabled={!apiKey || pairingStatus === 'PAIRING'}
-                                >
-                                    {pairingStatus === 'PAIRING' ? t('status_encrypting') : t('action_authorize')}
-                                </button>
-                            </div>
+                                    <span className="text-hint" style={{ fontSize: '9px', marginTop: '4px' }}>
+                                        {t('ui_vault_notice')}
+                                    </span>
+
+                                    <div className="spread full" style={{ marginTop: 'var(--space-4)' }}>
+                                        <button className="btn btn--ghost" onClick={() => setSelectedService(null)}>{t('action_cancel')}</button>
+                                        <button
+                                            className={`btn btn--accent ${pairingStatus === 'PAIRING' ? 'active' : ''}`}
+                                            onClick={handlePair}
+                                            disabled={pairingStatus === 'PAIRING'}
+                                        >
+                                            {pairingStatus === 'PAIRING' ? t('status_encrypting') : t('action_authorize')}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {pairingStatus === 'ERROR' && (
                                 <div className="danger-text stack--tight center bubble" style={{ background: 'rgba(239, 68, 68, 0.1)', padding: 'var(--space-4)', borderRadius: 'var(--radius-md)' }}>

@@ -11,7 +11,7 @@ import { IndraIcon } from '../../utilities/IndraIcons';
 import { useAppState } from '../../../state/app_state';
 import { executeDirective } from '../../../services/directive_executor';
 import { toastEmitter } from '../../../services/toastEmitter';
-import ArtifactSelector from '../../utilities/ArtifactSelector';
+import { SiloFractalExplorer } from '../../utilities/SiloFractalExplorer';
 
 export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported }) {
     const [currentPath, setCurrentPath] = useState('MENU'); // MENU, IGNITE, IMPORT_DNA, LINK, HYDRATE
@@ -456,20 +456,41 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers
             </div>
 
             {showFolderSelector && (
-                <ArtifactSelector 
-                    title="SELECCIONAR CARPETA" 
-                    filter={{ class: 'FOLDER' }} 
-                    onSelect={f => { 
-                        setTargetFolder({ 
-                            id: f.id, 
-                            title: f.handle?.label || f.id, 
-                            provider: f.provider || 'drive',
-                            role: 'Carpeta Seleccionada'
-                        }); 
-                        setShowFolderSelector(false); 
-                    }}
-                    onCancel={() => setShowFolderSelector(false)}
-                />
+                <div className="indra-modal-overlay center" style={{ 
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, padding: '40px' 
+                }}>
+                    <div className="stack" style={{ 
+                        width: '100%', maxWidth: '500px', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', overflow: 'hidden' 
+                    }}>
+                        <div className="shelf--loose" style={{ padding: '20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div className="stack--none">
+                                <h3 className="font-mono" style={{ fontSize: '11px', color: 'var(--indra-dynamic-accent)' }}>SELECCIONAR_DESTINO_FÍSICO</h3>
+                                <span style={{ fontSize: '9px', opacity: 0.3 }}>NAVEGACIÓN FRACTAL ACTIVADA</span>
+                            </div>
+                            <button className="btn btn--xs btn--ghost" onClick={() => setShowFolderSelector(false)}>
+                                <IndraIcon name="CLOSE" size="12px" />
+                            </button>
+                        </div>
+                        <div style={{ padding: '20px' }}>
+                            <SiloFractalExplorer 
+                                coreUrl={coreUrl}
+                                sessionSecret={sessionSecret}
+                                onSelect={f => { 
+                                    setTargetFolder({ 
+                                        id: f.id, 
+                                        title: f.handle?.label || f.id, 
+                                        provider: f.provider || 'drive',
+                                        role: 'Destino Seleccionado'
+                                    }); 
+                                    setShowFolderSelector(false); 
+                                }}
+                            />
+                        </div>
+                        <div className="shelf--tight" style={{ padding: '16px', background: 'rgba(255,255,255,0.02)' }}>
+                            <button className="btn btn--ghost fill" onClick={() => setShowFolderSelector(false)}>CANCELAR</button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

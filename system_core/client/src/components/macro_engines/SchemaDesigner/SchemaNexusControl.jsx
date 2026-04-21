@@ -73,7 +73,7 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
                         onClick={() => setCurrentPath('IMPORT_DNA')} 
                     />
                     <MenuCard 
-                        icon="RELATION" 
+                        icon="LINK" 
                         title="Vincular" 
                         desc="Conectar a tabla activa." 
                         onClick={() => setCurrentPath('LINK')} 
@@ -287,10 +287,12 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, onComplet
                 context_id: activeWorkspaceId
             }, coreUrl, sessionSecret).then(res => {
                 if (res.items?.[0]) {
+                    const resolvedAtom = res.items[0];
                     setTargetFolder(prev => ({ 
                         ...prev, 
-                        title: res.items[0].handle?.label || activeWorkspaceId,
-                        role: 'Carpeta del Workspace'
+                        id: resolvedAtom.id, // AXIOMA DE SINCERIDAD: Adoptar el ID físico real
+                        title: resolvedAtom.handle?.label || activeWorkspaceId,
+                        role: resolvedAtom.metadata?.role === 'WORKSPACE_FOLDER' ? 'Carpeta del Workspace' : prev.role
                     }));
                 }
             })
@@ -668,4 +670,79 @@ function PathHydrate({ atom, coreUrl, sessionSecret, renderHeader }) {
     }
 
     return null;
+}
+// 4. FLUJO: HIDRATACIÓN (TRANSFERENCIA DE DATOS)
+function PathHydrate({ atom, coreUrl, sessionSecret, onBack, renderHeader }) {
+    const [showSelector, setShowSelector] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [stats, setStats] = useState(null);
+
+    const handleSourceSelect = async (file) => {
+        setShowSelector(false);
+        setIsProcessing(true);
+        try {
+            // PROTOCOLO: TABULAR_STREAM (Ingesta Peristáltica)
+            const result = await executeDirective({
+                provider: file.provider || 'notion',
+                protocol: 'TABULAR_STREAM',
+                context_id: file.id,
+                data: { 
+                    target_silo_id: atom.payload?.target_silo_id,
+                    target_provider: atom.payload?.target_provider || 'sheets',
+                    mode: 'OVERWRITE'
+                }
+            }, coreUrl, sessionSecret);
+
+            if (result.metadata?.status === 'OK' || result.metadata?.count !== undefined) {
+                setStats({
+                    count: result.metadata.count || result.items.length,
+                    source: file.handle?.label || 'Origen'
+                });
+                toastEmitter.success("Hidratación completada con éxito.");
+            }
+        } catch (e) { 
+            toastEmitter.error("Error en la transferencia de datos."); 
+        } finally { 
+            setIsProcessing(false); 
+        }
+    };
+
+    if (stats) {
+        return (
+            <div className="nexus-path fill stack center" style={{ padding: '32px' }}>
+                <IndraIcon name="CHECK" size="48px" color="var(--indra-dynamic-accent)" />
+                <h3 style={{ marginTop: '16px' }}>TRANSFERENCIA EXITOSA</h3>
+                <p style={{ opacity: 0.5, fontSize: '11px', textAlign: 'center' }}>
+                    Se han transferido {stats.count} registros desde <b>{stats.source}</b> hacia tu motor físico.
+                </p>
+                <button className="btn btn--accent" onClick={onBack} style={{ marginTop: '24px' }}>VOLVER AL NEXUS</button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="nexus-path fill stack">
+            {renderHeader("TRANSFERIR DATOS", "Hidratación masiva desde silo externo.")}
+            <div className="nexus-content fill center stack--loose" style={{ padding: '24px' }}>
+                <div style={{ textAlign: 'center', opacity: 0.5 }}>
+                    <IndraIcon name="SYNC" size="48px" />
+                    <p style={{ fontSize: '11px', marginTop: '12px', maxWidth: '280px' }}>
+                        Seleccione una tabla fuente (Notion, Drive) para volcar sus registros en la base de datos vinculada.
+                    </p>
+                </div>
+                
+                <button className="btn btn--accent" onClick={() => setShowSelector(true)} disabled={isProcessing}>
+                    {isProcessing ? "TRANSFEROREANDO..." : "SELECCIONAR FUENTE"}
+                </button>
+            </div>
+
+            {showSelector && (
+                <ArtifactSelector 
+                    title="SELECCIONAR ORIGEN" 
+                    onSelect={handleSourceSelect}
+                    onCancel={() => setShowSelector(false)}
+                />
+            )}
+        </div>
+    );
 }

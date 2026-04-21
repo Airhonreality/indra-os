@@ -12,10 +12,10 @@ import { useAppState } from '../../../state/app_state';
 import { executeDirective } from '../../../services/directive_executor';
 import { toastEmitter } from '../../../services/toastEmitter';
 import { SiloFractalExplorer } from '../../utilities/SiloFractalExplorer';
+import ArtifactSelector from '../../utilities/ArtifactSelector';
 
 export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported }) {
     const [currentPath, setCurrentPath] = useState('MENU'); // MENU, IGNITE, IMPORT_DNA, LINK, HYDRATE
-    const [isProcessing, setIsProcessing] = useState(false);
     
     // Estados compartidos
     const services = useAppState(s => s.services || []);
@@ -23,9 +23,7 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
     const sessionSecret = useAppState(s => s.sessionSecret);
     const activeWorkspaceId = useAppState(s => s.activeWorkspaceId);
 
-    const tabularProviders = services.filter(s => 
-        s.protocols?.includes('TABULAR_STREAM') && s.id !== 'system'
-    );
+
 
     const renderHeader = (title, subtitle) => (
         <div className="nexus-header shelf--loose" style={{ 
@@ -107,9 +105,7 @@ export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported })
                 coreUrl={coreUrl} 
                 sessionSecret={sessionSecret} 
                 activeWorkspaceId={activeWorkspaceId}
-                providers={tabularProviders}
                 onComplete={onUpdate}
-                onBack={() => setCurrentPath('MENU')}
                 renderHeader={renderHeader}
             />
         );
@@ -265,7 +261,7 @@ function MenuCard({ icon, title, desc, onClick, danger }) {
 }
 
 // 1. FLUJO: CONFIGURACIÓN DE BASE DE DATOS (CREAR NUEVA)
-function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers, onComplete, onBack, renderHeader }) {
+function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, onComplete, renderHeader }) {
     const [targetFolder, setTargetFolder] = useState({ 
         id: activeWorkspaceId, 
         title: activeWorkspaceId ? `ID: ${activeWorkspaceId.substring(0,10)}...` : 'SELECCIONAR DESTINO', 
@@ -301,7 +297,7 @@ function PathIgnite({ atom, coreUrl, sessionSecret, activeWorkspaceId, providers
             .catch(() => {})
             .finally(() => setIsResolving(false));
         }
-    }, [activeWorkspaceId]);
+    }, [activeWorkspaceId, coreUrl, sessionSecret, targetFolder.id]);
 
     const updateLastLog = (status) => {
         setProgress(prev => {

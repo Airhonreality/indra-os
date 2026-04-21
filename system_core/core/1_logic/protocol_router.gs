@@ -11,31 +11,11 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
   'HEALTH_CHECK':                 HEALTH_CHECK,
 
   // --- PERSISTENCIA (ATOM CRUD) ---
-  'ATOM_READ': (p) => {
-    if (p.provider?.startsWith('sheets')) return handleSheets(p);
-    if (p.provider?.startsWith('notion')) return handleNotion(p);
-    return _system_handleRead(p);
-  },
-  'ATOM_CREATE': (p) => {
-    if (p.provider?.startsWith('sheets')) return handleSheets(p);
-    if (p.provider?.startsWith('notion')) return handleNotion(p);
-    return _system_handleCreate(p);
-  },
-  'ATOM_UPDATE': (p) => {
-    if (p.provider?.startsWith('sheets')) return handleSheets(p);
-    if (p.provider?.startsWith('notion')) return handleNotion(p);
-    return _system_handleUpdate(p);
-  },
-  'ATOM_PATCH': (p) => {
-    if (p.provider?.startsWith('sheets')) return handleSheets(p);
-    if (p.provider?.startsWith('notion')) return handleNotion(p);
-    return _system_handlePatch(p);
-  },
-  'ATOM_DELETE': (p) => {
-    if (p.provider?.startsWith('sheets')) return handleSheets(p);
-    if (p.provider?.startsWith('notion')) return handleNotion(p);
-    return _system_handleDelete(p);
-  },
+  'ATOM_READ':                    (p) => _system_handleRead(p),
+  'ATOM_CREATE':                  (p) => _system_handleCreate(p),
+  'ATOM_UPDATE':                  (p) => _system_handleUpdate(p),
+  'ATOM_PATCH':                   (p) => _system_handlePatch(p),
+  'ATOM_DELETE':                  (p) => _system_handleDelete(p),
   'ATOM_EXISTS':                  (p) => _system_handleExists(p),
   'ATOM_ALIAS_RENAME':            (p) => _system_handleAliasRename(p),
   'ATOM_ROLLBACK':                (p) => _system_handleRollback(p),
@@ -85,20 +65,9 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
   'SYSTEM_AUDIT':                 (p) => _system_handleAudit(p),
   
   // --- PROTOCOLOS POLIMÓRFICOS (PROVIDER SWITCH) ---
-  'TABULAR_STREAM': (p) => {
-    if (p.provider?.startsWith('notion')) return _notion_handleTabularStream(p);
-    return _system_handleTabularStream(p);
-  },
-  'HIERARCHY_TREE': (p) => {
-    if (p.provider?.startsWith('drive')) return _drive_handleHierarchyTree(p);
-    if (p.provider?.startsWith('notion')) return _notion_handleHierarchyTree(p);
-    if (p.provider?.startsWith('calendar')) return _ucp_handleHierarchyTree(p);
-    return handleNotion(p); // Fallback
-  },
-  'MEDIA_RESOLVE': (p) => {
-    if (p.provider?.startsWith('drive')) return _drive_handleMediaResolve(p);
-    return { items: [], metadata: { status: 'ERROR', error: 'Media Resolve solo soportado en Drive.' } };
-  },
+  'TABULAR_STREAM':               (p) => _system_handleTabularStream(p),
+  'HIERARCHY_TREE':               (p) => _drive_handleHierarchyTree(p), 
+  'MEDIA_RESOLVE':                (p) => _drive_handleMediaResolve(p),
 
   // --- AUTOMATIZACIÓN INDUSTRIAL ---
   'INDUSTRIAL_SYNC':              (p) => _automation_handleIndustrialSync_(p),
@@ -136,16 +105,41 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
 function route(uqo) {
   _validateInputContract_(uqo);
   
-  // AXIOMA SUH (v10.13): Normalización Universal de Contexto
-  _normalizeUqoContext_(uqo);
-
   const protocol = (uqo.protocol || '').toUpperCase();
   logInfo(`[protocol_router] Despachando cristalización: ${protocol}`);
 
+  // 1. RESOLUCIÓN DE PROVEEDOR Y DESPACHO DINÁMICO
+  if (uqo.provider && uqo.provider !== 'system') {
+    // Si viene concatenado motor:cuenta, lo normalizamos aquí (Gateway Logic)
+    if (uqo.provider.includes(':')) {
+      const [baseId, accountId] = uqo.provider.split(':');
+      uqo.provider = baseId;
+      uqo.account_id = uqo.account_id || accountId;
+    }
+
+    const conf = getProviderConf(uqo.provider);
+    if (conf && conf.implements && conf.implements[protocol]) {
+      const handlerName = conf.implements[protocol];
+      const handler = globalThis[handlerName] || this[handlerName];
+      
+      if (typeof handler === 'function') {
+        try {
+          const result = handler(uqo);
+          _validateReturnLaw_(result, uqo.provider, protocol);
+          return result;
+        } catch (err) {
+          logError(`[protocol_router] Fallo en handler "${handlerName}" para ${protocol}: ${err.message}`);
+          throw err;
+        }
+      }
+    }
+  }
+
+  // 2. FALLBACK A TABLA DE RUTEO UNIVERSAL (SYSTEM CORE)
   const handlerFn = PROTOCOL_ROUTING_TABLE[protocol];
   if (!handlerFn || typeof handlerFn !== 'function') {
     logError(`[protocol_router] PROTOCOLO NO CRISTALIZADO: ${protocol}`);
-    throw createError('PROTOCOL_NOT_CRYSTALIZED', `El protocolo "${protocol}" no ha sido cristalizado.`);
+    throw createError('PROTOCOL_NOT_CRYSTALIZED', `El protocolo "${protocol}" no ha sido cristalizado para el proveedor "${uqo.provider}".`);
   }
 
   try {

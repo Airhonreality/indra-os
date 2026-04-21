@@ -28,11 +28,12 @@ export function SiloFractalExplorer({ coreUrl, sessionSecret, onSelect, filterCl
                 
                 // Convertir cada provider en un nodo raíz del árbol
                 const rootNodes = providers.map(p => ({
-                    id: p.id,
-                    provider: p.id,
+                    id: p.id, // El ID único (ej: notion:account1)
+                    provider: p.provider_base || p.provider, // El motor (ej: notion)
+                    account_id: p.account_id, // La cuenta específica
                     handle: p.handle,
                     class: p.class || 'SILO',
-                    isRootSilo: true, // Flag de soberanía de raíz
+                    isRootSilo: true, 
                     children: [],
                     isLeaf: false
                 }));
@@ -54,13 +55,15 @@ export function SiloFractalExplorer({ coreUrl, sessionSecret, onSelect, filterCl
         try {
             const res = await executeDirective({
                 provider: node.provider || 'drive',
+                account_id: node.account_id,
                 protocol: 'HIERARCHY_TREE',
                 context_id: node.isRootSilo ? (node.handle?.entry_point || 'ROOT') : node.id
             }, coreUrl, sessionSecret);
 
             const children = (res.items || []).map(item => ({
                 ...item,
-                provider: node.provider, // Heredar provider del padre
+                provider: node.provider, // Heredar motor del padre
+                account_id: node.account_id, // Heredar cuenta del padre
                 children: [],
                 isLeaf: item.class !== 'FOLDER' && item.class !== 'WORKSPACE'
             }));

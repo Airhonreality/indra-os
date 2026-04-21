@@ -85,7 +85,33 @@ src/
 
 ---
 
-## 6. DIAGRAMA DE FLUJO: INVOCACIÓN DE CAPACIDAD
+---
+
+## 7. EL INSPECTOR UNIVERSAL SOBERANO (UNIFICACIÓN DE ATRIBUTOS)
+Actualmente existen 5 inspectores distintos (`DNAInspector`, `WorkflowInspector`, `PropertiesInspector`, etc.). Esto es una falla de homeostasis.
+
+### Fase 4: AtomicControlRegistry (Sábado AM)
+Crear una librería de controles tradicionales en `src/components/shared/controls`:
+- `StringControl`: Input de texto base.
+- `NumberControl`: Input numérico con sliders.
+- `SelectControl`: Desplegables dinámicos.
+- `BooleanControl`: Switches soberanos.
+- `ColorControl`: Selector de paleta Indra.
+
+### Fase 5: UnifiedInspectorHost (Sábado PM)
+Implementar el componente único que se auto-pinta basándose en el "ADN" del objeto:
+1. Recibe el **ADN** (valores actuales).
+2. Recibe el **ConfigSchema** (definición de campos).
+3. Ejerce el **onUpdate** centralizado.
+
+### Fase 6: La Gran Purga (Domingo)
+- [ ] Eliminar `DNAInspector.jsx` y migrar SchemaDesigner al Inspector Universal.
+- [ ] Eliminar `WorkflowInspector.jsx` y migrar WorkflowDesigner.
+- [ ] Eliminar `TraceInspector.jsx` y migrar DiagnosticHub.
+
+---
+
+## 8. DIAGRAMA DE FLUJO: INVOCACIÓN DE CAPACIDAD
 1. **User** selecciona **Átomo X** en el Fractal Tree.
 2. **Dashboard** consulta **Manifest.registry**.
 3. **Manifest** devuelve: *"Para Átomo X, inyectar `Capability_A` y `Capability_B`"*.

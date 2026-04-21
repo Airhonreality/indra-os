@@ -32,6 +32,7 @@ export function SiloFractalExplorer({ coreUrl, sessionSecret, onSelect, filterCl
                     provider: p.id,
                     handle: p.handle,
                     class: p.class || 'SILO',
+                    isRootSilo: true, // Flag de soberanía de raíz
                     children: [],
                     isLeaf: false
                 }));
@@ -54,7 +55,7 @@ export function SiloFractalExplorer({ coreUrl, sessionSecret, onSelect, filterCl
             const res = await executeDirective({
                 provider: node.provider || 'drive',
                 protocol: 'HIERARCHY_TREE',
-                context_id: node.class === 'SILO' ? 'ROOT' : node.id
+                context_id: node.isRootSilo ? 'ROOT' : node.id
             }, coreUrl, sessionSecret);
 
             const children = (res.items || []).map(item => ({

@@ -9,12 +9,16 @@
 import { executeDirective } from './directive_executor';
 import { DataProjector } from './DataProjector';
 import { MetaComposer } from './MetaComposer';
+import { AgnosticVault } from '../../public/indra-satellite-protocol/src/score/logic/AgnosticVault.js';
 
 export class DesignerBridge {
     constructor(atom, shellActions, protocolData) {
         this.atom = atom;
         this.shell = shellActions; // { close: fn }
         this.protocol = protocolData; // { url, secret, lang }
+        
+        // --- SOBERANÍA REACTIVA ---
+        this.vault = new AgnosticVault(this);
     }
 
     /**
@@ -86,13 +90,29 @@ export class DesignerBridge {
     }
 
     /**
+     * @dharma Punto de entrada universal para Directivas.
+     * Alias de compatibilidad con IndraBridge (Protocolo Semilla).
+     */
+    async execute(uqo, options = {}) {
+        return await this.request(uqo, options);
+    }
+
+    /**
      * Ejecutar una directiva arbitraria contra el Core.
      */
-    async request(directive) {
-        return await executeDirective(
+    async request(directive, options = {}) {
+        // AXIOMA: Construcción Determinista.
+        const response = await executeDirective(
             { provider: 'system', ...directive },
             this.protocol.url,
             this.protocol.secret
         );
+
+        // Resonancia reactiva mínima para compatibilidad con AgnosticVault (si se implementa)
+        if (options.vaultKey && this.vault) {
+            this.vault.commit(options.vaultKey, response.items);
+        }
+
+        return response;
     }
 }

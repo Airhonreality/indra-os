@@ -273,6 +273,15 @@ function _drive_handleAtomRead(uqo) {
     try {
       const file = DriveApp.getFileById(contextId);
       if (file.isTrashed()) throw new Error("TRASHED"); 
+
+      // AXIOMA DE SINCERIDAD (v10.9): Si es un manifiesto de Indra, escalar a la carpeta padre
+      const fileName = file.getName();
+      if (fileName === 'manifest.json' || fileName === 'manifest.indra') {
+        logInfo(`[IDENTITY_SOVEREIGNTY] Manifest detectado. Escalando a carpeta padre.`);
+        const parent = file.getParents().next();
+        return { items: [_drive_folderToAtom(parent, uqo.provider)], metadata: { status: 'OK', role: 'WORKSPACE_FOLDER' } };
+      }
+
       atom = _drive_fileToAtom(file, uqo.provider, true);
     } catch (e) {
       // No es un archivo o está en papelera — intentar como carpeta

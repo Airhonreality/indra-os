@@ -375,6 +375,16 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "5_diagnostics/sonde_notion_TOTAL_DOMINION.gs",
+    "name": "sonde_notion_TOTAL_DOMINION",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "5_diagnostics/sonde_notion_deep_scan.gs",
+    "name": "sonde_notion_deep_scan",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "5_diagnostics/sonde_satellite_crystallize.gs",
     "name": "sonde_satellite_crystallize",
     "type": "SERVER_JS"

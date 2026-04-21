@@ -13,6 +13,7 @@ import { executeDirective } from '../../../services/directive_executor';
 import { toastEmitter } from '../../../services/toastEmitter';
 import { SiloFractalExplorer } from '../../utilities/SiloFractalExplorer';
 import ArtifactSelector from '../../utilities/ArtifactSelector';
+import { FieldMapper } from '../BridgeDesigner/FieldMapper';
 
 export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported }) {
     const [currentPath, setCurrentPath] = useState('MENU'); // MENU, IGNITE, IMPORT_DNA, LINK, HYDRATE
@@ -671,78 +672,97 @@ function PathHydrate({ atom, coreUrl, sessionSecret, renderHeader }) {
 
     return null;
 }
-// 4. FLUJO: HIDRATACIÓN (TRANSFERENCIA DE DATOS)
+// 4. FLUJO: HIDRATACIÓN INDUSTRIAL (TRANSFERENCIA SOBERANA)
 function PathHydrate({ atom, coreUrl, sessionSecret, onBack, renderHeader }) {
-    const [showSelector, setShowSelector] = useState(false);
+    const [source, setSource] = useState(null); // { id, provider, handle }
+    const [mapping, setMapping] = useState({});
     const [isProcessing, setIsProcessing] = useState(false);
-    const [stats, setStats] = useState(null);
+    const [sourceOptions, setSourceOptions] = useState([]);
 
-    const handleSourceSelect = async (file) => {
-        setShowSelector(false);
+    // Efecto de Hidratación de Origen
+    useEffect(() => {
+        if (source) {
+            executeDirective({
+                provider: source.provider || 'notion',
+                protocol: 'TABULAR_STREAM',
+                context_id: source.id,
+                data: { limit: 1 } // Solo headers
+            }, coreUrl, sessionSecret).then(res => {
+                if (res.metadata?.headers) {
+                    const options = res.metadata.headers.map(h => ({
+                        value: h.id || h.key,
+                        label: h.label || h.key
+                    }));
+                    setSourceOptions(options);
+                }
+            }).catch(e => toastEmitter.error("No se pudo leer la estructura del origen."));
+        }
+    }, [source, coreUrl, sessionSecret]);
+
+    const handleExecute = async () => {
         setIsProcessing(true);
         try {
-            // PROTOCOLO: TABULAR_STREAM (Ingesta Peristáltica)
             const result = await executeDirective({
-                provider: file.provider || 'notion',
-                protocol: 'TABULAR_STREAM',
-                context_id: file.id,
-                data: { 
-                    target_silo_id: atom.payload?.target_silo_id,
+                provider: 'automation',
+                protocol: 'INDUSTRIAL_IGNITE',
+                data: {
+                    source_id: source.id,
+                    source_provider: source.provider || 'notion',
+                    target_id: atom.payload?.target_silo_id,
                     target_provider: atom.payload?.target_provider || 'sheets',
+                    mapping: mapping,
                     mode: 'OVERWRITE'
                 }
             }, coreUrl, sessionSecret);
 
-            if (result.metadata?.status === 'OK' || result.metadata?.count !== undefined) {
-                setStats({
-                    count: result.metadata.count || result.items.length,
-                    source: file.handle?.label || 'Origen'
-                });
-                toastEmitter.success("Hidratación completada con éxito.");
+            if (result.metadata?.status === 'OK') {
+                toastEmitter.success("Ingesta industrial completada.");
+                onBack();
             }
-        } catch (e) { 
-            toastEmitter.error("Error en la transferencia de datos."); 
-        } finally { 
-            setIsProcessing(false); 
+        } catch (e) {
+            toastEmitter.error("Fallo en la ejecución del Bridge.");
+        } finally {
+            setIsProcessing(false);
         }
     };
 
-    if (stats) {
+    if (!source) {
         return (
-            <div className="nexus-path fill stack center" style={{ padding: '32px' }}>
-                <IndraIcon name="CHECK" size="48px" color="var(--indra-dynamic-accent)" />
-                <h3 style={{ marginTop: '16px' }}>TRANSFERENCIA EXITOSA</h3>
-                <p style={{ opacity: 0.5, fontSize: '11px', textAlign: 'center' }}>
-                    Se han transferido {stats.count} registros desde <b>{stats.source}</b> hacia tu motor físico.
-                </p>
-                <button className="btn btn--accent" onClick={onBack} style={{ marginTop: '24px' }}>VOLVER AL NEXUS</button>
+            <div className="nexus-path fill stack">
+                {renderHeader("TRANSFERIR DATOS", "Seleccionar silo de origen para hidratación.")}
+                <div className="nexus-content fill center" style={{ padding: '24px' }}>
+                    <SiloFractalExplorer 
+                        coreUrl={coreUrl} 
+                        sessionSecret={sessionSecret} 
+                        onSelect={setSource} 
+                    />
+                </div>
             </div>
         );
     }
 
     return (
         <div className="nexus-path fill stack">
-            {renderHeader("TRANSFERIR DATOS", "Hidratación masiva desde silo externo.")}
-            <div className="nexus-content fill center stack--loose" style={{ padding: '24px' }}>
-                <div style={{ textAlign: 'center', opacity: 0.5 }}>
-                    <IndraIcon name="SYNC" size="48px" />
-                    <p style={{ fontSize: '11px', marginTop: '12px', maxWidth: '280px' }}>
-                        Seleccione una tabla fuente (Notion, Drive) para volcar sus registros en la base de datos vinculada.
-                    </p>
+            {renderHeader("MAPEO DE HIDRATACIÓN", `Desde: ${source.handle?.label || source.id}`)}
+            <div className="nexus-content fill stack--loose" style={{ padding: '20px', overflowY: 'auto' }}>
+                <div className="mapping-container glass" style={{ padding: '16px', borderRadius: '12px' }}>
+                    <FieldMapper 
+                        targetId={atom.id}
+                        schema={{ fields: atom.payload?.fields || [] }}
+                        mapping={mapping}
+                        mappingOptions={sourceOptions}
+                        config={{ action: 'APPEND' }}
+                        onUpdateMapping={setMapping}
+                        onUpdateConfig={() => {}}
+                    />
                 </div>
-                
-                <button className="btn btn--accent" onClick={() => setShowSelector(true)} disabled={isProcessing}>
-                    {isProcessing ? "TRANSFEROREANDO..." : "SELECCIONAR FUENTE"}
+            </div>
+            <div className="nexus-footer shelf--tight" style={{ padding: '20px', background: 'rgba(255,255,255,0.02)' }}>
+                <button className="btn btn--ghost" onClick={() => setSource(null)} style={{ flex: 1 }}>CAMBIAR ORIGEN</button>
+                <button className="btn btn--accent" onClick={handleExecute} disabled={isProcessing || Object.keys(mapping).length === 0} style={{ flex: 2 }}>
+                    {isProcessing ? "INGESTANDO..." : "EJECUTAR TRANSFERENCIA"}
                 </button>
             </div>
-
-            {showSelector && (
-                <ArtifactSelector 
-                    title="SELECCIONAR ORIGEN" 
-                    onSelect={handleSourceSelect}
-                    onCancel={() => setShowSelector(false)}
-                />
-            )}
         </div>
     );
 }

@@ -30,6 +30,7 @@ import './styles/ui_invoke.css';
 function EngineViewport({ activeArtifact, closeArtifact, lang, registerSync, finishSync }) {
     const { bridge: globalBridge, vault: globalVault } = useProtocol();
     const isSyncing = !!useAppState(s => s.pendingSyncs[activeArtifact.id]);
+    const sessionSecret = useAppState(s => s.sessionSecret);
     const Engine = registry.get(activeArtifact.class);
     
     // El puente se instancia una vez por Engine, pero HEREDA la cripta global

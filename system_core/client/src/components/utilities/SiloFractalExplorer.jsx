@@ -55,7 +55,7 @@ export function SiloFractalExplorer({ coreUrl, sessionSecret, onSelect, filterCl
             const res = await executeDirective({
                 provider: node.provider || 'drive',
                 protocol: 'HIERARCHY_TREE',
-                context_id: node.isRootSilo ? 'ROOT' : node.id
+                context_id: node.isRootSilo ? (node.handle?.entry_point || 'ROOT') : node.id
             }, coreUrl, sessionSecret);
 
             const children = (res.items || []).map(item => ({

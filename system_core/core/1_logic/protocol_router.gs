@@ -135,6 +135,10 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
 
 function route(uqo) {
   _validateInputContract_(uqo);
+  
+  // AXIOMA SUH (v10.13): Normalización Universal de Contexto
+  _normalizeUqoContext_(uqo);
+
   const protocol = (uqo.protocol || '').toUpperCase();
   logInfo(`[protocol_router] Despachando cristalización: ${protocol}`);
 
@@ -160,4 +164,28 @@ function _validateInputContract_(uqo) {
 
 function _validateReturnLaw_(result, providerId, protocol) {
   if (!result || !result.items || !result.metadata) throw createError('CONTRACT_VIOLATION', `Violación de contrato en ${protocol}.`);
+}
+
+/**
+ * Normaliza el context_id del UQO basándose en el contrato del proveedor.
+ * Si el context_id es nulo, vacío o coincide con el ID del proveedor, 
+ * se resuelve al entry_point declarado por el Silo.
+ * 
+ * @private
+ */
+function _normalizeUqoContext_(uqo) {
+  if (!uqo.provider || uqo.protocol === 'SYSTEM_MANIFEST') return;
+
+  const baseProviderId = uqo.provider.split(':')[0];
+  const isSelfReference = uqo.context_id === baseProviderId;
+  const isEmpty = !uqo.context_id || uqo.context_id === 'ROOT'; // Normalización básica
+
+  if (isEmpty || isSelfReference) {
+    const conf = getProviderConf(baseProviderId);
+    if (conf && conf.handle?.entry_point) {
+      const oldId = uqo.context_id;
+      uqo.context_id = conf.handle.entry_point;
+      logInfo(`[SUH_NORMALIZER] Contexto "${oldId}" normalizado a entrada canónica: "${uqo.context_id}"`);
+    }
+  }
 }

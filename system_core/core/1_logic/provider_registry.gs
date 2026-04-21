@@ -185,7 +185,8 @@ function SYSTEM_MANIFEST() {
           ns: `com.indra.system.silo`,
           alias: conf.id,
           label: conf.handle?.label || conf.id,
-          icon: conf.handle?.icon || null
+          icon: conf.handle?.icon || null,
+          entry_point: conf.handle?.entry_point || null
         },
         class: (conf.class || 'SILO').toUpperCase(),
         protocols: protocols.map(p => p.toUpperCase()),
@@ -216,7 +217,8 @@ function SYSTEM_MANIFEST() {
             ns: `com.indra.system.silo`,
             alias: `${conf.id}_${acc.account_id}`,
             label: `${conf.handle?.label || conf.id} (${accountLabel})`,
-            icon: conf.handle?.icon || null
+            icon: conf.handle?.icon || null,
+            entry_point: conf.handle?.entry_point || null
           },
           class: (conf.class || 'SILO').toUpperCase(),
           protocols: protocols.map(p => p.toUpperCase()),

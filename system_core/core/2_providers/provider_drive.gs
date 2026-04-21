@@ -41,7 +41,8 @@ function CONF_DRIVE() {
       ns: 'com.indra.system.silo',
       alias: 'drive',
       label: 'Google Drive',
-      icon: 'FOLDER'
+      icon: 'FOLDER',
+      entry_point: 'ROOT' // LEY SUH: Punto de entrada canónico
     },
     class: 'FOLDER',
     version: '1.2 (Sovereign Synthesis)',

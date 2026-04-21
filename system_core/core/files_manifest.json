@@ -200,6 +200,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "2_providers/provider_sheets.gs",
+    "name": "provider_sheets",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "2_providers/provider_system.gs",
     "name": "provider_system",
     "type": "SERVER_JS"
@@ -375,6 +380,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "5_diagnostics/sonde_sheets_industrial.gs",
+    "name": "sonde_sheets_industrial",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "5_diagnostics/system_sonde.gs",
     "name": "system_sonde",
     "type": "SERVER_JS"
@@ -418,6 +428,11 @@
     "path": "appsscript.json",
     "name": "appsscript",
     "type": "JSON"
+  },
+  {
+    "path": "scratch/test_id.gs",
+    "name": "test_id",
+    "type": "SERVER_JS"
   },
   {
     "path": "seed_loader.gs",

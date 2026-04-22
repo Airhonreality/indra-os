@@ -65,7 +65,7 @@ export class ResonanceSync {
                 provider: 'system',
                 context_id: atomId,
                 data: { 
-                    target_provider: 'drive', // El Core decide dónde materializar el Silo
+                    target_provider: 'sheets', // Las tablas se materializan siempre en el motor de Sheets
                     workspace_id: workspaceId 
                 }
             });
@@ -150,6 +150,34 @@ export class ResonanceSync {
         } catch (e) {
             console.error(`[Sincerity:Patch] Falló la cirugía en ${schemaName}:`, e);
             throw e;
+        }
+    }
+
+    /**
+     * DESCUBRIMIENTO DE ESQUEMAS REMOTOS (DRIVE SCAN)
+     * Recupera todos los DATA_SCHEMA cristalizados en el Core para el Workspace activo.
+     */
+    async discoverRemoteSchemas() {
+        const { bridge } = this;
+        const workspaceId = bridge.activeWorkspaceId;
+        if (!workspaceId) return [];
+
+        console.log(`🔍 [ResonanceSync:Discovery] Escaneando esquemas remotos en Workspace: ${workspaceId}`);
+
+        try {
+            // AXIOMA: Usamos la palabra mágica 'schemas' para listar por clase DATA_SCHEMA
+            const response = await bridge.execute({
+                protocol: 'ATOM_READ',
+                provider: 'system',
+                context_id: 'schemas' 
+            });
+
+            const remoteSchemas = response.items || [];
+            console.log(`🛰️ [ResonanceSync:Discovery] Se encontraron ${remoteSchemas.length} esquemas en el Core.`);
+            return remoteSchemas;
+        } catch (e) {
+            console.warn("[ResonanceSync:Discovery] Error al leer esquemas remotos:", e);
+            return [];
         }
     }
 

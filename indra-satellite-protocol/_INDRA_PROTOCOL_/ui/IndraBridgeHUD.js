@@ -198,9 +198,40 @@ class IndraBridgeHUD extends HTMLElement {
 
     _updateDNAProjection() {
         const projector = this.shadowRoot.getElementById('schema-projector');
-        if (projector && this._bridge.contract?.schemas) {
-            projector.schemas = this._bridge.contract.schemas;
-        }
+        if (!projector || !this._bridge.contract) return;
+
+        const localSchemas = this._bridge.contract.schemas || [];
+        const remoteSchemas = this._bridge.contract.remote_schemas || [];
+
+        // AXIOMA DE FUSIÓN GENÉTICA: Unificamos el ADN Local y el Remoto
+        const mergedSchemas = [...localSchemas];
+
+        remoteSchemas.forEach(remote => {
+            const alias = remote.handle?.alias;
+            const localMatch = mergedSchemas.find(s => s.handle?.alias === alias || s.id === alias);
+
+            if (localMatch) {
+                // Si existe localmente, lo enriquecemos con el ID remoto para que el Projector sepa que ya existe
+                localMatch.metadata = { 
+                    ...localMatch.metadata, 
+                    drive_id: remote.id, // Sincronía física
+                    atom_id: remote.id,
+                    remote_status: 'SYNCED'
+                };
+                localMatch._remoteState = remote.payload;
+            } else {
+                // Si SOLO existe en el Core, lo añadimos como un Huérfano Local (importable)
+                mergedSchemas.push({
+                    id: remote.id,
+                    handle: remote.handle,
+                    payload: remote.payload,
+                    _isRemoteOnly: true, // Flag para la UI
+                    metadata: { drive_id: remote.id, atom_id: remote.id }
+                });
+            }
+        });
+
+        projector.schemas = mergedSchemas;
     }
 
     _updateMasterStatus() {

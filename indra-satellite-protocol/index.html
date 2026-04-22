@@ -3,143 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Indra Satellite Protocol // Blueprint Lab</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <title>Indra OS | Industrial Seed v15.0</title>
+    <!-- Google Fonts: Outfit (Moderno y Premium) -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --indra-bg: #F2F2F7;
-            --indra-accent: #007AFF;
-            --indra-text: #1C1C1E;
-            --indra-border: rgba(60, 60, 67, 0.12);
+            --indra-neon: #00ff88;
+            --indra-bg: #000000;
+            --indra-glass: rgba(255, 255, 255, 0.03);
+            --indra-border: rgba(255, 255, 255, 0.1);
         }
 
-        body {
-            background-color: var(--indra-bg);
-            color: var(--indra-text);
+        body, html {
             margin: 0;
-            padding: 40px 20px;
-            font-family: 'Inter', sans-serif;
-            -webkit-font-smoothing: antialiased;
+            padding: 0;
+            background: var(--indra-bg);
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
         }
 
-        .container {
+        #app-root {
+            height: 100vh;
+        }
+
+        /* Estilos base para el Loader */
+        .ignition-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            margin: 0;
-        }
-
-        .header {
+            height: 100%;
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            margin-bottom: 40px;
+            background: #000;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
         }
 
-        .header h1 {
-            font-family: 'Inter', sans-serif;
-            font-weight: 900;
-            font-size: 24px;
-            margin: 0;
-            letter-spacing: -0.04em;
+        .neon-circle {
+            width: 60px;
+            height: 60px;
+            border: 2px solid var(--indra-neon);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
 
-        .ignite-badge {
-            background: var(--indra-accent);
-            color: white;
-            padding: 10px 24px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 800;
-            border: none;
-            cursor: pointer;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status-msg {
+            margin-top: 20px;
+            font-size: 12px;
+            letter-spacing: 2px;
+            color: var(--indra-neon);
             text-transform: uppercase;
-            letter-spacing: 0.1em;
-            box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
-            transition: all 0.2s ease;
-        }
-        .ignite-badge:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4); }
-
-        /* Pact Zone (Clean Version) */
-        .pact-zone {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            margin-bottom: 30px;
-            border: 1px solid var(--indra-border);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            align-items: flex-end;
-        }
-
-        .input-group { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 8px; }
-        .input-group label { font-size: 9px; font-weight: 800; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.05em; }
-        .input-group input { 
-            padding: 12px 16px; 
-            border: 1px solid var(--indra-border); 
-            border-radius: 10px; 
-            font-family: 'JetBrains Mono', monospace; 
-            font-size: 13px;
-            outline: none;
-        }
-        .input-group input:focus { border-color: var(--indra-accent); }
-
-        .btn-pact {
-            background: #34C759;
-            color: white;
-            padding: 13px 28px;
-            border-radius: 10px;
-            border: none;
-            font-weight: 800;
-            font-size: 11px;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        #log-layer {
-            margin-top: 50px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: #8E8E93;
-            text-align: center;
-            opacity: 0.5;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <header class="header">
-            <div>
-                <h1>INDRA CONTROL HUB</h1>
-                <p style="font-size: 11px; color: #8E8E93; margin: 4px 0 0 0; font-weight: 700; letter-spacing: 0.05em;">Panel de Gestión de Protocolo v5.2</p>
-            </div>
-            <button class="ignite-badge" id="btn-login-google">INICIAR SESIÓN GOOGLE</button>
-        </header>
-
-        <!-- Configuración de Conexión -->
-        <div class="pact-zone">
-            <div class="input-group">
-                <label>URL DEL CORE (Script URL)</label>
-                <input type="text" id="input-core-url" placeholder="https://script.google.com/...">
-            </div>
-            <div class="input-group">
-                <label>TOKEN DE ACCESO (Satellite Token)</label>
-                <input type="password" id="input-token" placeholder="Introduce tu token...">
-            </div>
-            <button class="btn-pact" id="btn-manual-link">GUARDAR CONFIGURACIÓN</button>
-        </div>
-
-        <indra-bridge-hud id="main-hud"></indra-bridge-hud>
-
-        <div id="log-layer">
-            // ESTADO: LISTO PARA CONECTAR
-        </div>
+    <!-- Loader de Ignición Fractal (Visible hasta que el Kernel tome el control) -->
+    <div id="indra-loader" class="ignition-loader">
+        <div class="neon-circle"></div>
+        <div class="status-msg">Inyectando Realidad...</div>
     </div>
 
+    <!-- Contenedor Maestro para el SmartShell -->
+    <div id="app-root"></div>
+
+    <!-- Scripts de la Semilla -->
     <script type="module" src="./src/main.js"></script>
+
+    <script>
+        // Ocultar loader cuando el Bridge reporte READY
+        window.addEventListener('indra-resonance-sync', (e) => {
+            if (e.detail && (e.detail.mode === 'STABLE' || e.detail.mode === 'READY')) {
+                const loader = document.getElementById('indra-loader');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 500);
+                }
+            }
+        });
+    </script>
 </body>
 </html>

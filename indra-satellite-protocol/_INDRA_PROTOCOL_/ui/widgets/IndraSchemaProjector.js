@@ -84,6 +84,7 @@ class IndraSchemaProjector extends HTMLElement {
             .status-indicator { width: 8px; height: 8px; border-radius: 50%; background: #d1d1d6; }
             .status-indicator.synced { background: #34c759; box-shadow: 0 0 8px rgba(52, 199, 89, 0.4); }
             .status-indicator.divergent { background: var(--indra-warning); box-shadow: 0 0 8px rgba(255, 159, 10, 0.4); }
+            .status-indicator.remote { background: var(--indra-accent); opacity: 0.5; border: 2px solid white; box-sizing: border-box; }
             
             .schema-name { font-size: 13px; font-weight: 800; color: #1c1c1e; }
             .schema-file { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: #8e8e93; }
@@ -156,8 +157,10 @@ class IndraSchemaProjector extends HTMLElement {
         const remoteFields = remote?.fields || remote?.payload?.fields || [];
 
         // Identificar Divergencias
+        const isRemoteOnly = !!s._isRemoteOnly;
         let hasDivergence = false;
-        if (isSynced && remote) {
+        
+        if (isSynced && remote && !isRemoteOnly) {
             hasDivergence = fields.some(f => {
                 const rf = remoteFields.find(r => r.id === f.id);
                 return this._checkDivergence(f, rf);
@@ -167,6 +170,8 @@ class IndraSchemaProjector extends HTMLElement {
         // Estado del botón principal
         const syncState = this._loadingStates[s.id] || 'idle';
         let mainBtnText = isSynced ? (hasDivergence ? 'Actualizar Core' : 'Sincronizado') : 'Exportar al Core';
+        
+        if (isRemoteOnly) mainBtnText = '📥 Importar ADN';
         if (syncState === 'syncing') mainBtnText = '⏳ Sincronizando...';
         if (syncState === 'done') mainBtnText = '✅ Éxito';
 
@@ -174,10 +179,10 @@ class IndraSchemaProjector extends HTMLElement {
         <div class="schema-card">
             <div class="card-header">
                 <div class="schema-identity">
-                    <div class="status-indicator ${isSynced ? (hasDivergence ? 'divergent' : 'synced') : ''}"></div>
+                    <div class="status-indicator ${isRemoteOnly ? 'remote' : (isSynced ? (hasDivergence ? 'divergent' : 'synced') : '')}"></div>
                     <div>
-                        <div class="schema-name">${(s.name || s.handle?.alias || s.id).toUpperCase()}</div>
-                        <div class="schema-file">${s._source?.file || 'manual_entry.js'}</div>
+                        <div class="schema-name">${(s.name || s.handle?.alias || s.id).toUpperCase()} ${isRemoteOnly ? '<span style="color:var(--indra-accent); font-size:8px;">[GHOST]</span>' : ''}</div>
+                        <div class="schema-file">${isRemoteOnly ? 'cloud_crystal.indra' : (s._source?.file || 'manual_entry.js')}</div>
                     </div>
                 </div>
                 <div class="header-actions">

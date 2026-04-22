@@ -1,7 +1,7 @@
-# 🧘 AXIOMAS Y DHARMAS DE INDRA (v3.0-MICELAR)
+# 🧘 AXIOMAS Y DHARMAS DE INDRA (v16.0-INDUSTRIAL)
 ### Constitución Existencial del Protocolo Satélite
 
-Este documento es tu **Ley Primera**. Define la naturaleza de la realidad en Indra v6.1. Cualquier desviación genera corrupción de datos y fallo en la sincronización.
+Este documento es tu **Ley Primera**. Define la naturaleza de la realidad en Indra v16.0. Cualquier desviación genera corrupción de datos y fallo en la sincronización.
 
 ---
 
@@ -20,7 +20,7 @@ Este documento es tu **Ley Primera**. Define la naturaleza de la realidad en Ind
 ## 🛰️ 2. El Dharma del Satélite (Capa de Soberanía)
 **Misión:** Proyectar la voluntad del negocio en interfaces estéticas y funcionales dentro de la malla.
 *   **Axioma de la Autonomía**: El Satélite es dueño de su `src/`. Nadie más vive ahí.
-*   **Axioma de la Ignorancia Útil**: El Satélite no necesita saber qué hay dentro de Drive o Notion. Solo sabe pedir resonancia al Bridge usando el nombre del esquema (`alias`).
+*   **Axioma de la Ignorancia Útil**: El Satélite no necesita saber cómo vive el dato dentro de Drive o Notion, pero **TIENE LA OBLIGACIÓN** de resolver la identidad física vía `bridge.resolveSilo()` antes de cada petición. Nunca envíes alias crudos al Core si el contrato ya fue sincronizado.
 *   **Prohibición de Alucinación**: No inventes campos. Si el campo no está en `SYSTEM_CORE_DATA_CONTRACTS.md`, no existe en la realidad.
 *   **Axioma de la Resonancia Obligatoria**: Durante la ignición (`init`), el Bridge debe proyectar su contrato local hacia el Core para sincronizar esquemas y asegurar la integridad de la malla.
 *   **Axioma de la Espina Dorsal**: Toda UI o Automatización debe nacer de un esquema claro. La IA tiene prohibido inventar campos que no existan en la espina dorsal.
@@ -38,6 +38,14 @@ Este documento es tu **Ley Primera**. Define la naturaleza de la realidad en Ind
 ## ⚙️ 4. El Dharma del Contrato (ADN)
 **Misión:** Definir qué es real y qué es posible en el grafo.
 *   Toda entidad de negocio debe tener una entrada en el contrato antes de ser programada.
+
+## 🌊 5. El Dharma de la Peristalsis (Ingesta Industrial)
+**Misión:** Asegurar que la materia fluya sin colapsar el Núcleo.
+*   **Axioma del Pulso Reversible**: La materia masiva no se entrega en un bloque; se fluye rítmicamente. Si un request excede el límite del Núcleo, el Bridge debe fragmentarlo en pulsos.
+*   **Axioma de Resurrección de Sesión**: Toda transferencia peristáltica debe ser persistente. Si el Satélite muere, el Ticket de Ingesta debe permitir la reanudación exacta desde el último átomo cristalizado.
+*   **Axioma de la Transparencia Industrial**: El desarrollador del Satélite no debe gestionar la ráfaga; el Bridge debe automatizar la fragmentación basándose en el descubrimiento de capacidades del Núcleo.
+*   **Axioma de Jerarquía de Carga (Ingesta Fractal)**: Ningún pulso de datos tabular debe transportar binarios pesados. Si un átomo requiere cristalización de media, el Núcleo devolverá un "Ticket de Media" y el Bridge deberá orquestar su flujo peristáltico en un carril paralelo e independiente.
+*   **Axioma de Memoria Peristáltica (v16.0)**: El almacenamiento local no es un basurero; es un organismo vivo. Los datos se clasifican en **PERMANENTES** (Configuración) y **VOLÁTILES** (Materia de Negocio). Estos últimos están sujetos a evicción LRU cuando el silo excede los límites físicos del navegador.
 
 ---
 

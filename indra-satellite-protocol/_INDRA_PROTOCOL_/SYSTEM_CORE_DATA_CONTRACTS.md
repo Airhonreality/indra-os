@@ -1,6 +1,6 @@
-# DATA CONTRACTS : LA GRAMÁTICA DE LA MATERIA (v4.0-MICELAR)
+# DATA CONTRACTS : LA GRAMÁTICA DE LA MATERIA (v15.0-INDUSTRIAL)
 
-Este documento define la estructura atómica de Indra v6.1. Cualquier desviación será rechazada por el **Protocol Router** del Core como "Materia Oscura".
+Este documento define la estructura atómica de Indra v15.0. Cualquier desviación será rechazada por el **Protocol Router** del Core como "Materia Oscura".
 
 ---
 

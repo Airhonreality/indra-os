@@ -115,6 +115,36 @@ class IndraBridge {
         });
     }
     
+    /**
+     * AXIOMA DE RESOLUCIÓN DE IDENTIDAD (v15.0)
+     * Resuelve un alias de esquema a su identidad física real (silo_id + provider).
+     * El Satélite debe usar este método antes de cualquier TABULAR_STREAM para
+     * asegurar un enrutamiento determinista y evitar el "Eco de Seguridad" del Core.
+     * @param {string} alias - El alias del esquema (ej: 'master_inventory').
+     * @returns {Object} { id, provider }
+     */
+    resolveSilo(alias) {
+        const schemaAlias = String(alias).trim().toLowerCase();
+        const schema = (this.contract.schemas || []).find(s => 
+            (s.handle?.alias || '').toLowerCase() === schemaAlias
+        );
+
+        if (!schema) {
+            console.error(`[IndraBridge:Error] El esquema "${alias}" no ha sido proyectado en este Satélite.`);
+            throw new Error(`SCHEMA_NOT_FOUND: ${alias}`);
+        }
+
+        const siloId = schema.payload?.target_silo_id;
+        const provider = schema.payload?.target_provider || 'sheets';
+
+        if (!siloId) {
+            console.warn(`[IndraBridge:Warn] El esquema "${alias}" existe pero carece de MATERIA FÍSICA (Ignición pendiente).`);
+            throw new Error(`MATTER_NOT_IGNITED: ${alias}`);
+        }
+
+        return { id: siloId, provider: provider };
+    }
+
     async execute(uqo, options) { 
         if (this.allowedProtocols.length > 0 && !this.allowedProtocols.includes(uqo.protocol)) {
             if (!['SYSTEM_MANIFEST', 'SYSTEM_RESONANCE_CRYSTALLIZE', 'SYSTEM_REBUILD_LEDGER'].includes(uqo.protocol)) {
@@ -141,6 +171,81 @@ class IndraBridge {
             }
             throw error;
         }
+    }
+
+    /**
+     * @dharma Patrón de Ingesta Peristáltica Universal (Indra synergize v1.0).
+     * Transforma una intención masiva en una serie rítmica de pulsos cristalizados.
+     */
+    async synergize(config) {
+        const { source, target, mapping, policy, chunkSize = 100, onProgress } = config;
+        
+        console.log(`🌊 [IndraBridge:synergize] Iniciando transferencia industrial: ${source.provider} -> ${target.provider}`);
+
+        // 1. GÉNESIS DEL TICKET PERISTÁLTICO (Core Persistence)
+        const startRes = await this.execute({
+            provider: 'automation',
+            protocol: 'INDUCTION_START',
+            data: {
+                mode: 'PERISTALTIC',
+                peristaltic: true,
+                source: source,
+                target: target,
+                mapping: mapping,
+                chunk_size: chunkSize,
+                total_expected: config.total_expected || 0,
+                policy: policy
+            }
+        });
+
+        const ticketId = startRes.metadata?.ticket_id;
+        if (!ticketId) throw new Error("Fallo al generar Ticket Peristáltico en el Núcleo.");
+
+        // 2. REGISTRO EN EL VAULT (Resiliencia Local / Sesión Zombie)
+        if (this.vault) {
+             this.vault.commit(`active_peristalsis_${ticketId}`, { 
+                 ticketId, 
+                 source, 
+                 target, 
+                 status: 'RUNNING',
+                 timestamp: Date.now() 
+             });
+        }
+
+        // 3. BUCLE DE PULSO RÍTMICO
+        let isCompleted = false;
+        let lastTicket = null;
+
+        while (!isCompleted) {
+             const pulseRes = await this.execute({
+                 provider: 'automation',
+                 protocol: 'INDUCTION_PULSE',
+                 data: { ticket_id: ticketId }
+             });
+
+             lastTicket = pulseRes.items[0];
+             const progress = lastTicket.payload?.progress || 0;
+             
+             if (onProgress) {
+                 onProgress({ 
+                     percent: Math.round(progress * 100), 
+                     cursor: lastTicket.payload?.cursor,
+                     status: lastTicket.payload?.status,
+                     ticket: lastTicket 
+                 });
+             }
+
+             if (lastTicket.payload?.status === 'COMPLETED') {
+                 isCompleted = true;
+                 if (this.vault) this.vault.commit(`active_peristalsis_${ticketId}`, null); // Limpiar sesión
+             }
+             
+             // Axioma de Seguridad: Pequeño respiro para el event loop si es necesario
+             await new Promise(r => setTimeout(r, 10));
+        }
+
+        console.log(`✅ [IndraBridge:synergize] Transferencia industrial completada: ${ticketId}`);
+        return lastTicket;
     }
 
     /**
@@ -228,6 +333,14 @@ class IndraBridge {
                     
                     console.log("✨ [Bridge] Resonancia Total Consolidada.");
                     window.dispatchEvent(new CustomEvent("indra-resonance-sync", { detail: { mode: 'STABLE' } }));
+                    
+                    // --- DESCUBRIMIENTO DE ESQUEMAS REMOTOS (DRY/DRIFT) ---
+                    // Cargamos lo que el Core ya tiene para comparar con lo local
+                    try {
+                        const remoteSchemas = await this.resonanceSync.discoverRemoteSchemas();
+                        this.contract.remote_schemas = remoteSchemas;
+                    } catch (e) { console.warn("[Bridge] Falló descubrimiento inicial de esquemas remotos."); }
+
                     this._setStatus('READY');
                     
                     // Notificar a los componentes que la "verdad global" ha llegado

@@ -78,8 +78,17 @@ function _system_handleSatelliteDiscover(uqo) {
 function _system_handleSchemaIgnite(uqo) {
   if (!uqo || !uqo.context_id) throw createError('INVALID_INPUT', 'SYSTEM_SCHEMA_IGNITE requiere context_id.');
   const schemaId = uqo.context_id;
-  const targetProvider = uqo.data?.target_provider || 'sheets';
+  let targetProvider = uqo.data?.target_provider || 'sheets';
   const folderId = uqo.data?.parent_id || uqo.data?.target_folder_id || null;
+
+  // --- AXIOMA DE INTELIGENCIA DE INFRAESTRUCTURA (V15.5) ---
+  // Drive ya no es un motor de creación tabular. Si el satélite pide 'drive' para un esquema,
+  // el Core redirige automáticamente al motor soberano de 'sheets'.
+  if (targetProvider === 'drive') {
+      logInfo(`[ignite:logic] Redirección Soberana: "drive" -> "sheets" para ignición tabular.`);
+      targetProvider = 'sheets';
+  }
+
   const traceId = _system_buildTraceId_('SYSTEM_SCHEMA_IGNITE', schemaId);
 
   // 1. Validar existencia del esquema

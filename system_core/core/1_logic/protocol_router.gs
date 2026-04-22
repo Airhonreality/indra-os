@@ -117,26 +117,29 @@ function route(uqo) {
   // --- AXIOMA DE DIRECCIONALIDAD VIRTUAL (VIRTUAL TABLE ROUTING) ---
   // Si el satélite envía un schema_id, el Core baja al hiperespacio, busca el ADN magnético del Schema,
   // extrae su identidad física (Silo ID y Provider) y muta el pulso de forma transparente.
-  if (uqo.schema_id && uqo.context_id) {
+  if (uqo.schema_id && uqo.context_id && uqo.context_id !== 'system') {
      const schemaAlias = String(uqo.schema_id).trim().toLowerCase();
      try {
-       // Búsqueda Cuántica en el Índice de Drive (O(1))
-       const files = DriveApp.searchFiles(`fullText contains '"alias":"${schemaAlias}"' and trashed = false`);
-       while (files.hasNext()) {
-           const file = files.next();
-           const doc = JSON.parse(file.getBlob().getDataAsString());
-           
-           if (doc.class === 'DATA_SCHEMA' && (doc.handle?.alias || '').toLowerCase() === schemaAlias) {
-               if (doc.payload && doc.payload.target_silo_id) {
-                   // MUTACIÓN GENÉTICA DEL PULSO
-                   uqo.provider = doc.payload.target_provider || 'sheets';
-                   uqo.context_id = doc.payload.target_silo_id;
-                   delete uqo.schema_id; // Consumido para evitar loops
-                   break;
-               }
+       // AXIOMA DE CONFIANZA: Usamos el Ledger (Fuente de Verdad) en lugar de búsqueda de Drive
+       const schemasRes = _system_listAtomsByClass(DATA_SCHEMA_CLASS_, 'system', { context_id: uqo.context_id });
+       const match = (schemasRes.items || []).find(s => (s.handle?.alias || '').toLowerCase() === schemaAlias);
+       
+       if (match) {
+           const payload = match.payload || {};
+           if (payload.target_silo_id) {
+               logSuccess(`[v-router] Mutación Exitosa: Virtual[${schemaAlias}] -> Physical[${payload.target_silo_id}]`);
+               uqo.provider = payload.target_provider || 'sheets';
+               uqo.context_id = payload.target_silo_id;
+               delete uqo.schema_id; // Consumido para evitar loops
+           } else {
+               logWarn(`[v-router] El esquema "${schemaAlias}" no ha sido ignitado (falta target_silo_id).`);
            }
+       } else {
+           logWarn(`[v-router] ADN No Encontrado: El esquema "${schemaAlias}" no existe en el Ledger del context: ${uqo.context_id}`);
        }
-     } catch (e) {}
+     } catch (e) {
+       logError(`[v-router] Error en resolución cuántica: ${e.message}`);
+     }
   }
   
   const protocol = (uqo.protocol || '').toUpperCase();

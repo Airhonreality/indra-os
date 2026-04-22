@@ -1,6 +1,6 @@
 /**
  * =============================================================================
- * MAIN SATELLITE ENTRY POINT (Zero-Config Ignition v15.0)
+ * MAIN SATELLITE ENTRY POINT (Zero-Config Ignition v16.0)
  * =============================================================================
  */
 import IndraBridge from '../_INDRA_PROTOCOL_/core/IndraBridge.js';
@@ -36,4 +36,4 @@ if (document.readyState === 'loading') {
 /**
  * Exportamos el bridge por si el dev quiere hacer debugging en consola
  */
-window.indra = { bridge, kernel, shell };
+window.indra = { bridge, kernel };

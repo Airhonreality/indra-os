@@ -15,14 +15,16 @@ export function PotencyCard({ atom }) {
     if (!projection) return null;
 
     const isSchema = projection.class === 'DATA_SCHEMA';
+    const isLinked = !!atom.payload?.target_silo_id;
 
     return (
         <div 
-            className="potency-card glass-hover ripple"
+            className={`potency-card glass-hover ripple ${isLinked ? 'is-linked' : ''}`}
             onClick={() => openArtifact(atom)}
             style={{
-                background: 'var(--glass-bg-light)', // Más claro/limpio como el mockup
-                border: '1px solid var(--color-border)',
+                background: 'var(--glass-bg-light)', 
+                border: isLinked ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+                boxShadow: isLinked ? '0 0 10px var(--color-accent-dim)' : 'none',
                 borderRadius: 'var(--radius-sm)',
                 padding: 'var(--space-2) var(--space-4)',
                 minHeight: '44px',
@@ -36,14 +38,19 @@ export function PotencyCard({ atom }) {
             <style>
                 {`
                     .potency-card:hover {
-                        border-color: ${projection.theme.color} !important;
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                        border-color: ${isLinked ? 'var(--color-accent)' : projection.theme.color} !important;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.2) ${isLinked ? ', 0 0 15px var(--color-accent-glow)' : ''};
                         z-index: 10;
                     }
                     .potency-card-header {
                         display: flex;
                         align-items: center;
                         gap: var(--space-3);
+                    }
+                    @keyframes linkage-pulse {
+                        0% { opacity: 0.6; }
+                        50% { opacity: 1; }
+                        100% { opacity: 0.6; }
                     }
                 `}
             </style>
@@ -53,12 +60,13 @@ export function PotencyCard({ atom }) {
                     width: '24px',
                     height: '24px',
                     borderRadius: '4px',
-                    background: `${projection.theme.color}15`,
+                    background: isLinked ? 'var(--color-accent-dim)' : `${projection.theme.color}15`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: projection.theme.color,
-                    border: `1px solid ${projection.theme.color}30`
+                    color: isLinked ? 'var(--color-accent)' : projection.theme.color,
+                    border: isLinked ? '1px solid var(--color-accent)' : `1px solid ${projection.theme.color}30`,
+                    boxShadow: isLinked ? '0 0 5px var(--color-accent-dim)' : 'none'
                 }}>
                     <IndraIcon name={projection.theme.icon} size="12px" />
                 </div>
@@ -67,14 +75,14 @@ export function PotencyCard({ atom }) {
                     <span style={{ 
                         fontSize: '11px', 
                         fontWeight: '700', 
-                        color: 'var(--color-text-primary)',
+                        color: isLinked ? 'var(--color-accent)' : 'var(--color-text-primary)',
                         letterSpacing: '0.02em',
                         textTransform: 'uppercase'
                     }}>
                         {projection.title}
                     </span>
                     <span style={{ fontSize: '8px', opacity: 0.3, fontFamily: 'var(--font-mono)' }}>
-                        {projection.class} {" // "} DNA_ID: {atom.id.substring(0, 8)}
+                        {isLinked ? 'STATUS_LINKED' : projection.class} {" // "} DNA_ID: {atom.id.substring(0, 8)}
                     </span>
                 </div>
 

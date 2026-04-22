@@ -150,7 +150,7 @@ self.onmessage = async (e) => {
 
                                 // --- GENERACIÓN DE WAVEFORM SINCERO (PEAK MAP) ---
                                 // Extraemos una representación de amplitud para la UI
-                                const waveformData = await this._extractWaveform(file, audioTrackInfo, aMap);
+                                const waveformData = await this._extractWaveform(file, audioTrackInfo);
                                 map.audio.peakMap = waveformData;
 
                                 console.log(`[TranscoderWorker] Audio Identity Map & Waveform Generado: ${aTotalSamples} samples.`);
@@ -233,7 +233,7 @@ self.onmessage = async (e) => {
                 mp4boxfile.onError = (e) => reject(e);
 
                 // Helper para extraer waveform sin bloquear
-                this._extractWaveform = async (file, trackInfo, aMap) => {
+                this._extractWaveform = async (file, trackInfo) => {
                     return new Promise((resolve) => {
                         const peaks = [];
                         const decoder = new AudioDecoder({
@@ -358,7 +358,6 @@ self.onmessage = async (e) => {
                 fastStart: 'in-memory' 
             });
 
-            let frameCount = 0;
 
             // 2. Instanciar el VideoEncoder (avc1.4d002a - H.264 Main Profile)
             const encoder = new VideoEncoder({
@@ -388,7 +387,6 @@ self.onmessage = async (e) => {
                     }
                     encoder.encode(videoFrame);
                     videoFrame.close(); // LEY DE MEMORIA: Liberar VRAM
-                    frameCount++;
                 },
                 error: (e) => console.error("[Aduana Decoder Error]", e)
             });

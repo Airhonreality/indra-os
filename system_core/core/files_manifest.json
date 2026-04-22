@@ -40,6 +40,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "0_utils/infra_oauth2_client.gs",
+    "name": "infra_oauth2_client",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "1_logic/document_engine.gs",
     "name": "document_engine",
     "type": "SERVER_JS"
@@ -95,13 +100,13 @@
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/adapter_google_calendar.gs",
-    "name": "adapter_google_calendar",
+    "path": "2_providers/google_rest/provider_google_calendar_rest.gs",
+    "name": "provider_google_calendar_rest",
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/adapter_tabular_calendar.gs",
-    "name": "adapter_tabular_calendar",
+    "path": "2_providers/google_rest/provider_google_sheets_rest.gs",
+    "name": "provider_google_sheets_rest",
     "type": "SERVER_JS"
   },
   {
@@ -170,11 +175,6 @@
     "type": "SERVER_JS"
   },
   {
-    "path": "2_providers/provider_calendar_universal.gs",
-    "name": "provider_calendar_universal",
-    "type": "SERVER_JS"
-  },
-  {
     "path": "2_providers/provider_compute.gs",
     "name": "provider_compute",
     "type": "SERVER_JS"
@@ -182,6 +182,11 @@
   {
     "path": "2_providers/provider_drive.gs",
     "name": "provider_drive",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "2_providers/provider_google_calendar.gs",
+    "name": "provider_google_calendar",
     "type": "SERVER_JS"
   },
   {
@@ -382,6 +387,11 @@
   {
     "path": "5_diagnostics/robust_integrity_test.gs",
     "name": "robust_integrity_test",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "5_diagnostics/sonde_google_calendar_axial.gs",
+    "name": "sonde_google_calendar_axial",
     "type": "SERVER_JS"
   },
   {

@@ -58,9 +58,27 @@ export function ServiceManager({ onClose, filter: propFilter }) {
         setLabel('');
     };
 
+    /**
+     * ⚡ [AXIOMA MULTICUENTA] handleOAuthLogin
+     * Ejecuta el flujo social para vincular identidades federales.
+     */
+    const handleOAuthLogin = async (providerId) => {
+        console.log(`📡 [OAuth] Iniciando flujo para: ${providerId}`);
+        // Simulamos la captura del token (el dev deberá inyectar su ClientID)
+        alert("🛰️ Indra está listo para recibir el Token de Google.\n\nInstrucciones:\n1. Registra tu Client ID en Google Cloud.\n2. Inyecta el SDK de GSI.\n3. El Bridge guardará el Refresh Token en el Vault del Core.");
+        
+        // Mock de éxito para demostración de flujo
+        setPairingStatus('PAIRING');
+        setTimeout(() => {
+            pairService(selectedService.id, { oauth_token: "INDRA_EXTERNAL_TOKEN_ID" }, { label: label || `Google Account ${Date.now()}` });
+        }, 1500);
+    };
+
     const handleFieldChange = (id, value) => {
         setFormData(prev => ({ ...prev, [id]: value }));
     };
+
+    const isOAuthService = selectedService?.id.includes('google');
 
     return (
         <div className="service-manager-overlay">
@@ -206,36 +224,53 @@ export function ServiceManager({ onClose, filter: propFilter }) {
                                         />
                                     </div>
 
-                                    {/* Campos Dinámicos Inducidos por el ADN del Proveedor */}
-                                    {(selectedService.raw?.config_schema || [
-                                        { id: 'api_key', label: t('ui_provider_secret'), type: 'password' }
-                                    ]).map(field => (
-                                        <div key={field.id} className="stack field-box slot-small">
-                                            <label className="util-label">{field.label.toUpperCase()}</label>
-                                            <input
-                                                className="input-base"
-                                                type={field.type || 'text'}
-                                                value={formData[field.id] || ''}
-                                                onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                                                placeholder={field.placeholder || "••••••••••••••••••••••••"}
-                                            />
+                                    {isOAuthService ? (
+                                        /* ── RUTA OAUTH (GOOGLE / FEDERACIÓN) ── */
+                                        <div className="stack center" style={{ gap: 'var(--space-4)', padding: 'var(--space-6)', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-md)' }}>
+                                            <span className="text-hint" style={{ textAlign: 'center' }}>Este servicio requiere autenticación social para generar un Silo Remoto.</span>
+                                            <button 
+                                                className="btn btn--accent shelf--loose ripple"
+                                                onClick={() => handleOAuthLogin(selectedService.id)}
+                                                style={{ background: '#4285F4', color: 'white', width: '100%', border: 'none' }}
+                                            >
+                                                <IndraIcon name="GOOGLE" />
+                                                LOGUEARSE CON GOOGLE
+                                            </button>
                                         </div>
-                                    ))}
+                                    ) : (
+                                        /* ── RUTA ESTÁNDAR (API KEYS) ── */
+                                        <>
+                                            {(selectedService.raw?.config_schema || [
+                                                { id: 'api_key', label: t('ui_provider_secret'), type: 'password' }
+                                            ]).map(field => (
+                                                <div key={field.id} className="stack field-box slot-small">
+                                                    <label className="util-label">{field.label.toUpperCase()}</label>
+                                                    <input
+                                                        className="input-base"
+                                                        type={field.type || 'text'}
+                                                        value={formData[field.id] || ''}
+                                                        onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                                                        placeholder={field.placeholder || "••••••••••••••••••••••••"}
+                                                    />
+                                                </div>
+                                            ))}
+                                            
+                                            <div className="spread full" style={{ marginTop: 'var(--space-4)' }}>
+                                                <button className="btn btn--ghost" onClick={() => setSelectedService(null)}>{t('action_cancel')}</button>
+                                                <button
+                                                    className={`btn btn--accent ${pairingStatus === 'PAIRING' ? 'active' : ''}`}
+                                                    onClick={handlePair}
+                                                    disabled={pairingStatus === 'PAIRING'}
+                                                >
+                                                    {pairingStatus === 'PAIRING' ? t('status_encrypting') : t('action_authorize')}
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
 
                                     <span className="text-hint" style={{ fontSize: '9px', marginTop: '4px' }}>
                                         {t('ui_vault_notice')}
                                     </span>
-
-                                    <div className="spread full" style={{ marginTop: 'var(--space-4)' }}>
-                                        <button className="btn btn--ghost" onClick={() => setSelectedService(null)}>{t('action_cancel')}</button>
-                                        <button
-                                            className={`btn btn--accent ${pairingStatus === 'PAIRING' ? 'active' : ''}`}
-                                            onClick={handlePair}
-                                            disabled={pairingStatus === 'PAIRING'}
-                                        >
-                                            {pairingStatus === 'PAIRING' ? t('status_encrypting') : t('action_authorize')}
-                                        </button>
-                                    </div>
                                 </div>
                             )}
 

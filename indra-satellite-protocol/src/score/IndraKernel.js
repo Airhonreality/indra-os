@@ -57,11 +57,9 @@ export class IndraKernel {
             });
 
             if (response.items) {
-                // El Vault decide si persiste basado en la política
                 const policy = options.policy || PersistencePolicy.VOLATILE;
                 this.vault.commit(schemaAlias, response.items, policy);
                 
-                // Notificar al estado reactivo (appState) para compatibilidad
                 if (typeof appState?.resonateWithCore === 'function') {
                     appState.resonateWithCore(response.items, schemaAlias);
                 }
@@ -69,6 +67,13 @@ export class IndraKernel {
                 return response.items;
             }
         } catch (e) {
+            // AXIOMA DE RESILIENCIA v16.2: 
+            // Si el error es por falta de vínculo o materia, no matamos la UX.
+            if (e.message.includes('MATTER_NOT_IGNITED') || e.message.includes('SATELLITE_NOT_LINKED')) {
+                console.warn(`🌙 [IndraKernel] "${schemaAlias}" se mantiene en modo SOBERANO (Offline).`);
+                return this.vault.get(schemaAlias) || [];
+            }
+
             console.error(`❌ [IndraKernel] Error de hidratación en "${schemaAlias}":`, e.message);
             throw e;
         }

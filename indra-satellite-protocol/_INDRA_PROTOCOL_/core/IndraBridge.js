@@ -116,8 +116,9 @@ class IndraBridge {
     }
 
     /**
-     * AXIOMA DE RESOLUCIÓN DE IDENTIDAD (v16.1)
+     * AXIOMA DE RESOLUCIÓN DE IDENTIDAD (v16.2)
      * Resuelve un alias de esquema a su identidad física real.
+     * Blindado contra colisiones de red antes de firma de pacto.
      */
     resolveSilo(alias) {
         const schemaAlias = String(alias).trim().toLowerCase();
@@ -126,16 +127,24 @@ class IndraBridge {
         );
 
         if (!schema) {
-            console.error(`[IndraBridge:Error] El esquema "${alias}" no ha sido proyectado en este Satélite.`);
+            console.error(`[IndraBridge:Error] El esquema "${alias}" no existe.`);
             throw new Error(`SCHEMA_NOT_FOUND: ${alias}`);
         }
 
         const siloId = schema.payload?.target_silo_id;
         const provider = schema.payload?.target_provider || 'sheets';
 
-        if (!siloId) {
-            console.warn(`[IndraBridge:Warn] El esquema "${alias}" existe pero carece de MATERIA FÍSICA.`);
+        // 🛡️ AXIOMA DE MATERIA REAL (Anti-IllegalID)
+        const isPlaceholder = !siloId || siloId === alias || siloId === 'project';
+        
+        if (isPlaceholder) {
+            console.warn(`[IndraBridge:Warn] "${alias}" no tiene base de datos física vinculada.`);
             throw new Error(`MATTER_NOT_IGNITED: ${alias}`);
+        }
+
+        // 🛡️ AXIOMA DE AUTORIZACIÓN
+        if (!this.satelliteToken && provider !== 'system') {
+             throw new Error(`SATELLITE_NOT_LINKED: Se requiere firma de pacto para acceder a "${alias}"`);
         }
 
         return { id: siloId, provider: provider };

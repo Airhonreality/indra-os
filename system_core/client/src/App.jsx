@@ -180,6 +180,7 @@ function IndraAppContent() {
     
     // Global Infra Manager
     const isServiceManagerOpen = useAppState(s => s.isServiceManagerOpen);
+    const isResonating = useAppState(s => s.isResonating);
     const isDiagnosticHubOpen = useAppState(s => s.isDiagnosticHubOpen);
     const closeDiagnosticHub = useAppState(s => s.closeDiagnosticHub);
 
@@ -197,6 +198,32 @@ function IndraAppContent() {
 
         bootstrap().then(recoverIntent);
     }, [bootstrap, isConnected]);
+
+    // PULSO DE SINCERIDAD (v16.0)
+    const renderResonancePulse = () => isResonating && (
+        <div style={{
+            position: 'fixed',
+            top: '15px',
+            right: '250px', // Cerca del ServiceManager por lo general
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            zIndex: 3000,
+            pointerEvents: 'none'
+        }}>
+            <div style={{
+                width: '6px',
+                height: '6px',
+                background: 'var(--color-accent)',
+                borderRadius: '50%',
+                boxShadow: '0 0 10px var(--color-accent)',
+                animation: 'pulse 1.5s infinite ease-in-out'
+            }} />
+            <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: 'var(--color-accent)', opacity: 0.7, letterSpacing: '2px' }}>
+                RESONANDO...
+            </span>
+        </div>
+    );
 
     // NIVEL -1: Web de INDRA / Documentación (Incluso estando conectado)
     if (isDocsOpen || !isConnected) {
@@ -250,6 +277,7 @@ function IndraAppContent() {
         return (
             <>
                 <NexusView />
+                {renderResonancePulse()}
                 {renderOverlays()}
             </>
         );
@@ -266,6 +294,7 @@ function IndraAppContent() {
                     registerSync={registerSync}
                     finishSync={finishSync}
                 />
+                {renderResonancePulse()}
                 {renderOverlays()}
             </>
         );
@@ -275,6 +304,7 @@ function IndraAppContent() {
     return (
         <>
             <WorkspaceDashboard />
+            {renderResonancePulse()}
             {renderOverlays()}
         </>
     );

@@ -39,6 +39,9 @@ export const createDomainSlice = (set, get) => ({
             // Proyección de Servicios (Capacidad de Silo)
             const projected = (result.items || []).map(item => DataProjector.projectService(item));
             set({ services: projected });
+
+            // PERSISTENCIA v16.0
+            localStorage.setItem('INDRA_V16_services', JSON.stringify(projected));
         } catch (err) {
             console.error('[domain_slice] Failed to hydrate manifest:', err);
         }
@@ -59,6 +62,9 @@ export const createDomainSlice = (set, get) => ({
             // AXIOMA DE PROYECCIÓN ÚNICA (ADR-043): Proyectamos al entrar al slice
             const projected = (result.items || []).map(item => DataProjector.projectArtifact(item)).filter(Boolean);
             set({ pins: projected });
+
+            // PERSISTENCIA v16.0
+            localStorage.setItem(`INDRA_V16_pins:${activeWorkspaceId}`, JSON.stringify(projected));
         } catch (err) {
             console.error('[domain_slice] loadPins failed:', err);
         } finally {
@@ -392,53 +398,65 @@ export const createDomainSlice = (set, get) => ({
             await get().discoverFromDrive(oauthData.accessToken);
             return;
         }
-        const { coreUrl, sessionSecret, isConnected } = get();
+
+        const { coreUrl, sessionSecret, isConnected, _normalizeUrl_ } = get();
         if (!isConnected || !coreUrl || !sessionSecret) return;
-        try {
-            const isGuest = sessionSecret === 'PUBLIC_GRANT';
-            const ticketId = localStorage.getItem('indra-share-ticket');
-            if (isGuest && ticketId) {
-                const res = await fetch(`${coreUrl}?action=getShareTicket&id=${ticketId}`);
-                const data = await res.json();
-                const ticket = data.items?.[0];
-                if (ticket) {
-                    get().openArtifact({ 
-                        id: ticket.artifact_id, 
-                        class: ticket.artifact_class,
-                        provider: 'system' 
-                    });
-                    set({ isConnected: true });
-                    return;
-                }
-            }
+
+        // --- ⚡ [AGILIDAD v16.0] FASE 0: FAST-PATH (UI INSTANTÁNEA) ---
+        // Leemos del Vault (LocalStorage) antes de tocar la red.
+        const cachedWorkspaces = JSON.parse(localStorage.getItem('INDRA_V16_workspaces') || '[]');
+        const cachedServices = JSON.parse(localStorage.getItem('INDRA_V16_services') || '[]');
+        const activeWorkspaceId = get().activeWorkspaceId;
+        const cachedPins = activeWorkspaceId ? JSON.parse(localStorage.getItem(`INDRA_V16_pins:${activeWorkspaceId}`) || '[]') : [];
+
+        if (cachedWorkspaces.length > 0 || cachedServices.length > 0) {
+            console.log("💎 [Bootstrap] Activando Realidad de Primer Impacto (Caché)");
+            set({ 
+                workspaces: cachedWorkspaces, 
+                services: cachedServices, 
+                pins: cachedPins,
+                loadingKeys: { ...get().loadingKeys, workspaces: false, pins: false }
+            });
+        } else {
             set({ loadingKeys: { ...get().loadingKeys, workspaces: true } });
-            const result = await executeDirective({
-                provider: 'system',
-                protocol: 'ATOM_READ',
-                context_id: 'workspaces'
-            }, coreUrl, sessionSecret, get().shareTicket);
-            
-            // RESET DE INERCIA (ADR-043): Si el sistema acaba de renacer, limpiamos localCache
-            if (result.metadata?.message === 'INDRA_REBORN') {
-                console.log('[domain_slice] Detectado RENACIMIENTO del Core. Purgando inercia local...');
-                set({ pins: [], workspaces: [], activeArtifact: null });
-                localStorage.removeItem('indra-active-workspace-id');
-                toastEmitter.info('Sistema Renacido. Iniciando Tabula Rasa.');
+        }
+
+        // --- 🛰️ [AGILIDAD v16.0] FASE 1: RESONANCIA EN PARALELO ---
+        // Ejecutamos la sincronización con el Core en segundo plano.
+        console.log("🌊 [Bootstrap] Iniciando Resonancia de Fondo...");
+        set({ isResonating: true }); 
+        
+        try {
+            // Paralelizar llamadas críticas
+            const [wsResult] = await Promise.all([
+                executeDirective({ provider: 'system', protocol: 'ATOM_READ', context_id: 'workspaces' }, _normalizeUrl_(coreUrl), sessionSecret),
+                get().hydrateManifest(),
+                get().loadIdentityLedger(),
+                get().loadIdentitySchema()
+            ]);
+
+            // Actualizar Workspaces (La verdad de GAS)
+            if (wsResult.items) {
+                const projected = wsResult.items.map(w => DataProjector.projectWorkspace(w));
+                set({ workspaces: projected, loadingKeys: { ...get().loadingKeys, workspaces: false } });
+                
+                // Persistir en Vault para la próxima sesión (Soberanía Silenciosa)
+                localStorage.setItem('INDRA_V16_workspaces', JSON.stringify(projected));
             }
 
-            const projected = (result.items || []).map(w => DataProjector.projectWorkspace(w));
-             set({ workspaces: projected, loadingKeys: { ...get().loadingKeys, workspaces: false } });
-             get().hydrateManifest();
-             const { activeWorkspaceId } = get();
-             if (activeWorkspaceId) get().loadPins();
-             get().refreshInductionTicket();
-             get().loadIdentityLedger(); // Carga inicial del llavero
-             get().loadIdentitySchema(); // Carga del contrato de datos
-         } catch (err) {
-             console.error('[domain_slice] Bootstrap failed:', err);
-             get().disconnect();
-         }
-     },
+            // Si hay workspace activo, sincronizar los pins en paralelo también
+            if (activeWorkspaceId) {
+                get().loadPins();
+            }
+
+            get().refreshInductionTicket();
+            
+        } catch (err) {
+            console.error('[domain_slice] Background Bootstrap failed:', err);
+        } finally {
+            set({ isResonating: false });
+        }
+    },
  
      /**
       * AXIOMA v6.1: Establece un vínculo relacional entre dos átomos.

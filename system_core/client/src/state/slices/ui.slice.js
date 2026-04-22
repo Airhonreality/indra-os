@@ -11,6 +11,7 @@ export const createUiSlice = (set) => ({
     serviceFilter: null, // 'intelligence', 'storage', null (all)
     isGlobalSelectorOpen: false,
     isIntelligencePortalOpen: false,
+    isResonating: false, // Pulso de Honestidad (Sincronía en segundo plano)
 
     openConnector: () => {
         localStorage.setItem('indra-show-connector', 'true');

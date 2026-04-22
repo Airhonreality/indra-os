@@ -11,7 +11,7 @@ import { IndraActionTrigger } from '../utilities/IndraActionTrigger';
  */
 export function PotencyCard({ atom }) {
     const { openArtifact } = useAppState();
-    const projection = DataProjector.projectArtifact(atom);
+    const projection = React.useMemo(() => DataProjector.projectArtifact(atom), [atom]);
     if (!projection) return null;
 
     const isSchema = projection.class === 'DATA_SCHEMA';

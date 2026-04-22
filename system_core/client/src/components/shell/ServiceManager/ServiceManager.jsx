@@ -30,8 +30,22 @@ export function ServiceManager({ onClose, filter: propFilter }) {
     } = useVault();
     const t = useLexicon();
 
-    // AXIOMA DE PROYECCIÓN: Los servicios se proyectan en la frontera del componente.
-    const services = (rawServices || []).map(s => DataProjector.projectService(s));
+    // --- ⚡ [OPTIMIZACIÓN v16.0] MEMOIZACIÓN DE PROYECCIÓN ---
+    // Solo proyectamos cuando los datos crudos cambian, no en cada re-render.
+    const services = React.useMemo(() => 
+        (rawServices || []).map(s => DataProjector.projectService(s)),
+    [rawServices]);
+
+    // --- ⚡ [OPTIMIZACIÓN v16.0] MEMOIZACIÓN DE FILTRADO ---
+    const filteredServices = React.useMemo(() => {
+        return services
+            .filter(svc => {
+                const raw = svc.raw || {};
+                const hasConfig = raw.config_schema && raw.config_schema.length > 0;
+                return (svc.id.includes(':') || !svc.isReady || hasConfig) && svc.id !== 'system';
+            })
+            .filter(svc => !filter || svc.id.startsWith(filter) || svc.raw?.category === filter);
+    }, [services, filter]);
 
     const [selectedService, setSelectedService] = useState(null);
     const [formData, setFormData] = useState({});
@@ -103,17 +117,7 @@ export function ServiceManager({ onClose, filter: propFilter }) {
                         </div>
 
                         <div className="service-list fill scroll-y" style={{ paddingRight: 'var(--space-4)' }}>
-                            {services
-                                .filter(svc => {
-                                    // REQUERIMIENTO: Solo mostrar servicios externos configurables o vinculables.
-                                    const raw = svc.raw || {};
-                                    const hasConfig = raw.config_schema && raw.config_schema.length > 0;
-                                    // EXCEPCIÓN: Si ya está vinculado (externo) o tiene esquema, se muestra.
-                                    // Si es un motor interno (system), se queda fuera.
-                                    return (svc.id.includes(':') || !svc.isReady || hasConfig) && svc.id !== 'system';
-                                })
-                                .filter(svc => !filter || svc.id.startsWith(filter) || svc.raw?.category === filter)
-                                .map(svc => (
+                            {filteredServices.map(svc => (
                                 <div
                                     key={svc.id}
                                     className={`service-tile ${svc.isReady ? 'is-active' : 'is-pending'} ${svc.error ? 'is-error' : ''}`}

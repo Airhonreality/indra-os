@@ -12,7 +12,7 @@ import { useLexicon } from '../../services/lexicon';
 export function AgencyChassis({ atom, onHoverStart, onHoverEnd }) {
     const t = useLexicon();
     const { openArtifact } = useAppState();
-    const projection = DataProjector.projectArtifact(atom);
+    const projection = React.useMemo(() => DataProjector.projectArtifact(atom), [atom]);
     if (!projection) return null;
 
     const handleDelete = () => {

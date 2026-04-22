@@ -24,7 +24,7 @@ export function ArtifactCard({ atom }) {
     const isSyncing = !!pendingSyncs[atom.id];
 
     // 1. Proyectar el Átomo (Agnosticismo Axiomático)
-    const projection = DataProjector.projectArtifact(atom);
+    const projection = React.useMemo(() => DataProjector.projectArtifact(atom), [atom]);
     if (!projection) return null;
 
     const { theme, capabilities } = projection;

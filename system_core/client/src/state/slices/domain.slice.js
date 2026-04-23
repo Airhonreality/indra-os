@@ -251,7 +251,7 @@ export const createDomainSlice = (set, get) => ({
             await executeDirective({
                 provider: 'system',
                 protocol: 'SYSTEM_PIN',
-                context_id: activeWorkspaceId,
+                workspace_id: activeWorkspaceId,
                 data: { atom }
             }, coreUrl, sessionSecret, get().shareTicket);
             get().loadPins();
@@ -272,7 +272,7 @@ export const createDomainSlice = (set, get) => ({
                 await executeDirective({
                     provider: 'system',
                     protocol: 'SYSTEM_UNPIN',
-                    context_id: activeWorkspaceId,
+                    workspace_id: activeWorkspaceId,
                     data: { atom_id: atomId, provider: cleanProvider }
                 }, coreUrl, sessionSecret, get().shareTicket);
             } catch (unpinErr) {
@@ -282,7 +282,8 @@ export const createDomainSlice = (set, get) => ({
                 await executeDirective({
                     provider: cleanProvider,
                     protocol: 'ATOM_DELETE',
-                    context_id: atomId
+                    context_id: atomId,
+                    workspace_id: activeWorkspaceId
                 }, coreUrl, sessionSecret, get().shareTicket);
             } catch (deleteErr) {
                 const wasGhost = deleteErr.message.includes('No encontrado') || 
@@ -308,7 +309,7 @@ export const createDomainSlice = (set, get) => ({
             await executeDirective({
                 provider: 'system',
                 protocol: 'SYSTEM_UNPIN',
-                context_id: activeWorkspaceId,
+                workspace_id: activeWorkspaceId,
                 data: { atom_id: atomId, provider: cleanProvider }
             }, coreUrl, sessionSecret, get().shareTicket);
             get().loadPins();

@@ -56,31 +56,36 @@ La unidad mínima de dato en Indra es el **Átomo Universal**.
 
 Toda petición al Core debe estar firmada. 
 
-### 3.1 El sobre de transporte (Request Envelope)
+### 3.1 El sobre de transporte (The Guardian Envelope)
+
+**IMPORTANTE:** El sobre DEBE ser un objeto plano. No se permite anidamiento bajo claves 'uqo' en la raíz del POST.
 
 ```json
 {
-  "satellite_token": "indra_mi_satelite_123",
-  "password":        "....", 
-  "uqo":             { ... }
+  "password":        "TOKEN_DEL_SATELITE", 
+  "provider":        "system",
+  "protocol":        "SYSTEM_MANIFEST",
+  "resonance_mode":  "SOVEREIGN",
+  ...
 }
 ```
+
+**Cabecera Obligatoria:** `Content-Type: text/plain;charset=utf-8`
 
 ---
 
 ## 4. EL UQO — UNIVERSAL QUERY OBJECT
 
-### 4.1 Estructura Canónica
+### 4.1 Estructura Canónica (Plana)
 
 ```json
 {
+  "password":     "...",
   "provider":     "notion",
   "protocol":     "ATOM_READ",
   "context_id":   "abc123-id",
   "workspace_id": "...",
-  "resonance_mode": "SOVEREIGN" | "MIRROR",
-  "data":         {},
-  "query":        {}
+  "resonance_mode": "SOVEREIGN"
 }
 ```
 

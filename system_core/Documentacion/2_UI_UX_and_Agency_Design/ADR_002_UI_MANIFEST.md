@@ -26,8 +26,23 @@ Queda prohibido el uso de estilos inline para estados lógicos. La interactivida
 ### P6 — Proyección Axiomática y Mapeo Semántico
 Los Macro-Motores (Engines) no deben contener lógica de renderizado específica para tipos de datos. Se utiliza un **ComponentMapper** que vincula el `type` (o `semantic_type`) del átomo con un **Widget especializado**. Esto garantiza que la UI sea una proyección dinámica del esquema y no un formulario estático cableado.
 
+### 3. Hollow Components (Componentes Vacíos)
+
+Un componente de Indra no debe contener el motor de renderizado dentro de su definición. Debe ser una "cáscara" que solicita su hidratación al Hub.
+
+*   **Axioma de Hidratación Fantasma:** La UI del satélite declara su intención mediante atributos semánticos (`indra-*`). El Hub es el encargado de inyectar el código necesario mediante el catálogo dinámico.
+*   **Lazy Loading Registry:** Ningún widget de UI (Árboles, Formularios, Gráficos) se carga preventivamente. Se importan mediante promesas (`Dynamic Imports`) en el momento exacto de su renderizado.
+*   **Agnosticismo de Estilos:** La infraestructura provee el DOM y el Dato; el Satélite provee la Petición y la Estética (CSS).
+
 ### P7 — Axioma de la Honestidad (Sinceridad Material)
 El sistema nunca debe ocultar el origen ni la naturaleza de un átomo. La UI debe proyectar siempre el vínculo físico y el contexto de pertenencia actual (Ej: "PINS + {ID_WORKSPACE} + {ALIAS_WORKSPACE}"), evitando etiquetas poéticas o abstracciones que enmascaren la realidad técnica de la ubicación de los datos. La transparencia es la base de la confianza sistémica.
+
+### P8 — Axioma de la Liquidez (Liquid UI & Mobile-First)
+La UI de Indra es un fluido, no una estructura sólida. Se rige por las siguientes prohibiciones y mandatos estéticos:
+*   **PROHIBIDO EL PÍXEL (Structural Anti-Pattern):** NUNCA se deben hardcodear tamaños en `px` para anchos, altos, márgenes o paddings estructurales. Se debe usar exclusivamente porcentajes (`%`), unidades de viewport (`vh`, `vw`) o unidades relativas (`rem`).
+*   **MOBILE-FIRST MANDATORY:** Todo componente debe ser diseñado y funcional en dispositivos móviles antes de escalar a escritorio. La adaptabilidad no es un "extra", es la naturaleza del componente.
+*   **FLEXBOX & AUTO-LAYOUT:** Queda prohibido el posicionamiento manual o absoluto fuera de casos de HUD. La UI debe expandirse y reacomodarse orgánicamente según la densidad de datos del esquema.
+*   **MINIMIZACIÓN DE CÓDIGO (Schema-Driven):** El éxito de un satélite se mide por la ausencia de código JS de renderizado. Si un componente puede ser autodibujado mediante un esquema y el catálogo dinámico, es pecado arquitectónico escribir HTML manual.
 
 ---
 

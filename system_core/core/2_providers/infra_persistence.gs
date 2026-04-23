@@ -226,6 +226,10 @@ function _system_deleteAtom(atomId, uqo = {}) {
         const file = _system_findAtomFile(atomId);
         file.setTrashed(true);
         ledger_remove_atom(atomId, uqo);
+        
+        // Propagación del Olvido
+        _system_propagateDeletion(atomId, uqo.provider || 'indra');
+        
         return { items: [], metadata: { status: 'OK' } };
     } catch (err) {
         return { items: [], metadata: { status: 'ERROR', error: err.message } };

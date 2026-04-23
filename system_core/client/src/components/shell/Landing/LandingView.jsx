@@ -25,6 +25,18 @@ import { IgnitionTab } from './IgnitionTab';
 const MIEEngine = React.lazy(() => import('../../macro_engines/MIEEngine/MIEEngine'));
 const SiloShareGuestView = React.lazy(() => import('../../macro_engines/MIEEngine/guest/SiloShareGuestView').then(m => ({ default: m.SiloShareGuestView })));
 
+const AGENT_BOOTSTRAP_HANDBOOK = `
+# 🛰️ INDRA AGENT SEED (Bootstrap Protocol v17.0)
+Instrucciones para Agente de IA en repositorio vacío:
+
+1. CLONAR: git clone --recursive https://github.com/Airhonreality/indra-os.git .
+2. INSTALAR: cd system_core/client && npm install
+3. ARRANCAR: npm run dev
+4. CONFIGURAR: Abre localhost:3000, usa el HUD para Handshake y pulsa "PERSISTIR EN DISCO".
+5. SINCRONIZAR: Usa "PULL" en el HUD para traer esquemas a "src/scores/".
+6. LOGICA: Crea tu lógica de negocio en "src/app.js" usando "kernel.UI" para autodibujar formularios.
+`;
+
 /**
  * LandingView (Solar Punk / Axiomatic Edition)
  */
@@ -86,7 +98,8 @@ export const LandingView = () => {
         { id: 'IGNICION', label: 'IGNICIÓN' },
         { id: 'ARQUITECTURA', label: 'ARQUITECTURA' },
         { id: 'HERRAMIENTAS', label: 'HERRAMIENTAS', isSubPage: true },
-        { id: 'MANUALES', label: 'MANUALES' }
+        { id: 'MANUALES', label: 'MANUALES' },
+        { id: 'AGENTE_SEED', label: '🤖 AGENTE', isSubPage: true }
     ];
 
     const handleTabClick = (tab) => {
@@ -172,6 +185,31 @@ export const LandingView = () => {
     if (activeSubPage === 'HERRAMIENTAS') {
         return (
             <ToolsDockTab onBack={() => setActiveSubPage(null)} />
+        );
+    }
+
+    if (activeSubPage === 'AGENTE_SEED') {
+        return (
+            <div className="fill center" style={{ background: 'var(--color-bg-void)', padding: '60px' }}>
+                <div className="indra-card" style={{ maxWidth: '800px', width: '100%', border: '1px solid var(--color-accent)' }}>
+                    <h2 className="diamond-text" style={{ fontSize: '24px', marginBottom: '20px' }}>SEMILLA DE ARRANQUE PARA AGENTES 🤖</h2>
+                    <p style={{ opacity: 0.6, fontSize: '12px', marginBottom: '15px' }}>Copia este bloque y dáselo a un agente de IA en un repositorio vacío para que construya tu satélite automáticamente.</p>
+                    <textarea 
+                        readOnly 
+                        value={AGENT_BOOTSTRAP_HANDBOOK} 
+                        style={{ 
+                            width: '100%', height: '300px', background: 'rgba(0,0,0,0.3)', color: '#00ffc8', 
+                            padding: '15px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)',
+                            fontFamily: 'JetBrains Mono, monospace', fontSize: '11px'
+                        }}
+                    />
+                    <button className="btn btn--primary mt--20" onClick={() => {
+                        navigator.clipboard.writeText(AGENT_BOOTSTRAP_HANDBOOK);
+                        alert("Semilla copiada al portapapeles. ¡Órbita lista!");
+                    }}>COPIAR SEMILLA</button>
+                    <button className="btn btn--ghost mt--10" onClick={() => setActiveSubPage(null)}>VOLVER</button>
+                </div>
+            </div>
         );
     }
 

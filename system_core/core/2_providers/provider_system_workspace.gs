@@ -108,23 +108,8 @@ function _system_handlePinsRead(uqo) {
             // Atomo existe en Ledger (Materia verificada)
             let enhancedPin = { ...pin };
             
-            // Reconciliación de Handle (Label)
+            // Reconciliación Determinista de Identidad (v17.6)
             let physicalLabel = lMeta ? lMeta.label : pin.handle?.label;
-            
-            // --- SOCIAL HEALING (v7.9.7) ---
-            // Si el nombre es un ID técnico (largo y feo), hacemos un esfuerzo extra por ver el ADN real.
-            const isTechnical = (physicalLabel === pin.id) || (physicalLabel && physicalLabel.length > 20 && !physicalLabel.includes(' '));
-            if (isTechnical) {
-              try {
-                const dnaFile = DriveApp.getFileById(pin.id);
-                const dna = JSON.parse(dnaFile.getBlob().getDataAsString());
-                if (dna.handle?.label && dna.handle.label !== physicalLabel) {
-                  logInfo(`[homeostasis] Sanando alma de átomo: ${pin.id} -> ${dna.handle.label}`);
-                  physicalLabel = dna.handle.label;
-                  // Opcional: Esto auto-corregirá el Ledger en el siguiente sync
-                }
-              } catch(e) { /* Si no es accesible, mantenemos la etiqueta técnica */ }
-            }
 
             if (pin.handle?.label !== physicalLabel) {
                 needsWorkspaceSync = true;
@@ -134,12 +119,17 @@ function _system_handlePinsRead(uqo) {
             return { ...enhancedPin, _orphan: false };
         });
 
-        // Axioma de Curación: Si detectamos desincronía, re-escribimos el Workspace
-        if (needsWorkspaceSync) {
-            // Limpiamos flags efímeros y el 'payload' para mantener el Workspace súper ligero.
-            doc.pins = sincerePins.map(({ _orphan, _reconciled, payload, ...p }) => p); 
+        // Axioma de Curación: Si detectamos desincronía o materia muerta (huérfanos), re-escribimos el Workspace
+        const orphansFound = sincerePins.some(p => p._orphan);
+        
+        if (needsWorkspaceSync || orphansFound) {
+            // PURGA HOMEOSTÁTICA: Solo conservamos los que NO son huérfanos
+            doc.pins = sincerePins
+              .filter(p => !p._orphan) // <--- Aquí incineramos la entropía
+              .map(({ _orphan, _reconciled, payload, ...p }) => p); 
+            
             file.setContent(JSON.stringify(doc, null, 2));
-            logInfo(`[homeostasis] Workspace ${workspaceId} curado automáticamente. Punteros sincronizados.`);
+            logInfo(`[homeostasis] Workspace ${workspaceId} purgado y curado. Materia muerta eliminada.`);
         }
 
         return {
@@ -205,4 +195,35 @@ function _system_propagateAliasChange(atomId, newAlias, providerId) {
             } catch (e) { }
         }
     } catch (err) { logError('[workspace] Fallo en propagación de alias.', err); }
+}
+
+/**
+ * Elimina un pin de todos los workspaces cuando el átomo es destruido.
+ */
+function _system_propagateDeletion(atomId, providerId) {
+    try {
+        logInfo(`[homeostasis] Iniciando propagación de borrado para: ${atomId}`);
+        const wsFolder = _system_getOrCreateSubfolder_(WORKSPACES_FOLDER_NAME_);
+        const files = wsFolder.getFiles();
+        while (files.hasNext()) {
+            const file = files.next();
+            if (file.getMimeType() !== 'application/json') continue;
+            try {
+                const content = JSON.parse(file.getBlob().getDataAsString());
+                const originalCount = (content.pins || []).length;
+                
+                content.pins = (content.pins || []).filter(pin => {
+                    const isMatchId = pin.id === atomId;
+                    const isMatchProvider = pin.provider === providerId || 
+                                          pin.provider.startsWith(providerId + ':');
+                    return !(isMatchId && isMatchProvider);
+                });
+
+                if (content.pins.length !== originalCount) {
+                    file.setContent(JSON.stringify(content, null, 2));
+                    logInfo(`[homeostasis] Pin eliminado del Workspace: ${file.getName()}`);
+                }
+            } catch (e) { }
+        }
+    } catch (err) { logError('[workspace] Fallo en propagación de borrado.', err); }
 }

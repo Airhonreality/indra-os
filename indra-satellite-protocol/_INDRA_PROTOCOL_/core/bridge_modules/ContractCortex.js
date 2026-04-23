@@ -1,8 +1,8 @@
 /**
  * =============================================================================
- * INDRA CONTRACT CORTEX (Agnostic JS Edition v3.2.3)
+ * INDRA CONTRACT CORTEX (Agnostic JS Edition v4.0.0 - CONSCIOUSNESS NODE)
  * =============================================================================
- * Responsibilidad: Gestión del ADN local vía ES Modules Nativos.
+ * Responsibilidad: Gestión del ADN local y la Identidad Física del Satélite.
  * =============================================================================
  */
 
@@ -12,126 +12,114 @@ export class ContractCortex {
     }
 
     /**
-     * @dharma Carga el contrato y la configuración vía Módulos JS Dinámicos y Resonancia en Vivo.
-     * v5.0: Capacidad de sincronización directa con el Core si el contrato local falla.
+     * @dharma Carga la identidad y el ADN del Satélite.
+     * Implementa el Patrón de Consciencia de Nodo (Soberanía Física).
      */
     async load(options = {}) {
         const base = window.location.origin;
-        const protocolPath = '/_INDRA_PROTOCOL_';
-
-        // 0. SOBERANÍA T=0: Recuperar de Memoria Estructural (Caché local)
+        let config = {};
         let contract = { schemas: [], workflows: [] };
-        if (options.use_cache !== false) {
-            try {
-                const raw = localStorage.getItem('INDRA_DNA_SNAPSHOT');
-                if (raw) {
-                    contract = JSON.parse(raw);
-                    console.log("🏛️ [Cortex] ADN recuperado de Memoria Estructural (T=0).");
-                    // Inyectar inmediatamente para que el Bridge pueda pasar a READY_LOCAL
-                    this.bridge.contract = contract;
-                }
-            } catch (e) {
-                console.warn("[Cortex] Fallo al leer Memoria Estructural.");
-            }
-        }
-        
+        let usedLiveSync = false;
+
         try {
-            // 1. Cargar Configuración de Ciudadanía (Identidad)
-            let config = {};
+            // --- FASE 1: EL PASAPORTE (REALITY AUDIT) ---
             try {
-                const configModule = await import(/* @vite-ignore */ `${base}${protocolPath}/indra_config.js?t=${Date.now()}`);
-                config = configModule.INDRA_CONFIG || {};
-            } catch (importErr) {
-                console.warn("[ContractCortex:v5] indra_config.js no detectado. Usando memoria volátil.");
+                const configPath = `${base}/indra_identity.js?t=${Date.now()}`;
+                
+                console.log("🔍 [Cortex:Reality] 1. Origen detectado:", base);
+                console.log("🔍 [Cortex:Reality] 2. Ruta de importación:", configPath);
+
+                // AUDITORÍA DE MATERIA: Intentamos leer el archivo como texto plano primero
+                try {
+                    const rawRes = await fetch(configPath);
+                    const rawText = await rawRes.text();
+                    console.log("🔍 [Cortex:Reality] 3. Contenido BRUTO en disco:\n", rawText);
+                } catch (fetchErr) {
+                    console.error("❌ [Cortex:Reality] Fallo en auditoría de materia (fetch):", fetchErr);
+                }
+
+                // IMPORTACIÓN DINÁMICA
+                const configModule = await import(/* @vite-ignore */ configPath);
+                console.log("🔍 [Cortex:Reality] 4. Módulo importado. Keys detectadas:", Object.keys(configModule));
+                
+                // DETECCIÓN MULTI-CAPA
+                const rawConfig = configModule.INDRA_CONFIG || configModule.default?.INDRA_CONFIG || configModule;
+                config = rawConfig || {};
+
+                console.log("🔍 [Cortex:Reality] 5. Handshake extraído:", config);
+
+                // INYECCIÓN DETERMINISTA: Solo si el disco TIENE materia real
+                if (config.core_url && config.core_token) {
+                    this.bridge.coreUrl = config.core_url;
+                    this.bridge.satelliteToken = config.core_token;
+                    this.bridge.activeWorkspaceId = config.workspace_id || null;
+                    console.log("🔒 [Cortex] Identidad física detectada y autorizada.");
+                } else {
+                    console.warn("⚠️ [Cortex] Sello vacío o incompleto en disco. Respetando memoria volátil.");
+                }
+            } catch (configErr) {
+                console.warn("📡 [Cortex] Sin pasaporte: Operando en Modo Huérfano.");
             }
 
-            // 2. Cargar Contrato Maestro (Snapshot o Live)
-            let usedLiveSync = false;
+            // [FASE 1.5 ELIMINADA: Soberanía de módulos nativa activada]
 
-            try {
-                const contractModule = await import(/* @vite-ignore */ `${base}${protocolPath}/indra_contract.js?t=${Date.now()}`);
-                contract = contractModule.INDRA_CONTRACT || contract;
-                console.log("🛰️ [Cortex] Snapshot de contrato cargado con éxito.");
-            } catch (contractErr) {
-                console.warn("[Cortex] No se detectó 'indra_contract.js'. Intentando Live Resonance...");
-                
-                // LIVE RESONANCE: Si no hay contrato local, pedimos la verdad al Core directamente
-                if (this.bridge.coreUrl && this.bridge.satelliteToken) {
-                    try {
-                        const liveManifest = await this.bridge.execute({ 
-                            protocol: 'SYSTEM_MANIFEST', 
-                            provider: 'system' 
-                        });
-                        const liveSchemas = await this.bridge.execute({ 
-                            protocol: 'SYSTEM_CONFIG_SCHEMA', 
-                            provider: 'system' 
-                        });
-
-                        contract = {
-                            synced_at: new Date().toISOString(),
-                            core_id: liveManifest.metadata?.core_id || 'unknown',
-                            core_version: liveManifest.metadata?.core_version || 'unknown',
-                            capabilities: {
-                                protocols: [...new Set((liveManifest.items || []).flatMap(i => i.protocols || []))],
-                                providers: (liveManifest.items || []).filter(i => i.class === 'SILO').map(s => s.id),
-                                workspaces: (liveManifest.items || []).filter(i => i.class === 'WORKSPACE').map(w => ({ id: w.id, label: w.handle?.label }))
-                            },
-                            schemas: liveSchemas.items || [],
-                            workflows: []
-                        };
-                        usedLiveSync = true;
-                        console.log("⚡ [Cortex] Live Resonance establecida. Verdad obtenida del Core.");
-                    } catch (liveErr) {
-                        console.error("[Cortex] Falló Live Resonance. El satélite está huérfano.", liveErr);
+            // --- FASE 2: MEMORIA ESTRUCTURAL (CACHÉ DE SESIÓN) ---
+            if (options.use_cache !== false) {
+                try {
+                    const raw = localStorage.getItem('INDRA_DNA_SNAPSHOT');
+                    if (raw) {
+                        const cached = JSON.parse(raw);
+                        // Solo recuperamos workflows o metadata, no sobreescribimos los schemas físicos
+                        contract.workflows = cached.workflows || [];
+                        console.log("🏛️ [Cortex] Memoria Estructural complementada.");
                     }
+                } catch (e) {
+                    console.warn("[Cortex] Error en Memoria Estructural.");
                 }
             }
 
-            // 3. Inyección de Soberanía
+            // --- FASE 3: RESONANCIA AXIAL (OPCIONAL) ---
+            if (this.bridge.coreUrl && this.bridge.satelliteToken && contract.schemas.length === 0) {
+                try {
+                    console.log("📡 [Cortex] Iniciando Resonancia Axial para actualizar ADN...");
+                    const liveManifest = await this.bridge.execute({ protocol: 'SYSTEM_MANIFEST', provider: 'system' });
+                    const liveSchemas = await this.bridge.execute({ protocol: 'SYSTEM_CONFIG_SCHEMA', provider: 'system' });
+
+                    contract = {
+                        synced_at: new Date().toISOString(),
+                        core_id: liveManifest.metadata?.core_id || 'unknown',
+                        capabilities: {
+                            protocols: [...new Set((liveManifest.items || []).flatMap(i => i.protocols || []))],
+                            providers: (liveManifest.items || []).filter(i => i.class === 'SILO').map(s => s.id),
+                        },
+                        schemas: liveSchemas.items || [],
+                        workflows: []
+                    };
+                    usedLiveSync = true;
+                    console.log("⚡ [Cortex] ADN actualizado vía Resonancia Axial.");
+                } catch (liveErr) {
+                    console.error("⚠️ [Cortex] Falló Resonancia Axial. Usando materia local.");
+                }
+            }
+
+            // --- FASE 4: PROYECCIÓN DE SOBERANÍA ---
             this.bridge.contract = contract;
             this.bridge.contract.satellite_name = config.satellite_name || contract.satellite_name || 'Satélite Anónimo';
             this.bridge.contract.core_id = config.core_id || contract.core_id;
             
             if (config.workspace_id) {
                 this.bridge.activeWorkspaceId = config.workspace_id;
-            } else if (!this.bridge.activeWorkspaceId) {
-                // Buscamos en las llaves estándar de Indra (v5.0 compatible)
-                const manualLink = JSON.parse(localStorage.getItem('INDRA_SATELLITE_LINK') || '{}');
-                this.bridge.activeWorkspaceId = manualLink.workspaceId || localStorage.getItem('INDRA_ACTIVE_WORKSPACE');
             }
 
-            // 4. Restauración de Materia (Igniciones)
-            const savedIgnitions = config.ignitions || JSON.parse(localStorage.getItem('INDRA_IGNITIONS') || '{}');
-            this.bridge.ignitions = savedIgnitions;
-
-            if (Object.keys(savedIgnitions).length > 0) {
-                this.bridge.contract.schemas.forEach(schema => {
-                    const id = schema.id || schema.handle?.alias;
-                    if (savedIgnitions[id]) {
-                        schema.metadata = { ...schema.metadata, silo_id: savedIgnitions[id].silo_id };
-                    }
-                });
-            }
-
-            // 5. Persistencia para la próxima ignición
+            // 5. PERSISTENCIA ESTRUCTURAL
             this.saveSnapshot(contract);
 
             return contract;
+
         } catch (e) {
-            console.error('❌ [Cortex:Error] Colapso en carga de ADN:', e);
+            console.error('❌ [Cortex:Error] Colapso en carga de consciencia:', e);
             return { schemas: [], workflows: [] };
         }
-    }
-
-    calculateChecksum(schemas) {
-        const str = JSON.stringify(schemas || [], Object.keys(schemas || {}).sort());
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        return `chk_${Math.abs(hash).toString(36)}`;
     }
 
     /**

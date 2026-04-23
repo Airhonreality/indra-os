@@ -31,6 +31,14 @@ export class TransportLayer {
     }
 
     async execute(uqo, options = {}) {
+        // --- FILTRO DE CONSCIENCIA: El Nodo Huérfano no puede hablar con el Core ---
+        if (this.bridge.status === 'ORPHAN' && uqo.protocol !== 'UI_INVOKE') {
+            const error = new Error("SATELLITE_UNLINKED");
+            error.code = "UNLINKED_NODE";
+            error.detail = "Este Satélite no posee un Sello de Identidad (Handshake) en disco.";
+            throw error;
+        }
+
         if (!uqo.provider && uqo.protocol !== 'SYSTEM_MANIFEST') {
             uqo.provider = this.bridge.contract?.satellite_name || 'indra';
         }
@@ -113,26 +121,28 @@ export class TransportLayer {
     }
 
     async _rawFetch(uqo) {
-        const { coreUrl, satelliteToken, environment, activeWorkspaceId, shareTicket } = this.bridge;
+        let { coreUrl, satelliteToken, activeWorkspaceId } = this.bridge;
         if (!coreUrl) throw new Error("CORE_NOT_INITIALIZED");
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s deadline
+        // NEXUS SANITIZATION: Limpieza detectada en logs oficiales
+        const cleanCoreUrl = coreUrl.split('?')[0].trim();
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); 
+
+        // EL PROTOCOLO DEL GUARDIÁN: Sobre Plano (React Nexus Parity)
         const envelope = { 
-            satellite_token: satelliteToken, 
-            environment,
-            workspace_id: activeWorkspaceId,
-            bridge_version: '4.0_NEXUS',
-            ...uqo 
+            workspace_id: activeWorkspaceId, // Valor por defecto del sistema
+            ...uqo,                          // Prioridad absoluta al protocolo
+            password: satelliteToken, 
+            resonance_mode: uqo.resonance_mode || 'SOVEREIGN'
         };
-        if (shareTicket) envelope.share_ticket = shareTicket;
 
         try {
-            console.log(`📡 [Transport:Fetch] Llamando a Core: ${coreUrl} [Protocol: ${uqo.protocol}]`);
-            const response = await fetch(coreUrl, {
+            console.log(`📡 [Transport:Wire] Llamando a Core (SANITIZED): ${cleanCoreUrl} [Protocol: ${uqo.protocol}]`);
+            const response = await fetch(cleanCoreUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 signal: controller.signal,
                 body: JSON.stringify(envelope)
             });

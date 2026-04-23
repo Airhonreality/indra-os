@@ -3,93 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Indra OS | Industrial Seed v15.0</title>
-    <!-- Google Fonts: Outfit (Moderno y Premium) -->
+    <title>Indra OS | Axiomatic Seed v17.0</title>
+    <!-- Google Fonts: Outfit -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --indra-neon: #00ff88;
-            --indra-bg: #000000;
-            --indra-glass: rgba(255, 255, 255, 0.03);
-            --indra-border: rgba(255, 255, 255, 0.1);
+            --indra-bg: #ffffff;
         }
 
         body, html {
             margin: 0;
             padding: 0;
             background: var(--indra-bg);
-            color: #fff;
+            color: #1c1c1e;
             font-family: 'Outfit', sans-serif;
             overflow: hidden;
         }
 
         #app-root {
             height: 100vh;
-        }
-
-        /* Estilos base para el Loader */
-        .ignition-loader {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: #000;
-            z-index: 9999;
-            transition: opacity 0.5s ease-out;
-        }
-
-        .neon-circle {
-            width: 60px;
-            height: 60px;
-            border: 2px solid var(--indra-neon);
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .status-msg {
-            margin-top: 20px;
-            font-size: 12px;
-            letter-spacing: 2px;
-            color: var(--indra-neon);
-            text-transform: uppercase;
+            width: 100vw;
         }
     </style>
 </head>
 <body>
 
-    <!-- Loader de Ignición Fractal (Visible hasta que el Kernel tome el control) -->
-    <div id="indra-loader" class="ignition-loader">
-        <div class="neon-circle"></div>
-        <div class="status-msg">Inyectando Realidad...</div>
-    </div>
-
-    <!-- Contenedor Maestro para el SmartShell -->
+    <!-- Contenedor Maestro para el Satélite -->
     <div id="app-root"></div>
 
-    <!-- Scripts de la Semilla -->
-    <script type="module" src="./src/main.js"></script>
-
-    <script>
-        // Ocultar loader cuando el Bridge reporte READY
-        window.addEventListener('indra-resonance-sync', (e) => {
-            if (e.detail && (e.detail.mode === 'STABLE' || e.detail.mode === 'READY')) {
-                const loader = document.getElementById('indra-loader');
-                if (loader) {
-                    loader.style.opacity = '0';
-                    setTimeout(() => loader.remove(), 500);
-                }
-            }
-        });
-    </script>
+    <!-- BOOTSTRAP AXIAL (SDK v17.0) -->
+    <script type="module" src="./_INDRA_PROTOCOL_/indra_hub.js?v=17.5_OMEGA"></script>
 </body>
 </html>

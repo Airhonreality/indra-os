@@ -10,7 +10,6 @@
 class IndraParamModal extends HTMLElement {
     constructor() {
         super();
-        this.attachShadow({ mode: 'open' });
         this._resolve = null;
         this._reject = null;
     }
@@ -29,7 +28,7 @@ class IndraParamModal extends HTMLElement {
     }
 
     _close(data = null) {
-        this.shadowRoot.innerHTML = ''; // Limpiar el portal
+        this.innerHTML = ''; // Limpiar el portal
         if (data) this._resolve(data);
         else this._reject(new Error("USER_CANCELLED"));
     }
@@ -39,9 +38,9 @@ class IndraParamModal extends HTMLElement {
         const title = isGenesis ? 'IGNICIÓN DE SOBERANÍA' : `PARÁMETROS: ${workflow.label}`;
         
         // Estructura Canonica con Fallbacks de Seguridad
-        this.shadowRoot.innerHTML = `
+        this.innerHTML = `
         <style>
-            :host {
+            indra-param-modal {
                 position: fixed;
                 top: 0; left: 0; width: 100vw; height: 100vh;
                 background: rgba(0,0,0,0.8);
@@ -122,7 +121,7 @@ class IndraParamModal extends HTMLElement {
                 ${isGenesis ? `
                     <div class="field-group">
                         <label>Vórtice de Datos (Nombre de Carpeta)</label>
-                        <input type="text" id="target_folder" value="VETA_OS_VAULT" placeholder="Ej: MI_PROYECTO_VAULT">
+                        <input type="text" id="target_folder" value="INDRA_PROJECT_VAULT" placeholder="Ej: MI_PROYECTO_VAULT">
                     </div>
                 ` : `
                     <div class="field-group">
@@ -140,8 +139,8 @@ class IndraParamModal extends HTMLElement {
         `;
 
         // Eventos
-        this.shadowRoot.getElementById('cancel-btn').onclick = () => this._close();
-        this.shadowRoot.getElementById('confirm-btn').onclick = async () => {
+        this.querySelector('#cancel-btn').onclick = () => this._close();
+        this.querySelector('#confirm-btn').onclick = async () => {
             const hud = document.querySelector('indra-bridge-hud');
             const bridge = hud?._bridge;
 

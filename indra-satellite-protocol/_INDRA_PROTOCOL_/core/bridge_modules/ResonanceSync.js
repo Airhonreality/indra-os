@@ -17,14 +17,7 @@ export class ResonanceSync {
     async anchorSchema(schemaName) {
         const { bridge } = this;
         const schema = bridge.contract.schemas.find(s => s.id === schemaName || s.handle?.alias === schemaName);
-        
         if (!schema) throw new Error(`SCHEMA_NOT_FOUND: ${schemaName}`);
-
-        // AXIOMA: Resolución Dinámica de Capacidades (Sin Hardcode)
-        const payloadFields = this._extractFields(schema);
-        const schemaLabel = this._extractLabel(schema);
-        const schemaClass = bridge.capabilitiesOracle.getSchemaClass();
-        const preferredProvider = bridge.capabilitiesOracle.getPreferredProvider(schemaClass);
 
         const workspaceId = bridge.activeWorkspaceId;
         if (!workspaceId) throw new Error("No hay un Workspace activo seleccionado.");

@@ -4,22 +4,29 @@
  * =============================================================================
  */
 
-:host {
+indra-bridge-hud {
     display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100000;
+    pointer-events: none;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     --indra-accent: #007AFF;
     --indra-success: #34C759;
     --indra-warning: #FF9500;
     --indra-danger: #FF3B30;
-    --indra-bg: rgba(255, 255, 255, 0.8);
-    --indra-surface: rgba(242, 242, 247, 0.6);
-    --indra-glass: blur(16px) saturate(180%);
+    --indra-bg: #FFFFFF;
+    --indra-surface: #F2F2F7;
+    --indra-glass: none;
     --indra-border: rgba(60, 60, 67, 0.12);
     --indra-text-main: #1C1C1E;
     --indra-text-dim: #8E8E93;
 }
 
 .hud-container {
+    pointer-events: auto;
     display: flex;
     flex-direction: column;
     background: var(--indra-bg);

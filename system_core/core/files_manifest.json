@@ -450,6 +450,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "6_audit/diagnostic_probe.gs",
+    "name": "diagnostic_probe",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "6_audit/protocol_resonance_audit.gs",
     "name": "protocol_resonance_audit",
     "type": "SERVER_JS"

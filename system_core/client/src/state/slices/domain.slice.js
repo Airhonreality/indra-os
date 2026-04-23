@@ -251,7 +251,7 @@ export const createDomainSlice = (set, get) => ({
             await executeDirective({
                 provider: 'system',
                 protocol: 'SYSTEM_PIN',
-                workspace_id: activeWorkspaceId,
+                context_id: activeWorkspaceId,
                 data: { atom }
             }, coreUrl, sessionSecret, get().shareTicket);
             get().loadPins();
@@ -272,7 +272,7 @@ export const createDomainSlice = (set, get) => ({
                 await executeDirective({
                     provider: 'system',
                     protocol: 'SYSTEM_UNPIN',
-                    workspace_id: activeWorkspaceId,
+                    context_id: activeWorkspaceId,
                     data: { atom_id: atomId, provider: cleanProvider }
                 }, coreUrl, sessionSecret, get().shareTicket);
             } catch (unpinErr) {
@@ -308,7 +308,7 @@ export const createDomainSlice = (set, get) => ({
             await executeDirective({
                 provider: 'system',
                 protocol: 'SYSTEM_UNPIN',
-                workspace_id: activeWorkspaceId,
+                context_id: activeWorkspaceId,
                 data: { atom_id: atomId, provider: cleanProvider }
             }, coreUrl, sessionSecret, get().shareTicket);
             get().loadPins();

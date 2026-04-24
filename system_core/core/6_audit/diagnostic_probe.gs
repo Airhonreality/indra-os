@@ -8,7 +8,7 @@
  */
 
 function AUDIT_SATELLITE_PINS() {
-  const WORKSPACE_ID = "103MitQudDSMinRzzMLuzkWKmPN7UaDNr"; // Tu contexto actual
+  const WORKSPACE_ID = "1RxM94Lcql7-pUfEL2W5SW8Pl1dV8ZcSP"; // ID REAL del Manifiesto (1RxM94Lcql7-pUfEL2W5SW8Pl1dV8ZcSP)
   const AUTO_FIX_LEGACY_NAMES = true; // <--- SEGUNDA OPORTUNIDAD: SANAR MATERIA
   
   console.log("🚀 [Sonda:Auditoría] Iniciando escaneo y REPARACIÓN en Workspace: " + WORKSPACE_ID);

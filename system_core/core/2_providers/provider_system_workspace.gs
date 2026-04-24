@@ -65,9 +65,14 @@ function _system_handleUnpin(uqo) {
         const doc = JSON.parse(file.getBlob().getDataAsString());
         doc.pins = (doc.pins || []).filter(p => {
           const isMatchId = p.id === data.atom_id;
-          const isMatchProvider = p.provider === data.provider || 
-                                  p.provider.startsWith(data.provider + ':') ||
-                                  data.provider.startsWith(p.provider + ':');
+          
+          // Blindaje contra nulos en el proveedor (Axioma de Sinceridad v17.6)
+          const pProv = p.provider || '';
+          const dProv = data.provider || '';
+          
+          const isMatchProvider = pProv === dProv || 
+                                  (pProv && pProv.startsWith(dProv + ':')) ||
+                                  (dProv && dProv.startsWith(pProv + ':'));
                                   
           return !(isMatchId && isMatchProvider);
         });

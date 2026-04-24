@@ -26,15 +26,15 @@ const MIEEngine = React.lazy(() => import('../../macro_engines/MIEEngine/MIEEngi
 const SiloShareGuestView = React.lazy(() => import('../../macro_engines/MIEEngine/guest/SiloShareGuestView').then(m => ({ default: m.SiloShareGuestView })));
 
 const AGENT_BOOTSTRAP_HANDBOOK = `
-# 🛰️ INDRA AGENT SEED (Bootstrap Protocol v17.0)
-Instrucciones para Agente de IA en repositorio vacío:
+# 🛰️ INDRA SOVEREIGN SEED (Bootstrap Protocol v1.0)
+Instrucciones para Agente de IA o Humano en repositorio vacío:
 
-1. CLONAR: git clone --recursive https://github.com/Airhonreality/indra-os.git .
-2. INSTALAR: cd system_core/client && npm install
+1. CLONAR: git clone https://github.com/Airhonreality/indra-satellite-protocol.git .
+2. INSTALAR: npm install
 3. ARRANCAR: npm run dev
-4. CONFIGURAR: Abre localhost:3000, usa el HUD para Handshake y pulsa "PERSISTIR EN DISCO".
-5. SINCRONIZAR: Usa "PULL" en el HUD para traer esquemas a "src/scores/".
-6. LOGICA: Crea tu lógica de negocio en "src/app.js" usando "kernel.UI" para autodibujar formularios.
+4. CONFIGURAR: Abre localhost:3005/architect.html para el Handshake inicial.
+5. LOGICA: Tu territorio es la carpeta "src/". No toques "_INDRA_PROTOCOL_".
+6. SOBERANÍA: Crea tus materializadores en "src/score/ui/" e ignítalos en "src/app.js".
 `;
 
 /**

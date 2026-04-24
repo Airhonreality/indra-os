@@ -350,6 +350,16 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "5_diagnostics/PROBE_LEDGER_HEART.gs",
+    "name": "PROBE_LEDGER_HEART",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "5_diagnostics/PROBE_POLYMOPRHIC_INTEGRITY.gs",
+    "name": "PROBE_POLYMOPRHIC_INTEGRITY",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "5_diagnostics/PROBE_SILO_GPS.gs",
     "name": "PROBE_SILO_GPS",
     "type": "SERVER_JS"
@@ -442,6 +452,11 @@
   {
     "path": "6_audit/Reseteo_dev.gs",
     "name": "Reseteo_dev",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "6_audit/Sonda_Estabilizacion_Axial.gs",
+    "name": "Sonda_Estabilizacion_Axial",
     "type": "SERVER_JS"
   },
   {

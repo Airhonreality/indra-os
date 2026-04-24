@@ -455,13 +455,28 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "6_audit/limpieza_axial.gs",
+    "name": "limpieza_axial",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "6_audit/protocol_resonance_audit.gs",
     "name": "protocol_resonance_audit",
     "type": "SERVER_JS"
   },
   {
+    "path": "6_audit/purge_huerfanos.gs",
+    "name": "purge_huerfanos",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "6_audit/resonance_audit.gs",
     "name": "resonance_audit",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "6_audit/restaurar_workspace.gs",
+    "name": "restaurar_workspace",
     "type": "SERVER_JS"
   },
   {

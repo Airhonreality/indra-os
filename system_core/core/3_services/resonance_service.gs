@@ -217,12 +217,10 @@ function resonance_service_resonate(atom, eventType, previous) {
 
     logInfo(`[resonance] Despachando eventos para ${atom.class} (ID: ${atom.id}) | Evento: ${eventType}`);
 
-    // Rasgo: RESONANCIA FÍSICA (Idenitdad)
+    // Rasgo: RESONANCIA FÍSICA (Identidad)
     if (traits.includes(TRAIT.PHYSICAL_RESONANCE)) {
-        const labelChanged = !previous || (previous.handle?.label !== atom.handle?.label);
-        if (labelChanged) {
-            _resonance_handle_physical_identity(atom);
-        }
+        // AXIOMA DE SINCERIDAD TOTAL: Sincronizamos siempre para capturar cambios en el payload
+        _resonance_handle_physical_identity(atom);
     }
 
     // Rasgo: SINCRONIZACIÓN LÓGICA (ADN)

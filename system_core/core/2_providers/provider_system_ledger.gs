@@ -242,15 +242,21 @@ function ledger_list_by_class(atomClass, contextUqo) {
  */
 function ledger_remove_atom(driveId, contextUqo) {
   const sheet = _ledger_get_target_sheet_(contextUqo);
-  const data = sheet.getDataRange().getValues();
-  const index = data.findIndex(row => row[1] === driveId);
+  let data = sheet.getDataRange().getValues();
   
-  if (index !== -1) {
-    sheet.deleteRow(index + 1);
-    logInfo(`[ledger] Átomo removido del Ledger contextualmente: ${driveId}`);
+  // AXIOMA DE PURGA TOTAL: Buscamos y borramos de abajo hacia arriba para no alterar los índices
+  let deletedCount = 0;
+  for (let i = data.length - 1; i >= 1; i--) {
+      if (data[i][1] === driveId) {
+          sheet.deleteRow(i + 1);
+          deletedCount++;
+      }
+  }
+
+  if (deletedCount > 0) {
+    logInfo(`[ledger] Purga completada: ${deletedCount} instancia(s) de ${driveId} eliminada(s).`);
   } else {
-    // AXIOMA: CERO FALLBACKS. No hay cascada de borrado hacia el maestro.
-    throw createError('LEDGER_PURGE_MISMATCH', `El átomo ${driveId} no existe en el Ledger del contexto solicitado.`);
+    logWarn(`[ledger] LEDGER_PURGE_MISMATCH: El átomo ${driveId} no existía en el Ledger.`);
   }
 }
 

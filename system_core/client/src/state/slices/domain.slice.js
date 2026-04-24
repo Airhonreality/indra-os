@@ -499,6 +499,30 @@ export const createDomainSlice = (set, get) => ({
              console.error('[domain_slice] loadIdentityLedger failed:', err);
          }
      },
+ 
+     rebuildLedger: async () => {
+         const { coreUrl, sessionSecret, activeWorkspaceId } = get();
+         if (!activeWorkspaceId) {
+             toastEmitter.error('No hay workspace activo para reconstruir.');
+             return;
+         }
+ 
+         toastEmitter.info('Iniciando Purga y Reconstrucción Axial...');
+         try {
+             const result = await executeDirective({
+                 provider: 'system',
+                 protocol: 'SYSTEM_REBUILD_LEDGER',
+                 workspace_id: activeWorkspaceId
+             }, coreUrl, sessionSecret);
+             
+             const count = result.items?.[0]?.total_rebuilt || 0;
+             toastEmitter.success(`Ledger reconstruido: ${count} átomos sincronizados.`);
+             get().loadPins(); // Recargar la vista para ver los cambios
+         } catch (err) {
+             console.error('[domain_slice] Rebuild failed:', err);
+             toastEmitter.error(`Fallo en reconstrucción: ${err.message}`);
+         }
+     },
 
      loadIdentitySchema: async () => {
          const { coreUrl, sessionSecret } = get();

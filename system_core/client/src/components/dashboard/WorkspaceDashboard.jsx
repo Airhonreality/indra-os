@@ -78,6 +78,22 @@ export function WorkspaceDashboard() {
                     onClose={() => setActiveWorkspace(null)}
                     isSaving={loading}
                     onTitleChange={(newLabel) => renameWorkspace(activeWS.id, newLabel)}
+                    rightSlot={
+                        <div className="shelf--tight">
+                             <button 
+                                className="btn btn--ghost btn--mini" 
+                                style={{ color: 'var(--color-accent)', border: '1px solid rgba(0, 255, 200, 0.2)' }}
+                                onClick={() => {
+                                    if (window.confirm('¿Deseas reconstruir el Ledger de este Workspace?\nSe sincronizará el índice con la realidad física de Drive.')) {
+                                        useAppState.getState().rebuildLedger();
+                                    }
+                                }}
+                            >
+                                <IndraIcon name="SYNC" size="12px" />
+                                <span style={{ marginLeft: '6px', fontSize: '9px' }}>RECONSTRUIR_LEDGER</span>
+                            </button>
+                        </div>
+                    }
                 />
             )}
 

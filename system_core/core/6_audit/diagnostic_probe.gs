@@ -21,7 +21,7 @@ function AUDIT_SATELLITE_PINS() {
     
     console.log("📊 [Sonda] Total de PINES detectados: " + pins.length);
     const pinIds = pins.map(p => p.id);
-    const ledgerSnapshot = _ledger_get_batch_metadata_(pinIds) || {};
+    const ledgerSnapshot = _ledger_get_bulk_metadata_(pinIds) || {};
     
     console.log("--- REPORTE DE INTERVENCIÓN ---");
     

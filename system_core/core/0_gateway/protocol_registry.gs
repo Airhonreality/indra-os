@@ -78,6 +78,7 @@ const PROTOCOL_CONTRACTS = Object.freeze({
 
   // ── OPERATIVA DE DATOS Y ESTRUCTURA ──
   'TABULAR_STREAM':               { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
+  'TABULAR_UPDATE':               { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
   'HIERARCHY_TREE':               { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
   'MEDIA_RESOLVE':                { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },
   'SCHEMA_FIELD_OPTIONS':         { min_state: 2, actors: ACTOR_TYPES.PUBLIC,         dispatcher: DISPATCHERS.LOGIC   },

@@ -120,14 +120,14 @@ function _automation_handleIndustrialSync_(uqo) {
     logInfo(`[automation:sync] 🧱 Materializando ${resonanceReport.actions.length} acciones en ${target_provider}...`);
     const updateRes = route({
       provider: target_provider || 'sheets',
-      protocol: 'BATCH_UPDATE',
+      protocol: 'TABULAR_UPDATE', // 🚀 UNIFICACIÓN AXIOMÁTICA
       data: {
         silo_id: silo_id,
         actions: resonanceReport.actions
       }
     });
     if (updateRes.metadata.status !== 'OK') {
-       throw createError('RETURN_LAW_VIOLATION', `Provider ${target_provider} falló en BATCH_UPDATE.`);
+       throw createError('RETURN_LAW_VIOLATION', `Provider ${target_provider} falló en TABULAR_UPDATE.`);
     }
   } else if (dry_run) {
     logInfo(`[automation:diagnostic] Modo Laboratorio activo. Solo análisis.`);

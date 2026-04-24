@@ -108,6 +108,7 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
 
   // --- OTROS SERVICIOS ---
   'SYSTEM_BATCH_EXECUTE':         SYSTEM_BATCH_EXECUTE,
+  'TABULAR_UPDATE':               TABULAR_UPDATE,
   'SEARCH_DEEP':                  (p) => handleNotion(p), 
 });
 

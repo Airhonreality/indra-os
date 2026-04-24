@@ -97,7 +97,7 @@ function _system_handlePinsRead(uqo) {
 
         // ─── PORTAL DE SINCERIDAD (v4.39 - Modo Ledger Fast) ─────────
         const pinIds = pins.map(p => p.id);
-        const ledgerSnapshot = _ledger_get_batch_metadata_(pinIds);
+        const ledgerSnapshot = _ledger_get_bulk_metadata_(pinIds);
 
         const sincerePins = pins.map(pin => {
             const lMeta = ledgerSnapshot[pin.id];

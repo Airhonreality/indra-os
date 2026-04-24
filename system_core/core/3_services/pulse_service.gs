@@ -160,7 +160,7 @@ function pulse_service_integrity_heartbeat() {
   if (!ledgerId) return;
 
   try {
-    const atoms = _ledger_get_batch_metadata_(['WORKSPACE', 'DATA_SCHEMA', 'BRIDGE']);
+    const atoms = _ledger_get_bulk_metadata_(['WORKSPACE', 'DATA_SCHEMA', 'BRIDGE']);
     atoms.forEach(atom => {
        try {
          // Verificar existencia física

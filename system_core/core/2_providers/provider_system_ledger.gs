@@ -393,12 +393,21 @@ function ledger_rebuild_from_drive_internal_(contextId = null) {
   logInfo(`☢️ INICIANDO RECONSTRUCCIÓN TOTAL DEL LEDGER (MODO BATCH) - CONTEXTO: ${contextId || 'ROOT'}...`);
   
   // Localizar el núcleo objetivo
+  // Localizar el núcleo objetivo
   let targetFolder = null;
   if (contextId) {
     try {
-        targetFolder = DriveApp.getFolderById(contextId);
+        const physicalObject = DriveApp.getFileById(contextId);
+        const mime = physicalObject.getMimeType();
+        
+        if (mime === "application/vnd.google-apps.folder") {
+          targetFolder = DriveApp.getFolderById(contextId);
+        } else {
+          logInfo(`      [rebuild:scaling] ID ${contextId} es un archivo (${mime}). Escalando a carpeta padre...`);
+          targetFolder = physicalObject.getParents().next();
+        }
     } catch(e) {
-        logWarn(`[rebuild] Contexto ${contextId} no accesible físicamente. Usando ROOT.`);
+        logWarn(`[rebuild] Contexto ${contextId} no accesible físicamente o ID inválido: ${e.message}. Usando ROOT.`);
     }
   }
   
@@ -407,20 +416,45 @@ function ledger_rebuild_from_drive_internal_(contextId = null) {
   
   // Función recursiva para recolectar todo antes de tocar la Sheet
   function collectFiles(folder) {
+    const folderName = folder.getName();
+    logInfo(`      [rebuild:scan] Entrando en carpeta: ${folderName}`);
+    
     const files = folder.getFiles(); 
+    let filesInFolder = 0;
     while (files.hasNext()) {
       const f = files.next();
-      if (f.getName().endsWith('.json') && f.getName() !== 'manifest.json') {
+      const fileName = f.getName();
+      filesInFolder++;
+      
+      if (fileName.toLowerCase().endsWith('.json')) {
         try {
           const content = JSON.parse(f.getBlob().getDataAsString());
-          if (content.class && content.class !== 'WORKSPACE') {
-              rows.push(_ledger_build_row_(content, f.getId()));
+          
+          if (content.class) {
+            if (content.class === 'WORKSPACE' && contextId) {
+              logInfo(`      [rebuild:skip] Omitiendo manifiesto propio en celda: ${fileName}`);
+              continue; 
+            }
+            
+            logInfo(`      [rebuild:found] Átomo detectado: ${content.handle?.label || content.id} (${content.class})`);
+            rows.push(_ledger_build_row_(content, f.getId()));
+          } else {
+             logWarn(`      [rebuild:ignore] Archivo sin clase válida: ${fileName}`);
           }
-        } catch (e) { }
+        } catch (e) { 
+           logError(`      [rebuild:error] Error procesando ${fileName}: ${e.message}`);
+        }
+      } else {
+        logWarn(`      [rebuild:ext-skip] Archivo ignorado por extensión: ${fileName}`);
       }
     }
+    
+    if (filesInFolder === 0) logWarn(`      [rebuild:empty] La carpeta ${folderName} no tiene archivos físicos.`);
+
     const subfolders = folder.getFolders();
-    while (subfolders.hasNext()) collectFiles(subfolders.next());
+    while (subfolders.hasNext()) {
+      collectFiles(subfolders.next());
+    }
   }
 
   collectFiles(homeRoot);
@@ -471,18 +505,23 @@ function ledger_get_by_drive_id(driveId) {
 /**
  * Obtiene metadatos de múltiples IDs de un solo golpe (v4.39).
  * @param {string[]} ids
+ * @param {Object} [contextUqo] - Contexto micelar (opcional).
  * @returns {Object} Mapa de { id: { label, class, updated_at } }
  */
-function _ledger_get_batch_metadata_(ids) {
-  const sheet = _ledger_get_sheet_();
+function _ledger_get_bulk_metadata_(ids, contextUqo) {
+  SpreadsheetApp.flush(); 
+  const sheet = _ledger_get_target_sheet_(contextUqo || {});
   const data = sheet.getDataRange().getValues();
   const results = {};
   
   if (!ids || ids.length === 0) return results;
 
-  data.forEach(row => {
-    const driveId = row[1];
+  logInfo(`[ledger:bulk] Buscando ${ids.length} IDs en Ledger [${sheet.getName()}]. Filas totales: ${data.length}`);
+
+  data.forEach((row, i) => {
+    const driveId = String(row[1] || '').trim(); // Forzamos limpieza de ID
     if (ids.indexOf(driveId) !== -1) {
+      logInfo(`[ledger:bulk] ¡ENCONTRADO! ID: ${driveId} en fila ${i+1}`);
       results[driveId] = {
         gid: row[0],
         id: driveId,

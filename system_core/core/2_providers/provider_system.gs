@@ -67,6 +67,7 @@ function CONF_SYSTEM() {
       SCHEMA_SUBMIT: { sync: 'BLOCKING', purge: 'ALL', handler: 'handleSystem' },
       FORMULA_EVAL: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleSystem' },
       TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleSystem' },
+      TABULAR_UPDATE: { sync: 'BLOCKING', purge: 'ID', handler: 'handleSystem' },
       INTELLIGENCE_CHAT: { sync: 'BLOCKING', exposure: 'public', handler: 'handleSystem' },
       GETMCEPMANIFEST: { sync: 'BLOCKING', exposure: 'public', handler: 'handleSystem' },
       SCHEMA_FIELD_OPTIONS: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleSystem' }

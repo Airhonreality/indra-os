@@ -21,6 +21,7 @@ function CONF_SHEETS() {
       ATOM_CREATE: { sync: 'BLOCKING' },
       ATOM_UPDATE: { sync: 'BLOCKING' },
       TABULAR_STREAM: { sync: 'BLOCKING' },
+      TABULAR_UPDATE: { sync: 'BLOCKING' },
       BATCH_UPDATE: { sync: 'BLOCKING' },
       ATOM_DELETE: { sync: 'BLOCKING' },
       SCHEMA_MUTATE: { sync: 'BLOCKING' },
@@ -41,8 +42,8 @@ function handleSheets(uqo) {
     if (protocol === 'ATOM_READ')      return _sheets_handleAtomRead(uqo);
     if (protocol === 'ATOM_CREATE')    return _sheets_handleAtomCreate(uqo);
     if (protocol === 'TABULAR_STREAM') return _sheets_handleTabularStream(uqo);
+    if (protocol === 'TABULAR_UPDATE') return _sheets_handleTabularUpdate(uqo); // Nueva Ley Canónica v17.6
     if (protocol === 'ATOM_UPDATE')    return _sheets_handleAtomUpdate(uqo);
-    if (protocol === 'BATCH_UPDATE')   return _sheets_handleBatchUpdate(uqo);
     if (protocol === 'ATOM_DELETE')    return _sheets_handleAtomDelete(uqo);
     if (protocol === 'SCHEMA_MUTATE')  return _sheets_handleSchemaMutate(uqo);
     if (protocol === 'SEARCH_DEEP')    return _sheets_handleSearchDeep(uqo);
@@ -211,9 +212,9 @@ function _sheets_handleAtomUpdate(uqo) {
 }
 
 /**
- * BATCH_UPDATE: Escribe o actualiza celdas masivamente (Inserción y UPSERT Real).
+ * TABULAR_UPDATE: Escribe o actualiza celdas masivamente (Inserción y UPSERT Real).
  */
-function _sheets_handleBatchUpdate(uqo) {
+function _sheets_handleTabularUpdate(uqo) {
   const ssId = uqo.data?.silo_id || uqo.context_id;
   const actions = uqo.data?.actions || [];
   
@@ -309,7 +310,15 @@ function _sheets_handleBatchUpdate(uqo) {
     sheet.getRange(sheet.getLastRow() + 1, 1, rowsToAppend.length, rowsToAppend[0].length).setValues(rowsToAppend);
   }
 
-  return { items: [], metadata: { status: 'OK', records_mutated: updatedCount + rowsToAppend.length, _action_counts: { updated: updatedCount, created: rowsToAppend.length } } };
+  return { 
+    items: [], 
+    metadata: { 
+      status: 'OK', 
+      records_mutated: updatedCount + rowsToAppend.length, 
+      ignored_fields: Array.from(orphans), // AXIOMA DE TRANSPARENCIA
+      _action_counts: { updated: updatedCount, created: rowsToAppend.length } 
+    } 
+  };
 }
 
 /**

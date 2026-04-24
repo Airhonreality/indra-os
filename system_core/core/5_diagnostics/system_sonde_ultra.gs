@@ -44,7 +44,7 @@ function SONDE_ULTRA_OMNI_AUDIT() {
     workspaceId = wsRes.items[0].id;
     
     // Verificar si el Ledger se actualizó (responsabilidad del Orquestador L3)
-    const ledgerMetadata = _ledger_get_batch_metadata_([workspaceId]);
+    const ledgerMetadata = _ledger_get_bulk_metadata_([workspaceId]);
     const ledgerEntry = ledgerMetadata[workspaceId];
     
     if (!ledgerEntry) throw new Error("Axiom Break: La infraestructura creó el archivo pero el Orquestador no sincronizó el Ledger.");
@@ -88,7 +88,7 @@ function SONDE_ULTRA_OMNI_AUDIT() {
     
     // ¿Quedan rastros en el Ledger?
     // Consultamos por ID exacto. Si el mapa tiene la llave, el fantasma existe.
-    const finalGhostCheck = _ledger_get_batch_metadata_([workspaceId, satAtomId]);
+    const finalGhostCheck = _ledger_get_bulk_metadata_([workspaceId, satAtomId]);
     const ghostCount = Object.keys(finalGhostCheck).length;
     
     if (ghostCount > 0) {

@@ -55,6 +55,7 @@ function CONF_DRIVE() {
       HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE' },
       SEARCH_DEEP: { sync: 'BLOCKING', purge: 'NONE' },
       TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE' },
+      TABULAR_UPDATE: { sync: 'BLOCKING', purge: 'ALL' }, // Nueva Ley Canónica
       MEDIA_RESOLVE: { sync: 'BLOCKING', purge: 'NONE' },
       MEDIA_UPLOAD: { sync: 'BLOCKING', purge: 'NONE' },
       TRANSFER_HANDSHAKE: { sync: 'BLOCKING', purge: 'NONE' }
@@ -143,7 +144,7 @@ function handleDrive(uqo) {
   if (protocol === 'ATOM_READ')      return _drive_handleAtomRead(uqo);
   if (protocol === 'ATOM_CREATE')    return _drive_handleAtomCreate(uqo);
   if (protocol === 'ATOM_UPDATE')    return _drive_handleAtomUpdate(uqo);
-  if (protocol === 'BATCH_UPDATE')   return _drive_handleBatchUpdate(uqo);
+  if (protocol === 'TABULAR_UPDATE') return _drive_handleTabularUpdate(uqo); // Sintonía Axial v17.6
   if (protocol === 'SEARCH_DEEP')    return _drive_handleSearchDeep(uqo);
   if (protocol === 'TRANSFER_HANDSHAKE') return _drive_handleTransferHandshake(uqo);
   if (protocol === 'MEDIA_RESOLVE')   return _drive_handleMediaResolve(uqo);
@@ -922,18 +923,24 @@ function _drive_handleTransferHandshake(uqo) {
 }
 
 /**
- * BATCH_UPDATE: Procesa múltiples acciones de escritura en una única transacción de silo.
+ * TABULAR_UPDATE (DRIVE): Procesa múltiples acciones de escritura en el Silo de Archivos.
  * @private
  */
-function _drive_handleBatchUpdate(uqo) {
+function _drive_handleTabularUpdate(uqo) {
   const { silo_id, actions } = uqo.data || {};
   if (!silo_id || !Array.isArray(actions)) {
-    throw createError('INVALID_INPUT', 'BATCH_UPDATE requiere silo_id y un array de acciones.');
+    throw createError('INVALID_INPUT', 'TABULAR_UPDATE requiere silo_id y un array de acciones.');
   }
 
-  logInfo(`[provider_drive] Iniciando BATCH_UPDATE en Silo: ${silo_id}. Acciones: ${actions.length}`);
+  logInfo(`[provider_drive] Iniciando TABULAR_UPDATE en Silo: ${silo_id}. Acciones: ${actions.length}`);
 
   try {
+    const file = DriveApp.getFileById(silo_id);
+    if (file.getMimeType() !== MimeType.GOOGLE_SHEETS) {
+       logInfo(`[provider_drive] El silo ${silo_id} no es una hoja de cálculo. Ignorando actualización tabular.`);
+       return { items: [], metadata: { status: 'OK', message: 'Silo is not a spreadsheet' } };
+    }
+
     const ss = SpreadsheetApp.openById(silo_id);
     const sheet = ss.getSheets()[0]; 
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -974,8 +981,8 @@ function _drive_handleBatchUpdate(uqo) {
       }
     };
   } catch (err) {
-    logError('[provider_drive] Fallo en BATCH_UPDATE.', err);
-    return { metadata: { status: 'ERROR', error: err.message, code: 'BATCH_EXECUTION_FAILED' } };
+    logError('[provider_drive] Fallo en TABULAR_UPDATE.', err);
+    return { items: [], metadata: { status: 'ERROR', error: err.message, code: 'TABULAR_EXECUTION_FAILED' } };
   }
 }
 

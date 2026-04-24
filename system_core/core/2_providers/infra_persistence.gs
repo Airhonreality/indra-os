@@ -16,6 +16,7 @@ function ATOM_PATCH(uqo)  { return _system_handlePatch(uqo); }
 function ATOM_DELETE(uqo) { return _system_handleDelete(uqo); }
 function ATOM_EXISTS(uqo) { return _system_handleExists(uqo); }
 function ATOM_ALIAS_RENAME(uqo) { return _system_handleAliasRename(uqo); }
+function TABULAR_UPDATE(uqo)   { return _system_handleTabularUpdate(uqo); }
 
 // ─── HANDLERS POR PROTOCOLO (INFRAESTRUCTURA) ─────────────────────────────────
 
@@ -297,4 +298,46 @@ function _system_listAllAtomFiles_() {
         }
     }
     return files;
+}
+
+/**
+ * TABULAR_UPDATE (INFRAESTRUCTURA): Traduce acciones tabulares a parches de átomos.
+ * Permite actualizar el Silo System usando el protocolo agnóstico TABULAR_UPDATE. 
+ *
+ * @private
+ */
+function _system_handleTabularUpdate(uqo) {
+  const actions = uqo.data?.actions || [];
+  const results = [];
+  
+  logInfo(`[infra_persistence] Iniciando TABULAR_UPDATE sobre Sistema. Acciones: ${actions.length}`);
+
+  actions.forEach(action => {
+    // Solo manejamos UPDATE por ahora para la sonda, pero el patrón es extensible.
+    if (action.type === 'UPDATE') {
+      const atomId = action.id;
+      const data = action.data || {};
+      
+      const patchUqo = {
+        protocol: 'ATOM_PATCH',
+        context_id: atomId,
+        data: data
+      };
+      
+      try {
+        const patchResult = _system_handlePatch(patchUqo);
+        results.push(...(patchResult.items || []));
+      } catch (e) {
+        logError(`[infra_persistence] Fallo al actualizar átomo ${atomId} vía TabularUpdate: ${e.message}`);
+      }
+    }
+  });
+
+  return {
+    items: results,
+    metadata: {
+      status: 'OK',
+      processed_count: results.length
+    }
+  };
 }

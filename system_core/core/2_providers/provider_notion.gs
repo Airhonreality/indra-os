@@ -57,6 +57,7 @@ function CONF_NOTION() {
       ATOM_CREATE: { sync: 'BLOCKING', purge: 'ALL', handler: 'handleNotion' },
       ATOM_UPDATE: { sync: 'BLOCKING', purge: 'ID', handler: 'handleNotion' },
       ATOM_DELETE: { sync: 'BLOCKING', purge: 'ALL', handler: 'handleNotion' },
+      TABULAR_UPDATE: { sync: 'BLOCKING', purge: 'ID', handler: 'handleNotion' }, // AXIOMA DE SINCERIDAD
       SCHEMA_MUTATE: { sync: 'BLOCKING', purge: 'ID', handler: 'handleNotion' },
       TABULAR_STREAM: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleNotion' },
       HIERARCHY_TREE: { sync: 'BLOCKING', purge: 'NONE', handler: 'handleNotion' },
@@ -119,6 +120,7 @@ function handleNotion(uqo) {
 
   if (protocol === 'HIERARCHY_TREE') return _notion_handleHierarchyTree(uqo, apiKey);
   if (protocol === 'TABULAR_STREAM') return _notion_handleTabularStream(uqo, apiKey);
+  if (protocol === 'TABULAR_UPDATE') return _notion_handleTabularUpdate(uqo, apiKey); // POLIMORFISMO TOTAL
   if (protocol === 'ATOM_READ') return _notion_handleAtomRead(uqo, apiKey);
   if (protocol === 'ATOM_CREATE') return _notion_handleAtomCreate(uqo, apiKey);
   if (protocol === 'ATOM_UPDATE') return _notion_handleAtomUpdate(uqo, apiKey);
@@ -416,6 +418,157 @@ function _notion_handleTabularStream(uqo, apiKey) {
     logError('[provider_notion] Error en tabular_stream.', err);
     return { items: [], metadata: { status: 'ERROR', error: err.message } };
   }
+}
+
+/**
+ * TABULAR_UPDATE: Inserta o actualiza filas (páginas) en una Database de Notion.
+ * AXIOMA DE POLIMORFISMO: El satélite envía datos planos, el provider los hace complejos.
+ * 
+ * @private
+ */
+function _notion_handleTabularUpdate(uqo, apiKey) {
+  const dbId = uqo.context_id;
+  const actions = uqo.data?.actions || [];
+  
+  if (!dbId || actions.length === 0) {
+    throw createError('INVALID_INPUT', 'TABULAR_UPDATE requiere context_id (dbId) y data.actions.');
+  }
+
+  try {
+    // 1. Obtener el esquema de la DB para saber cómo traducir tipos
+    const dbMeta = _notion_notionRequest(`/databases/${dbId}`, { method: 'GET', apiKey });
+    const schema = dbMeta.properties || {};
+
+    // 2. Preparar los requests paralelos
+    const fetchRequests = actions.map(action => {
+       const type = (action.type || 'CREATE').toUpperCase();
+       const properties = _notion_translateToNotionProperties(action.data || {}, schema);
+       
+       if (type === 'CREATE') {
+         return {
+           url: `${NOTION_BASE_URL_}/pages`,
+           method: 'POST',
+           payload: JSON.stringify({ parent: { database_id: dbId }, properties }),
+           headers: {
+             'Authorization': 'Bearer ' + apiKey,
+             'Notion-Version': NOTION_API_VER_,
+             'Content-Type': 'application/json'
+           },
+           muteHttpExceptions: true
+         };
+       } else if (type === 'UPDATE' && action.id) {
+         return {
+           url: `${NOTION_BASE_URL_}/pages/${action.id}`,
+           method: 'PATCH',
+           payload: JSON.stringify({ properties }),
+           headers: {
+             'Authorization': 'Bearer ' + apiKey,
+             'Notion-Version': NOTION_API_VER_,
+             'Content-Type': 'application/json'
+           },
+           muteHttpExceptions: true
+         };
+       }
+       return null;
+    }).filter(Boolean);
+
+    if (fetchRequests.length === 0) {
+       return { items: [], metadata: { status: 'OK', records_mutated: 0 } };
+    }
+
+    // 3. Ejecución Paralela Industrial
+    logInfo(`[provider_notion] TABULAR_UPDATE: Lanzando ${fetchRequests.length} mutaciones en paralelo.`);
+    const responses = UrlFetchApp.fetchAll(fetchRequests);
+    
+    let successCount = 0;
+    const errors = [];
+    const items = [];
+
+    responses.forEach((resp, idx) => {
+      const code = resp.getResponseCode();
+      if (code >= 200 && code < 300) {
+        successCount++;
+        const page = JSON.parse(resp.getContentText());
+        items.push(_notion_rowToAtom(page, dbId, 'Notion DB', uqo.provider));
+      } else {
+        errors.push(`Accion ${idx}: HTTP ${code} - ${resp.getContentText().substring(0, 100)}`);
+      }
+    });
+
+    return {
+      items,
+      metadata: {
+        status: errors.length > 0 && successCount === 0 ? 'ERROR' : 'OK',
+        records_mutated: successCount,
+        error_details: errors.length > 0 ? errors : undefined,
+        ignored_fields: [] // Notion rechaza el request si hay campos extras, no los ignora.
+      }
+    };
+
+  } catch (err) {
+    logError('[provider_notion] Error fatal en TABULAR_UPDATE.', err);
+    return { items: [], metadata: { status: 'ERROR', error: err.message } };
+  }
+}
+
+/**
+ * Traduce un objeto de datos plano a la estructura de propiedades de Notion.
+ * AXIOMA §4.5: El provider absorbe la complejidad del silo.
+ * @private
+ */
+function _notion_translateToNotionProperties(data, schema) {
+  const notionProps = {};
+  
+  Object.keys(data).forEach(key => {
+    const value = data[key];
+    // Buscamos la propiedad en el esquema (case insensitive fallback)
+    const propertyMatch = schema[key] || Object.values(schema).find(p => _system_slugify_(p.name || '') === key);
+    if (!propertyMatch) return; // Ignorar si no existe en Notion
+
+    const type = propertyMatch.type;
+    const propName = propertyMatch.name || key;
+
+    switch (type) {
+      case 'title':
+        notionProps[propName] = { title: [{ text: { content: String(value) } }] };
+        break;
+      case 'rich_text':
+        notionProps[propName] = { rich_text: [{ text: { content: String(value) } }] };
+        break;
+      case 'number':
+        notionProps[propName] = { number: Number(value) };
+        break;
+      case 'select':
+        notionProps[propName] = { select: { name: String(value) } };
+        break;
+      case 'multi_select':
+        const vals = Array.isArray(value) ? value : [value];
+        notionProps[propName] = { multi_select: vals.map(v => ({ name: String(v) })) };
+        break;
+      case 'date':
+        notionProps[propName] = { date: { start: new Date(value).toISOString() } };
+        break;
+      case 'checkbox':
+        notionProps[propName] = { checkbox: Boolean(value) };
+        break;
+      case 'url':
+        notionProps[propName] = { url: String(value) };
+        break;
+      case 'email':
+        notionProps[propName] = { email: String(value) };
+        break;
+      case 'phone_number':
+        notionProps[propName] = { phone_number: String(value) };
+        break;
+      case 'relation':
+        const ids = Array.isArray(value) ? value : [value];
+        notionProps[propName] = { relation: ids.map(id => ({ id })) };
+        break;
+      // Otros tipos (formula, rollup, created_time) son de solo lectura en Notion
+    }
+  });
+
+  return notionProps;
 }
 
 /**

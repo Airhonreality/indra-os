@@ -46,7 +46,7 @@ const IdentityProvider = (function() {
    */
   function getProfile(identifier) {
     // Buscar en el Ledger (Filtrando por clase IDENTITY)
-    const atoms = _ledger_get_batch_metadata_(['IDENTITY']);
+    const atoms = _ledger_get_bulk_metadata_(['IDENTITY']);
     const profile = atoms.find(a => a.alias === identifier || a.id === identifier);
     
     if (!profile) return { metadata: { status: 'NOT_FOUND' }, items: [] };
@@ -72,7 +72,7 @@ const IdentityProvider = (function() {
     const ssId = MountManager.getMount('CORPORATE') || MountManager.getMount('SOCIAL') || MountManager.getMount('ROOT');
     
     // Aquí implementamos una búsqueda rápida por payload.email
-    const atoms = _ledger_get_batch_metadata_(['IDENTITY']);
+    const atoms = _ledger_get_bulk_metadata_(['IDENTITY']);
     const employee = atoms.find(a => a.payload && a.payload.email === email);
 
     if (!employee) {

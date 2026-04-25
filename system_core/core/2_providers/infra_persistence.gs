@@ -225,6 +225,15 @@ function _system_patchAtom(atomId, delta, providerId) {
 function _system_deleteAtom(atomId, uqo = {}) {
     try {
         const file = _system_findAtomFile(atomId);
+        
+        // AXIOMA DE RECONOCIMIENTO (v17.7): Antes de borrar, resolvemos dónde vive realmente
+        // para asegurar que el Ledger Celular sea purificado correctamente.
+        const physicalContext = _ledger_resolve_physical_context_(atomId);
+        if (physicalContext && !uqo.workspace_id) {
+            uqo.workspace_id = physicalContext;
+            logInfo(`[infrastructure] Auto-Contexto detectado para borrado: ${physicalContext}`);
+        }
+
         file.setTrashed(true);
         ledger_remove_atom(atomId, uqo);
         

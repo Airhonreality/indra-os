@@ -75,7 +75,7 @@ function SYSTEM_KEYCHAIN_GENERATE(uqo) {
     logInfo(`[keychain] Nueva llave jerárquica generada: ${name} (Hijo de ${parentToken || 'RAIZ'})`);
     
     return { 
-        items: [{ id: newToken, label: name }], 
+        items: [{ token: newToken, label: name }], 
         metadata: { status: 'OK', message: 'Llave jerárquica generada con éxito.' } 
     };
 }

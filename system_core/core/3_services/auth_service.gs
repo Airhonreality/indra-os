@@ -29,13 +29,25 @@ const AuthService = (function() {
     // 1. RECONOCIMIENTO DE SANGRE (Soberanía Directa)
     const isOwner = activeEmail === coreOwnerEmail;
     
-    // 2. VALIDACIÓN DE LLAVERO (Satelital)
+    // 2. VALIDACIÓN DE LLAVERO (Satelital / Sesión)
+    // AXIOMA DE SINCERIDAD: El token puede viajar en 'satellite_token', 'password' o 'token'.
+    // Esto permite la paridad con el TransportLayer del satélite sin duplicar campos.
+    const activeToken = uqo.satellite_token || uqo.password || uqo.token;
     let satelliteContext = null;
-    if (uqo.satellite_token) {
-      satelliteContext = _keychain_validate(uqo.satellite_token); 
+    
+    if (activeToken) {
+      satelliteContext = _keychain_validate(activeToken); 
+      
+      // AXIOMA DE CONSCIENCIA: Si el token está vinculado a un Átomo (clase IDENTITY), 
+      // inyectamos el sujeto directamente en el UQO para la lógica de negocio.
+      if (satelliteContext && satelliteContext.atom_id) {
+        uqo.subject_id = satelliteContext.atom_id;
+        uqo.is_user_session = true;
+        logInfo(`[auth] Sujeto detectado: ${uqo.subject_id} | Resonando como Usuario.`);
+      }
     }
 
-    // 3. VALIDACIÓN DE TICKETS (Público)
+    // 3. VALIDACIÓN DE TICKETS (Público / Compartido)
     let validTicket = null;
     if (uqo.share_ticket) {
       const contextId = uqo.context_id || (uqo.data && uqo.data.context_id);
@@ -49,7 +61,6 @@ const AuthService = (function() {
       result = { identity_type: 'SOVEREIGN', label: "Sovereign", class: "MASTER", owner_id: coreOwnerEmail, is_master: true };
     } else if (satelliteContext) {
       // --- RESOLUCIÓN SATELLITAL AXIOMÁTICA (v13.2) ---
-      // Delegamos la carga física al IdentityProvider (Capa 2) para evitar acoplamiento.
       const resolution = IdentityProvider.getSatelliteResolution(satelliteContext.atom_id);
       
       result = { 

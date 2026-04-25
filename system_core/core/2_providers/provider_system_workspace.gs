@@ -107,7 +107,10 @@ function _system_handlePinsRead(uqo) {
                 try {
                     const f = DriveApp.getFileById(pin.id);
                     if (f.isTrashed()) return { ...pin, _orphan: true };
-                } catch(e) { return { ...pin, _orphan: true }; }
+                } catch(e) { 
+                    logWarn(`[homeostasis] Materia muerta detectada: ${pin.id} (${e.message})`);
+                    return { ...pin, _orphan: true }; 
+                }
             }
 
             // Atomo existe en Ledger (Materia verificada)
@@ -217,12 +220,8 @@ function _system_propagateDeletion(atomId, providerId) {
                 const content = JSON.parse(file.getBlob().getDataAsString());
                 const originalCount = (content.pins || []).length;
                 
-                content.pins = (content.pins || []).filter(pin => {
-                    const isMatchId = pin.id === atomId;
-                    const isMatchProvider = pin.provider === providerId || 
-                                          pin.provider.startsWith(providerId + ':');
-                    return !(isMatchId && isMatchProvider);
-                });
+                // AXIOMA DE PURGA SINCERA (v17.7): Si el ID coincide, el átomo ha muerto físicamente.
+                content.pins = (content.pins || []).filter(pin => pin.id !== atomId);
 
                 if (content.pins.length !== originalCount) {
                     file.setContent(JSON.stringify(content, null, 2));

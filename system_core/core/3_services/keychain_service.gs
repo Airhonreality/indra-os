@@ -342,3 +342,20 @@ function keychain_issue_session(atomId, options = {}) {
     
     return token;
 }
+
+/**
+ * Invalida quirúrgicamente un token de sesión.
+ * @param {string} token - El token a revocar.
+ */
+function keychain_revoke_session(token) {
+    if (!token) return false;
+    const ledger = _keychain_getLedger_();
+    if (ledger[token]) {
+        ledger[token].status = 'REVOKED';
+        ledger[token].revoked_at = new Date().toISOString();
+        _keychain_saveLedger_(ledger);
+        logWarn(`[keychain] Sesión L2 revocada físicamente: ${token}`);
+        return true;
+    }
+    return false;
+}

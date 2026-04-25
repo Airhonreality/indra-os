@@ -113,6 +113,7 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
 
   // --- SOVEREIGN AUTH (v17.8) ---
   'SYSTEM_IDENTITY_SYNC':         (p) => AuthService.syncIdentity(p),
+  'SYSTEM_SESSION_REVOKE':        (p) => AuthService.revokeSession(p),
 });
 
 function route(uqo) {

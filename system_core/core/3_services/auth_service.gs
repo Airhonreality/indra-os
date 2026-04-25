@@ -135,17 +135,35 @@ const AuthService = (function() {
 
       logSuccess(`[auth:sync] ¡Soberanía Delegada! Sesión emitida para ${email} con rango ${userRole}`);
 
+      const userName = userAtom.payload?.name || userAtom.handle?.label || email;
+
       return {
         items: [{
           token: sessionToken,
           profile: {
             id: userAtom.id,
-            name: userAtom.handle?.label,
+            name: userName,
             email: email,
-            role: userAtom.payload?.role || 'USER'
+            role: userRole
           }
         }],
         metadata: { status: 'OK' }
+      };
+    },
+
+    /**
+     * SYSTEM_SESSION_REVOKE: Protocolo de destrucción de sesión.
+     */
+    revokeSession: function(uqo) {
+      const token = uqo.satellite_token || uqo.password || uqo.token;
+      const success = keychain_revoke_session(token);
+      
+      return {
+        items: [],
+        metadata: { 
+          status: success ? 'OK' : 'NOT_FOUND',
+          message: success ? 'Sesión revocada físicamente.' : 'No se encontró una sesión activa para revocar.'
+        }
       };
     }
   };

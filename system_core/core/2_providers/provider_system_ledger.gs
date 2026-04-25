@@ -156,9 +156,160 @@ function ledger_sync_atom(atom, driveId, contextUqo) {
 }
 
 /**
- * Escala la jerarquía de Drive para encontrar el Workspace contenedor.
- * @private
+ * RESOLUCIÓN FÍSICA DE NÚCLEO (v18.0)
+ * Obtiene el ID de la Spreadsheet asociada a un Workspace.
  */
+function _ledger_get_ss_id_(workspaceId) {
+    if (!workspaceId || workspaceId === 'system') return readMasterLedgerId();
+    
+    // 1. Verificar caché
+    const cached = MountManager.getMount(workspaceId);
+    if (cached) return cached;
+    
+    // 2. Resolución vía Handshake (usando el handler existente)
+    const sheet = _ledger_get_target_sheet_({ workspace_id: workspaceId });
+    return sheet.getParent().getId();
+}
+
+/**
+ * BÚSQUEDA PROFUNDA AXIOMÁTICA (v18.0)
+ * Busca un átomo por clase y criterios de matching, con fallback a escaneo físico.
+ */
+function ledger_find_atom_deep(atomClass, matchObj, uqo) {
+    const workspaceId = uqo.workspace_id || 'system';
+    logInfo(`[ledger:deep] Iniciando búsqueda para ${atomClass} en ${workspaceId}...`);
+
+    // 1. Intento vía Índice (Rápido)
+    const indexItems = ledger_list_by_class(atomClass, uqo);
+    let found = indexItems.find(item => {
+        return Object.entries(matchObj).every(([key, val]) => {
+            const itemVal = item.payload?.[key] || item[key];
+            return String(itemVal).toLowerCase() === String(val).toLowerCase();
+        });
+    });
+
+    if (found) {
+        logInfo(`[ledger:deep] Hit en índice para: ${Object.values(matchObj)[0]}`);
+        return found;
+    }
+
+    // 2. Fallback a Escaneo Físico Tabular (Axioma de Verdad Última)
+    logWarn(`[ledger:deep] Miss en índice. Iniciando escaneo físico tabular...`);
+    const ledgerId = _ledger_get_ss_id_(workspaceId);
+    SpreadsheetApp.flush(); // Asegurar sincronización física antes del escaneo
+    
+    try {
+        const physicalRes = _system_handleTabularStream({
+            protocol: 'TABULAR_STREAM',
+            context_id: ledgerId,
+            provider: 'sheets',
+            data: { sheet_name: 'Entidades' } 
+        });
+        
+        const physicalItems = physicalRes.items || [];
+        logInfo(`[ledger:deep] Escaneo Físico completado en 'Entidades'. Filas: ${physicalItems.length}`);
+        
+        if (physicalItems.length > 0) {
+            logInfo(`[ledger:deep] Muestra de Esquema (Keys): ${Object.keys(physicalItems[0]).join(', ')}`);
+        }
+
+        let matchedAtom = null;
+        
+        const found = physicalItems.find((item, idx) => {
+            const itemClass = item.class || item.payload?.class;
+            
+            if (idx === 0) {
+                logInfo(`[ledger:deep] Fila 0 -> Class: ${itemClass} | Payload Crudo: ${item.payload ? 'EXISTE' : 'VACÍO'}`);
+            }
+
+            if (itemClass !== atomClass) return false;
+            
+            let finalData = { ...item };
+            let parsedPayload = null;
+            if (typeof item.payload === 'string' && item.payload.startsWith('{')) {
+                try { 
+                    parsedPayload = JSON.parse(item.payload); 
+                    finalData = { ...finalData, ...parsedPayload };
+                    if (idx === 0) logInfo(`[ledger:deep] Payload parseado con éxito. Llaves: ${Object.keys(parsedPayload).join(', ')}`);
+                } catch(e) {
+                    logWarn(`[ledger:deep] Fallo al parsear payload en fila ${idx}: ${e.message}`);
+                }
+            }
+            
+            const isMatch = Object.entries(matchObj).every(([key, val]) => {
+                const itemVal = finalData[key];
+                const match = String(itemVal).toLowerCase() === String(val).toLowerCase();
+                if (!match && idx === 0) logWarn(`[ledger:deep] Fila 0 NO coincide en ${key}: ${itemVal} !== ${val}`);
+                if (match) logInfo(`[ledger:deep] Match físico encontrado en fila ${idx}: ${key}=${val}`);
+                return match;
+            });
+
+            if (isMatch) {
+                matchedAtom = {
+                    ...item,
+                    payload: parsedPayload || item.payload
+                };
+                return true;
+            }
+            return false;
+        });
+
+        if (matchedAtom) {
+            logInfo(`[ledger:deep] Éxito en escaneo físico. Materia recuperada.`);
+            return matchedAtom;
+        }
+    } catch (e) {
+        logError(`[ledger:deep] Fallo en escaneo físico de ${ledgerId}: ${e.message}`);
+    }
+
+    return null;
+}
+
+/**
+ * REGISTRO DE IDENTIDAD SOBERANA (v18.0)
+ * Mapea un átomo de identidad a la dimensión tabular del Workspace.
+ */
+function ledger_register_identity(uqo) {
+    const data = uqo.data || {};
+    const workspaceId = uqo.workspace_id || 'system';
+    
+    logInfo(`[ledger:identity] Registrando identidad para: ${data.payload?.email} en WS: ${workspaceId}`);
+    
+    const ledgerId = _ledger_get_ss_id_(workspaceId);
+    
+    // Axioma de Santuario: Las identidades deben vivir en su propia membrana tabular.
+    const tabularRes = _system_handleTabularUpdate({
+        protocol: 'TABULAR_UPDATE',
+        context_id: ledgerId,
+        provider: 'sheets',
+        data: {
+            sheet_name: 'Entidades', // Alineación con la realidad física del usuario
+            actions: [{
+                type: 'CREATE',
+                id: data.handle?.alias || data.payload?.email,
+                data: {
+                    ...data.payload,
+                    _indra_id: data.handle?.alias || data.payload?.email,
+                    class: 'IDENTITY',
+                    handle: data.handle?.label || data.payload?.name || data.payload?.email,
+                    payload: JSON.stringify(data.payload) // Empaquetar en columna payload según esquema real
+                }
+            }]
+        }
+    });
+
+    // AXIOMA DE RETORNO (v18.0): Todo registro debe devolver la materia cristalizada
+    return {
+        items: [{
+            id: data.handle?.alias || data.payload?.email,
+            class: 'IDENTITY',
+            handle: data.handle || { label: data.payload?.name || data.payload?.email },
+            payload: data.payload
+        }],
+        metadata: tabularRes.metadata
+    };
+
+}
 function _ledger_resolve_physical_context_(driveId) {
   try {
     const file = DriveApp.getFileById(driveId);

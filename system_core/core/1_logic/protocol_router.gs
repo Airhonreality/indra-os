@@ -110,6 +110,9 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
   'SYSTEM_BATCH_EXECUTE':         SYSTEM_BATCH_EXECUTE,
   'TABULAR_UPDATE':               TABULAR_UPDATE,
   'SEARCH_DEEP':                  (p) => handleNotion(p), 
+
+  // --- SOVEREIGN AUTH (v17.8) ---
+  'SYSTEM_IDENTITY_SYNC':         (p) => AuthService.syncIdentity(p),
 });
 
 function route(uqo) {

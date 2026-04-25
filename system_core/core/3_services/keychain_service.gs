@@ -21,6 +21,14 @@ function _keychain_validate(token) {
     const entry = ledger[token];
     
     if (entry && entry.status === 'ACTIVE') {
+        // --- AXIOMA DE CADUCIDAD (v17.8) ---
+        // Si el token tiene fecha de expiración, validamos que siga vigente.
+        if (entry.expires_at && new Date(entry.expires_at) < new Date()) {
+            logWarn(`[keychain] Token expirado detectado: ${token}. Invalidando identidad.`);
+            entry.status = 'EXPIRED';
+            _keychain_saveLedger_(ledger);
+            return null;
+        }
         return entry; // Retornamos el perfil completo (clase MASTER, scopes, etc.)
     }
     
@@ -303,4 +311,34 @@ function SYSTEM_SATELLITE_INITIALIZE(uqo) {
         }], 
         metadata: { status: 'OK', message: 'Cristalización completada.' } 
     };
+}
+
+/**
+ * Emite un token de sesión vinculado a un Átomo de Identidad (Sujeto).
+ * @param {string} atomId - El ID del átomo IDENTITY.
+ * @param {Object} options - { name, scopes, duration_days }
+ */
+function keychain_issue_session(atomId, options = {}) {
+    const durationDays = options.duration_days || 30; // Axioma de Larga Duración (UX Industrial)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + durationDays);
+    
+    // Generación de Hash de Sesión
+    const token = 'sess_' + Math.random().toString(36).substring(2, 15) + '_' + Date.now().toString(36);
+    const ledger = _keychain_getLedger_();
+    
+    ledger[token] = {
+        name: options.name || "Sesión de Usuario",
+        status: "ACTIVE",
+        class: "SESSION",
+        atom_id: atomId,
+        created_at: new Date().toISOString(),
+        expires_at: expiresAt.toISOString(),
+        scopes: options.scopes || ["USER_ACCESS"]
+    };
+    
+    _keychain_saveLedger_(ledger);
+    logSuccess(`[keychain] Sesión L2 emitida para ${atomId}. Caducidad: ${durationDays} días.`);
+    
+    return token;
 }

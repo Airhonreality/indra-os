@@ -175,7 +175,10 @@ function _sheets_handleAtomCreate(uqo) {
 function _sheets_handleTabularStream(uqo) {
   const ssId = uqo.context_id;
   const ss = SpreadsheetApp.openById(ssId);
-  const sheet = ss.getSheets()[0];
+  const sheet = _sheets_get_target_tab_(ss, uqo);
+  
+  logInfo(`[sheets:stream] Sonda de Territorio -> Archivo: "${ss.getName()}" | Pestaña: "${sheet.getName()}" | Filas Físicas: ${sheet.getLastRow()}`);
+  
   const rangeData = sheet.getDataRange().getValues();
   
   const headers = rangeData.shift() || [];
@@ -188,7 +191,7 @@ function _sheets_handleTabularStream(uqo) {
       ...obj,
       id: `${ssId}_row_${idx}`,
       handle: { label: `Fila ${idx + 1}` },
-      class: 'TABULAR_ROW',
+      class: obj.class || obj.clase || 'TABULAR_ROW',
       provider: 'sheets'
     };
   });
@@ -222,7 +225,7 @@ function _sheets_handleTabularUpdate(uqo) {
   if (actions.length === 0) return { items: [], metadata: { status: 'OK', records_mutated: 0 } };
 
   const ss = SpreadsheetApp.openById(ssId);
-  const sheet = ss.getSheets()[0];
+  const sheet = _sheets_get_target_tab_(ss, uqo);
   
   const lastRow = sheet.getLastRow();
   const lastCol = Math.max(1, sheet.getLastColumn());
@@ -319,6 +322,39 @@ function _sheets_handleTabularUpdate(uqo) {
       _action_counts: { updated: updatedCount, created: rowsToAppend.length } 
     } 
   };
+}
+
+/**
+ * RESOLUCIÓN DE MEMBRANA TABULAR (v18.0)
+ * Busca la pestaña correcta por nombre o prioridad.
+ */
+function _sheets_get_target_tab_(ss, uqo) {
+    const sheets = ss.getSheets();
+    const priorityNames = [uqo.data?.sheet_name, uqo.sheet_name, 'entidades', 'identity', 'atoms'];
+    logInfo(`[sheets:trace] Buscando pestaña (Case-Insensitive). Prioridades: ${priorityNames.filter(n => !!n).join(', ')}`);
+    
+    for (let name of priorityNames) {
+        if (!name) continue;
+        const targetLower = name.toLowerCase();
+        const found = sheets.find(s => s.getName().toLowerCase() === targetLower);
+        if (found) {
+            logInfo(`[sheets:trace] Pestaña detectada: ${found.getName()}`);
+            return found;
+        }
+    }
+    
+    // AXIOMA DE GÉNESIS TABULAR (v18.0)
+    const requestedName = uqo.data?.sheet_name || uqo.sheet_name;
+    if (requestedName && uqo.protocol === 'TABULAR_UPDATE') {
+        logInfo(`[sheets:genesis] Creando santuario tabular: ${requestedName}`);
+        const newSheet = ss.insertSheet(requestedName);
+        const baseHeaders = ['_indra_id', 'class', 'email', 'name', 'role', 'updated_at'];
+        newSheet.getRange(1, 1, 1, baseHeaders.length).setValues([baseHeaders]);
+        return newSheet;
+    }
+    
+    logWarn(`[sheets:trace] Ninguna pestaña coincidente. Usando Hoja 1: ${sheets[0].getName()}`);
+    return sheets[0];
 }
 
 /**

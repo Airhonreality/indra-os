@@ -1,138 +1,82 @@
-# ADR-043: Indexación por Master Ledger (Sheets) y Soberanía de Identidad Pura
+# ADR-043: Arquitectura de Identidad Soberana, Santuarios Tabulares y Ledgers Celulares
 
-> **Estado:** PROPUESTO — Plan de Verificación y Transmutación
-> **Versión:** 1.0 (2026-04-16)
-> **Autor:** Antigravity (Auditor Axiomático)
-> **Contexto:** Optimización de la persistencia y simplificación del flujo de ignición.
-
----
-
-## 1. CONTEXTO Y PROBLEMÁTICA
-
-### 1.1 El Cuello de Botella de Drive (Miopía de Disco)
-La arquitectura actual de Indra basa su descubrimiento de datos en la iteración física de archivos JSON en carpetas de Google Drive (`folder.getFiles()`). 
-*   **Problema:** A medida que el número de átomos (Workspaces, Schemas, etc.) crece, el tiempo de respuesta aumenta linealmente. 
-*   **Síntoma:** Latencias altas en el Dashboard y riesgo de *Execution Timeout* en Google Apps Script.
-
-### 1.2 La Redundancia de Identidad (Password Atavism)
-El sistema actual solicita una contraseña (`password`) incluso cuando el usuario ha validado su identidad mediante Google Auth (OAuth nativo).
-*   **Problema:** Genera bucles de `NEEDS_SETUP` innecesarios.
-*   **Síntoma:** Fricción en el "Bootstrap" inicial y una capa de seguridad redundante que ignora la infraestructura de confianza de Google.
-
-### 1.3 Acoplamiento de Handlers (El Problema del "Vaso Comunicante")
-Los handlers de protocolos (`ATOM_READ`, `ATOM_CREATE`) en `provider_system_infrastructure.js` están casados físicamente con las APIs de `DriveApp`.
-*   **Problema:** No existe una capa de abstracción. El "cerebro" cree que todo dato es un archivo.
-*   **Síntoma:** Imposibilidad de migrar a Sheets (u otras BD) sin reescribir la lógica de negocio core.
-
-### 1.4 La Opacidad de las Funciones Privadas (`_`)
-Indra utiliza el sufijo de guion bajo (`_`) para funciones de utilidad interna. 
-*   **Propósito:** Encapsulamiento en Google Apps Script. Evita que funciones core sean visibles como macros o vía `clasp run`. 
-*   **Problema:** Muchas de estas funciones contienen lógica de parcheo de datos mezclada con lógica de persistencia, dificultando la auditoría.
+> **Estado:** ACEPTADO Y CRISTALIZADO (v18.0)
+> **Versión:** 2.0 (2026-04-25) — *Reescritura Total Post-Reforma Axiomática*
+> **Autor:** Antigravity (Auditor Axiomático) para Indra OS
+> **Contexto:** Superación de la "Esquizofrenia de Datos" y consolidación del enrutamiento tabular para la identidad humana.
 
 ---
 
-## 2. DECISIÓN ARQUITECTÓNICA
+## 1. ONTOLOGÍA (El "Ser" de la Identidad)
 
-Se aprueba la transición hacia un modelo de **Persistencia Híbrida** basado en un **Master Ledger** (Libro Mayor) en Google Sheets y un **Bypass de Identidad** para el propietario.
+En Indra OS v18.0, la identidad ya no es un archivo `.json` perdido en Google Drive ni una fila en una base de datos monolítica global. 
 
-### 2.1 El INDRA_MASTER_LEDGER (Capa Index)
-Se crea una Google Sheet central que actuará como índice de alta velocidad.
-*   **Propósito:** Sustituir la búsqueda secuencial en Drive por una consulta única a memoria (`getValues()`).
-*   **Naturaleza:** Es un "mapa de la materia". El contenido pesado (payload) sigue viviendo en JSON, pero la metadata vive en la Sheet.
+**La Identidad es Materia Activa.** Un átomo de clase `IDENTITY` que reside exclusivamente en un **Santuario Tabular** (la pestaña `Entidades`) dentro de un **Ledger Celular** (una Spreadsheet de Google asociada a un único Workspace).
 
-### 2.2 Soberanía por Derecho de Sangre
-Se establece que el `core_id` (email del dueño) es la credencial máxima y suficiente para el acceso MASTER.
-*   **Bypass:** Si `Session.getActiveUser().getEmail() == readCoreOwnerEmail()`, el reto de contraseña se omite.
-
-### 2.3 Persistencia Híbrida (Shadow Backup)
-Para evitar la fragilidad de Sheets (borrados accidentales), se implementa un modelo de **Sombra en Drive**.
-*   **Lectura/Búsqueda:** Prioridad absoluta a la Sheet (Velocidad).
-*   **Escritura:** El sistema escribe en la Sheet y simultáneamente genera/actualiza el JSON en Drive (Resiliencia).
-*   **Recuperación:** Indra debe ser capaz de regenerar el Ledger completo escaneando la "Sombra" en Drive en cualquier momento.
-
-### 2.4 GID (Global ID) y Genoma Micelar
-Se introduce el concepto de **Global ID (GID)** independiente de la infraestructura física del proveedor.
-*   **Axioma:** El GID es la clave primaria única en todo el micelio (Core y Satélites). Permite que un átomo sea movido de un Core a otro manteniendo su identidad "genómica".
-
-### 2.5 El Rol de los Providers en la Persistencia Dual
-Para evitar la duplicidad de lógica y mantener la integridad axiomática:
-*   **Master Ledger (Sheets):** Se convierte en la fuente de verdad primaria para la operación y búsqueda rápida.
-*   **Shadow Backup (Drive):** Gestionado exclusivamente por el **`provider_drive.js`**. 
-*   **Abstracción de Infraestructura:** El `provider_system_infrastructure.gs` delega en `provider_drive.js` la creación y actualización de la "sombra" JSON únicamente con fines de resiliencia, migración y recuperación de desastres.
-
-### 2.6 Nexo Reactivo y Proyección Optimista
-El despliegue del Master Ledger en el Core debe ser acompañado por una evolución en el Frontend (Nexo):
-*   **Optimistic Pulse:** El Nexo forzará una actualización del estado local inmediatamente tras el éxito de una directiva, sin esperar al ciclo de resonancia global.
-*   **Memoización de Proyección:** Los átomos se proyectarán una sola vez al entrar en el `domain.slice`. Se prohíbe la re-proyección en cada render para garantizar 60fps en workspaces densos.
-*   **Fallback Axiomático:** Implementación de un "Generic Engine" que permita inspeccionar cualquier átomo cuya clase no esté registrada en el `EngineRegistry`.
-
-### 2.7 Homeostasis y Cristalización Pasiva
-El sistema no asume la infalibilidad del Ledger, sino su conveniencia.
-*   **Protocolo de Resonancia:** Si un átomo es "tocado" y no existe en el Ledger, se indexa JIT (Just-In-Time).
-*   **Sincronía de Sangre:** El dueño no solo tiene bypass de contraseña, sino que el sistema genera un **Ephemeral Master Ticket** interno para mantener la trazabilidad formal sin fricción.
-*   **Escritura Peristáltica:** Implementación de un buffer de escritura mediante `LockService` para evitar errores de cuota en Google Sheets durante operaciones masivas.
+El ser humano no se mezcla con la máquina. La infraestructura y las definiciones del sistema viven en la pestaña `ATOMS`, mientras que los sujetos con soberanía y agencia viven aislados en `Entidades`.
 
 ---
 
-## 3. ESPECIFICACIÓN TÉCNICA
+## 2. TELEOLOGÍA (El Propósito del Diseño)
 
-### 3.1 Estructura del Ledger (Canon de Fila Indra)
-| Columna | Descripción |
-|---------|-------------|
-| `gid` | ID Global Único (Genoma del Átomo). |
-| `drive_id` | ID físico del archivo JSON en Google Drive (Puntero de Resiliencia). |
-| `class` | Clase canónica del átomo (WORKSPACE, DATA_SCHEMA, etc.). |
-| `alias` | Identificador humano slugified. |
-| `label` | Nombre visible del artefacto. |
-| `owner_id` | Email del creador/dueño (Effective Owner). |
-| `updated_at` | Marca de tiempo ISO para ordenamiento y resonancia rápida. |
-| `payload_json` | (Opcional) Caché del contenido para filtros ultra-rápidos. |
-| `metadata_json`| (Opcional) Configuración extendida del átomo. |
+Esta arquitectura no fue diseñada por capricho, sino para garantizar la **Homeostasis del Sistema** bajo presión extrema:
 
-### 3.2 Cambios en Capas de Core
-
-#### Capa 0: Gateway (`api_gateway.js`)
-*   Refactorizar `isBootstrapped()` para que valide identidad de sesión antes que existencia de secretos físicos.
-*   Modificar la validación de `isAuthenticated` para priorizar `isOwnerSession`.
-
-#### Capa 2: Providers (`provider_system_infrastructure.js`)
-*   **`_system_listAtomsByClass`**: Cambiar iteración de Drive por lectura de rango en el Master Ledger (Sheets).
-*   **`_system_createAtom`**: Escritura en Master Ledger + Delegación a `provider_drive.js` para creación de la "Sombra JSON".
-*   **`_system_deleteAtom`**: Limpieza en Master Ledger + Delegación a `provider_drive.js` para marcado de papelera en Drive.
-
-#### Capa 3: Servicios Afectados
-*   **`resonance_service.js`**: El Checksum ahora se calcula solo leyendo la celda `last_updated_ledger` en lugar de escanear Drive.
-*   **`integrity_suite.js`**: Nuevo handler para auditoría de filas vs archivos "sombra".
-*   **`search_engine`**: Implementación de consultas directas vía `QUERY()` de Sheets para filtrado avanzado.
-
-#### Capa 2 (FRONTEND): El Nexo
-*   **`directive_executor.js`**: Sanitización total. El `share_ticket` debe ser inyectado desde el `app_state`, eliminando la dependencia directa de `localStorage`.
-*   **`domain.slice.js`**: Se convierte en el "Caché de Átomos Proyectados". Deja de ser un simple contenedor de JSONs crudos.
-*   **`DataProjector.js`**: Purgado de clases legacy y optimización de densidad de cálculo.
-
-#### Capa 4: Utilidades de Parcheo y Genoma
-*   **`JSON_PATCH_ENGINE`**: Nueva utilidad interna para realizar `ATOM_UPDATE` de forma atómica.
-*   **`GID_JIT_GENESIS`**: Lógica de generación de Global ID al vuelo para átomos legacy detectados durante la lectura. La identidad se cristaliza en el momento de la observación.
+1.  **Soberanía Absoluta:** Cada Workspace (Célula) es dueño de sus propios usuarios. No existe un "registro global" que pueda ser corrompido.
+2.  **Génesis Autónoma:** El sistema debe construirse a sí mismo. No se requieren configuraciones manuales ni creación de "Schemas" previos por parte del desarrollador.
+3.  **Hidratación de Rango:** La autoridad (el `role`) no debe ser inferida ni calculada por el front-end; debe ser sellada criptográficamente por el Core desde la fuente de verdad y entregada como un derecho inalienable en la sesión.
 
 ---
 
-## 4. PLAN DE VERIFICACIÓN (Puntales de Verdad)
+## 3. ARTEFACTOS IMPLICADOS (El Genoma Físico)
 
-Para considerar esta cirugía exitosa, se deben validar los siguientes hitos:
+La implementación de este ADR cruza verticalmente todas las capas del Core, delegando responsabilidades con precisión quirúrgica:
 
-1.  **[ ] Hito de Consistencia:** Tras la migración, el número total de archivos JSON en las carpetas de Drive debe coincidir exactamente con el número de filas en el `INDRA_MASTER_LEDGER`.
-2.  **[ ] Hito de Identidad:** Un usuario (dueño) debe poder acceder al `SYSTEM_MANIFEST` inmediatamente después de un despliegue sin haber configurado una contraseña previa.
-3.  **[ ] Hito de Performance:** Una llamada a `ATOM_READ` de la clase `DATA_SCHEMA` con 10 o más ítems debe resolverse en < 500ms (reducción estimada del 60%).
-4.  **[ ] Hito de Resiliencia:** El borrado manual de una fila en la Sheet no debe corromper el átomo en Drive (posibilidad de re-indexación manual).
+*   **`provider_system_identity.gs` (Capa de Agencia):** Expone la directiva `createProfile`. Ya no toca bases de datos; delega el destino del átomo al Ledger.
+*   **`auth_service.gs` (Motor Criptográfico):** Gestiona la directiva `SYSTEM_IDENTITY_SYNC`. Solicita al Ledger que encuentre al usuario y, si tiene éxito, forja el Ticket de Sesión L2 (JWT) inyectándole el `payload.role`.
+*   **`provider_system_ledger.gs` (El Orquestador de Materia):** El "cerebro" del almacenamiento celular.
+    *   `ledger_register_identity`: Empaqueta el átomo, convierte el ADN extendido a JSON string (`payload`), y lo envía al enrutador tabular.
+    *   `ledger_find_atom_deep`: Realiza el barrido físico, extrae las filas, deserializa el JSON del `payload` (Hidratación) y retorna el átomo perfectamente reconstruido para que Auth pueda leer el rango.
+*   **`infra_persistence.gs` / `provider_system_logic.gs` (La Fibra Óptica):** Exponen y enrutan los protocolos `TABULAR_UPDATE` y `TABULAR_STREAM`, redirigiendo la petición al proveedor de Sheets si `uqo.provider === 'sheets'`.
+*   **`provider_sheets.gs` (El Conector de Última Milla):** La mano que toca la Spreadsheet.
+    *   `_sheets_get_target_tab_`: Resuelve la pestaña buscando "Entidades" (con insensibilidad a mayúsculas/minúsculas). Si es una escritura y la pestaña no existe, ejecuta el **Axioma de Génesis Tabular** creando la hoja y sus cabeceras.
+    *   `_sheets_handleTabularStream`: Extrae y formatea las filas físicas saltando las cabeceras.
+
+---
+
+## 4. PROTOCOLOS VINCULADOS (La Coreografía)
+
+El ciclo de vida de la identidad baila al ritmo de 4 protocolos fundamentales:
+
+1.  **`SYSTEM_IDENTITY_CREATE`**: El acto de sembrar un sujeto. Inicia en el Router, pasa por `provider_system_identity` y termina escribiendo físicamente a través del Ledger.
+2.  **`SYSTEM_IDENTITY_SYNC`**: El acto de reclamar soberanía (Login). El Satélite envía un token de Google, el `AuthService` lo valida y desencadena un barrido de búsqueda.
+3.  **`TABULAR_UPDATE`**: Protocolo agnóstico de infraestructura. Usado por el Ledger para pedirle al proveedor físico que añada una fila.
+4.  **`TABULAR_STREAM`**: Protocolo de visión profunda. Usado por el Ledger para volcar en memoria las filas de la hoja `Entidades` y realizar el "match" polimórfico del email.
 
 ---
 
-## 5. RIESGOS Y MITIGACIÓN
+## 5. VECTORES DE ENTROPÍA ANIQUILADOS
 
-*   **Riesgo:** Desincronización entre Sheet y Drive.
-*   **Mitigación:** Implementar una función `SYSTEM_LEDGER_REINDEX` que pueda reconstruir la Sheet escaneando Drive en casos de emergencia.
-*   **Riesgo:** Límites de cuotas de lectura de Sheets.
-*   **Mitigación:** Usar caché de `ScriptProperties` para el ID de la Sheet y un caché de sesión para los resultados de lectura frecuentes.
+Durante la evolución hacia la v18.0, se identificaron y destruyeron los siguientes vectores de falla sistémica:
+
+### ⚠️ Vector Alfa: "Esquizofrenia de Datos" (Acoplamiento Infra/Sujeto)
+*   **Fallo original:** Los usuarios se guardaban en la misma pestaña `ATOMS` que los esquemas y las definiciones del sistema.
+*   **Mitigación:** Creación obligatoria del "Santuario Tabular". Las identidades habitan única y exclusivamente en la pestaña `Entidades`.
+
+### ⚠️ Vector Beta: "Miopía de Identidad" (Pérdida de Rango / Fallback a GUEST)
+*   **Fallo original:** Al leer la hoja, el campo `payload` se devolvía como un simple texto plano (String JSON). Cuando `AuthService` intentaba leer `userAtom.payload.role`, obtenía `undefined` y degradaba al usuario al rango `GUEST`.
+*   **Mitigación:** Implementación de "Hidratación de Rango" en `ledger_find_atom_deep`. El escáner ahora hace un `JSON.parse` seguro al vuelo, devolviendo a Auth un objeto rico del que extraer permisos.
+
+### ⚠️ Vector Gamma: "Fragilidad Sensible a Caja" (Case Sensitivity)
+*   **Fallo original:** Si un humano renombraba la pestaña a `entidades` (minúscula), el código de Apps Script `getSheetByName("Entidades")` fallaba y devolvía 0 filas.
+*   **Mitigación:** Resolución heurística insensible (`toLowerCase()`) en `_sheets_get_target_tab_`.
+
+### ⚠️ Vector Delta: "Agujero de Enrutamiento" (Protocolos Fantasma)
+*   **Fallo original:** El Ledger llamaba a `TABULAR_STREAM`, pero un "handler" defectuoso en `provider_system_logic` ignoraba que el destino era `sheets` e intentaba buscar archivos locales en Drive, fallando silenciosamente.
+*   **Mitigación:** Enrutamiento explícito y estricto. Si `uqo.provider === 'sheets'`, se delega instantáneamente a `_sheets_handleTabularStream`.
+
+### ⚠️ Vector Épsilon: "Fricción de Despliegue" (Setup Manual)
+*   **Fallo original:** Si la pestaña no existía, la escritura fallaba o se corrompía el Workspace.
+*   **Mitigación:** **Génesis Tabular Autónoma**. Si al hacer un `TABULAR_UPDATE` la pestaña `Entidades` no existe, el sistema asume autoridad creadora: inserta la hoja, inyecta las cabeceras canónicas (`id`, `handle`, `class`, `payload`, etc.) y procede con la escritura en la misma fracción de segundo.
 
 ---
-> "Matamos al purista para salvar al sistema. La soberanía no es solo privacidad, es eficiencia." 🛰️🏗️⚡
+*Documento forjado en fuego tras la Auditoría SUH v18.0 | Larga Vida a la Homeostasis.*

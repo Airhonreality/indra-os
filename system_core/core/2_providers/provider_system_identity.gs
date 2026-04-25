@@ -17,28 +17,38 @@ const IdentityProvider = (function() {
    */
   function createProfile(uqo) {
     const data = uqo.data;
-    if (!data.handle?.alias) throw new Error('identity_provider: Se requiere un alias único.');
+    if (!data.payload?.email) throw new Error('identity_provider: Se requiere email para crear identidad.');
 
-    // 1. Asegurar que el usuario vive en el volumen SOCIAL
-    const socialLedgerId = MountManager.getMount('SOCIAL') || MountManager.getMount('ROOT');
+    logInfo(`[TRACE:identity] createProfile -> Email: ${data.payload.email} | WS: ${uqo.workspace_id}`);
+
+    // 1. Resolver el Ledger destino (Workspace actual)
+    const workspaceId = uqo.workspace_id || 'system';
     
-    // 2. Crear Átomo de Identidad
+    // 2. Definir Átomo de Identidad (Axioma de Identidad Micelar)
     const profileAtom = {
-      id: `u_${data.handle.alias}`,
-      handle: { ns: 'indra.user', alias: data.handle.alias, label: data.handle.label || data.handle.alias },
+      handle: { 
+        ns: 'com.indra.user', 
+        alias: data.handle?.alias || data.payload.email.split('@')[0], 
+        label: data.handle?.label || data.payload.name || data.payload.email 
+      },
       class: 'IDENTITY',
       payload: {
-        bio: data.bio || '',
-        avatar_url: data.avatar_url || '',
-        public_key: data.public_key, // Vital para Yoneda Handshakes
-        social_stats: { followers: 0, following: 0 },
+        email: data.payload.email,
+        name: data.payload.name || '',
+        role: data.payload.role || 'GUEST',
+        bio: data.payload.bio || '',
+        avatar_url: data.payload.avatar_url || '',
         created_at: new Date().toISOString()
       }
     };
 
-    // 3. Persistencia (Usando el Ledger Service con redirección de volumen)
-    // Nota: Aquí redirigimos la escritura al volumen SOCIAL
-    return _system_createAtom('IDENTITY', `User: ${data.handle.alias}`, profileAtom);
+    // 3. Persistencia Delegada (Axioma de Mediación v18.0)
+    // El Proveedor de Identidad ya no sabe nada de Sheets ni de Filas.
+    // Simplemente le entrega el Átomo al Ledger para que lo registre.
+    return ledger_register_identity({
+        ...uqo,
+        data: profileAtom
+    });
   }
 
   /**

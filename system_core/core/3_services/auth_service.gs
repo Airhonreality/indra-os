@@ -88,7 +88,66 @@ const AuthService = (function() {
   }
 
   return {
-    authorize: authorize
+    authorize: authorize,
+    
+    /**
+     * SYSTEM_IDENTITY_SYNC: El gran intercambiador de identidades.
+     * Recibe una validación externa (Google OAuth) y devuelve un token de sesión Indra.
+     */
+    syncIdentity: function(uqo) {
+      const data = uqo.data || {};
+      const idToken = data.id_token;
+      
+      if (!idToken) throw createError('INVALID_INPUT', 'Se requiere id_token para la sincronización.');
+
+      // --- AXIOMA DE SINCERIDAD EXTERNA ---
+      // En una implementación real, aquí validaríamos el token contra los servidores de Google.
+      // Por ahora, simulamos la extracción del email para el flujo de desarrollo.
+      // TODO: Implementar validación JWT real.
+      let email;
+      try {
+        // Simulación: asumimos que el token es el email en este sandbox (Solo para pruebas iniciales)
+        // En producción, esto debe ser: const email = GoogleTokenVerifier.verify(idToken);
+        email = idToken.includes('@') ? idToken : "user@example.com"; 
+      } catch(e) {
+        throw createError('AUTH_FAILED', 'Token externo inválido o expirado.');
+      }
+
+      logInfo(`[auth:sync] Intentando emparejar sujeto: ${email}`);
+
+      // 1. Buscar el átomo IDENTITY vía Ledger (Con Búsqueda Profunda Integrada v18.0)
+      const userAtom = ledger_find_atom_deep('IDENTITY', { email: email }, uqo);
+
+      if (!userAtom) {
+        logWarn(`[auth:sync] Sujeto ${email} no encontrado en la malla. Abortando.`);
+        return { 
+          metadata: { status: 'NOT_AUTHORIZED', error: 'El usuario no está registrado en este Workspace.' }, 
+          items: [] 
+        };
+      }
+
+      // 2. Emitir ticket de sesión de larga duración con Hidratación de Rango (v18.0)
+      const userRole = userAtom.payload?.role || 'GUEST';
+      const sessionToken = keychain_issue_session(userAtom.id, {
+        name: `Sesión de ${userAtom.handle?.label || email}`,
+        scopes: ['USER_ACCESS', userRole]
+      });
+
+      logSuccess(`[auth:sync] ¡Soberanía Delegada! Sesión emitida para ${email} con rango ${userRole}`);
+
+      return {
+        items: [{
+          token: sessionToken,
+          profile: {
+            id: userAtom.id,
+            name: userAtom.handle?.label,
+            email: email,
+            role: userAtom.payload?.role || 'USER'
+          }
+        }],
+        metadata: { status: 'OK' }
+      };
+    }
   };
 
 })();

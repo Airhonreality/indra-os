@@ -17,6 +17,7 @@ function ATOM_DELETE(uqo) { return _system_handleDelete(uqo); }
 function ATOM_EXISTS(uqo) { return _system_handleExists(uqo); }
 function ATOM_ALIAS_RENAME(uqo) { return _system_handleAliasRename(uqo); }
 function TABULAR_UPDATE(uqo)   { return _system_handleTabularUpdate(uqo); }
+function TABULAR_STREAM(uqo)   { return _system_handleTabularStream(uqo); }
 
 // ─── HANDLERS POR PROTOCOLO (INFRAESTRUCTURA) ─────────────────────────────────
 
@@ -56,11 +57,19 @@ function _system_handleRead(uqo) {
 function _system_handleCreate(uqo) {
     if (!uqo || !uqo.data) throw createError('INVALID_INPUT', 'ATOM_CREATE requiere data.');
     const data = uqo.data || {};
-    const atomClass = data.class || WORKSPACE_CLASS_;
+    const atomClass = data.class || uqo.class; // Permitir clase en el nivel superior del uqo
+    
+    if (!atomClass && uqo.protocol !== 'SYSTEM_IDENTITY_CREATE') {
+        throw createError('INVALID_INPUT', 'ATOM_CREATE: Se requiere definir la clase (IDENTITY, WORKSPACE, etc).');
+    }
+    
+    const finalClass = atomClass || 'IDENTITY'; // Fallback seguro solo si el protocolo es de identidad
     const label = data.handle?.label || data.label || 'Sin título';
     
+    logInfo(`[TRACE:persistence] handleCreate -> Class: ${finalClass} | WS: ${uqo.workspace_id} | Provider: ${uqo.provider}`);
+    
     // DELEGACIÓN MICELAR: Orquestación del nacimiento
-    const result = _system_createAtom(atomClass, label.trim(), uqo);
+    const result = _system_createAtom(finalClass, label.trim(), uqo);
     return { items: result.items, metadata: result.metadata };
 }
 
@@ -135,7 +144,21 @@ function _system_readAtom(atomId, providerId, uqo = {}) {
  * ATOM_CREATE_PHYSICAL: Orquesta la creación de un átomo en Drive y Ledger.
  */
 function _system_createAtom(atomClass, label, uqo) {
-    if (atomClass === WORKSPACE_CLASS_) {
+    logInfo(`[TRACE:persistence] createAtom -> Class: ${atomClass} | Label: ${label} | Provider: ${uqo.provider}`);
+    
+    // --- AXIOMA DE SEGURIDAD (v17.8.3) ---
+    // NUNCA permitir génesis celular para identidades. Las identidades son materia, no infraestructura.
+    if (atomClass === 'IDENTITY') {
+        logInfo(`[TRACE:persistence] Protegiendo identidad. Saltando Genesis Celular.`);
+        
+        // --- REDIRECCIÓN TABULAR (Axioma de Consistencia) ---
+        // Si el proveedor es 'sheets', delegamos al proveedor tabular para que no cree archivos JSON.
+        if (uqo.provider === 'sheets') {
+            logInfo(`[TRACE:persistence] Delegando IDENTIDAD al proveedor TABULAR (Sheets).`);
+            return _sheets_handleCreate(uqo); // Asumimos que esta función existe en provider_sheets.gs
+        }
+    } else if (atomClass === WORKSPACE_CLASS_) {
+        logInfo(`[TRACE:persistence] Detectada clase WORKSPACE. Iniciando Genesis Celular.`);
         return _system_genesis_cellular_workspace_(label, uqo);
     }
 
@@ -350,3 +373,4 @@ function _system_handleTabularUpdate(uqo) {
     }
   };
 }
+

@@ -125,6 +125,11 @@ function _system_handleSchemaFieldOptions(uqo) {
  * TABULAR_STREAM: Proyecta una colección de átomos como un flujo de datos.
  */
 function _system_handleTabularStream(uqo) {
+    if (uqo.provider === 'sheets') {
+        logInfo(`[system_logic] Enrutando TABULAR_STREAM hacia el proveedor de Sheets.`);
+        return _sheets_handleTabularStream(uqo);
+    }
+
     const contextId = uqo.context_id;
     const result = _system_handleRead(uqo);
 

@@ -169,9 +169,6 @@ function _sheets_handleAtomCreate(uqo) {
   };
 }
 
-/**
- * TABULAR_STREAM: Stream de datos desde la Sheet.
- */
 function _sheets_handleTabularStream(uqo) {
   const ssId = uqo.context_id;
   const ss = SpreadsheetApp.openById(ssId);
@@ -180,23 +177,48 @@ function _sheets_handleTabularStream(uqo) {
   logInfo(`[sheets:stream] Sonda de Territorio -> Archivo: "${ss.getName()}" | Pestaña: "${sheet.getName()}" | Filas Físicas: ${sheet.getLastRow()}`);
   
   const rangeData = sheet.getDataRange().getValues();
-  
   const headers = rangeData.shift() || [];
   const fields = headers.map(h => ({ id: _system_slugify_(h), label: h }));
 
+  const pkName = _sheets_discover_primary_key_(headers);
+  const pkIdx = headers.map(h => _system_slugify_(h)).indexOf(_system_slugify_(pkName));
+
   const items = rangeData.map((row, idx) => {
-    const obj = {};
-    headers.forEach((h, i) => { obj[_system_slugify_(h)] = row[i]; });
-    return {
-      ...obj,
-      id: `${ssId}_row_${idx}`,
-      handle: { label: `Fila ${idx + 1}` },
-      class: obj.class || obj.clase || 'TABULAR_ROW',
-      provider: 'sheets'
-    };
+    return _sheets_row_to_atom_(row, headers, ssId, sheet.getName(), pkIdx, idx);
   });
 
-  return { items, metadata: { status: 'OK', schema: { fields } } };
+  return { items, metadata: { status: 'OK', schema: { fields }, _anchor_used: pkName } };
+}
+
+/**
+ * Convierte una fila física en un Átomo Indra Soberano.
+ * @private
+ */
+function _sheets_row_to_atom_(row, headers, ssId, sheetName, pkIdx, rowIdx) {
+    const obj = {};
+    headers.forEach((h, i) => { 
+        if (h) obj[_system_slugify_(h)] = row[i]; 
+    });
+
+    // AXIOMA DE IDENTIDAD SOBERANA (v19.0)
+    // El ID del átomo es el valor de su llave primaria, no su posición física.
+    const sovereignId = (pkIdx !== -1 && row[pkIdx]) ? String(row[pkIdx]) : `${ssId}_row_${rowIdx}`;
+
+    return {
+      ...obj,
+      id: sovereignId,
+      handle: { 
+          label: obj.handle || obj.label || obj.name || `Fila ${rowIdx + 1}`,
+          alias: obj.alias || _system_slugify_(obj.handle || obj.label || obj.name || sovereignId)
+      },
+      class: obj.class || obj.clase || (sheetName === 'Entidades' ? 'IDENTITY' : 'TABULAR_ROW'),
+      provider: 'sheets',
+      _physical: {
+          ss_id: ssId,
+          sheet: sheetName,
+          row_index: rowIdx + 2 // Basado en 1 y saltando cabecera
+      }
+    };
 }
 
 /**
@@ -217,11 +239,15 @@ function _sheets_handleAtomUpdate(uqo) {
 /**
  * TABULAR_UPDATE: Escribe o actualiza celdas masivamente (Inserción y UPSERT Real).
  */
+/**
+ * TABULAR_UPDATE: Escribe o actualiza celdas masivamente (Inserción y UPSERT Real).
+ * v19.0: SINCERIDAD AXIAL Y SOBERANÍA DE ESQUEMA.
+ */
 function _sheets_handleTabularUpdate(uqo) {
   const ssId = uqo.data?.silo_id || uqo.context_id;
   const actions = uqo.data?.actions || [];
   
-  if (!ssId) throw createError('INVALID_INPUT', 'BATCH_UPDATE requiere silo_id o context_id.');
+  if (!ssId) throw createError('INVALID_INPUT', 'TABULAR_UPDATE requiere silo_id o context_id.');
   if (actions.length === 0) return { items: [], metadata: { status: 'OK', records_mutated: 0 } };
 
   const ss = SpreadsheetApp.openById(ssId);
@@ -230,7 +256,7 @@ function _sheets_handleTabularUpdate(uqo) {
   const lastRow = sheet.getLastRow();
   const lastCol = Math.max(1, sheet.getLastColumn());
   
-  // AXIOMA DE SOSTENIBILIDAD RELACIONAL: Descargamos la cuadrícula entera para Merge sin pisotear campos adyacentes
+  // AXIOMA DE SOSTENIBILIDAD: Descargamos la cuadrícula para Merge quirúrgico
   const fullGrid = lastRow > 0 ? sheet.getRange(1, 1, lastRow, lastCol).getValues() : [];
   const headers = fullGrid.length > 0 ? fullGrid[0] : sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   
@@ -239,14 +265,18 @@ function _sheets_handleTabularUpdate(uqo) {
     if (h) headerMap[_system_slugify_(h)] = idx + 1; 
   });
 
+  // --- DESCUBRIMIENTO DE ANCLAJE SOBERANO (v19.0) ---
+  const pkColumnName = _sheets_discover_primary_key_(headers);
+  const pkIdx = headerMap[pkColumnName] - 1;
+  
+  logInfo(`[sheets:v19] Anclaje de Soberanía detectado: '${pkColumnName}' (Col: ${pkIdx + 1})`);
+
   const existingIds = {};
-  if (lastRow > 1 && headerMap['_indra_id']) {
-     const idColIdx = headerMap['_indra_id'] - 1;
+  if (lastRow > 1 && pkIdx !== -1) {
      fullGrid.forEach((row, idx) => {
          if (idx === 0) return; // Skip headers
-         if (row[idColIdx] && String(row[idColIdx]).trim() !== '') {
-             existingIds[String(row[idColIdx])] = idx; // Guardamos el índice local de la cuadrícula
-         }
+         const idVal = String(row[pkIdx] || '').trim();
+         if (idVal !== '') existingIds[idVal] = idx;
      });
   }
 
@@ -263,19 +293,19 @@ function _sheets_handleTabularUpdate(uqo) {
       const rowArr = isUpdate ? [...fullGrid[existingIds[targetId]]] : new Array(headers.length).fill('');
       let mappedInThisRow = 0;
       
-      // Inyección o preservación del ID Soberano
-      if (headerMap['_indra_id'] && targetId) {
-          rowArr[headerMap['_indra_id'] - 1] = targetId;
-      }
-      // Retro-compatibilidad si el dev dejó el 'id'
-      if (headerMap['id'] && targetId) {
-          rowArr[headerMap['id'] - 1] = targetId;
+      // Inyección del ID en la columna de anclaje
+      if (pkIdx !== -1 && targetId) {
+          rowArr[pkIdx] = targetId;
       }
 
       Object.entries(flatData).forEach(([key, val]) => {
-        const colIdx = headerMap[key] || headerMap[_system_slugify_(key)];
+        const slugKey = _system_slugify_(key);
+        const colIdx = headerMap[key] || headerMap[slugKey];
+        
         if (colIdx) {
-          if (colIdx === headerMap['_indra_id']) return; // Protegido
+          // No sobreescribir el anclaje si ya lo pusimos, a menos que venga explícitamente
+          if (colIdx - 1 === pkIdx && targetId) return; 
+          
           rowArr[colIdx - 1] = val !== null && val !== undefined ? String(val) : '';
           mappedInThisRow++;
         } else {
@@ -286,42 +316,60 @@ function _sheets_handleTabularUpdate(uqo) {
       if (mappedInThisRow > 0 || isUpdate) {
           if (isUpdate) {
               const rIdxLocal = existingIds[targetId];
-              fullGrid[rIdxLocal] = rowArr; // Reemplazamos en el array virtual
-              // Aplicamos el parche directamente a esa fila individual para evitar subir toda la matriz gigante
+              fullGrid[rIdxLocal] = rowArr;
               sheet.getRange(rIdxLocal + 1, 1, 1, rowArr.length).setValues([rowArr]);
               updatedCount++;
           } else {
               rowsToAppend.push(rowArr);
           }
+      } else {
+          logError(`[sheets:v19] Error de Mapeo: No se encontró ninguna columna para los datos de '${targetId}'`);
+          throw createError('MAPPING_FAILED', `Imposible escribir fila '${targetId}'. Ningún campo coincide con las cabeceras: [${headers.join(', ')}]`);
       }
     }
   });
 
-  if (rowsToAppend.length === 0 && actions.length > 0 && updatedCount === 0) {
-      if (orphans.size === 0) {
-          logError(`[provider_sheets] DATOS ORIGEN VACÍOS.`);
-          throw createError('EMPTY_DATA_ORIGIN', `Falló el volcado por Mapeo Incompatible: los campos solicitados vinieron como UNDEFINED.`);
-      } else {
-          logError(`[provider_sheets] FALLO TOTAL DE TRADUCCIÓN. Columnas ignoradas: ${Array.from(orphans).join(', ')}`);
-          throw createError('MAPPING_FAILED', `Destino físico no tiene ningun campo: [${Array.from(orphans).join(', ')}]`);
-      }
-  } else if (orphans.size > 0) {
-      logWarn(`[provider_sheets] ALERTA: Campos ignorados porque no existen en Sheets: [${Array.from(orphans).join(', ')}]`);
-  }
-
   if (rowsToAppend.length > 0) {
     sheet.getRange(sheet.getLastRow() + 1, 1, rowsToAppend.length, rowsToAppend[0].length).setValues(rowsToAppend);
   }
+
+  // AXIOMA DE CRISTALIZACIÓN FÍSICA (v19.0)
+  SpreadsheetApp.flush();
 
   return { 
     items: [], 
     metadata: { 
       status: 'OK', 
       records_mutated: updatedCount + rowsToAppend.length, 
-      ignored_fields: Array.from(orphans), // AXIOMA DE TRANSPARENCIA
-      _action_counts: { updated: updatedCount, created: rowsToAppend.length } 
+      primary_key_used: pkColumnName,
+      ignored_fields: Array.from(orphans),
+      _engine: 'SHEETS_SOVEREIGN_v19'
     } 
   };
+}
+
+/**
+ * Inteligencia de Descubrimiento de Esquema.
+ * Determina cuál es la columna "ancla" de la hoja.
+ * @private
+ */
+function _sheets_discover_primary_key_(headers) {
+    const slugHeaders = headers.map(h => _system_slugify_(h));
+    
+    // Prioridad 1: La columna sagrada de Indra (si existe)
+    if (slugHeaders.includes('indra_id')) return 'indra_id';
+    
+    // Prioridad 2: La columna de identidad universal
+    if (slugHeaders.includes('id')) return 'id';
+    if (slugHeaders.includes('uid')) return 'uid';
+    if (slugHeaders.includes('email')) return 'email';
+    
+    // Prioridad 3: La primera columna que no esté vacía
+    for (let i = 0; i < headers.length; i++) {
+        if (headers[i]) return slugHeaders[i];
+    }
+    
+    return slugHeaders[0] || 'id';
 }
 
 /**

@@ -7,7 +7,7 @@
  * =============================================================================
  */
 
-const CORE_VERSION = "v10.4-SINCERITY";
+const CORE_VERSION = "v10.4-HOMEOSTASIS";
 
 function doGet(e) {
   const currentState = SystemStateManager.getState();

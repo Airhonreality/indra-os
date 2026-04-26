@@ -12,10 +12,10 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
 
   // --- PERSISTENCIA (ATOM CRUD) ---
   'ATOM_READ':                    (p) => _system_handleRead(p),
-  'ATOM_CREATE':                  (p) => _system_handleCreate(p),
-  'ATOM_UPDATE':                  (p) => _system_handleUpdate(p),
-  'ATOM_PATCH':                   (p) => _system_handlePatch(p),
-  'ATOM_DELETE':                  (p) => _system_handleDelete(p),
+  'ATOM_CREATE':                  (p) => SystemOrchestrator.dispatch(p),
+  'ATOM_UPDATE':                  (p) => SystemOrchestrator.dispatch(p),
+  'ATOM_PATCH':                   (p) => SystemOrchestrator.dispatch(p),
+  'ATOM_DELETE':                  (p) => SystemOrchestrator.dispatch(p),
   'ATOM_EXISTS':                  (p) => _system_handleExists(p),
   'ATOM_ALIAS_RENAME':            (p) => _system_handleAliasRename(p),
   'ATOM_ROLLBACK':                (p) => _system_handleRollback(p),
@@ -28,7 +28,7 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
   'SYSTEM_UNPIN':                 (p) => _system_handleUnpin(p),
   'SYSTEM_PINS_READ':             (p) => _system_handlePinsRead(p),
   'SYSTEM_WORKSPACE_REPAIR':      (p) => _system_handleWorkspaceRepair(p),
-  'SYSTEM_WORKSPACE_DEEP_PURGE':  SYSTEM_WORKSPACE_DEEP_PURGE,
+  'SYSTEM_WORKSPACE_DEEP_PURGE':  (p) => SystemOrchestrator.dispatch(p),
   'SYSTEM_SHARE_CREATE':          (p) => SYSTEM_SHARE_CREATE(p),
 
   // --- IDENTIDAD Y CONFIGURACIÓN ---
@@ -51,7 +51,7 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
   'SYSTEM_IDENTITY_VERIFY':       (p) => IdentityProvider.verifyCorporateIdentity(p.data.email),
 
   // --- SOBERANÍA SATELITAL ---
-  'SYSTEM_SATELLITE_INITIALIZE':  SYSTEM_SATELLITE_INITIALIZE,
+  'SYSTEM_SATELLITE_INITIALIZE':  (p) => SystemOrchestrator.dispatch(p),
   'SYSTEM_SATELLITE_DISCOVER':    (p) => _system_handleSatelliteDiscover(p),
   'SYSTEM_SATELLITE_UPGRADE':     (p) => { throw createError('NOT_IMPLEMENTED', 'Upgrade satelital en desarrollo.'); },
   'SYSTEM_CORE_DISCOVERY':        (p) => _system_handleCoreDiscovery(p),
@@ -65,7 +65,8 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
   'SYSTEM_AUDIT':                 (p) => _system_handleAudit(p),
   
   // --- PROTOCOLOS POLIMÓRFICOS (PROVIDER SWITCH) ---
-  'TABULAR_STREAM':               (p) => _system_handleTabularStream(p),
+  'TABULAR_UPDATE':               (p) => SystemOrchestrator.dispatch(p),
+  'TABULAR_STREAM':           (p) => (p.provider === 'sheets' ? handleSheets(p) : _system_handleTabularStream(p)), 
   'HIERARCHY_TREE':               (p) => _drive_handleHierarchyTree(p), 
   'MEDIA_RESOLVE':                (p) => _drive_handleMediaResolve(p),
 
@@ -107,13 +108,13 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
   'EMERGENCY_INGEST_FINALIZE':    (p) => peristaltic_service_finalize(p),
 
   // --- OTROS SERVICIOS ---
-  'SYSTEM_BATCH_EXECUTE':         SYSTEM_BATCH_EXECUTE,
-  'TABULAR_UPDATE':               TABULAR_UPDATE,
+  'SYSTEM_BATCH_EXECUTE':         (p) => SystemOrchestrator._handleBatchExecute_(p),
   'SEARCH_DEEP':                  (p) => handleNotion(p), 
-
+  
   // --- SOVEREIGN AUTH (v17.8) ---
   'SYSTEM_IDENTITY_SYNC':         (p) => AuthService.syncIdentity(p),
   'SYSTEM_SESSION_REVOKE':        (p) => AuthService.revokeSession(p),
+  'SYSTEM_IDENTITY_REGISTER':     (p) => SystemOrchestrator.dispatch(p),
 });
 
 function route(uqo) {

@@ -108,15 +108,10 @@ const AuthService = (function() {
       let idPayload = { email: '', name: '' };
 
       try {
-        // SIMULACIÓN DE DECODIFICACIÓN JWT (En producción se usa GoogleTokenVerifier)
-        email = idToken.includes('@') ? idToken : "user@example.com"; 
-        const namePart = email.split('@')[0];
-        idPayload = { 
-          email: email, 
-          name: namePart.charAt(0).toUpperCase() + namePart.slice(1) 
-        };
+        idPayload = _auth_verifyGoogleToken(idToken);
+        email = idPayload.email;
       } catch(e) {
-        throw createError('AUTH_FAILED', 'Token externo inválido o expirado.');
+        throw e;
       }
 
       logInfo(`[auth:sync] Intentando emparejar sujeto: ${email}`);
@@ -147,7 +142,7 @@ const AuthService = (function() {
         scopes: ['USER_ACCESS', userRole]
       });
 
-      logSuccess(`[auth:sync] ¡Soberanía Delegada! Sesión emitida para ${email} con rango ${userRole}`);
+      logSuccess(`[auth] Session issued for ${email} with role ${userRole}`);
 
       const userName = userAtom.payload?.name || userAtom.handle?.label || email;
 
@@ -168,6 +163,50 @@ const AuthService = (function() {
     /**
      * SYSTEM_SESSION_REVOKE: Protocolo de destrucción de sesión.
      */
+    /**
+     * SYSTEM_IDENTITY_REGISTER: El acto de ignición de un nuevo sujeto.
+     */
+    register: function(uqo) {
+      const data = uqo.data || {};
+      const idToken = data.id_token;
+      const workspaceId = uqo.workspace_id || 'system';
+
+      if (!idToken) throw createError('INVALID_INPUT', 'Se requiere id_token para el registro.');
+
+      // 1. Verificación Primordial (SUH v20.0)
+      const idPayload = _auth_verifyGoogleToken(idToken);
+      const email = idPayload.email;
+      const name = idPayload.name;
+
+      logInfo(`[auth] Initiating identity registration for ${email}...`);
+
+      // 2. Registro Físico en la Hoja de Entidades
+      // AXIOMA: Usamos el IdentityProvider para la creación atómica
+      try {
+        const profile = IdentityProvider.createProfile({
+          workspace_id: workspaceId,
+          data: {
+            payload: {
+              email: email,
+              name: name,
+              role: 'GUEST',
+              picture: data.picture || null
+            }
+          }
+        });
+
+        logSuccess(`[auth] Identity ${email} registered in Workspace.`);
+        
+        return {
+          items: [profile],
+          metadata: { status: 'OK', message: 'Registro completado con éxito.' }
+        };
+      } catch (e) {
+        logError(`❌ [auth:register] Error al crear perfil: ${e.message}`);
+        throw e;
+      }
+    },
+
     revokeSession: function(uqo) {
       const token = uqo.satellite_token || uqo.password || uqo.token;
       const success = keychain_revoke_session(token);
@@ -181,5 +220,37 @@ const AuthService = (function() {
       };
     }
   };
+
+  /**
+   * GOOGLE ID TOKEN VERIFIER
+   * Validates the provided token against Google's OAuth2 API.
+   * @private
+   */
+  function _auth_verifyGoogleToken(idToken) {
+    if (!idToken) throw createError('INVALID_INPUT', 'ID Token is missing.');
+
+    try {
+      logInfo(`[auth] Verifying Google ID Token...`);
+      const response = UrlFetchApp.fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`, { muteHttpExceptions: true });
+      const payload = JSON.parse(response.getContentText());
+
+      if (payload.error || !payload.email) {
+        logError(`[auth] Google Token Verification Failed: ${payload.error_description || 'Invalid Identity'}`);
+        throw createError('GOOGLE_AUTH_FAILED', `Google ID Token validation failed: ${payload.error_description || 'Unknown error'}`);
+      }
+
+      logSuccess(`[auth] Identity Verified: ${payload.email}`);
+      
+      return {
+        email: payload.email,
+        name: payload.name || payload.email.split('@')[0],
+        picture: payload.picture || null
+      };
+
+    } catch (e) {
+      if (e.code) throw e;
+      throw createError('SYSTEM_FAILURE', `Google Auth API communication error: ${e.message}`);
+    }
+  }
 
 })();

@@ -9,15 +9,16 @@
 // --- INTERFAZ GLOBAL PAD (Protocol Auto-Discovery) ---
 // Estos alias permiten que el SystemOrchestrator descubra y ejecute los protocolos
 // de infraestructura directamente, activando la resonancia axiomática.
-function ATOM_READ(uqo)   { return _system_handleRead(uqo); }
-function ATOM_CREATE(uqo) { return _system_handleCreate(uqo); }
-function ATOM_UPDATE(uqo) { return _system_handleUpdate(uqo); }
-function ATOM_PATCH(uqo)  { return _system_handlePatch(uqo); }
-function ATOM_DELETE(uqo) { return _system_handleDelete(uqo); }
-function ATOM_EXISTS(uqo) { return _system_handleExists(uqo); }
-function ATOM_ALIAS_RENAME(uqo) { return _system_handleAliasRename(uqo); }
-function TABULAR_UPDATE(uqo)   { return _system_handleTabularUpdate(uqo); }
-function TABULAR_STREAM(uqo)   { return _system_handleTabularStream(uqo); }
+// --- INTERFAZ DE INFRAESTRUCTURA (SISTEMA) ---
+// Estos alias son internos para el Core. Se renombran para evitar colisiones 
+// con los protocolos soberanos de los satélites.
+function __SYS_ATOM_READ(uqo)   { return _system_handleRead(uqo); }
+function __SYS_ATOM_CREATE(uqo) { return _system_handleCreate(uqo); }
+function __SYS_ATOM_UPDATE(uqo) { return _system_handleUpdate(uqo); }
+function __SYS_ATOM_PATCH(uqo)  { return _system_handlePatch(uqo); }
+function __SYS_ATOM_DELETE(uqo) { return _system_handleDelete(uqo); }
+function __SYS_TABULAR_UPDATE(uqo)   { return _system_handleTabularUpdate(uqo); }
+function __SYS_TABULAR_STREAM(uqo)   { return _system_handleTabularStream(uqo); }
 
 // ─── HANDLERS POR PROTOCOLO (INFRAESTRUCTURA) ─────────────────────────────────
 
@@ -341,11 +342,11 @@ function _system_listAllAtomFiles_() {
 function _system_handleTabularUpdate(uqo) {
   const actions = uqo.data?.actions || [];
   const results = [];
+  const errors = [];
   
-  logInfo(`[infra_persistence] Iniciando TABULAR_UPDATE sobre Sistema. Acciones: ${actions.length}`);
+  logInfo(`[infra_persistence] Dispatching System TABULAR_UPDATE. Actions: ${actions.length}`);
 
   actions.forEach(action => {
-    // Solo manejamos UPDATE por ahora para la sonda, pero el patrón es extensible.
     if (action.type === 'UPDATE') {
       const atomId = action.id;
       const data = action.data || {};
@@ -360,16 +361,22 @@ function _system_handleTabularUpdate(uqo) {
         const patchResult = _system_handlePatch(patchUqo);
         results.push(...(patchResult.items || []));
       } catch (e) {
-        logError(`[infra_persistence] Fallo al actualizar átomo ${atomId} vía TabularUpdate: ${e.message}`);
+        errors.push(`Fallo en átomo ${atomId}: ${e.message}`);
       }
+    } else {
+      errors.push(`Acción '${action.type}' no soportada por el motor de infraestructura.`);
     }
   });
+
+  const status = (errors.length > 0 && results.length === 0) ? 'ERROR' : (errors.length > 0 ? 'PARTIAL_SUCCESS' : 'OK');
 
   return {
     items: results,
     metadata: {
-      status: 'OK',
-      processed_count: results.length
+      status: status,
+      records_mutated: results.length,
+      errors: errors,
+      _engine: 'INFRA_PERSISTENCE_v19'
     }
   };
 }

@@ -24,6 +24,22 @@ const SystemOrchestrator = (function() {
   });
 
   /**
+   * Registro de Mandos Críticos (Surgical Orchestration v18.9)
+   * Protocolos que requieren resonancia axiomática obligatoria.
+   * @private
+   */
+  const _COMMAND_REGISTRY_ = Object.freeze({
+    'ATOM_CREATE':                  (p) => _system_handleCreate(p),
+    'ATOM_UPDATE':                  (p) => _system_handleUpdate(p),
+    'ATOM_PATCH':                   (p) => _system_handlePatch(p),
+    'ATOM_DELETE':                  (p) => _system_handleDelete(p),
+    'SYSTEM_IDENTITY_REGISTER':     (p) => AuthService.register(p),
+    'SYSTEM_SATELLITE_INITIALIZE':  (p) => SYSTEM_SATELLITE_INITIALIZE(p),
+    'TABULAR_UPDATE':               (p) => (p.provider === 'sheets' ? handleSheets(p) : _system_handleTabularUpdate(p)),
+    'SYSTEM_WORKSPACE_DEEP_PURGE':  (p) => SYSTEM_WORKSPACE_DEEP_PURGE(p)
+  });
+
+  /**
    * Despacha protocolos con prefijo SYSTEM_* o EMERGENCY_*
    * @param {Object} payload - El UQO de entrada.
    * @returns {Object} Respuesta del sistema.
@@ -42,9 +58,14 @@ const SystemOrchestrator = (function() {
         result = _handlePeristalticIngest_(payload);
       } 
       
-      // 2. MODO: RUTA CRISTALIZADA (Mapa Estático)
+      // 2. MODO: MANDO DIRECTO (Orquestación Quirúrgica)
+      else if (_COMMAND_REGISTRY_[protocol]) {
+        logInfo(`[orchestrator] [${trx}] Ejecutando Mando Crítico: ${protocol}`);
+        result = _COMMAND_REGISTRY_[protocol](payload);
+      }
+
+      // 3. MODO: RUTA EXTERNA (Fallback al Router para el resto de protocolos)
       else {
-        // Delegamos en el Router Estático (protocol_router.gs)
         result = route(payload);
       }
 
@@ -155,12 +176,17 @@ const SystemOrchestrator = (function() {
 
     try {
       // --- ESCENARIO DE ACTUALIZACIÓN ---
-      if (protocol === 'ATOM_UPDATE' && items[0]) {
-          const adn = infra_persistence_read(items[0].id); // Lectura limpia post-mutación
-          resonance_service_resonate(adn, 'UPDATE', result.original);
+      if ((protocol === 'ATOM_UPDATE' || protocol === 'ATOM_PATCH') && items[0]) {
+          const atom = items[0];
           
-          // Sincronizar disparadores si es un WORKFLOW
-          if (adn.class === 'WORKFLOW') trigger_service_sync(items[0]);
+          // 1. Sincronización del Ledger (Para cambios de identidad)
+          ledger_sync_atom(atom, atom.id, payload);
+
+          // 2. Resonancia Lógica (Hooks)
+          resonance_service_resonate(atom, 'UPDATE', result.original);
+          
+          // 3. Sincronizar disparadores si es un WORKFLOW
+          if (atom.class === 'WORKFLOW') trigger_service_sync(atom);
       }
 
       // --- ESCENARIO DE GÉNESIS ---

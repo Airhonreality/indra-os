@@ -177,10 +177,12 @@ function _ledger_get_ss_id_(workspaceId) {
  */
 function ledger_find_atom_deep(atomClass, matchObj, uqo) {
     const workspaceId = uqo.workspace_id || 'system';
-    logInfo(`[ledger:deep] Iniciando búsqueda para ${atomClass} en ${workspaceId}...`);
+    logInfo(`[ledger:deep] 🔍 Búsqueda Profunda: Clase=${atomClass} | Match=${JSON.stringify(matchObj)} | WS=${workspaceId}`);
 
-    // 1. Intento vía Índice (Rápido)
+    // 1. Intento vía Índice (Rápido - Busca en pestaña ATOMS)
     const indexItems = ledger_list_by_class(atomClass, uqo);
+    logInfo(`[ledger:deep] Índice ATOMS consultado. Encontrados: ${indexItems.length}`);
+    
     let found = indexItems.find(item => {
         return Object.entries(matchObj).every(([key, val]) => {
             const itemVal = item.payload?.[key] || item[key];
@@ -189,14 +191,16 @@ function ledger_find_atom_deep(atomClass, matchObj, uqo) {
     });
 
     if (found) {
-        logInfo(`[ledger:deep] Hit en índice para: ${Object.values(matchObj)[0]}`);
+        logInfo(`[ledger:deep] ✅ HIT en índice ATOMS.`);
         return found;
     }
 
-    // 2. Fallback a Escaneo Físico Tabular (Axioma de Verdad Última)
-    logWarn(`[ledger:deep] Miss en índice. Iniciando escaneo físico tabular...`);
+    // 2. Fallback a Escaneo Físico Tabular (Axioma de Verdad Última - Busca en pestaña Entidades)
+    logWarn(`[ledger:deep] ⚠️ MISS en índice ATOMS. Iniciando escaneo físico en pestaña 'Entidades'...`);
     const ledgerId = _ledger_get_ss_id_(workspaceId);
-    SpreadsheetApp.flush(); // Asegurar sincronización física antes del escaneo
+    logInfo(`[ledger:deep] ID de Spreadsheet resuelto: ${ledgerId}`);
+    
+    SpreadsheetApp.flush(); 
     
     try {
         const physicalRes = _system_handleTabularStream({
@@ -207,22 +211,27 @@ function ledger_find_atom_deep(atomClass, matchObj, uqo) {
         });
         
         const physicalItems = physicalRes.items || [];
-        logInfo(`[ledger:deep] Escaneo Físico completado en 'Entidades'. Filas: ${physicalItems.length}`);
+        logInfo(`[ledger:deep] Escaneo en 'Entidades' completado. Filas recuperadas: ${physicalItems.length}`);
         
-        if (physicalItems.length > 0) {
-            logInfo(`[ledger:deep] Muestra de Esquema (Keys): ${Object.keys(physicalItems[0]).join(', ')}`);
+        if (physicalItems.length === 0) {
+            logWarn(`[ledger:deep] ❌ La pestaña 'Entidades' está vacía o no existe en ${ledgerId}`);
+            return null;
         }
 
         let matchedAtom = null;
+        const targetValue = Object.values(matchObj)[0]; // El email usualmente
         
-        const found = physicalItems.find((item, idx) => {
+        found = physicalItems.find((item, idx) => {
             const itemClass = item.class || item.payload?.class;
             
+            // Log de depuración para la primera fila para ver la estructura
             if (idx === 0) {
-                logInfo(`[ledger:deep] Fila 0 -> Class: ${itemClass} | Payload Crudo: ${item.payload ? 'EXISTE' : 'VACÍO'}`);
+                logInfo(`[ledger:deep] Estructura Fila 0: ${Object.keys(item).join(', ')}`);
             }
 
-            if (itemClass !== atomClass) return false;
+            if (itemClass !== atomClass && atomClass !== 'IDENTITY') {
+                return false; 
+            }
             
             let finalData = { ...item };
             let parsedPayload = null;
@@ -230,38 +239,33 @@ function ledger_find_atom_deep(atomClass, matchObj, uqo) {
                 try { 
                     parsedPayload = JSON.parse(item.payload); 
                     finalData = { ...finalData, ...parsedPayload };
-                    if (idx === 0) logInfo(`[ledger:deep] Payload parseado con éxito. Llaves: ${Object.keys(parsedPayload).join(', ')}`);
-                } catch(e) {
-                    logWarn(`[ledger:deep] Fallo al parsear payload en fila ${idx}: ${e.message}`);
-                }
+                } catch(e) {}
             }
             
             const isMatch = Object.entries(matchObj).every(([key, val]) => {
-                const itemVal = finalData[key];
-                const match = String(itemVal).toLowerCase() === String(val).toLowerCase();
-                if (!match && idx === 0) logWarn(`[ledger:deep] Fila 0 NO coincide en ${key}: ${itemVal} !== ${val}`);
-                if (match) logInfo(`[ledger:deep] Match físico encontrado en fila ${idx}: ${key}=${val}`);
-                return match;
+                const itemVal = finalData[key] || item[key];
+                return String(itemVal).toLowerCase() === String(val).toLowerCase();
             });
 
             if (isMatch) {
+                logSuccess(`[ledger:deep] ✅ MATCH ENCONTRADO en fila ${idx} de 'Entidades'`);
                 matchedAtom = {
                     ...item,
-                    payload: parsedPayload || item.payload
+                    id: item._id || item.id || item.email,
+                    class: itemClass || 'IDENTITY',
+                    payload: parsedPayload || item.payload || item
                 };
                 return true;
             }
             return false;
         });
 
-        if (matchedAtom) {
-            logInfo(`[ledger:deep] Éxito en escaneo físico. Materia recuperada.`);
-            return matchedAtom;
-        }
+        if (matchedAtom) return matchedAtom;
     } catch (e) {
-        logError(`[ledger:deep] Fallo en escaneo físico de ${ledgerId}: ${e.message}`);
+        logError(`[ledger:deep] ❌ Fallo crítico en escaneo físico: ${e.message}`);
     }
 
+    logWarn(`[ledger:deep] ❌ No se encontró el sujeto en ninguna dimensión.`);
     return null;
 }
 
@@ -272,43 +276,48 @@ function ledger_find_atom_deep(atomClass, matchObj, uqo) {
 function ledger_register_identity(uqo) {
     const data = uqo.data || {};
     const workspaceId = uqo.workspace_id || 'system';
+    const email = data.payload?.email || data.id;
     
-    logInfo(`[ledger:identity] Registrando identidad para: ${data.payload?.email} en WS: ${workspaceId}`);
+    logInfo(`[ledger:identity] 📝 Registrando identidad: ${email} | WS: ${workspaceId}`);
     
     const ledgerId = _ledger_get_ss_id_(workspaceId);
     
-    // Axioma de Santuario: Las identidades deben vivir en su propia membrana tabular.
-    const tabularRes = _system_handleTabularUpdate({
-        protocol: 'TABULAR_UPDATE',
-        context_id: ledgerId,
-        provider: 'sheets',
-        data: {
-            sheet_name: 'Entidades', // Alineación con la realidad física del usuario
-            actions: [{
-                type: 'CREATE',
-                id: data.handle?.alias || data.payload?.email,
-                data: {
-                    ...data.payload,
-                    _indra_id: data.handle?.alias || data.payload?.email,
-                    class: 'IDENTITY',
-                    handle: data.handle?.label || data.payload?.name || data.payload?.email,
-                    payload: JSON.stringify(data.payload) // Empaquetar en columna payload según esquema real
-                }
-            }]
-        }
-    });
+    try {
+        const tabularRes = SystemOrchestrator.dispatch({
+            protocol: 'TABULAR_UPDATE',
+            context_id: ledgerId,
+            provider: 'sheets',
+            data: {
+                sheet_name: 'Entidades',
+                actions: [{
+                    type: 'CREATE',
+                    id: email, // Este será el anclaje soberano
+                    data: {
+                        ...data.payload,
+                        id: email, // Coincidencia exacta con tu columna 'id'
+                        class: 'IDENTITY',
+                        handle: data.handle?.label || data.payload?.name || email,
+                        payload: JSON.stringify(data.payload)
+                    }
+                }]
+            }
+        });
 
-    // AXIOMA DE RETORNO (v18.0): Todo registro debe devolver la materia cristalizada
-    return {
-        items: [{
-            id: data.handle?.alias || data.payload?.email,
-            class: 'IDENTITY',
-            handle: data.handle || { label: data.payload?.name || data.payload?.email },
-            payload: data.payload
-        }],
-        metadata: tabularRes.metadata
-    };
+        logSuccess(`[ledger:identity] ✅ Registro materializado en ${workspaceId}.`);
 
+        return {
+            items: [{
+                id: email,
+                class: 'IDENTITY',
+                handle: data.handle || { label: data.payload?.name || email },
+                payload: data.payload
+            }],
+            metadata: tabularRes.metadata
+        };
+    } catch (e) {
+        logError(`[ledger:identity] ❌ Fallo en registro: ${e.message}`);
+        throw e;
+    }
 }
 function _ledger_resolve_physical_context_(driveId) {
   try {

@@ -172,12 +172,15 @@ function SYSTEM_RESONANCE_CRYSTALLIZE(payload) {
             generatedWorkspaceId = genesisTarget.id;
         } else {
             logInfo(`[resonance] Iniciando Génesis para nuevo Satélite: ${satelliteName}`);
-            const genesisResponse = _system_handleCreate({
-                provider: 'system',
-                class: 'WORKSPACE',
+            const genesisResponse = SystemOrchestrator.dispatch({
+                protocol: 'ATOM_CREATE',
+                workspace_id: payload.workspace_id || 'system',
                 data: {
-                    name: satelliteName,
-                    description: `Dharma de Jurisdicción creado automáticamente para el satélite ${satelliteName}.`
+                    handle: { label: satelliteName },
+                    class: 'WORKSPACE',
+                    payload: {
+                        description: `Dharma de Jurisdicción creado automáticamente para el satélite ${satelliteName}.`
+                    }
                 }
             });
             if (genesisResponse.items && genesisResponse.items.length > 0) {

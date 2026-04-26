@@ -495,6 +495,36 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "9_tests/DeepSovereigntyAudit.gs",
+    "name": "DeepSovereigntyAudit",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "9_tests/DirectSheetCheck.gs",
+    "name": "DirectSheetCheck",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "9_tests/ForceIdentityIgnition.gs",
+    "name": "ForceIdentityIgnition",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "9_tests/InfraDiagnostic.gs",
+    "name": "InfraDiagnostic",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "9_tests/ManualIdentityCheck.gs",
+    "name": "ManualIdentityCheck",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "9_tests/SessionRevokeAudit.gs",
+    "name": "SessionRevokeAudit",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "appsscript.json",
     "name": "appsscript",
     "type": "JSON"

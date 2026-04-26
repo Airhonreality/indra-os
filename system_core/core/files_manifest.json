@@ -450,8 +450,18 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "6_audit/PROTOCOL_ORCHESTRATION_AUDIT.gs",
+    "name": "PROTOCOL_ORCHESTRATION_AUDIT",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "6_audit/Reseteo_dev.gs",
     "name": "Reseteo_dev",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "6_audit/SCHEMA_PURIFICATION.gs",
+    "name": "SCHEMA_PURIFICATION",
     "type": "SERVER_JS"
   },
   {
@@ -507,6 +517,11 @@
   {
     "path": "9_tests/ForceIdentityIgnition.gs",
     "name": "ForceIdentityIgnition",
+    "type": "SERVER_JS"
+  },
+  {
+    "path": "9_tests/IDENTITY_RESOLUTION_DEBUG.gs",
+    "name": "IDENTITY_RESOLUTION_DEBUG",
     "type": "SERVER_JS"
   },
   {

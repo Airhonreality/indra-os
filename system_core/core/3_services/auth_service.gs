@@ -105,10 +105,16 @@ const AuthService = (function() {
       // Por ahora, simulamos la extracción del email para el flujo de desarrollo.
       // TODO: Implementar validación JWT real.
       let email;
+      let idPayload = { email: '', name: '' };
+
       try {
-        // Simulación: asumimos que el token es el email en este sandbox (Solo para pruebas iniciales)
-        // En producción, esto debe ser: const email = GoogleTokenVerifier.verify(idToken);
+        // SIMULACIÓN DE DECODIFICACIÓN JWT (En producción se usa GoogleTokenVerifier)
         email = idToken.includes('@') ? idToken : "user@example.com"; 
+        const namePart = email.split('@')[0];
+        idPayload = { 
+          email: email, 
+          name: namePart.charAt(0).toUpperCase() + namePart.slice(1) 
+        };
       } catch(e) {
         throw createError('AUTH_FAILED', 'Token externo inválido o expirado.');
       }
@@ -119,10 +125,18 @@ const AuthService = (function() {
       const userAtom = ledger_find_atom_deep('IDENTITY', { email: email }, uqo);
 
       if (!userAtom) {
-        logWarn(`[auth:sync] Sujeto ${email} no encontrado en la malla. Abortando.`);
+        logWarn(`[auth:sync] Sujeto ${email} no encontrado. Enviando invitación de registro.`);
         return { 
-          metadata: { status: 'NOT_AUTHORIZED', error: 'El usuario no está registrado en este Workspace.' }, 
-          items: [] 
+          items: [{
+            email: email,
+            name: idPayload?.name || email,
+            picture: idPayload?.picture || null,
+            can_register: true
+          }],
+          metadata: { 
+            status: 'PENDING_REGISTRATION', 
+            message: 'El usuario no existe en la malla de este Workspace.' 
+          } 
         };
       }
 

@@ -123,7 +123,11 @@ const PROTOCOL_CONTRACTS = Object.freeze({
   'INDUCTION_START':              { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
   'INDUCTION_STATUS':             { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
   'INDUCTION_CANCEL':             { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
-  'INDUCTION_DRIFT_CHECK':        { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   }
+  'INDUCTION_DRIFT_CHECK':        { min_state: 2, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   },
+
+  // ── SOBERANÍA DE IDENTIDAD (v18.0 OMEGA) ──
+  'SYSTEM_IDENTITY_SYNC':         { min_state: 1, actors: ACTOR_TYPES.ALL,            dispatcher: DISPATCHERS.LOGIC   },
+  'SYSTEM_SESSION_REVOKE':        { min_state: 1, actors: ACTOR_TYPES.AUTHENTICATED,  dispatcher: DISPATCHERS.LOGIC   }
 });
 
 const ProtocolRegistry = (function() {

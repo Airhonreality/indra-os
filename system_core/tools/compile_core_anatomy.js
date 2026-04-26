@@ -7,8 +7,9 @@ const path = require('path');
  * y lo compila en un JSON único para facilitar la auditoría y depuración.
  */
 
-const CORE_PATH = __dirname;
-const DEST_PATH = path.join(CORE_PATH, '../Documentacion/CORE_ANATOMY_SNAPSHOT.json');
+const coreDir = path.join(__dirname, '../core');
+const outputFile = path.join(__dirname, '../client/public/indra-satellite-protocol/docs/CORE_ANATOMY_SNAPSHOT.json');
+
 const TARGET_DIRS = ['0_gateway', '0_utils', '1_logic', '2_providers', '3_services'];
 
 function compile() {
@@ -20,12 +21,12 @@ function compile() {
     };
 
     TARGET_DIRS.forEach(dir => {
-        const dirPath = path.join(CORE_PATH, dir);
+        const dirPath = path.join(coreDir, dir);
         if (fs.existsSync(dirPath)) {
             console.log(`🔍 Escaneando Capa: ${dir}...`);
             anatomy.layers[dir] = {};
             
-            const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.gs'));
+            const files = fs.readdirSync(dirPath).filter(f => f.endsWith('.gs') || f.endsWith('.js'));
             files.forEach(file => {
                 const filePath = path.join(dirPath, file);
                 const content = fs.readFileSync(filePath, 'utf8');
@@ -34,8 +35,14 @@ function compile() {
         }
     });
 
-    fs.writeFileSync(DEST_PATH, JSON.stringify(anatomy, null, 2));
-    console.log(`✅ Anatomía compilada con éxito en: ${DEST_PATH}`);
+    // Asegurar que el directorio de salida existe
+    const outputDir = path.dirname(outputFile);
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    fs.writeFileSync(outputFile, JSON.stringify(anatomy, null, 2));
+    console.log(`✅ Anatomía compilada con éxito en: ${outputFile}`);
 }
 
 try {

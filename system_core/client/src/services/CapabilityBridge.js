@@ -9,7 +9,7 @@
 import { executeDirective } from './directive_executor';
 import { DataProjector } from './DataProjector';
 import { MetaComposer } from './MetaComposer';
-import { AgnosticVault } from '../../public/indra-satellite-protocol/src/score/logic/AgnosticVault.js';
+import { AgnosticVault } from '../../public/indra-satellite-protocol/_INDRA_PROTOCOL_/core/bridge_modules/AgnosticVault.js';
 
 export class DesignerBridge {
     constructor(atom, shellActions, protocolData, existingVault = null) {

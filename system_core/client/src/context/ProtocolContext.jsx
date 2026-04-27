@@ -1,7 +1,7 @@
 import React, { createContext, useContext } from 'react';
 import { useAppState } from '../state/app_state';
 import { DesignerBridge } from '../services/CapabilityBridge';
-import { AgnosticVault } from '../../public/indra-satellite-protocol/src/score/logic/AgnosticVault.js';
+import { AgnosticVault } from '../../public/indra-satellite-protocol/_INDRA_PROTOCOL_/core/bridge_modules/AgnosticVault.js';
 
 const ProtocolContext = createContext();
 

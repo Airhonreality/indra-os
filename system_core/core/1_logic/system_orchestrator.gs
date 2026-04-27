@@ -45,7 +45,7 @@ const SystemOrchestrator = (function() {
 
     // --- INFRAESTRUCTURA Y JURISDICCIÓN ---
     'SYSTEM_SATELLITE_INITIALIZE':(p) => SYSTEM_SATELLITE_INITIALIZE(p),
-    'TABULAR_UPDATE':             (p) => (p.provider === 'sheets' ? handleSheets(p) : _system_handleTabularUpdate(p)),
+    'TABULAR_UPDATE':             (p) => _system_handleTabularUpdate(p),
     'SYSTEM_WORKSPACE_DEEP_PURGE':(p) => SYSTEM_WORKSPACE_DEEP_PURGE(p)
   });
 
@@ -62,6 +62,27 @@ const SystemOrchestrator = (function() {
     logInfo(`[orchestrator] [${trx}] 🧠 Despachando protocolo cristalizado: ${protocol}`);
 
     try {
+      const provider = (payload.provider || 'system').toLowerCase();
+
+      // --- AXIOMA: DELEGACIÓN SOBERANA POR RESONANCIA (v21.5) ---
+      // Si el proveedor no es el sistema, buscamos su handler soberano automáticamente.
+      if (provider !== 'system') {
+          const handlerName = `handle${provider.charAt(0).toUpperCase() + provider.slice(1)}`;
+          
+          // En GAS, las funciones globales están en el scope global. 
+          // Intentamos una resolución segura.
+          let handler = null;
+          try {
+            handler = eval(handlerName);
+          } catch(e) { /* No existe */ }
+
+          if (typeof handler === 'function') {
+              logInfo(`[orchestrator] [${trx}] 📡 Delegando mando al proveedor soberano: ${provider}`);
+              return handler(payload);
+          }
+          throw createError('PROVIDER_NOT_CRYSTALIZED', `El proveedor "${provider}" no ha sido cristalizado (Falta ${handlerName}).`);
+      }
+
       // 1. MODO: INGESTA PERISTÁLTICA (Sincronización por fragments)
       if (protocol.startsWith('EMERGENCY_INGEST')) {
         logInfo(`[orchestrator] [${trx}] Ruta detectada: INGESTA_EMERGENTE`);

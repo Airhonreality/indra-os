@@ -124,6 +124,19 @@ function _system_handlePinsRead(uqo) {
                 enhancedPin.handle = { ...pin.handle, label: physicalLabel };
             }
 
+            // --- AGILIDAD v16.0: CARGA PROFUNDA DE ESQUEMAS ---
+            // Si el pin es un esquema, cargamos su payload completo para el Fractal View del Dashboard.
+            if (enhancedPin.class === 'DATA_SCHEMA') {
+                try {
+                    const fullAtomRes = _system_readAtom(pin.id, pin.provider || 'system');
+                    if (fullAtomRes.items && fullAtomRes.items[0]) {
+                        enhancedPin.payload = fullAtomRes.items[0].payload;
+                    }
+                } catch(e) {
+                    logWarn(`[agilidad] No se pudo cargar payload para esquema: ${pin.id}`);
+                }
+            }
+
             return { ...enhancedPin, _orphan: false };
         });
 
@@ -146,7 +159,8 @@ function _system_handlePinsRead(uqo) {
                 status: 'OK',
                 count: sincerePins.length,
                 bridges: doc.bridges || [],
-                reconciled: needsWorkspaceSync
+                reconciled: needsWorkspaceSync,
+                _agile_payloads: true
             }
         };
     } catch (err) {

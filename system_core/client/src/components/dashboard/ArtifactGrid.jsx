@@ -91,8 +91,8 @@ export function ArtifactGrid({ pins, onResonate }) {
             }}
             onMouseLeave={() => setFocusedEngineId(null)}
         >
-            {/* Columna I: POTENCIA (28%) - Reserva Sistémica */}
-            <section className="triptych-col-potency no-scrollbar" style={{ display: 'flex', flexDirection: 'column', width: '28%' }}>
+            {/* Columna I: POTENCIA (33%) - Reserva Sistémica */}
+            <section className="triptych-col-potency no-scrollbar" style={{ display: 'flex', flexDirection: 'column', width: '33%' }}>
                 <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div className="shelf--tight">
                         <div style={{ width: '4px', height: '4px', background: 'var(--color-text-secondary)', borderRadius: '50%' }}></div>
@@ -135,16 +135,16 @@ export function ArtifactGrid({ pins, onResonate }) {
                     )}
                 </div>
             </section>
-
-            {/* Columna II: AGENCIA (44%) - Núcleo de Transformación */}
-            <section className="triptych-col-agency no-scrollbar" style={{ display: 'flex', flexDirection: 'column', width: '44%', padding: '0 var(--space-2)' }}>
+ 
+            {/* Columna II: AGENCIA (40%) - Núcleo de Transformación */}
+            <section className="triptych-col-agency no-scrollbar" style={{ display: 'flex', flexDirection: 'column', width: '40%', padding: '0 var(--space-2)' }}>
                 <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div className="shelf--tight">
                         <div style={{ width: '4px', height: '4px', background: 'var(--color-accent)', borderRadius: '50%' }}></div>
                         <span style={{ fontSize: '9px', opacity: 0.5, fontWeight: 'bold', fontFamily: 'var(--font-mono)', letterSpacing: '0.2em' }}>{t('ui_column_agency')}</span>
                         <span style={{ fontSize: '9px', opacity: 0.2, fontFamily: 'var(--font-mono)' }}>[ {agency.length} ]</span>
                     </div>
-
+ 
                     <div className="shelf--tight" style={{ gap: '4px', position: 'relative' }}>
                         <CreationMenu 
                             category={t('ui_column_agency').replace('II. ', '')} 
@@ -182,16 +182,16 @@ export function ArtifactGrid({ pins, onResonate }) {
                     )}
                 </div>
             </section>
-
-            {/* Columna III: MANIFESTACIÓN (28%) - Teleología Industrial */}
-            <section className="triptych-col-manifestation no-scrollbar" style={{ display: 'flex', flexDirection: 'column', width: '28%' }}>
+ 
+            {/* Columna III: MANIFESTACIÓN (27%) - Teleología Industrial */}
+            <section className="triptych-col-manifestation no-scrollbar" style={{ display: 'flex', flexDirection: 'column', width: '27%' }}>
                 <header style={{ padding: 'var(--space-2) 0', borderBottom: '1px solid var(--color-border)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div className="shelf--tight">
                         <div style={{ width: '4px', height: '4px', background: 'var(--color-cold)', borderRadius: '50%' }}></div>
                         <span style={{ fontSize: '9px', opacity: 0.5, fontWeight: 'bold', fontFamily: 'var(--font-mono)', letterSpacing: '0.2em' }}>{t('ui_column_manifestation')}</span>
                         <span style={{ fontSize: '9px', opacity: 0.2, fontFamily: 'var(--font-mono)' }}>[ {manifestation.length} ]</span>
                     </div>
-
+ 
                     <div className="shelf--tight" style={{ gap: '4px', position: 'relative' }}>
                         <CreationMenu 
                             category={t('ui_column_manifestation').replace('III. ', '')} 

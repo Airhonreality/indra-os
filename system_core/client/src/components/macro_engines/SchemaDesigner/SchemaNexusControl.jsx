@@ -16,7 +16,7 @@ import ArtifactSelector from '../../utilities/ArtifactSelector';
 import { FieldMapper } from '../BridgeDesigner/FieldMapper';
 
 export function SchemaNexusControl({ atom, bridge, onUpdate, onFieldsImported }) {
-    const [currentPath, setCurrentPath] = useState('MENU'); // MENU, IGNITE, IMPORT_DNA, LINK, HYDRATE
+    const [currentPath, setCurrentPath] = useState(atom?._initialPath || 'MENU'); // MENU, IGNITE, IMPORT_DNA, LINK, HYDRATE
     
     // Estados compartidos
     const services = useAppState(s => s.services || []);

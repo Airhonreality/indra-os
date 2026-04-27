@@ -57,6 +57,10 @@ function _system_handleRead(uqo) {
 
 function _system_handleCreate(uqo) {
     if (!uqo || !uqo.data) throw createError('INVALID_INPUT', 'ATOM_CREATE requiere data.');
+    
+    // --- DIAGNÓSTICO DE SINCERIDAD (v21.1) ---
+    logInfo(`[persistence:debug] RAW_DATA_RECEIVED: ${JSON.stringify(uqo.data).substring(0, 500)}`);
+    
     const data = uqo.data || {};
     const atomClass = data.class || uqo.class; 
     

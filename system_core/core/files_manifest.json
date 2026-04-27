@@ -465,6 +465,11 @@
     "type": "SERVER_JS"
   },
   {
+    "path": "6_audit/SCHEMA_VINCULUM_SONDE.gs",
+    "name": "SCHEMA_VINCULUM_SONDE",
+    "type": "SERVER_JS"
+  },
+  {
     "path": "6_audit/Sonda_Estabilizacion_Axial.gs",
     "name": "Sonda_Estabilizacion_Axial",
     "type": "SERVER_JS"

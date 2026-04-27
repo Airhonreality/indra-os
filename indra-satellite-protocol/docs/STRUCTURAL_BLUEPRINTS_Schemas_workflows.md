@@ -48,21 +48,26 @@ export const ProjectWorkflows = {
             },
             { 
                 station: 'CORE_EMISSION', 
-                protocol: 'ATOM_CREATE',
-                data: (data) => ({ payload: data }) 
-            },
-            { 
-                station: 'VOLATILE_SYNC', 
-                action: (res) => console.log("Project Materialized", res) 
+                protocol: 'TABULAR_UPDATE', // 🚀 CANON v17.6: Uso de Tabular para datos
+                schema_id: 'project',
+                data: (data) => ({ 
+                    actions: [{ type: 'CREATE', data: data }] 
+                }) 
             }
         ]
     },
     
     archive_old_projects: {
-        trigger: 'CRON_JOB', // Disparado por el Pulso del Core
+        trigger: 'CRON_JOB', 
         steps: [
-            { protocol: 'SYSTEM_PINS_READ', context: 'projects' },
-            { protocol: 'ATOM_PATCH', data: { status: 'ARCHIVED' } }
+            { 
+                protocol: 'TABULAR_UPDATE', 
+                schema_id: 'project',
+                data: { 
+                    query: { status: 'OLD' },
+                    actions: [{ type: 'UPDATE', data: { status: 'ARCHIVED' } }]
+                } 
+            }
         ]
     }
 };
@@ -145,7 +150,7 @@ const estructura  = datos.metadata.schema.fields; // Columnas con nombres reales
 
 ### 4c. Blueprint Puro (Destilación de Materia para persistencia local)
 
-Al guardar un esquema localmente (en `scores/`), **solo** se persiste la esencia:
+Al guardar un esquema localmente (en src/score/schemas/), **solo** se persiste la esencia:
 
 ```javascript
 // ✅ GUARDAR SOLO ESTO (Blueprint Soberano):
@@ -167,7 +172,7 @@ export const SCHEMA = {
 
 ```javascript
 // PULL: Core → Local (importar)
-// Protocolo: ATOM_READ + context_id → Destilar → Guardar en scores/
+// Protocolo: ATOM_READ + context_id → Destilar → Guardar en src/score/schemas/
 
 // PUSH (Actualizar existente): Local → Core
 await bridge.execute({
@@ -183,3 +188,26 @@ await bridge.execute({
     data: { class: 'DATA_SCHEMA', handle: schema.handle, payload: schema.payload }
 });
 ```
+
+### 4e. El Takeover del DOM (Modo Soberano)
+En producción, la aplicación de negocio debe reclamar el espacio total de la ventana.
+
+```javascript
+// src/app.js: Patrón de Takeover
+export async function ignite(bridge, kernel) {
+    const root = document.getElementById('app-root');
+    // La app materializa su Piel sobre el nodo raíz, 
+    // ignorando cualquier interfaz técnica preexistente.
+    InventarioMaterializer.render(root, InventarioWorkflows, bridge);
+}
+```
+
+---
+### 🏛️ LA DOBLE RESIDENCIA
+Todo Satélite Indra debe mantener dos puertas:
+
+1.  **`/index.html` (Sandbox)**: El taller donde el Arquitecto configura el Bridge y hace PULL de esquemas.
+2.  **`/app.html` (Portal)**: El producto terminado. Sin ruido, sin HUD, solo el valor del negocio resonando con el Core.
+
+---
+*Indra OS - Estructura y Vínculo v17.5* 🛰️🏛️💎🔥

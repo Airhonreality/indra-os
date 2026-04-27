@@ -13,6 +13,7 @@ class IndraBridge {
     constructor(config = {}) {
         this.coreUrl = config.coreUrl || null;
         this.satelliteToken = null;
+        this.infraToken = null; // Token original de indra_identity.js (Capa 0)
         this.activeWorkspaceId = null; 
         this.availableWorkspaces = [];
         this.status = 'GHOST'; 
@@ -70,36 +71,36 @@ class IndraBridge {
                 return;
             }
 
-            // --- FASE 3: RESONANCIA AXIAL (EL PULSO) ---
-            notifyStep('SYNC_CORE', { message: 'Invocando Manifiesto Real...' });
-            const statusPulse = await this.execute({ protocol: 'SYSTEM_MANIFEST', provider: 'system' });
-            this.capabilities = statusPulse.metadata || {};
-            this.allowedProtocols = this.capabilities.allowed_protocols || [];
+            // --- FASE 3: RESONANCIA AXIAL (EL PULSO OPTIMIZADO v20.0) ---
+            notifyStep('SYNC_CORE', { message: 'Sincronizando ADN Soberano...' });
+
+            // 1. DEDUPLICACIÓN: Usamos datos precargados por el Cortex (Hiper-Ignición)
+            if (!this.capabilities || !this.capabilities.core_id) {
+                const statusPulse = await this.execute({ protocol: 'SYSTEM_MANIFEST', provider: 'system' });
+                this.capabilities = statusPulse.metadata || {};
+            }
             
+            this.allowedProtocols = this.capabilities.allowed_protocols || [];
             if (!this.contract) this.contract = {};
             this.contract.owner_email = this.capabilities.owner_email || this.capabilities.core_id;
 
-            // FASE 3.1: DESCUBRIMIENTO DE TERRITORIO
-            notifyStep('DISCOVER_TERRITORY', { message: 'Descubriendo Workspaces...' });
-            const discovery = await this.execute({ protocol: 'SYSTEM_SATELLITE_DISCOVER', provider: 'system' });
+            // 2. CONSUMO DE HIPER-IGNICIÓN: Evitamos peticiones si el Cortex ya las hizo
+            const discovery = this.preloaded_discovery || await this.execute({ protocol: 'SYSTEM_SATELLITE_DISCOVER', provider: 'system' });
             this.availableWorkspaces = (discovery.items || []).filter(i => i.class === 'WORKSPACE');
             
-            if (this.capabilities.primary_workspace && !this.activeWorkspaceId) {
-                this.activeWorkspaceId = this.capabilities.primary_workspace;
-            }
-
-            // --- FASE 4: RESONANCIA DE ESQUEMAS ---
-            if (this.activeWorkspaceId) {
-                try {
-                    const remoteRes = await this.execute({ 
-                        protocol: 'SYSTEM_PINS_READ', 
-                        workspace_id: this.activeWorkspaceId 
-                    });
-                    this.contract.remote_schemas = (remoteRes.items || []).filter(i => i.class === 'DATA_SCHEMA');
-                } catch (e) {
-                    console.warn("[Bridge] Jurisdicción inválida detectada.");
-                    this.activeWorkspaceId = null;
-                }
+            const targetWorkspace = this.activeWorkspaceId || this.capabilities.primary_workspace;
+            if (targetWorkspace) {
+                this.activeWorkspaceId = targetWorkspace;
+                
+                // Si no hay pins precargados, los pedimos, de lo contrario los usamos
+                const pinsRes = this.preloaded_pins?.items?.length ? this.preloaded_pins : await this.execute({ 
+                    protocol: 'SYSTEM_PINS_READ', 
+                    workspace_id: targetWorkspace, 
+                    provider: 'system' 
+                });
+                
+                this.contract.remote_schemas = (pinsRes.items || []).filter(i => i.class === 'DATA_SCHEMA');
+                console.log(`⚡ [Bridge] Jurisdicción sincronizada: ${this.activeWorkspaceId} (${this.contract.remote_schemas.length} esquemas).`);
             }
 
             this._setStatus('READY');
@@ -117,6 +118,72 @@ class IndraBridge {
     }
 
     async execute(params) { return await this.transport.execute(params); }
+
+    /**
+     * @dharma Muta la identidad del bridge a una sesión de usuario y la persiste físicamente.
+     * Preserva el token de infraestructura original para restauraciones o fallbacks.
+     * @param {string} token - El token de sesión emitido por el Core (L2).
+     * @param {Object} profile - El perfil hidratado del usuario.
+     */
+    setSessionToken(token, profile = null) {
+        // Guardamos el token L0 original si es la primera vez que mutamos
+        if (!this.infraToken) this.infraToken = this.satelliteToken;
+        
+        this.satelliteToken = token;
+        this.sessionProfile = profile;
+        
+        // --- AXIOMA DE PERSISTENCIA (v18.0) ---
+        const satelliteId = this.contract?.id || 'indra-node';
+        const sessionKey = `indra_session_${satelliteId}`;
+        const profileKey = `indra_profile_${satelliteId}`;
+        
+        localStorage.setItem(sessionKey, token);
+        if (profile) localStorage.setItem(profileKey, JSON.stringify(profile));
+        
+        console.log(`🔐 [Bridge] Sesión de usuario persistida: ${sessionKey}`);
+    }
+
+    /**
+     * @dharma Recupera la sesión activa desde la memoria local.
+     */
+    getSession() {
+        const satelliteId = this.contract?.id || 'indra-node';
+        const sessionKey = `indra_session_${satelliteId}`;
+        const profileKey = `indra_profile_${satelliteId}`;
+        
+        const token = localStorage.getItem(sessionKey);
+        const profile = JSON.parse(localStorage.getItem(profileKey) || 'null');
+        
+        if (!token) return null;
+        return { token, profile };
+    }
+
+    /**
+     * @dharma Cierra la sesión de usuario, purga la persistencia física y restaura L0.
+     */
+    logout() {
+        const satelliteId = this.contract?.id || 'indra-node';
+        const sessionKey = `indra_session_${satelliteId}`;
+        
+        localStorage.removeItem(sessionKey);
+        this.restoreInfrastructureToken();
+        
+        console.log("🔓 [Bridge] Sesión cerrada. Retornando a Capa de Infraestructura (L0).");
+        
+        // Notificar a la UI del cambio de estado
+        window.dispatchEvent(new CustomEvent('indra-auth-logout'));
+    }
+
+    /**
+     * @dharma Restaura la identidad de infraestructura (Capa 0).
+     * Útil cuando un usuario cierra sesión pero el satélite debe seguir sincronizando infra.
+     */
+    restoreInfrastructureToken() {
+        if (this.infraToken) {
+            this.satelliteToken = this.infraToken;
+            console.log("🛰️ [Bridge] Identidad de Infraestructura (L0) restaurada.");
+        }
+    }
 }
 
 export default IndraBridge;

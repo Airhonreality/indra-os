@@ -1,4 +1,4 @@
-const RETRIABLE_CODES = ['LOCK_TIMEOUT', 'GATEWAY_TIMEOUT', 'NETWORK_ERROR'];
+const RETRIABLE_CODES = ['LOCK_TIMEOUT', 'GATEWAY_TIMEOUT', 'NETWORK_ERROR', 'DRIVE_MICROFLICKER'];
 const MUTATION_PROTOCOLS = ['ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_DELETE', 'SCHEMA_MUTATE', 'SYSTEM_IGNITE_SCHEMA'];
 
 export class TransportLayer {
@@ -139,7 +139,8 @@ export class TransportLayer {
         };
 
         try {
-            console.log(`📡 [Transport:Wire] Llamando a Core (SANITIZED): ${cleanCoreUrl} [Protocol: ${uqo.protocol}]`);
+            const obfuscatedUrl = cleanCoreUrl.replace(/(https?:\/\/)[^\/]+/, "$1***.google.com");
+            console.log(`📡 [Transport:Wire] Llamando a Core (SANITIZED): ${obfuscatedUrl} [Protocol: ${uqo.protocol}]`);
             const response = await fetch(cleanCoreUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -159,6 +160,13 @@ export class TransportLayer {
                 if (errorAtom) {
                     console.error(`[Transport:AtomicError] Protocolo ${uqo.protocol} falló [${errorAtom.payload.code}]:`, errorAtom.payload.message);
                     
+                    // --- REINTENTO SILENCIOSO PARA DRIVE ---
+                    if (errorAtom.payload.message?.includes('Error de servicio: Drive')) {
+                        const err = new Error(errorAtom.payload.message);
+                        err.code = 'DRIVE_MICROFLICKER';
+                        throw err;
+                    }
+
                     // --- EMISIÓN GLOBAL PARA EL HUD ---
                     window.dispatchEvent(new CustomEvent('indra-error-atom', { detail: errorAtom }));
 
@@ -171,8 +179,16 @@ export class TransportLayer {
                     throw error;
                 } else {
                     // Fallback para errores no atómicos (Legacy)
-                    console.error(`[Transport:LegacyError] Protocolo ${uqo.protocol} falló:`, result.metadata.error);
-                    const error = new Error(result.metadata.error || 'Error desconocido del sistema.');
+                    const errorMsg = result.metadata.error || '';
+                    console.error(`[Transport:LegacyError] Protocolo ${uqo.protocol} falló:`, errorMsg);
+                    
+                    if (errorMsg.includes('Error de servicio: Drive')) {
+                        const err = new Error(errorMsg);
+                        err.code = 'DRIVE_MICROFLICKER';
+                        throw err;
+                    }
+
+                    const error = new Error(errorMsg || 'Error desconocido del sistema.');
                     error.code = 'SYSTEM_FAILURE';
                     throw error;
                 }

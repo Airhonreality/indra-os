@@ -1,0 +1,11 @@
+# 🛡️ INDRA SOVEREIGNTY ATTRIBUTES
+# Este archivo protege la carpeta /src de fusiones automáticas accidentales.
+
+# Todo el contenido en /src debe ser tratado como material de alta fidelidad.
+# Si hay un cambio en el remoto que choca con tu local, Git NO intentará 
+# una fusión automática; te obligará a resolverlo manualmente.
+src/** merge=binary
+src/score/** merge=binary
+
+# Asegurar que el motor oficial mantenga su integridad de fines de línea
+_INDRA_PROTOCOL_/** text eol=lf

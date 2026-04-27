@@ -79,3 +79,16 @@ await sync.start();
 
 ---
 ⚡🌞 **Indra OS: La Malla es el Mensaje.** 🌞⚡
+
+---
+
+## 5. Handshake T=0 (Producción Silenciosa)
+En entornos de **Uso Real**, el Satélite no debe esperar a una interacción en el HUD para establecer la resonancia.
+
+### Protocolo de Portal (`app.html`)
+1.  **Carga de Identidad**: El portal importa `INDRA_CONFIG` desde `indra_identity.js`.
+2.  **Ignición Directa**: Se instancia el `IndraBridge` con las credenciales leídas.
+3.  **Vínculo Silencioso**: Se ejecuta `await bridge.init()`. Si los sellos son válidos, el puente entra en estado `READY` inmediatamente.
+4.  **Inyección de Negocio**: Se llama a `ignite(bridge, kernel)`.
+
+**Axioma**: El usuario final nunca debe ver un "Handshake Step". La conexión debe ser una capa de transporte invisible que ocurre durante el splash-screen o loader de la aplicación.

@@ -1,15 +1,14 @@
 {
-  "id": "indra-satellite-omega",
-  "version": "17.5.0",
+  "id": "indra-satellite-seed",
+  "version": "1.0.0",
   "axiomatic_standard": "OMEGA_V17",
   "metadata": {
-    "name": "Indra Sovereign Satellite",
-    "description": "Nodo de alta fidelidad con arquitectura SUH de 5 capas.",
+    "name": "Indra Sovereign Seed",
+    "description": "Plantilla virgen de Satélite Indra con arquitectura SUH de 5 capas.",
     "author": "Indra Axiomatic AI",
     "capabilities": [
-      "PERISTALTIC_INGEST",
       "DYNAMIC_SCHEMA_RESONANCE",
-      "ZERO_ENTROPY_STATE"
+      "SATELLITE_SOVEREIGNTY"
     ]
   },
   "structure": {
@@ -18,8 +17,8 @@
     "score_path": "src/score"
   },
   "compatibility": {
-    "min_core_version": "14.6.0",
-    "authorized_protocols": "CANON_PROTOCOLS.md"
+    "min_core_version": "17.0.0",
+    "authorized_protocols": "docs/CANON_PROTOCOLS.md"
   },
   "display": {
     "theme": "Axiomatic Dark",

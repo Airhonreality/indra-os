@@ -1,37 +1,41 @@
+<!-- 
+  =============================================================================
+  🛰️ INDRA SATELLITE: SOVEREIGN PORTAL (index.html)
+  =============================================================================
+-->
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Indra OS | Axiomatic Seed v17.0</title>
-    <!-- Google Fonts: Outfit -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --indra-bg: #ffffff;
-        }
-
-        body, html {
-            margin: 0;
-            padding: 0;
-            background: var(--indra-bg);
-            color: #1c1c1e;
-            font-family: 'Outfit', sans-serif;
-            overflow: hidden;
-        }
-
-        #app-root {
-            height: 100vh;
-            width: 100vw;
-        }
-    </style>
+    <title>Indra Satellite</title>
+    <link rel="stylesheet" href="./src/score/ui/theme.css">
 </head>
 <body>
 
-    <!-- Contenedor Maestro para el Satélite -->
     <div id="app-root"></div>
 
-    <!-- BOOTSTRAP AXIAL (SDK v17.0) -->
-    <script type="module" src="./_INDRA_PROTOCOL_/indra_hub.js?v=17.5_OMEGA"></script>
+    <script type="module">
+        import IndraBridge from './_INDRA_PROTOCOL_/core/IndraBridge.js';
+        import { IndraKernel } from './_INDRA_PROTOCOL_/core/IndraKernel.js';
+        import { INDRA_NODAL_CONFIG } from './indra_identity.js'; 
+        import { ignite } from './src/app.js';             
+
+        async function bootstrap() {
+            try {
+                const bridge = new IndraBridge({
+                    coreUrl: INDRA_NODAL_CONFIG.core_url,
+                    satelliteToken: INDRA_NODAL_CONFIG.core_token
+                });
+                const kernel = new IndraKernel(bridge);
+                ignite(bridge, kernel);
+                bridge.init();
+            } catch (err) {
+                console.error("❌ [Portal] CRASH:", err);
+            }
+        }
+
+        bootstrap();
+    </script>
 </body>
 </html>

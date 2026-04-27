@@ -30,6 +30,7 @@ export class ContractCortex {
                 console.log("🔍 [Cortex:Reality] 2. Ruta de importación:", configPath);
 
                 // AUDITORÍA DE MATERIA: Intentamos leer el archivo como texto plano primero
+                /* 
                 try {
                     const rawRes = await fetch(configPath);
                     const rawText = await rawRes.text();
@@ -37,23 +38,35 @@ export class ContractCortex {
                 } catch (fetchErr) {
                     console.error("❌ [Cortex:Reality] Fallo en auditoría de materia (fetch):", fetchErr);
                 }
+                */
 
                 // IMPORTACIÓN DINÁMICA
                 const configModule = await import(/* @vite-ignore */ configPath);
-                console.log("🔍 [Cortex:Reality] 4. Módulo importado. Keys detectadas:", Object.keys(configModule));
                 
                 // DETECCIÓN MULTI-CAPA
-                const rawConfig = configModule.INDRA_CONFIG || configModule.default?.INDRA_CONFIG || configModule;
+                const rawConfig = configModule.INDRA_NODAL_CONFIG || configModule.INDRA_CONFIG || configModule.default?.INDRA_CONFIG || configModule;
                 config = rawConfig || {};
-
-                console.log("🔍 [Cortex:Reality] 5. Handshake extraído:", config);
 
                 // INYECCIÓN DETERMINISTA: Solo si el disco TIENE materia real
                 if (config.core_url && config.core_token) {
                     this.bridge.coreUrl = config.core_url;
-                    this.bridge.satelliteToken = config.core_token;
+                    this.bridge.infraToken = config.core_token; // Guardamos el L0 original
                     this.bridge.activeWorkspaceId = config.workspace_id || null;
-                    console.log("🔒 [Cortex] Identidad física detectada y autorizada.");
+                    
+                    // --- AXIOMA DE SINCERIDAD AL ARRANQUE (v17.8) ---
+                    // Antes de autorizar la identidad L0, verificamos si existe una sesión de usuario L2.
+                    // El satélite ID se obtiene del contrato o se asume 'indra-node' por defecto.
+                    const satelliteId = this.bridge.contract?.id || 'indra-node';
+                    const sessionKey = `indra_session_${satelliteId}`;
+                    const sessionToken = localStorage.getItem(sessionKey);
+
+                    if (sessionToken) {
+                        console.log(`⚡ [Cortex] Sesión de usuario detectada [${sessionKey}]. Escalando Privilegios L0 -> L2.`);
+                        this.bridge.satelliteToken = sessionToken;
+                    } else {
+                        this.bridge.satelliteToken = config.core_token;
+                        console.log("🔒 [Cortex] Usando identidad física de infraestructura (L0).");
+                    }
                 } else {
                     console.warn("⚠️ [Cortex] Sello vacío o incompleto en disco. Respetando memoria volátil.");
                 }
@@ -78,12 +91,32 @@ export class ContractCortex {
                 }
             }
 
-            // --- FASE 3: RESONANCIA AXIAL (OPCIONAL) ---
+            // --- FASE 3: RESONANCIA AXIAL (HIPER-IGNICIÓN v20.0) ---
             if (this.bridge.coreUrl && this.bridge.satelliteToken && contract.schemas.length === 0) {
                 try {
-                    console.log("📡 [Cortex] Iniciando Resonancia Axial para actualizar ADN...");
-                    const liveManifest = await this.bridge.execute({ protocol: 'SYSTEM_MANIFEST', provider: 'system' });
-                    const liveSchemas = await this.bridge.execute({ protocol: 'SYSTEM_CONFIG_SCHEMA', provider: 'system' });
+                    console.log("📡 [Cortex] Iniciando Hiper-Ignición (Batch v20.0)...");
+                    
+                    const operations = [
+                        { protocol: 'SYSTEM_MANIFEST', provider: 'system' },
+                        { protocol: 'SYSTEM_CONFIG_SCHEMA', provider: 'system' },
+                        { protocol: 'SYSTEM_SATELLITE_DISCOVER', provider: 'system' }
+                    ];
+
+                    const wsId = this.bridge.activeWorkspaceId;
+                    if (wsId) {
+                        operations.push({ protocol: 'SYSTEM_PINS_READ', workspace_id: wsId, provider: 'system' });
+                    }
+
+                    const batchRes = await this.bridge.execute({ 
+                        protocol: 'SYSTEM_BATCH_EXECUTE', 
+                        data: { operations } 
+                    });
+
+                    const results = batchRes.items || [];
+                    const liveManifest = results[0] || { metadata: {}, items: [] };
+                    const liveSchemas  = results[1] || { items: [] };
+                    const discovery    = results[2] || { items: [] };
+                    const pinsRes      = results[3] || { items: [] };
 
                     contract = {
                         synced_at: new Date().toISOString(),
@@ -95,10 +128,17 @@ export class ContractCortex {
                         schemas: liveSchemas.items || [],
                         workflows: []
                     };
+                    
+                    // Inyectamos el pulso completo en el bridge para que IndraBridge.init sea instantáneo
+                    this.bridge.capabilities = liveManifest.metadata || {};
+                    this.bridge.manifest_items = liveManifest.items || [];
+                    this.bridge.preloaded_discovery = discovery;
+                    this.bridge.preloaded_pins = pinsRes;
+                    
                     usedLiveSync = true;
-                    console.log("⚡ [Cortex] ADN actualizado vía Resonancia Axial.");
+                    console.log("⚡ [Cortex] ADN completo cristalizado en un solo viaje.");
                 } catch (liveErr) {
-                    console.error("⚠️ [Cortex] Falló Resonancia Axial. Usando materia local.");
+                    console.error("⚠️ [Cortex] Falló Hiper-Ignición. Usando materia local.", liveErr);
                 }
             }
 

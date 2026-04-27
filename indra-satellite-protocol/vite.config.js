@@ -114,9 +114,10 @@ const indraDevServerPlugin = () => {
 
       // 5. Listado Determinista de Esquemas (Indra Sync Protocol)
       server.middlewares.use('/indra-sync/list-schemas', (req, res) => {
+        const scoresPath = path.resolve(__dirname, 'src/score/schemas');
         if (req.method === 'GET') {
           try {
-            const scoresDir = path.resolve(__dirname, 'scores');
+            const scoresDir = scoresPath;
             if (!fs.existsSync(scoresDir)) {
               res.statusCode = 200;
               res.setHeader('Content-Type', 'application/json');
@@ -143,9 +144,9 @@ const indraDevServerPlugin = () => {
 export default defineConfig({
   plugins: [indraDevServerPlugin()],
   server: {
-    port: 3001, // Puerto independiente para el Bridge
+    port: 3005, // Puerto independiente virgen para evitar colisión de caché
     watch: {
-      ignored: ['**/indra_config.js', '**/scores/**']
+      ignored: ['**/indra_config.js', '**/score/**']
     }
   }
 });

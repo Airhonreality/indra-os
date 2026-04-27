@@ -110,6 +110,9 @@ const STYLES = `
     
     .node:hover > .node-header .import-btn { display: inline-block; }
     .node:hover > .node-header .export-btn { display: inline-block; }
+    .node:hover > .node-header .delete-btn { display: inline-block; }
+
+    .delete-btn { background: #FF3B30; padding: 2px 6px; font-size: 8px; color: white; border: none; border-radius: 4px; cursor: pointer; display: none; margin-left: 8px; font-family: sans-serif; }
 `;
 
 export class IndraFractalTree extends HTMLElement {
@@ -204,6 +207,22 @@ export class IndraFractalTree extends HTMLElement {
                 }));
             };
         });
+
+        // Handler para el botón de borrado (DELETE TOTAL)
+        this.shadowRoot.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                const nodeEl = btn.closest('.node');
+                const nodeId = nodeEl.getAttribute('data-id');
+                const origin = nodeEl.getAttribute('data-origin');
+                
+                this.dispatchEvent(new CustomEvent('indra-delete-node', { 
+                    detail: { id: nodeId, origin: origin },
+                    bubbles: true,
+                    composed: true
+                }));
+            };
+        });
     }
 
     renderNode(node) {
@@ -221,6 +240,7 @@ export class IndraFractalTree extends HTMLElement {
                     ${node.value_type ? `<span class="type-badge">${node.value_type}</span>` : ''}
                     ${node.type === 'SCHEMA' && origin === 'core' ? `<button class="import-btn">PULL</button>` : ''}
                     ${node.type === 'SCHEMA' && origin === 'local' ? `<button class="export-btn">PUSH</button>` : ''}
+                    ${node.type === 'SCHEMA' ? `<button class="delete-btn">DELETE</button>` : ''}
                 </div>
                 <div class="children">
                     ${hasChildren ? node.children.map(child => this.renderNode(child)).join('') : ''}

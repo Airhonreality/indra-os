@@ -1,42 +1,13 @@
 /**
- * ARTEFACTO: theme.css
- * CAPA: Visual
- * AXIOMA: Estandarización Lumínica y Resonancia Reactiva
+ * FUNCTIONAL CORE: theme.css
+ * Solo contiene lógica de comportamiento visual para los estados de red.
+ * No contiene estilos decorativos ni paletas de colores.
  */
 
-:root {
-    --color-primary: #2C3E50;
-    --color-accent: #3498DB;
-    --color-text: #333333;
-    --color-bg: #FFFFFF;
-    
-    /* Variables de Estado Peristáltico */
-    --resonance-opacity: 0.5;
-    --resonance-blur: blur(2px);
-    --transition-speed: 0.3s;
-}
-
-/* 
- * ==========================================================
- * LA MAGIA DE LA RESONANCIA
- * ==========================================================
- * Cualquier elemento que tenga [data-resonance="active"] 
- * entra en modo de "Sombra" protectora de forma automática.
- * No necesitas escribir lógica para deshabilitar botones.
- */
-
+/* Lógica de Resonancia: Bloqueo automático de UI durante sincronización de átomos */
 [data-resonance="active"] {
-    opacity: var(--resonance-opacity);
-    filter: var(--resonance-blur);
-    pointer-events: none; /* Inmunidad Crítica: El usuario no puede clicar */
-    transition: all var(--transition-speed) ease-in-out;
-    position: relative;
-}
-
-/* Opcional: Feedback visual extra si es un botón o un input */
-input[data-resonance="active"], 
-textarea[data-resonance="active"], 
-button[data-resonance="active"] {
-    background-color: #f0f0f0;
+    opacity: 0.5;
+    filter: blur(1px);
+    pointer-events: none; 
     cursor: wait;
 }

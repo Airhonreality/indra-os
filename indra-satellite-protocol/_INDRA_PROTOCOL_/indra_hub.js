@@ -65,11 +65,15 @@ async function bootstrap() {
     try {
         console.log("🚀 [HUB] 4. Sincronizando puente con el Core...");
         
-        // Identidad básica del manifiesto
+        // --- AXIOMA DE IDENTIDAD (v17.8) ---
+        // Inyectamos el ADN completo del manifiesto en el contrato del puente.
+        // Esto permite que el ContractCortex sepa qué sesión de localStorage buscar.
         bridge.contract = { 
             ...(bridge.contract || {}), 
+            id: manifestData.id || 'indra-node',
             satellite_name: manifestData.metadata?.name || "Indra Nodo",
-            version: manifestData.metadata?.version 
+            version: manifestData.version || manifestData.metadata?.version,
+            metadata: manifestData.metadata || {}
         };
 
         // El Bridge se encarga de su propia hidratación física vía Cortex

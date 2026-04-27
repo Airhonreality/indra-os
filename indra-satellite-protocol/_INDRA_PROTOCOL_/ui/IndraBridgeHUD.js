@@ -130,6 +130,10 @@ class IndraBridgeHUD extends HTMLElement {
         // --- LISTENERS DE SINCRONÍA DE MATERIA ---
         this.shadowRoot.querySelector('#tree-local').addEventListener('indra-export-schema', (e) => this.pushSchemaToCore(e.detail));
         this.shadowRoot.querySelector('#tree-remote').addEventListener('indra-import-schema', (e) => this.pullSchemaToLocal(e.detail));
+        
+        // El Escuchador de la Muerte Atómica
+        this.shadowRoot.querySelector('#tree-local').addEventListener('indra-delete-node', (e) => this.deleteNode(e.detail));
+        this.shadowRoot.querySelector('#tree-remote').addEventListener('indra-delete-node', (e) => this.deleteNode(e.detail));
 
         this.shadowRoot.querySelector('#toggle-settings').onclick = () => this.shadowRoot.querySelector('#config-area').classList.toggle('active');
         
@@ -298,8 +302,8 @@ class IndraBridgeHUD extends HTMLElement {
             for (const fileName of files) {
                 try {
                     // Importación dinámica con bust-caching para romper la inercia del navegador
-                    // Subimos dos niveles (ui/ -> _INDRA_PROTOCOL_/ -> root) para llegar a scores/
-                    const mod = await import(`../../scores/${fileName}?t=${Date.now()}`);
+                    // Subimos dos niveles (ui/ -> _INDRA_PROTOCOL_/ -> root) para llegar a src/score/schemas/
+                    const mod = await import(`../../src/score/schemas/${fileName}?t=${Date.now()}`);
                     if (mod.SCHEMA) discoveredSchemas.push(mod.SCHEMA);
                 } catch (e) {
                     console.warn(`[HUD:Discovery] Fallo al importar materia en ${fileName}:`, e);
@@ -493,7 +497,7 @@ export const SCHEMA = ${JSON.stringify(deepNode, null, 4)};`;
                         .replace(/[^a-z0-9_]/g, ''); 
 
         const fileName = `${alias || label || deepNode.id}.js`;
-        const filePath = `./scores/${fileName}`; 
+        const filePath = `./src/score/schemas/${fileName}`; 
 
         try {
             const res = await fetch('/indra-sync/save-file', {
@@ -512,7 +516,7 @@ export const SCHEMA = ${JSON.stringify(deepNode, null, 4)};`;
                 }
                 
                 this.sync(); 
-                alert(`✅ ÉXITO: Esquema [${schemaNode.id}] guardado físicamente en scores/${fileName}`);
+                alert(`✅ ÉXITO: Esquema [${schemaNode.id}] guardado físicamente en src/score/schemas/${fileName}`);
             } else {
                 const error = await res.json();
                 alert(`❌ ERROR DE PERSISTENCIA: ${error.error}`);
@@ -522,13 +526,17 @@ export const SCHEMA = ${JSON.stringify(deepNode, null, 4)};`;
         }
     }
 
-    async pushSchemaToCore(schemaNode) {
+    async pushSchemaToCore(node) {
         if (!this._bridge || this._bridge.status !== 'READY') return;
         
-        const hasId = !!schemaNode.id;
-        const action = hasId ? 'ATOM_UPDATE' : 'ATOM_CREATE';
+        // EXTRAER MATERIA: Usamos el objeto original preservado en 'raw'
+        const schemaNode = node.raw || node;
         
-        if (!confirm(`¿${hasId ? 'ACTUALIZAR' : 'EXPORTAR'} esquema [${schemaNode.handle?.alias || schemaNode.id}] en el Core remoto?`)) return;
+        // INTELIGENCIA DE ORIGEN: ¿Este ID pertenece al Core o es una invención local?
+        const isRemote = this._bridge.contract.remote_schemas?.some(s => s.id === schemaNode.id);
+        const action = isRemote ? 'ATOM_UPDATE' : 'ATOM_CREATE';
+        
+        if (!confirm(`¿${isRemote ? 'ACTUALIZAR' : 'EXPORTAR NUEVO'} esquema [${schemaNode.handle?.alias || schemaNode.id}] en el Core remoto?`)) return;
 
         console.log(`📤 [IndraSync] Ejecutando ${action} para: ${schemaNode.id}`);
         
@@ -536,7 +544,8 @@ export const SCHEMA = ${JSON.stringify(deepNode, null, 4)};`;
             // LEY DE SINCERIDAD: Solo enviamos el Blueprint purificado
             const payload = {
                 protocol: action,
-                context_id: hasId ? schemaNode.id : this._bridge.activeWorkspaceId,
+                provider: 'system', // AXIOMA: El Core es el proveedor, el Satélite es el consumidor
+                context_id: isRemote ? schemaNode.id : this._bridge.activeWorkspaceId,
                 data: {
                     class: 'DATA_SCHEMA',
                     handle: { 
@@ -560,6 +569,46 @@ export const SCHEMA = ${JSON.stringify(deepNode, null, 4)};`;
         } catch (e) {
             alert(`❌ ERROR DE EXPORTACIÓN: ${e.message}`);
         }
+    }
+
+    async deleteNode({ id, origin }) {
+        if (!confirm(`⚠️ ATENCIÓN: Estás a punto de ELIMINAR TOTALMENTE [${id}] en ${origin.toUpperCase()}.\nEsta acción es irreversible. ¿Proceder?`)) return;
+
+        if (origin === 'core') {
+            console.log(`💀 [IndraSync] Purgando átomo remoto: ${id}`);
+            try {
+                const res = await this._bridge.execute({
+                    protocol: 'ATOM_DELETE',
+                    context_id: id,
+                    data: { class: 'DATA_SCHEMA' } // Indicio para que el orquestador sepa qué purgar
+                });
+                if (res.metadata?.status === 'OK') {
+                    alert(`✅ Átomo purgado del Core y del Ledger.`);
+                }
+            } catch (e) {
+                alert(`❌ FALLO EN PURGA REMOTA: ${e.message}`);
+            }
+        } else {
+            console.log(`💀 [IndraSync] Eliminando archivo local: ${id}`);
+            // Inferimos el nombre del archivo (usualmente el id + .js)
+            const fileName = `${id}.js`;
+            try {
+                const res = await fetch('/indra-sync/delete-file', {
+                    method: 'POST',
+                    body: JSON.stringify({ filePath: `./src/score/schemas/${fileName}` })
+                });
+                if (res.ok) {
+                    alert(`✅ Archivo [${fileName}] borrado físicamente del disco.`);
+                } else {
+                    alert(`❌ No se pudo borrar el archivo (Es posible que se llame diferente al ID)`);
+                }
+            } catch (e) {
+                alert(`❌ ERROR DE CONEXIÓN VITE: ${e.message}`);
+            }
+        }
+        
+        // Sincronizar UI tras la masacre
+        this.sync();
     }
 }
 

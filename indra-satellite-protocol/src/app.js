@@ -1,32 +1,27 @@
 /**
- * INDRA SATELLITE ENTRY POINT
- * Este es tu lienzo. Aquí comienza la lógica de tu negocio.
+ * INDRA SATELLITE ENTRY POINT (VIRGIN STATE)
  */
-
-import { appState } from './score/app_state.js';
+import { INDRA_NODAL_CONFIG } from '../indra_identity.js';
 
 export async function ignite(bridge, kernel) {
-    console.log("🧬 [Satélite] Ignición recibida. Sistema listo para operación.");
+    const root = document.getElementById('app-root');
+    if (!root) return;
 
-    // 1. VÍNCULO PERISTÁLTICO (Cero Entropía)
-    // Conectamos la consciencia de la UI con la memoria persistente del Core
-    appState.linkVault(bridge.vault);
+    // DETECCIÓN DE ESTADO VIRGEN
+    const isVirgin = INDRA_NODAL_CONFIG.core_url.includes('TU_SCRIPT_ID');
 
-    // 2. Gestión del Loader (Agnóstico)
-    const hideLoader = () => {
-        const loader = document.getElementById('indra-loader');
-        if (loader) {
-            loader.style.opacity = '0';
-            setTimeout(() => loader.remove(), 500);
-        }
-    };
-
-    // Reactividad al motor
-    if (bridge.status === 'READY') hideLoader();
-    window.addEventListener('indra-resonance-sync', (e) => {
-        if (['STABLE', 'READY', 'LOCAL_READY'].includes(e.detail?.mode)) hideLoader();
-    });
-
-    // 2. Tu código aquí (Ejemplo):
-    // bridge.vault.subscribe('mi_esquema', (data) => console.log("Datos recibidos:", data));
+    if (isVirgin) {
+        root.innerHTML = `
+            <div style="padding:20px; font-family:monospace;">
+                <p>[ESTADO: VIRGEN]</p>
+                <button onclick="location.href='architect.html'">CONFIGURAR SATÉLITE</button>
+            </div>
+        `;
+    } else {
+        root.innerHTML = `
+            <div style="padding:20px; font-family:monospace;">
+                <a href="architect.html" style="color:inherit; text-decoration:none; cursor:pointer;">[SATELLITE_READY]</a>
+            </div>
+        `;
+    }
 }

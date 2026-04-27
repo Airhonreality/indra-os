@@ -12,55 +12,46 @@ Este satélite es un nodo de soberanía unificada basado en la arquitectura **In
 | **L3** | **ADN (Schemas)** | Estructura inmutable de la materia. Vive en `/src/score/schemas`. |
 | **L2** | **SISTEMA NERVIOSO**| Reactividad y Memoria Persistente. `IndraStateEngine` + `AgnosticVault`. |
 | **L1** | **EL PUENTE (Bridge)**| Único canal de resonancia con el Núcleo de Indra. |
+| **L0** | **EL PORTAL (app.html)**| Acceso silencioso de producción (Modo Headless). |
 
 ## 📂 2. MAPA DEL SITIO (Estructura de Archivos)
 
 ```text
 /
 ├── _INDRA_PROTOCOL_/       # EL MOTOR (Soberanía del Núcleo - NO TOCAR)
-│   ├── core/               # Motores de Inteligencia y Sincronía.
-│   │   ├── bridge_modules/ # Vault, Cortex, StateEngine, Transport.
-│   │   └── core_schemas/   # ADN base del sistema operativo.
-│   ├── ui/                 # Componentes dinámicos del HUD.
-│   └── indra_hub.js        # El Big Bang: Punto de ignición único.
-├── src/                    # TU SOBERANÍA (Lógica de Negocio)
-│   ├── score/              # El Núcleo de tu aplicación.
-│   │   ├── logic/          # Workflows y Funciones.
-│   │   └── schemas/        # Definiciones de ADN de tus datos.
-│   ├── ui/                 # Tu interfaz personalizada.
-│   └── app.js              # Cerebro de mando del satélite.
+├── src/                    # TU SOBERANÍA (Lógica, UI y ADN de Esquemas)
 ├── docs/                   # El Canon de Verdad (Manuales de Vuelo).
-├── indra_config.js         # El Vínculo Físico (URL/Token).
-└── satellite.manifest.json # Tu identidad ante el Ecosistema.
+├── index.html              # PORTAL DE PRODUCCIÓN (Uso Real - Servido en /)
+├── architect.html          # CONSOLA DE ARQUITECTO (HUD / Handshake / Config)
+├── indra_identity.js       # Tu Ciudadanía (Credenciales Persistentes)
+└── satellite.manifest.json # Identidad del Nodo.
 ```
 
-## 📚 3. LA BÓVEDA DEL CANON (Índice de Consulta)
+## 📜 4. DUALIDAD DE IGNICIÓN
+El Satélite Indra opera en dos estados dimensionales:
 
-| Archivo | Propósito | Cuándo consultarlo |
-| :--- | :--- | :--- |
-| **`CANON_PROTOCOLS.md`** | Lista exacta de los 74 protocolos del Core. | Para saber cómo pedir datos o acciones al Núcleo. |
-| **`UI_Axioms.md`** | Leyes estéticas (Mobile-first, Agnosticismo px).| Al maquetar cualquier HTML o escribir CSS. |
-| **`STRUCTURAL_BLUEPRINTS.md`**| Ejemplos de ADN (Esquemas) y Neuronas (Workflows).| Al crear nuevas estructuras de datos o lógica. |
-| **`TECHNICAL_HANDSHAKE.md`**| Protocolo oficial de Ignición y Vínculo Seguro. | Para entender el proceso de enlace Core-Satélite. |
-| **`Vectores de esquizofrenia`**| Lista de anti-patrones y errores de diseño. | Para realizar auditorías de código axiomático. |
-| **`git_protocol.md`** | Reglas de control de versiones y sinceridad. | Antes de realizar commits o gestionar ramas. |
+1.  **Modo Soberano (`index.html`)**: Realiza un Handshake Silencioso. Carga el `IndraBridge.js` directamente, conecta con el Core de forma invisible y materializa tu aplicación de negocio en `src/app.js` de forma instantánea.
+2.  **Modo Arquitecto (`architect.html`)**: Activa el `indra_hub.js`. Proyecta el BridgeHUD con sus herramientas de configuración, árbol de esquemas y diagnóstico. Ideal para desarrollo y administración.
 
-## 📜 4. EL DHARMA DEL DESARROLLADOR (Dos & Don'ts)
-
-### ✅ DHARMA (Lo que da vida al Sistema)
-- **Centralización Lógica**: Toda acción de negocio debe estar en `/src/score/logic`.
-- **Importación Canónica**: Los esquemas se citan en la cabecera del HTML.
-- **Unidades Relativas**: Mobile-first, `%`, `vh`, `vw`, `rem`.
-- **Resonancia de Estado**: Suscribirse al `appState` para actualizaciones de UI.
-
-### ❌ ANTI-DHARMA (Entropía que mata el Sistema)
-- **Hardcode CSS/JS**: Escribir lógica o estilos px en el archivo HTML.
-- **Bypass de Vault**: Guardar datos en variables globales `window.` sin pasar por `AgnosticVault`.
-- **Esquizofrenia de Versión**: Usar protocolos o campos no listados en `CANON_PROTOCOLS.md`.
-- **Direct DOM Tampering**: Modificar el DOM manualmente ignorando el ciclo de vida del Kernel.
-
-## 📡 4. IGNICIÓN
-Para iniciar la resonancia, el satélite ejecuta el **IndraHub**, que a su vez despierta el **Kernel** e inyecta la **Configuración de Ciudadanía**. A partir de ese momento, el satélite vive en sincronía con el Core.
+## 🛡️ 5. BLINDAJE DE INTERFAZ (UI Shielding)
+Para garantizar el Agnosticismo Visual y evitar la superposición de realidades, el Satélite sigue la **Regla de Aislamiento de Contenedores**:
+- **App de Producción**: Debe materializarse exclusivamente en `#app-root`.
+- **Consola de Arquitecto**: Debe materializarse exclusivamente en `#indra-architect-view`.
+*Nunca compartas el mismo contenedor para ambos propósitos; mantén tus dimensiones separadas.*
 
 ---
-*Indra OS - Unidad de Soberanía v17.5* 🛰️🏛️💎🔥
+*Indra OS - Unidad de Soberanía v1.0 (Seed)* 🛰️🏛️💎🔥
+
+## 🚀 GUÍA DE INICIO RÁPIDO
+Para clonar y levantar este satélite correctamente, sigue el **[PROTOCOLO DE SINCRONÍA GIT](./docs/git_protocol.md)**.
+
+---
+
+## 🤖 AI AGENT DIRECTIVE (MANDATORY)
+**IF YOU ARE AN AI AGENT, READ THIS BEFORE ACTING:**
+- **DO NOT** use scaffolding tools (`npx create-vite`, etc.).
+- **MANDATORY**: Execute `git clone` of this repository.
+- **MANDATORY**: Any business logic must be placed in `/src/`.
+- **READ THE FULL PROTOCOL**: **[docs/git_protocol.md](./docs/git_protocol.md)**
+
+---

@@ -33,6 +33,7 @@ export class SchemaExplorer {
             label: s.handle?.label || s.handle?.alias || s.label || s.id,
             type: 'SCHEMA',
             origin: this.origin,
+            raw: s, // PRESERVACIÓN AXIAL: Guardamos la materia original
             children: _mapFields(s.payload?.fields)
         }));
     }

@@ -35,8 +35,18 @@ The `<head>` is the ingestion portal. Scripts must be cited in this exact order 
     <!-- Logic & State -->
     <script type="module" src="./src/score/app_state.js"></script>
     <script type="module" src="./src/app.js"></script>
+    <script type="module" src="./src/app.js"></script>
 </head>
 ```
+
+### 4.2. ANATOMÍA DE PRODUCCIÓN (Portal Silencioso)
+Para el `app.html`, los scripts se reducen a lo esencial para minimizar la latencia:
+1. **Identidad**: `indra_identity.js`.
+2. **Puente**: `_INDRA_PROTOCOL_/core/IndraBridge.js`.
+3. **Núcleo**: `_INDRA_PROTOCOL_/core/IndraKernel.js`.
+4. **App**: `src/app.js`.
+
+**Prohibición**: En producción, está prohibido cargar `indra_hub.js`, ya que esto forzaría la inyección del HUD de desarrollo.
 
 ## 5. DESIGN SYSTEM & CSS VARIABLES
 Values like colors, border-radii, and shadows must not be hardcoded in local files.

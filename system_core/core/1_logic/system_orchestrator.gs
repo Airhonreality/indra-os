@@ -8,35 +8,45 @@
  * =============================================================================
  */
 
+/**
+ * LISTA BLANCA DE PROTOCOLOS AUTORIZADOS PARA BATCH (v20.0)
+ */
+const GATEWAY_SYSTEM_PROTOCOLS = [
+  'SYSTEM_MANIFEST', 'SYSTEM_CONFIG_SCHEMA', 'SYSTEM_SATELLITE_DISCOVER', 'SYSTEM_PINS_READ',
+  'SYSTEM_SATELLITE_INITIALIZE',
+  'ATOM_READ', 'ATOM_CREATE', 'ATOM_UPDATE', 'ATOM_PATCH', 'ATOM_DELETE',
+  'SYSTEM_IDENTITY_CREATE', 'SYSTEM_IDENTITY_READ', 'SYSTEM_IDENTITY_VERIFY', 
+  'SYSTEM_IDENTITY_REGISTER', 'SYSTEM_IDENTITY_SYNC',
+  'TABULAR_STREAM', 'TABULAR_UPDATE', 'SYSTEM_WORKSPACE_DEEP_PURGE',
+  'HEALTH_CHECK'
+];
+
 const SystemOrchestrator = (function() {
 
   /**
-   * Mapa de Aliados Encapsulados (Excepciones al auto-discovery directo).
-   * Algunos protocolos no viven en el scope global sino dentro de singletons.
-   * @private
-   */
-  const _SERVICE_ALIASES_ = Object.freeze({
-    'SYSTEM_NEXUS_HANDSHAKE_INIT':  (p) => NexusService.initiateHandshake(p.data.remote_url, p.data.alias),
-    'SYSTEM_NEXUS_HANDSHAKE_ACCEPT':(p) => NexusService.acceptHandshake(p),
-    'SYSTEM_IDENTITY_CREATE':       (p) => IdentityProvider.createProfile(p),
-    'SYSTEM_IDENTITY_READ':         (p) => IdentityProvider.getProfile(p.data.id || p.data.alias),
-    'SYSTEM_IDENTITY_VERIFY':       (p) => IdentityProvider.verifyCorporateIdentity(p.data.email)
-  });
-
-  /**
-   * Registro de Mandos Críticos (Surgical Orchestration v18.9)
+   * Registro de Mandos Críticos (Surgical Orchestration v20.0 - UNIFICADO)
    * Protocolos que requieren resonancia axiomática obligatoria.
    * @private
    */
   const _COMMAND_REGISTRY_ = Object.freeze({
-    'ATOM_CREATE':                  (p) => _system_handleCreate(p),
-    'ATOM_UPDATE':                  (p) => _system_handleUpdate(p),
-    'ATOM_PATCH':                   (p) => _system_handlePatch(p),
-    'ATOM_DELETE':                  (p) => _system_handleDelete(p),
-    'SYSTEM_IDENTITY_REGISTER':     (p) => AuthService.register(p),
-    'SYSTEM_SATELLITE_INITIALIZE':  (p) => SYSTEM_SATELLITE_INITIALIZE(p),
-    'TABULAR_UPDATE':               (p) => (p.provider === 'sheets' ? handleSheets(p) : _system_handleTabularUpdate(p)),
-    'SYSTEM_WORKSPACE_DEEP_PURGE':  (p) => SYSTEM_WORKSPACE_DEEP_PURGE(p)
+    // --- PERSISTENCIA ATÓMICA ---
+    'ATOM_READ':                  (p) => _system_handleRead(p),
+    'ATOM_CREATE':                (p) => _system_handleCreate(p),
+    'ATOM_UPDATE':                (p) => _system_handleUpdate(p),
+    'ATOM_PATCH':                 (p) => _system_handlePatch(p),
+    'ATOM_DELETE':                (p) => _system_handleDelete(p),
+
+    // --- IDENTIDAD SOBERANA ---
+    'SYSTEM_IDENTITY_CREATE':     (p) => IdentityProvider.createProfile(p),
+    'SYSTEM_IDENTITY_READ':       (p) => IdentityProvider.getProfile(p.data.id || p.data.alias),
+    'SYSTEM_IDENTITY_VERIFY':     (p) => IdentityProvider.verifyCorporateIdentity(p.data.email),
+    'SYSTEM_IDENTITY_REGISTER':   (p) => AuthService.register(p),
+    'SYSTEM_IDENTITY_SYNC':       (p) => AuthService.syncIdentity(p),
+
+    // --- INFRAESTRUCTURA Y JURISDICCIÓN ---
+    'SYSTEM_SATELLITE_INITIALIZE':(p) => SYSTEM_SATELLITE_INITIALIZE(p),
+    'TABULAR_UPDATE':             (p) => (p.provider === 'sheets' ? handleSheets(p) : _system_handleTabularUpdate(p)),
+    'SYSTEM_WORKSPACE_DEEP_PURGE':(p) => SYSTEM_WORKSPACE_DEEP_PURGE(p)
   });
 
   /**
@@ -176,7 +186,8 @@ const SystemOrchestrator = (function() {
 
     try {
       // --- ESCENARIO DE ACTUALIZACIÓN ---
-      if ((protocol === 'ATOM_UPDATE' || protocol === 'ATOM_PATCH') && items[0]) {
+      const IS_MUTATION = ['ATOM_UPDATE', 'ATOM_PATCH', 'SYSTEM_IDENTITY_SYNC'].includes(protocol);
+      if (IS_MUTATION && items[0]) {
           const atom = items[0];
           
           // 1. Sincronización del Ledger (Para cambios de identidad)
@@ -190,7 +201,8 @@ const SystemOrchestrator = (function() {
       }
 
       // --- ESCENARIO DE GÉNESIS ---
-      if (protocol === 'ATOM_CREATE' && items[0]) {
+      const IS_GENESIS = ['ATOM_CREATE', 'SYSTEM_IDENTITY_CREATE', 'SYSTEM_IDENTITY_REGISTER', 'SYSTEM_SATELLITE_INITIALIZE'].includes(protocol);
+      if (IS_GENESIS && items[0]) {
           const atom = items[0]; // <--- USAMOS LA REALIDAD YA MATERIALIZADA
           
           // 1. Sincronización del Ledger Maestro

@@ -11,7 +11,7 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
   'HEALTH_CHECK':                 HEALTH_CHECK,
 
   // --- PERSISTENCIA (ATOM CRUD) ---
-  'ATOM_READ':                    (p) => _system_handleRead(p),
+  'ATOM_READ':                    (p) => SystemOrchestrator.dispatch(p),
   'ATOM_CREATE':                  (p) => SystemOrchestrator.dispatch(p),
   'ATOM_UPDATE':                  (p) => SystemOrchestrator.dispatch(p),
   'ATOM_PATCH':                   (p) => SystemOrchestrator.dispatch(p),
@@ -46,9 +46,9 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
   // --- NEXO E IDENTIDAD CRUZADA ---
   'SYSTEM_NEXUS_HANDSHAKE_INIT':  (p) => NexusService.initiateHandshake(p.data.remote_url, p.data.alias),
   'SYSTEM_NEXUS_HANDSHAKE_ACCEPT':(p) => NexusService.acceptHandshake(p),
-  'SYSTEM_IDENTITY_CREATE':       (p) => IdentityProvider.createProfile(p),
-  'SYSTEM_IDENTITY_READ':         (p) => IdentityProvider.getProfile(p.data.id || p.data.alias),
-  'SYSTEM_IDENTITY_VERIFY':       (p) => IdentityProvider.verifyCorporateIdentity(p.data.email),
+  'SYSTEM_IDENTITY_CREATE':       (p) => SystemOrchestrator.dispatch(p),
+  'SYSTEM_IDENTITY_READ':         (p) => SystemOrchestrator.dispatch(p),
+  'SYSTEM_IDENTITY_VERIFY':       (p) => SystemOrchestrator.dispatch(p),
 
   // --- SOBERANÍA SATELITAL ---
   'SYSTEM_SATELLITE_INITIALIZE':  (p) => SystemOrchestrator.dispatch(p),
@@ -112,7 +112,7 @@ const PROTOCOL_ROUTING_TABLE = Object.freeze({
   'SEARCH_DEEP':                  (p) => handleNotion(p), 
   
   // --- SOVEREIGN AUTH (v17.8) ---
-  'SYSTEM_IDENTITY_SYNC':         (p) => AuthService.syncIdentity(p),
+  'SYSTEM_IDENTITY_SYNC':         (p) => SystemOrchestrator.dispatch(p),
   'SYSTEM_SESSION_REVOKE':        (p) => AuthService.revokeSession(p),
   'SYSTEM_IDENTITY_REGISTER':     (p) => SystemOrchestrator.dispatch(p),
 });

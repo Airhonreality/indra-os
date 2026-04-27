@@ -60,14 +60,36 @@ function _system_handleCreate(uqo) {
     const data = uqo.data || {};
     const atomClass = data.class || uqo.class; 
     
-    if (!atomClass) {
+    if (!atomClass && uqo.protocol !== 'SYSTEM_IDENTITY_CREATE') {
         throw createError('INVALID_INPUT', 'ATOM_CREATE: Se requiere definir la clase (IDENTITY, WORKSPACE, etc).');
     }
     
-    const finalClass = atomClass; 
-    const label = data.handle?.label || data.label || 'Sin título';
+    const finalClass = atomClass || 'IDENTITY'; 
+    const label = data.handle?.label || data.label || data.id || 'Sin título';
     const alias = data.handle?.alias || _system_slugify_(label);
     
+    // --- AXIOMA DE MAPEO INTELIGENTE (v20.6) ---
+    // Si es un esquema y viene como objeto plano, lo convertimos al formato Indra
+    if (finalClass === 'DATA_SCHEMA' && (!data.payload?.fields || data.payload.fields.length === 0)) {
+        const fields = [];
+        const blackList = ['id', 'class', 'handle', 'payload', 'metadata', 'provider', 'protocol'];
+        
+        Object.keys(data).forEach(key => {
+            if (blackList.includes(key)) return;
+            const value = data[key];
+            fields.push({
+                id: key,
+                label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
+                type: typeof value === 'string' ? value.toUpperCase() : 'STRING'
+            });
+        });
+
+        if (fields.length > 0) {
+            logInfo(`[persistence] Auto-mapeo de esquema detectado para "${alias}". ${fields.length} campos generados.`);
+            data.payload = { ...(data.payload || {}), fields: fields };
+        }
+    }
+
     // --- AXIOMA DE IDEMPOTENCIA (v20.5 - CREATE OR UPDATE) ---
     // Si ya existe un átomo con el mismo ALIAS y CLASE en este contexto, mutamos a UPDATE.
     const contextId = uqo.workspace_id || uqo.context_id || 'system';
@@ -78,6 +100,7 @@ function _system_handleCreate(uqo) {
         logInfo(`[persistence] IDEMPOTENCIA: El alias "${alias}" ya existe para la clase "${finalClass}". Convirtiendo a PATCH.`);
         uqo.protocol = 'ATOM_PATCH';
         uqo.context_id = match.id;
+        uqo.data = data; // Asegurar que pasamos el data mapeado
         return _system_handlePatch(uqo);
     }
     

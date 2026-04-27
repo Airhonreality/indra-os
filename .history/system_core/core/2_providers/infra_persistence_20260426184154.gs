@@ -60,11 +60,11 @@ function _system_handleCreate(uqo) {
     const data = uqo.data || {};
     const atomClass = data.class || uqo.class; 
     
-    if (!atomClass) {
+    if (!atomClass && uqo.protocol !== 'SYSTEM_IDENTITY_CREATE') {
         throw createError('INVALID_INPUT', 'ATOM_CREATE: Se requiere definir la clase (IDENTITY, WORKSPACE, etc).');
     }
     
-    const finalClass = atomClass; 
+    const finalClass = atomClass || 'IDENTITY'; 
     const label = data.handle?.label || data.label || 'Sin título';
     const alias = data.handle?.alias || _system_slugify_(label);
     

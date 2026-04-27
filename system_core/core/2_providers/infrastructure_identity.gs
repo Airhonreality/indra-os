@@ -91,3 +91,24 @@ function infra_identity_validate_dna(file) {
         throw createError('JSON_CORRUPT', `Sinceridad Violada: No se pudo parsear el ADN de '${file.getName()}'`);
     }
 }
+/**
+ * Resuelve un ID a su recurso físico real (File o Folder) sin saltos lógicos.
+ * @param {string} rawId 
+ * @returns {GoogleAppsScript.Drive.File | GoogleAppsScript.Drive.Folder}
+ */
+function infra_identity_get_physical_resource(rawId) {
+    if (!rawId) throw createError('IDENTITY_REQUIRED', '[infra:ident] ID requerido.');
+    const atomId = rawId.includes(':') ? rawId.split(':').pop() : rawId;
+
+    try {
+        // Primero intentamos como archivo (lo más común)
+        return DriveApp.getFileById(atomId);
+    } catch (e) {
+        try {
+            // Si falla, intentamos como carpeta
+            return DriveApp.getFolderById(atomId);
+        } catch (f) {
+            throw createError('NOT_FOUND', `Recurso físico no encontrado: ${atomId}`);
+        }
+    }
+}
